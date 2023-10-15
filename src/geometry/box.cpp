@@ -9,9 +9,10 @@ bool AABB::contains(int px, int py) {
     return (px >= x && px <= (x + width) && py >= y && py <= (y + height));
 }
 
-SDL_Texture *AABB::create_texture(SDL_Renderer *renderer, Uint32 Rmask,
-                                  Uint32 Gmask, Uint32 Bmask, Uint32 Amask) {
-    SDL_Surface *surface =
-        SDL_CreateRGBSurface(0, width, height, 32, Rmask, Gmask, Bmask, Amask);
-    return SDL_CreateTextureFromSurface(renderer, surface);
+SDL_Texture *AABB::create_texture(SDL_Renderer *renderer, Uint32 Rmask, Uint32 Gmask, Uint32 Bmask, Uint32 Amask) {
+    SDL_Surface *surface = SDL_CreateRGBSurface(0, width, height, 32, Rmask, Gmask, Bmask, Amask);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+    SDL_FreeSurface(surface);
+    return texture;
 }

@@ -71,6 +71,8 @@ void Game::game_loop() {
 }
 
 void Game::cleanup() {
+    free(context.painter);
+    free(context.event_handler);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
