@@ -1,0 +1,47 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-Wall",
+      "-I/usr/include/SDL2",
+      "-c",
+      "-o",
+      "build/2dphysics.o",
+      "src/2dphysics.cpp"
+    ],
+    "directory": "/home/abaan404/Development/2dphysics",
+    "file": "/home/abaan404/Development/2dphysics/src/2dphysics.cpp",
+    "output": "/home/abaan404/Development/2dphysics/build/2dphysics.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-Wall",
+      "-I/usr/include/SDL2",
+      "-c",
+      "-o",
+      "build/painter.o",
+      "src/painter.cpp"
+    ],
+    "directory": "/home/abaan404/Development/2dphysics",
+    "file": "/home/abaan404/Development/2dphysics/src/painter.cpp",
+    "output": "/home/abaan404/Development/2dphysics/build/painter.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-Wall",
+      "-I/usr/include/SDL2",
+      "-c",
+      "-o",
+      "build/geometry/box.o",
+      "src/geometry/box.cpp"
+    ],
+    "directory": "/home/abaan404/Development/2dphysics",
+    "file": "/home/abaan404/Development/2dphysics/src/geometry/box.cpp",
+    "output": "/home/abaan404/Development/2dphysics/build/geometry/box.o"
+  }
+]
