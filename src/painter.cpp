@@ -9,13 +9,12 @@ Painter::Painter(SDL_Renderer *renderer) {
 
 void Painter::draw() {
     // draw all objects
-    for (auto texture = textures.begin(); texture != textures.end(); texture++) {
-        Texture txr = *texture;
-        SDL_RenderCopy(renderer, txr.texture, NULL, &txr.texture_rect);
+    for (auto object = objects.begin(); object != objects.end(); object++) {
+        Object *obj = *object;
+        SDL_RenderCopy(renderer, obj->texture, NULL, &obj->rect);
     }
 
     SDL_RenderPresent(renderer);
-
 }
 
 void Painter::background() {
@@ -25,9 +24,6 @@ void Painter::background() {
 }
 
 void Painter::aabb(AABB *box) {
-    // create an AABB box
-    SDL_Texture *texture = box->create_texture(renderer, 0, 255, 0, 0);
-    SDL_Rect rect = {box->x, box->y, box->width, box->height};
-
-    textures.push_back((Texture){texture, rect});
+    box->render_texture(renderer, 0, 255, 0, 0);
+    objects.push_back(box);
 }

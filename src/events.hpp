@@ -10,8 +10,6 @@ class EventHandler {
   public:
     EventHandler(Painter *painter);
 
-    Painter *painter;
-
     // execute all event in queue
     void execute();
 
@@ -30,4 +28,7 @@ class EventHandler {
     void mouse_mousescroll(SDL_Event &e);
     void mouse_mousemotion(SDL_Event &e);
     void video_resize(SDL_Event &e);
+
+  private:
+    Painter *painter;
 };
