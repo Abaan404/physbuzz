@@ -29,9 +29,9 @@ Game::Game() {
 
     is_running = true;
 
-    Painter *painter = new Painter(renderer);
-    context.painter = painter;
-    context.event_handler = new EventHandler(painter);
+    this->painter = new Painter(renderer, &objects);
+    this->event_handler = new EventHandler(painter);
+    this->physics = new Physics(&objects);
 }
 
 void Game::game_loop() {
@@ -48,28 +48,26 @@ void Game::game_loop() {
             break;
 
         case SDL_KEYDOWN:
-            context.event_handler->keyboard_keydown(e);
+            event_handler->keyboard_keydown(e);
             break;
 
         case SDL_KEYUP:
-            context.event_handler->keyboard_keyup(e);
+            event_handler->keyboard_keyup(e);
             break;
 
         case SDL_MOUSEBUTTONDOWN:
-            context.event_handler->mouse_mousedown(e);
+            event_handler->mouse_mousedown(e);
             break;
         }
 
-        context.painter->background();
-        context.painter->draw();
+        painter->background();
+        painter->draw();
     }
-
-    cleanup();
 }
 
 void Game::cleanup() {
-    free(context.painter);
-    free(context.event_handler);
+    free(painter);
+    free(event_handler);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -78,6 +76,7 @@ void Game::cleanup() {
 int main(int argc, char *argv[]) {
     Game game = Game();
     game.game_loop();
+    game.cleanup();
 
     return 0;
 }

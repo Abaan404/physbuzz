@@ -7,7 +7,7 @@
 
 class Painter {
   public:
-    Painter(SDL_Renderer *renderer);
+    Painter(SDL_Renderer *renderer, std::list<Object *> *objects);
 
     void draw();
 
@@ -16,5 +16,5 @@ class Painter {
 
   private:
     SDL_Renderer *renderer;
-    std::list<Object *> objects;
+    std::list<Object *> *objects;
 };

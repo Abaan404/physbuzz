@@ -3,13 +3,14 @@
 #include <SDL2/SDL_render.h>
 #include <cstdio>
 
-Painter::Painter(SDL_Renderer *renderer) {
+Painter::Painter(SDL_Renderer *renderer, std::list<Object *> *objects) {
+    this->objects = objects;
     this->renderer = renderer;
 }
 
 void Painter::draw() {
     // draw all objects
-    for (auto object = objects.begin(); object != objects.end(); object++) {
+    for (auto object = objects->begin(); object != objects->end(); object++) {
         Object *obj = *object;
         SDL_RenderCopy(renderer, obj->texture, NULL, &obj->rect);
     }
@@ -34,5 +35,5 @@ void Painter::aabb(AABB *box) {
     box->texture = texture;
     box->rect = {box->min[0], box->min[1], width, height};
 
-    objects.push_back(box);
+    objects->push_back(box);
 }
