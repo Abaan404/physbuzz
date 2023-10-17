@@ -10,6 +10,6 @@ void EventHandler::keyboard_keydown(SDL_Event &e) {}
 void EventHandler::keyboard_keyup(SDL_Event &e) {}
 
 void EventHandler::mouse_mousedown(SDL_Event &e) {
-    AABB *box = new AABB(e.button.x, e.button.y, 10, 10);
+    AABB *box = new AABB(e.button.x, e.button.y, 10, 10, (struct Mask){0, 255, 0, 0});
     painter->aabb(box);
 }
