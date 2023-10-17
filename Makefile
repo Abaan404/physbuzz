@@ -1,6 +1,6 @@
 # Compiler and compiler flags
 CXX = g++
-CXXFLAGS = -std=c++20 -Wall -I/usr/include/SDL2
+CXXFLAGS = -std=c++20 -Wall
 LDFLAGS = -lSDL2
 
 DEBUG_CXXFLAGS = -g

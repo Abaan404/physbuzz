@@ -1,7 +1,7 @@
 #pragma once
 
-#include "SDL_render.h"
 #include "object.hpp"
+#include <SDL2/SDL_render.h>
 
 class AABB : public Object {
   public:

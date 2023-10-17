@@ -2,7 +2,7 @@
 
 #include "events.hpp"
 #include "painter.hpp"
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 struct GameContext {
     EventHandler *event_handler;

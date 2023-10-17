@@ -1,6 +1,6 @@
 #include "painter.hpp"
-#include "SDL_rect.h"
-#include "SDL_render.h"
+#include <SDL2/SDL_rect.h>
+#include <SDL2/SDL_render.h>
 #include <cstdio>
 
 Painter::Painter(SDL_Renderer *renderer) {

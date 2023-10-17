@@ -1,8 +1,8 @@
 #pragma once
 
-#include "SDL_render.h"
 #include "geometry/box.hpp"
 #include "geometry/object.hpp"
+#include <SDL2/SDL_render.h>
 #include <list>
 
 class Painter {

@@ -1,6 +1,6 @@
 #include "box.hpp"
-#include "SDL_render.h"
-#include "SDL_surface.h"
+#include <SDL2/SDL_render.h>
+#include <SDL2/SDL_surface.h>
 
 AABB::AABB(int x, int y, int width, int height, Mask mask) {
     Object::x = x;

@@ -1,6 +1,6 @@
 #include "events.hpp"
-#include "SDL2/SDL.h"
 #include "geometry/box.hpp"
+#include <SDL2/SDL.h>
 #include <cstdio>
 
 EventHandler::EventHandler(Painter *painter) { this->painter = painter; };

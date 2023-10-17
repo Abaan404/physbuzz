@@ -1,7 +1,7 @@
 #pragma once
 
-#include "SDL_events.h"
 #include "painter.hpp"
+#include <SDL2/SDL_events.h>
 #include <functional>
 #include <map>
 #include <string>
