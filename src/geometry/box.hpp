@@ -13,4 +13,5 @@ class AABB : public Object {
     glm::ivec2 max;
 
     bool collides(AABB *aabb);
+    bool collides(Object *object) override;
 };

@@ -61,6 +61,7 @@ void Game::game_loop() {
         }
 
         painter->background();
+        physics->tick();
         painter->draw();
     }
 }

@@ -13,9 +13,10 @@ class Object {
   public:
     SDL_Texture *texture;
     SDL_Rect rect;
+    Mask mask;
 
     int x;
     int y;
 
-    Mask mask;
+    virtual bool collides(Object *object) = 0;
 };

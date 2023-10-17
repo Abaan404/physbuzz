@@ -2,6 +2,7 @@
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_surface.h>
 #include <glm/glm.hpp>
+#include <stdexcept>
 
 AABB::AABB(int x, int y, int width, int height, Mask mask) {
     // center of the object
@@ -16,7 +17,6 @@ AABB::AABB(int x, int y, int width, int height, Mask mask) {
 // ref: https://code.tutsplus.com/collision-detection-using-the-separating-axis-theorem--gamedev-169t
 // currently just assumes every box is perpendicular for now
 bool AABB::collides(AABB *aabb) {
-
     // if not colliding on any axis
     if (this->max[0] < aabb->min[0] or this->min[0] > aabb->max[0])
         return false;
@@ -25,4 +25,13 @@ bool AABB::collides(AABB *aabb) {
         return false;
 
     return true;
+}
+
+bool AABB::collides(Object *object) {
+    // is this object oriented programming?
+    if (dynamic_cast<AABB *>(object) != nullptr) {
+        return collides((AABB *)object);
+    }
+
+    throw std::runtime_error("Undefined Object Collision");
 }

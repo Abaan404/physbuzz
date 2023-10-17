@@ -5,7 +5,7 @@ class Physics {
   public:
     Physics(std::list<Object *> *objects);
 
-    void step();
+    void tick();
 
   private:
     std::list<Object *> *objects;
