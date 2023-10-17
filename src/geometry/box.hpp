@@ -2,13 +2,15 @@
 
 #include "object.hpp"
 #include <SDL2/SDL_render.h>
+#include <glm/glm.hpp>
 
 class AABB : public Object {
   public:
     AABB(int x, int y, int width, int height, Mask mask);
 
-    int width;
-    int height;
+    // AABB variables
+    glm::ivec2 min;
+    glm::ivec2 max;
 
-    bool contains(int px, int py);
+    bool collides(AABB *aabb);
 };

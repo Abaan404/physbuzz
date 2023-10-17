@@ -24,12 +24,15 @@ void Painter::background() {
 }
 
 void Painter::aabb(AABB *box) {
-    SDL_Surface *surface = SDL_CreateRGBSurface(0, box->width, box->height, 32, box->mask.Rmask, box->mask.Gmask, box->mask.Bmask, box->mask.Amask);
+    int width = box->max[0] - box->min[0];
+    int height = box->max[1] - box->min[1];
+
+    SDL_Surface *surface = SDL_CreateRGBSurface(0, width, height, 32, box->mask.Rmask, box->mask.Gmask, box->mask.Bmask, box->mask.Amask);
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
 
     box->texture = texture;
-    box->rect = {box->x, box->y, box->width, box->height};
+    box->rect = {box->min[0], box->min[1], width, height};
 
     objects.push_back(box);
 }
