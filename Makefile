@@ -1,9 +1,9 @@
-# Compiler and compiler flags
 CXX = g++
 CXXFLAGS = -std=c++20 -Wall
 LDFLAGS = -lSDL2
 
 DEBUG_CXXFLAGS = -g
+RELEASE_CXXFLAGS = -O3
 
 TARGET = 2dphysics
 
@@ -16,6 +16,15 @@ OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRCS))
 
 VPATH = $(SRC_DIR)
 
+# make debug by default
+all: debug
+
+release: CXXFLAGS += $(RELEASE_CXXFLAGS)
+release: $(TARGET)
+
+debug: CXXFLAGS += $(DEBUG_CXXFLAGS)
+debug: $(TARGET)
+
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
@@ -26,9 +35,6 @@ $(BUILD_DIR)/%.o: %.cpp
 setup:
 	# clangd LSP bindings
 	bear -- make
-
-debug: CXXFLAGS += $(DEBUG_CXXFLAGS)
-debug: $(TARGET)
 
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
