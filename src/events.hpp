@@ -1,6 +1,7 @@
 #pragma once
 
 #include "painter.hpp"
+#include "store.hpp"
 #include <SDL2/SDL_events.h>
 #include <functional>
 #include <map>
@@ -8,7 +9,7 @@
 
 class EventHandler {
   public:
-    EventHandler(Painter *painter);
+    EventHandler(Painter *painter, GameObjectStore *storage);
 
     // execute all event in queue
     void execute();
@@ -31,4 +32,5 @@ class EventHandler {
 
   private:
     Painter *painter;
+    GameObjectStore *storage;
 };

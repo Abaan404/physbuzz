@@ -4,34 +4,12 @@
 #include <glm/glm.hpp>
 #include <stdexcept>
 
-AABB::AABB(int x, int y, int width, int height, Mask mask) {
+Box::Box(int x, int y, int width, int height, Mask mask) {
     // center of the object
-    Object::x = x;
-    Object::y = y;
+    GameObject::x = x;
+    GameObject::y = y;
 
-    Object::mask = mask;
+    GameObject::mask = mask;
     this->min = glm::vec2(x - (width >> 1), y - (height >> 1));
     this->max = glm::vec2(x + (width >> 1), y + (height >> 1));
-}
-
-// ref: https://code.tutsplus.com/collision-detection-using-the-separating-axis-theorem--gamedev-169t
-// currently just assumes every box is perpendicular for now
-bool AABB::collides(AABB *aabb) {
-    // if not colliding on any axis
-    if (this->max[0] < aabb->min[0] or this->min[0] > aabb->max[0])
-        return false;
-
-    if (this->max[1] < aabb->min[1] or this->min[1] > aabb->max[1])
-        return false;
-
-    return true;
-}
-
-bool AABB::collides(Object *object) {
-    // is this object oriented programming?
-    if (dynamic_cast<AABB *>(object) != nullptr) {
-        return collides((AABB *)object);
-    }
-
-    throw std::runtime_error("Undefined Object Collision");
 }

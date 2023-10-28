@@ -9,7 +9,7 @@ struct Mask {
     Uint32 Amask;
 };
 
-class Object {
+class GameObject {
   public:
     SDL_Texture *texture;
     SDL_Rect rect;
@@ -17,6 +17,9 @@ class Object {
 
     int x;
     int y;
+};
 
-    virtual bool collides(Object *object) = 0;
+class PhysicsObject {
+  public:
+    virtual bool collides(PhysicsObject *object) = 0;
 };

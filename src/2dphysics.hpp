@@ -2,8 +2,10 @@
 
 #include "events.hpp"
 #include "painter.hpp"
-#include "physics/physics.hpp"
+#include "physics.hpp"
+#include "store.hpp"
 #include <SDL2/SDL.h>
+#include <vector>
 
 class Game {
   public:
@@ -17,10 +19,10 @@ class Game {
     // stuff ig
     EventHandler *event_handler;
     Painter *painter;
-    Physics *physics;
+    PhysicsContext *physics;
 
     // list of game objects
-    std::list<Object *> objects;
+    GameObjectStore *storage;
 
     // SDL Variables
     SDL_Window *window;

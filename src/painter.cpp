@@ -1,18 +1,14 @@
 #include "painter.hpp"
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
-#include <cstdio>
 
-Painter::Painter(SDL_Renderer *renderer, std::list<Object *> *objects) {
-    this->objects = objects;
-    this->renderer = renderer;
-}
+Painter::Painter(SDL_Renderer *renderer, GameObjectStore *storage) : renderer(renderer), storage(storage) {}
 
 void Painter::draw() {
     // draw all objects
-    for (auto object = objects->begin(); object != objects->end(); object++) {
-        Object *obj = *object;
-        SDL_RenderCopy(renderer, obj->texture, NULL, &obj->rect);
+    for (auto object = storage->objects.begin(); object != storage->objects.end(); object++) {
+        GameObject obj = *object;
+        SDL_RenderCopy(renderer, obj.texture, NULL, &obj.rect);
     }
 
     SDL_RenderPresent(renderer);
@@ -24,7 +20,7 @@ void Painter::background() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 0);
 }
 
-void Painter::aabb(AABB *box) {
+void Painter::render_box(Box *box) {
     int width = box->max[0] - box->min[0];
     int height = box->max[1] - box->min[1];
 
@@ -34,6 +30,4 @@ void Painter::aabb(AABB *box) {
 
     box->texture = texture;
     box->rect = {box->min[0], box->min[1], width, height};
-
-    objects->push_back(box);
 }

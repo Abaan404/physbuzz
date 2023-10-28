@@ -4,14 +4,11 @@
 #include <SDL2/SDL_render.h>
 #include <glm/glm.hpp>
 
-class AABB : public Object {
+class Box : public GameObject {
   public:
-    AABB(int x, int y, int width, int height, Mask mask);
+    Box(int x, int y, int width, int height, Mask mask);
 
     // AABB variables
     glm::ivec2 min;
     glm::ivec2 max;
-
-    bool collides(AABB *aabb);
-    bool collides(Object *object) override;
 };

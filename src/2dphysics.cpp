@@ -1,8 +1,6 @@
-#include <SDL2/SDL.h>
-#include <cstdio>
-#include <iostream>
-
 #include "2dphysics.hpp"
+#include <SDL2/SDL.h>
+#include <iostream>
 
 Game::Game() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -29,9 +27,10 @@ Game::Game() {
 
     is_running = true;
 
-    this->painter = new Painter(renderer, &objects);
-    this->event_handler = new EventHandler(painter);
-    this->physics = new Physics(&objects);
+    this->storage = new GameObjectStore();
+    this->painter = new Painter(renderer, storage);
+    this->event_handler = new EventHandler(painter, storage);
+    this->physics = new PhysicsContext(storage);
 }
 
 void Game::game_loop() {
