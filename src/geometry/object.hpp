@@ -19,13 +19,13 @@ enum class Objects {
 
 class GameObject {
   public:
-    GameObject(Objects identifier, int x, int y, Mask mask) : x(x), y(y), mask(mask), identifier(identifier) {};
+    GameObject(Objects identifier, float x, float y, Mask mask) : x(x), y(y), mask(mask), identifier(identifier) {};
 
-    int x;
-    int y;
+    float x;
+    float y;
 
     SDL_Texture *texture;
-    SDL_Rect rect;
+    SDL_FRect rect;
     Mask mask;
 
     Objects identifier = Objects::Unknown;

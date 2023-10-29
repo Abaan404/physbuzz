@@ -6,14 +6,14 @@
 
 class Box : public GameObject {
   public:
-    Box(int x, int y, int width, int height, Mask mask) : GameObject(Objects::Box, x, y, mask) {
-        this->min = glm::vec2(x - (width >> 1), y - (height >> 1));
-        this->max = glm::vec2(x + (width >> 1), y + (height >> 1));
+    Box(float x, float y, float width, float height, Mask mask) : GameObject(Objects::Box, x, y, mask) {
+        this->min = glm::vec2(x - (width / 2.0f), y - (height / 2.0f));
+        this->max = glm::vec2(x + (width / 2.0f), y + (height / 2.0f));
     };
 
     // AABB variables
-    glm::ivec2 min;
-    glm::ivec2 max;
+    glm::vec2 min;
+    glm::vec2 max;
 
     bool collides(GameObject *object) override { return false; }
 };
