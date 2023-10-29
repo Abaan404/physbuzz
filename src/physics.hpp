@@ -1,14 +1,14 @@
 #pragma once
 
 #include "physics/physics_box.hpp"
-#include "store.hpp"
+#include <vector>
 
 class PhysicsContext {
   public:
-    PhysicsContext(GameObjectStore *storage);
+    PhysicsContext(std::vector<GameObject *> *objects) : objects(objects){};
 
     void tick();
 
   private:
-    GameObjectStore *storage;
+    std::vector<GameObject *> *objects;
 };

@@ -2,13 +2,11 @@
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
 
-Painter::Painter(SDL_Renderer *renderer, GameObjectStore *storage) : renderer(renderer), storage(storage) {}
-
 void Painter::draw() {
     // draw all objects
-    for (auto object = storage->objects.begin(); object != storage->objects.end(); object++) {
-        GameObject obj = *object;
-        SDL_RenderCopy(renderer, obj.texture, NULL, &obj.rect);
+    for (auto object = objects->begin(); object != objects->end(); object++) {
+        GameObject *obj = *object;
+        SDL_RenderCopy(renderer, obj->texture, NULL, &obj->rect);
     }
 
     SDL_RenderPresent(renderer);

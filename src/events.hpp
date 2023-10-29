@@ -1,15 +1,15 @@
 #pragma once
 
 #include "painter.hpp"
-#include "store.hpp"
 #include <SDL2/SDL_events.h>
 #include <functional>
 #include <map>
 #include <string>
+#include <vector>
 
 class EventHandler {
   public:
-    EventHandler(Painter *painter, GameObjectStore *storage);
+    EventHandler(Painter *painter, std::vector<GameObject *> *objects) : painter(painter), objects(objects){};
 
     // execute all event in queue
     void execute();
@@ -32,5 +32,5 @@ class EventHandler {
 
   private:
     Painter *painter;
-    GameObjectStore *storage;
+    std::vector<GameObject *> *objects;
 };

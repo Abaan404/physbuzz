@@ -27,10 +27,9 @@ Game::Game() {
 
     is_running = true;
 
-    this->storage = new GameObjectStore();
-    this->painter = new Painter(renderer, storage);
-    this->event_handler = new EventHandler(painter, storage);
-    this->physics = new PhysicsContext(storage);
+    this->painter = new Painter(renderer, &objects);
+    this->event_handler = new EventHandler(painter, &objects);
+    this->physics = new PhysicsContext(&objects);
 }
 
 void Game::game_loop() {
@@ -68,6 +67,7 @@ void Game::game_loop() {
 void Game::cleanup() {
     free(painter);
     free(event_handler);
+    free(physics);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

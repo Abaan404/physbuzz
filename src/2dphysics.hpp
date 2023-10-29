@@ -3,7 +3,6 @@
 #include "events.hpp"
 #include "painter.hpp"
 #include "physics.hpp"
-#include "store.hpp"
 #include <SDL2/SDL.h>
 #include <vector>
 
@@ -21,8 +20,8 @@ class Game {
     Painter *painter;
     PhysicsContext *physics;
 
-    // list of game objects
-    GameObjectStore *storage;
+    // holds all game objects
+    std::vector<GameObject *> objects;
 
     // SDL Variables
     SDL_Window *window;

@@ -2,12 +2,12 @@
 
 #include "geometry/box.hpp"
 #include "geometry/object.hpp"
-#include "store.hpp"
 #include <SDL2/SDL_render.h>
+#include <vector>
 
 class Painter {
   public:
-    Painter(SDL_Renderer *renderer, GameObjectStore *storage);
+    Painter(SDL_Renderer *renderer, std::vector<GameObject *> *objects) : renderer(renderer), objects(objects){};
 
     void draw();
 
@@ -16,5 +16,5 @@ class Painter {
 
   private:
     SDL_Renderer *renderer;
-    GameObjectStore *storage;
+    std::vector<GameObject *> *objects;
 };
