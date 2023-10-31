@@ -1,7 +1,6 @@
 #pragma once
 
 #include "object.hpp"
-#include <SDL2/SDL_render.h>
 #include <glm/glm.hpp>
 
 class Box : public GameObject {

@@ -1,6 +1,5 @@
 #include "painter.hpp"
-#include <SDL2/SDL_rect.h>
-#include <SDL2/SDL_render.h>
+#include <cstdio>
 
 void Painter::draw() {
     // draw all objects
@@ -14,16 +13,34 @@ void Painter::draw() {
 
 void Painter::background() {
     // Clear the screen
-    SDL_RenderClear(renderer);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 0);
+    if (SDL_RenderClear(renderer) < 0) {
+        printf("[ERROR] SDL_RenderClear: %s\n", SDL_GetError());
+        exit(1);
+    }
+
+    if (SDL_SetRenderDrawColor(renderer, 64, 64, 64, 0) < 0) {
+        printf("[ERROR] SDL_SetRenderDrawColor: %s\n", SDL_GetError());
+        exit(1);
+    }
 }
 
 void Painter::render_box(Box *box) {
     float width = box->max[0] - box->min[0];
     float height = box->max[1] - box->min[1];
+    Mask mask = box->mask;
 
-    SDL_Surface *surface = SDL_CreateRGBSurface(0, width, height, 32, box->mask.Rmask, box->mask.Gmask, box->mask.Bmask, box->mask.Amask);
+    SDL_Surface *surface = SDL_CreateRGBSurface(0, width, height, 32, mask.Rmask, mask.Gmask, mask.Bmask, mask.Amask);
+    if (surface == NULL) {
+        printf("[ERROR] SDL_SetRenderDrawColor: %s\n", SDL_GetError());
+        exit(1);
+    }
+
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture == NULL) {
+        printf("[ERROR] SDL_CreateTextureFromSurface: %s\n", SDL_GetError());
+        exit(1);
+    }
+
     SDL_FreeSurface(surface);
 
     box->texture = texture;

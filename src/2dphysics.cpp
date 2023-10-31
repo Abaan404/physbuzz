@@ -1,17 +1,17 @@
 #include "2dphysics.hpp"
 #include <SDL2/SDL.h>
-#include <iostream>
+#include <cstdio>
 
 Game::Game() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
+        printf("[ERROR] SDL_Init: %s\n", SDL_GetError());
         exit(1);
     }
 
     // Create a window
     window = SDL_CreateWindow("SDL2 Example", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
     if (window == nullptr) {
-        std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
+        printf("[ERROR] SDL_CreateWindow: %s\n", SDL_GetError());
         SDL_Quit();
         exit(1);
     }
@@ -19,8 +19,7 @@ Game::Game() {
     // Create a renderer
     renderer = SDL_CreateRenderer(window, -2, SDL_RENDERER_ACCELERATED);
     if (renderer == nullptr) {
-        std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
-        SDL_DestroyWindow(window);
+        printf("[ERROR] SDL_CreateRenderer: %s\n", SDL_GetError());
         SDL_Quit();
         exit(1);
     }
