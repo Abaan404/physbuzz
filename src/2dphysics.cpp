@@ -53,7 +53,7 @@ void Game::game_loop() {
             break;
 
         case SDL_MOUSEBUTTONDOWN:
-            event_handler->mouse_mousedown(e);
+            event_handler->mouse_mousedown(e.button);
             break;
         }
 

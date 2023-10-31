@@ -6,7 +6,7 @@ class PhysicsCircle;
 
 class PhysicsBox : public Box {
   public:
-    PhysicsBox(float x, float y, float width, float height, Mask mask) : Box(x, y, width, height, mask) {
+    PhysicsBox(float x, float y, float width, float height, Color color) : Box(x, y, width, height, color) {
         Box::identifier = Objects::PhysicsBox;
     };
     bool collides(GameObject *object) override;

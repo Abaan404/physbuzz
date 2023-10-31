@@ -5,7 +5,7 @@
 
 class Box : public GameObject {
   public:
-    Box(float x, float y, float width, float height, Mask mask) : GameObject(Objects::Box, x, y, mask) {
+    Box(float x, float y, float width, float height, Color color) : GameObject(Objects::Box, x, y, color) {
         this->min = glm::vec2(x - (width / 2.0f), y - (height / 2.0f));
         this->max = glm::vec2(x + (width / 2.0f), y + (height / 2.0f));
     };

@@ -27,11 +27,13 @@ void Painter::background() {
 void Painter::render_box(Box *box) {
     float width = box->max[0] - box->min[0];
     float height = box->max[1] - box->min[1];
-    Mask mask = box->mask;
+    Color color = box->color;
 
-    SDL_Surface *surface = SDL_CreateRGBSurface(0, width, height, 32, mask.Rmask, mask.Gmask, mask.Bmask, mask.Amask);
+    SDL_Surface *surface = SDL_CreateRGBSurface(0, width, height, 32, 0, 0, 0, 0);
+    SDL_FillRect(surface, NULL, SDL_MapRGBA(surface->format, color.R, color.G, color.B, color.A));
+
     if (surface == NULL) {
-        printf("[ERROR] SDL_SetRenderDrawColor: %s\n", SDL_GetError());
+        printf("[ERROR] SDL_CreateRGBSurface: %s\n", SDL_GetError());
         exit(1);
     }
 
