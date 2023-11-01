@@ -2,14 +2,16 @@
 #include "physics_box.hpp"
 #include <stdexcept>
 
-bool PhysicsBox::collides(GameObject *object) {
+void PhysicsBox::collides(GameObject *object) {
     switch (object->identifier) {
     case Objects::PhysicsBox:
-        return this->collides((PhysicsBox *)object);
+        if (check_collision((PhysicsBox *)object))
+            resolve_collision((PhysicsBox *)object);
         break;
 
     case Objects::PhysicsCircle:
-        return this->collides((PhysicsCircle *)object);
+        if (check_collision((PhysicsCircle *)object))
+            resolve_collision((PhysicsCircle *)object);
         break;
 
     case Objects::Unknown:
@@ -19,12 +21,11 @@ bool PhysicsBox::collides(GameObject *object) {
     case Objects::Circle:
         break;
     }
-    return false;
 }
 
 // ref: https://code.tutsplus.com/collision-detection-using-the-separating-axis-theorem--gamedev-169t
 // currently just assumes every box is perpendicular for now
-bool PhysicsBox::collides(PhysicsBox *box) {
+bool PhysicsBox::check_collision(PhysicsBox *box) {
     // if not colliding on any axis
     if (this->max[0] < box->min[0] or this->min[0] > box->max[0])
         return false;
@@ -35,6 +36,14 @@ bool PhysicsBox::collides(PhysicsBox *box) {
     return true;
 }
 
-bool PhysicsBox::collides(PhysicsCircle *circle) {
+bool PhysicsBox::check_collision(PhysicsCircle *circle) {
     return false;
+}
+
+void PhysicsBox::resolve_collision(PhysicsBox* box) {
+    printf("BoxBox Collision Detected\n");
+}
+
+void PhysicsBox::resolve_collision(PhysicsCircle* circle) {
+    printf("BoxCircle Collision Detected\n");
 }

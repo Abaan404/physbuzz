@@ -22,5 +22,5 @@ class GameObject {
     SDL_Color color;
 
     Objects identifier = Objects::Unknown;
-    virtual bool collides(GameObject *object) = 0;
+    virtual void collides(GameObject *object) = 0;
 };

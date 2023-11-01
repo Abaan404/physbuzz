@@ -11,9 +11,9 @@ void PhysicsContext::tick() {
         for (auto obj2 = objects->begin(); obj2 != objects->end(); obj2++) {
             object2 = *obj2;
 
+            // ignore if obj1 is obj2
             if (object1 == object2) continue;
-            if (object1->collides(object2))
-                printf("Collision Detected\n");
+            object1->collides(object2);
         }
     }
 }

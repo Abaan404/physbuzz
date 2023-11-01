@@ -1,15 +1,18 @@
 #include "physics_circle.hpp"
 #include "physics_box.hpp"
+#include <cstdio>
 #include <stdexcept>
 
-bool PhysicsCircle::collides(GameObject *object) {
+void PhysicsCircle::collides(GameObject *object) {
     switch (object->identifier) {
     case Objects::PhysicsBox:
-        return this->collides((PhysicsBox *)object);
+        if (check_collision((PhysicsBox *)object))
+            resolve_collision((PhysicsBox *)object);
         break;
 
     case Objects::PhysicsCircle:
-        return this->collides((PhysicsCircle *)object);
+        if (check_collision((PhysicsCircle *)object))
+            resolve_collision((PhysicsCircle *)object);
         break;
 
     case Objects::Unknown:
@@ -19,13 +22,20 @@ bool PhysicsCircle::collides(GameObject *object) {
     case Objects::Circle:
         break;
     }
+}
+
+bool PhysicsCircle::check_collision(PhysicsCircle *circle) {
     return false;
 }
 
-bool PhysicsCircle::collides(PhysicsCircle *circle) {
+bool PhysicsCircle::check_collision(PhysicsBox *box) {
     return false;
 }
 
-bool PhysicsCircle::collides(PhysicsBox *box) {
-    return false;
+void PhysicsCircle::resolve_collision(PhysicsCircle* circle) {
+    printf("CircleCircle Collision Detected\n");
+}
+
+void PhysicsCircle::resolve_collision(PhysicsBox* box) {
+    printf("CircleBox Collision Detected\n");
 }

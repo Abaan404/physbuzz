@@ -7,5 +7,5 @@ class Circle : public GameObject {
     Circle(float x, float y, float radius, SDL_Color color) : GameObject(Objects::Circle, x, y, color), radius(radius) {}
     float radius;
 
-    bool collides(GameObject *object) override { return false; }
+    void collides(GameObject *object) override {}
 };

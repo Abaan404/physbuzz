@@ -9,8 +9,11 @@ class PhysicsBox : public Box {
     PhysicsBox(float x, float y, float width, float height, SDL_Color color) : Box(x, y, width, height, color) {
         Box::identifier = Objects::PhysicsBox;
     };
-    bool collides(GameObject *object) override;
+    void collides(GameObject *object) override;
 
-    bool collides(PhysicsBox *box);
-    bool collides(PhysicsCircle *circle);
+    void resolve_collision(PhysicsBox *box);
+    void resolve_collision(PhysicsCircle *circle);
+
+    bool check_collision(PhysicsBox *box);
+    bool check_collision(PhysicsCircle *circle);
 };

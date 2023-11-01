@@ -14,5 +14,5 @@ class Box : public GameObject {
     glm::vec2 min;
     glm::vec2 max;
 
-    bool collides(GameObject *object) override { return false; }
+    void collides(GameObject *object) override {}
 };

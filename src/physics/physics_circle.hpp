@@ -9,8 +9,11 @@ class PhysicsCircle : public Circle {
     PhysicsCircle(float x, float y, float radius, SDL_Color color) : Circle(x, y, radius, color) {
         Circle::identifier = Objects::PhysicsCircle;
     };
-    bool collides(GameObject *object) override;
+    void collides(GameObject *object) override;
 
-    bool collides(PhysicsCircle *circle);
-    bool collides(PhysicsBox *box);
+    void resolve_collision(PhysicsBox *box);
+    void resolve_collision(PhysicsCircle *circle);
+
+    bool check_collision(PhysicsCircle *circle);
+    bool check_collision(PhysicsBox *box);
 };
