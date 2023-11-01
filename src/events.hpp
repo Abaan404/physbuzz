@@ -24,7 +24,7 @@ class EventHandler {
     // sdl2 events
     void keyboard_keyup(SDL_Event &e);
     void keyboard_keydown(SDL_Event &e);
-    void mouse_mousedown(SDL_Event &e);
+    void mouse_mousedown(SDL_MouseButtonEvent &e);
     void mouse_mouseup(SDL_Event &e);
     void mouse_mousescroll(SDL_Event &e);
     void mouse_mousemotion(SDL_Event &e);

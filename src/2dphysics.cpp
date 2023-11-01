@@ -57,7 +57,7 @@ void Game::game_loop() {
             break;
         }
 
-        painter->background();
+        painter->render_background();
         physics->tick();
         painter->draw();
     }
