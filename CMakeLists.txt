@@ -17,6 +17,7 @@ set(SRCS
     src/events.cpp
     src/painter.cpp
     src/physics.cpp
+    src/ui.cpp
 )
 
 # executable

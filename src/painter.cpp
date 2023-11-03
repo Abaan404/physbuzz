@@ -1,7 +1,8 @@
 #include "painter.hpp"
+#include "imgui_impl_sdlrenderer2.h"
 #include <cstdio>
 
-void Painter::draw() {
+void Painter::render() {
     // draw all objects
     for (auto object = objects->begin(); object != objects->end(); object++) {
         GameObject *obj = *object;
@@ -13,10 +14,17 @@ void Painter::draw() {
         SDL_RenderCopyF(renderer, obj->texture, NULL, &obj->rect);
     }
 
-    SDL_RenderPresent(renderer);
+    // render imgui
+    ImGui::Render();
+
+    clear();
 }
 
-void Painter::render_background() {
+void Painter::clear() {
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    SDL_RenderPresent(renderer);
+
     // Clear the screen
     if (SDL_RenderClear(renderer) < 0) {
         printf("[ERROR] SDL_RenderClear: %s\n", SDL_GetError());
@@ -29,6 +37,8 @@ void Painter::render_background() {
     if (SDL_RenderFillRect(renderer, NULL) < 0) {
         printf("[ERROR] SDL_RenderDrawRect: %s\n", SDL_GetError());
     }
+
+    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
 }
 
 void Painter::render_box(Box *box) {
@@ -43,10 +53,10 @@ void Painter::render_box(Box *box) {
     SDL_SetRenderTarget(renderer, texture);
 
     // draw edges
-    SDL_RenderDrawLine(renderer, 0,     0,      width, 0);
-    SDL_RenderDrawLine(renderer, 0,     0,      0,     height);
-    SDL_RenderDrawLine(renderer, width, 0,      width, height);
-    SDL_RenderDrawLine(renderer, 0,     height, width, height);
+    SDL_RenderDrawLine(renderer, 0, 0, width, 0);
+    SDL_RenderDrawLine(renderer, 0, 0, 0, height);
+    SDL_RenderDrawLine(renderer, width, 0, width, height);
+    SDL_RenderDrawLine(renderer, 0, height, width, height);
 
     // set target to default and cache texture and initial position
     SDL_SetRenderTarget(renderer, NULL);
@@ -67,7 +77,7 @@ void Painter::render_circle(Circle *circle) {
     SDL_Color color = circle->color;
 
     // prepare surface for rendering (diameter + 1 pixel for center)
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, r*2 + 1, r*2 + 1);
+    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, r * 2 + 1, r * 2 + 1);
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
     SDL_SetRenderTarget(renderer, texture);

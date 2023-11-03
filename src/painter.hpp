@@ -12,15 +12,16 @@ class Painter {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     };
 
-    void draw();
+    void render();
+    void clear();
 
-    void render_background();
     void render_box(Box *box);
     void render_circle(Circle *circle);
+
+    SDL_Renderer *renderer;
 
   private:
     void draw_circle_quadrants(float xc, float yc, float x, float y);
 
-    SDL_Renderer *renderer;
     std::vector<GameObject *> *objects;
 };

@@ -3,6 +3,7 @@
 #include "events.hpp"
 #include "painter.hpp"
 #include "physics.hpp"
+#include "ui.hpp"
 #include <SDL2/SDL.h>
 #include <vector>
 
@@ -19,6 +20,7 @@ class Game {
     EventHandler *event_handler;
     Painter *painter;
     PhysicsContext *physics;
+    UserInferface *interface;
 
     // holds all game objects
     std::vector<GameObject *> objects;
