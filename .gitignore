@@ -1,4 +1,9 @@
+# clangd
 .cache/
-build/
-2dphysics
 compile_commands.json
+
+# build dir
+build/
+
+# imgui persistent file
+imgui.ini
