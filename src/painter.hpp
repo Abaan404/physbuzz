@@ -17,8 +17,8 @@ class Painter {
     void render();
     void clear();
 
-    void render_box(std::shared_ptr<Box> box);
-    void render_circle(std::shared_ptr<Circle> circle);
+    void draw_box(std::shared_ptr<Box> box);
+    void draw_circle(std::shared_ptr<Circle> circle);
 
     SDL_Renderer *renderer;
 

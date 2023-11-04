@@ -18,8 +18,12 @@ class UserInferface {
 
     void render();
 
+    ImGuiIO& io = ImGui::GetIO();
+
     InterfaceType interface_type;
+    bool draw_interface = false;
 
   private:
+    bool draw_demo_window = true;
     Painter &painter;
 };
