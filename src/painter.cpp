@@ -17,6 +17,9 @@ void Painter::render() {
     ImGui::Render();
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
 
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault();
+
     SDL_RenderPresent(renderer);
     clear();
 }

@@ -1,4 +1,5 @@
 #include "2dphysics.hpp"
+#include "imgui.h"
 
 Game::Game() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
@@ -28,8 +29,14 @@ Game::Game() {
     ImGui::CreateContext();
 
     ImGuiIO &io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+    // multi-viewport does not work on wayland due to wayland devs
+    // being wayland devs (as of October 2023) Could try and find
+    // a way to make it work with xwayland (rootful?) in the future
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
 
     ImGui::StyleColorsDark();
 
