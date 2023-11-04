@@ -1,14 +1,17 @@
 #pragma once
 
-#include "physics/physics_box.hpp"
+#include "geometry/object.hpp"
+
+#include <cstdio>
+#include <memory>
 #include <vector>
 
 class PhysicsContext {
   public:
-    PhysicsContext(std::vector<GameObject *> *objects) : objects(objects){};
+    PhysicsContext(std::vector<std::shared_ptr<GameObject>> &objects) : objects(objects){};
 
     void tick();
 
   private:
-    std::vector<GameObject *> *objects;
+    std::vector<std::shared_ptr<GameObject>> &objects;
 };

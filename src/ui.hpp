@@ -1,5 +1,9 @@
 #pragma once
 
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdlrenderer2.h"
+
 #include "painter.hpp"
 
 enum class InterfaceType {
@@ -10,9 +14,9 @@ enum class InterfaceType {
 
 class UserInferface {
   public:
-    UserInferface(Painter &painter);
+    UserInferface(Painter &painter) : painter(painter) {}
 
-    void draw();
+    void render();
 
     InterfaceType interface_type;
 

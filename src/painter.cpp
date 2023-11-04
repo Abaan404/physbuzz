@@ -1,11 +1,9 @@
 #include "painter.hpp"
-#include "imgui_impl_sdlrenderer2.h"
-#include <cstdio>
 
 void Painter::render() {
     // draw all objects
-    for (auto object = objects->begin(); object != objects->end(); object++) {
-        GameObject *obj = *object;
+    for (auto object = objects.begin(); object != objects.end(); object++) {
+        GameObject *obj = &**object; // what was i doing
         if (obj->texture == NULL) {
             printf("[WARNING] Attempted to render an untextured object\n");
             continue;
@@ -17,14 +15,11 @@ void Painter::render() {
     // render imgui
     ImGui::Render();
 
+    SDL_RenderPresent(renderer);
     clear();
 }
 
 void Painter::clear() {
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-
-    SDL_RenderPresent(renderer);
-
     // Clear the screen
     if (SDL_RenderClear(renderer) < 0) {
         printf("[ERROR] SDL_RenderClear: %s\n", SDL_GetError());
@@ -41,7 +36,7 @@ void Painter::clear() {
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
 }
 
-void Painter::render_box(Box *box) {
+void Painter::render_box(std::shared_ptr<Box> box) {
     float width = box->max[0] - box->min[0];
     float height = box->max[1] - box->min[1];
     SDL_Color color = box->color;
@@ -66,7 +61,7 @@ void Painter::render_box(Box *box) {
 
 // ref: https://www.geeksforgeeks.org/bresenhams-circle-drawing-algorithm/
 // ref: https://www.youtube.com/watch?v=0K8e5va4QM0 @6:45
-void Painter::render_circle(Circle *circle) {
+void Painter::render_circle(std::shared_ptr<Circle> circle) {
     float r = circle->radius;
     float xc = r;
     float yc = r;

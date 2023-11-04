@@ -1,10 +1,4 @@
 #include "2dphysics.hpp"
-#include <SDL2/SDL.h>
-#include <cstdio>
-
-#include <imgui_impl_sdl2.h>
-#include <imgui_impl_sdlrenderer2.h>
-#include <imgui.h>
 
 Game::Game() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
@@ -22,7 +16,7 @@ Game::Game() {
     }
 
     // Create a renderer
-    SDL_RendererFlags renderer_flags = (SDL_RendererFlags)(SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    SDL_RendererFlags renderer_flags = (SDL_RendererFlags)(SDL_RENDERER_ACCELERATED);
     renderer = SDL_CreateRenderer(window, -2, renderer_flags);
     if (renderer == nullptr) {
         printf("[ERROR] SDL_CreateRenderer: %s\n", SDL_GetError());
@@ -44,10 +38,11 @@ Game::Game() {
 
     is_running = true;
 
-    this->painter = new Painter(renderer, &objects);
-    this->interface = new UserInferface(*painter);
-    this->event_handler = new EventHandler(painter, interface, &objects);
-    this->physics = new PhysicsContext(&objects);
+    // there has to be a better way to pass by reference
+    this->painter = std::make_unique<Painter>(renderer, objects);
+    this->interface = std::make_unique<UserInferface>(*painter);
+    this->event_handler = std::make_unique<EventHandler>(*painter, *interface, objects);
+    this->physics = std::make_unique<PhysicsContext>(objects);
 }
 
 void Game::game_loop() {
@@ -56,7 +51,7 @@ void Game::game_loop() {
 
         // get the next event in queue
         SDL_PollEvent(&event);
-        
+
         // pass event to imgui
         ImGui_ImplSDL2_ProcessEvent(&event);
 
@@ -79,16 +74,17 @@ void Game::game_loop() {
             break;
         }
 
-        interface->draw();
-        physics->tick();
+        interface->render();
         painter->render();
+        physics->tick();
     }
 }
 
 void Game::cleanup() {
-    free(painter);
-    free(event_handler);
-    free(physics);
+    ImGui_ImplSDLRenderer2_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
