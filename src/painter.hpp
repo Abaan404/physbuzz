@@ -23,7 +23,5 @@ class Painter {
     SDL_Renderer *renderer;
 
   private:
-    void draw_circle_quadrants(float xc, float yc, float x, float y);
-
     std::vector<std::shared_ptr<GameObject>> &objects;
 };

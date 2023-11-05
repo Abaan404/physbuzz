@@ -60,6 +60,19 @@ void Painter::draw_box(std::shared_ptr<Box> box) {
 
 // ref: https://www.geeksforgeeks.org/bresenhams-circle-drawing-algorithm/
 // ref: https://www.youtube.com/watch?v=0K8e5va4QM0 @6:45
+
+inline void draw_circle_quadrants(SDL_Renderer *renderer, float xc, float yc, float x, float y) {
+    SDL_RenderDrawPoint(renderer, xc + x, yc + y);
+    SDL_RenderDrawPoint(renderer, xc - x, yc + y);
+    SDL_RenderDrawPoint(renderer, xc + x, yc - y);
+    SDL_RenderDrawPoint(renderer, xc - x, yc - y);
+
+    SDL_RenderDrawPoint(renderer, xc + y, yc + x);
+    SDL_RenderDrawPoint(renderer, xc - y, yc + x);
+    SDL_RenderDrawPoint(renderer, xc + y, yc - x);
+    SDL_RenderDrawPoint(renderer, xc - y, yc - x);
+}
+
 void Painter::draw_circle(std::shared_ptr<Circle> circle) {
     float r = circle->radius;
     float xc = r;
@@ -77,7 +90,7 @@ void Painter::draw_circle(std::shared_ptr<Circle> circle) {
     SDL_SetRenderTarget(renderer, texture);
 
     // draw pixel on the 8 quadrants using bresenhams's thing
-    draw_circle_quadrants(xc, yc, x, y);
+    draw_circle_quadrants(renderer, xc, yc, x, y);
     float p = 3 - (2 * r);
     while (x < y) {
         if (p < 0)
@@ -85,23 +98,11 @@ void Painter::draw_circle(std::shared_ptr<Circle> circle) {
         else
             p += 4 * (++x - --y) + 10;
 
-        draw_circle_quadrants(xc, yc, x, y);
+        draw_circle_quadrants(renderer, xc, yc, x, y);
     }
 
     // set target to default and cache texture and initial position
     SDL_SetRenderTarget(renderer, NULL);
     circle->texture = texture;
     circle->rect = {circle->x - r, circle->y - r, 2 * r, 2 * r};
-}
-
-inline void Painter::draw_circle_quadrants(float xc, float yc, float x, float y) {
-    SDL_RenderDrawPoint(renderer, xc + x, yc + y);
-    SDL_RenderDrawPoint(renderer, xc - x, yc + y);
-    SDL_RenderDrawPoint(renderer, xc + x, yc - y);
-    SDL_RenderDrawPoint(renderer, xc - x, yc - y);
-
-    SDL_RenderDrawPoint(renderer, xc + y, yc + x);
-    SDL_RenderDrawPoint(renderer, xc - y, yc + x);
-    SDL_RenderDrawPoint(renderer, xc + y, yc - x);
-    SDL_RenderDrawPoint(renderer, xc - y, yc - x);
 }
