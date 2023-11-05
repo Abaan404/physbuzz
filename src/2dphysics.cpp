@@ -1,5 +1,4 @@
 #include "2dphysics.hpp"
-#include "imgui.h"
 
 Game::Game() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {

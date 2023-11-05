@@ -1,6 +1,6 @@
 #include "events.hpp"
-#include "physics/physics_box.hpp"
-#include "physics/physics_circle.hpp"
+#include "geometry/physics_box.hpp"
+#include "geometry/physics_circle.hpp"
 
 void EventHandler::keyboard_keydown(SDL_KeyboardEvent &event) {
     switch (event.keysym.scancode | (1 << 30)) {

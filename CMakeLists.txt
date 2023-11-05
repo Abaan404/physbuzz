@@ -11,8 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # source files
 set(SRCS
-    src/physics/physics_box.cpp
-    src/physics/physics_circle.cpp
+    src/collision/collision.cpp
     src/2dphysics.cpp
     src/events.cpp
     src/painter.cpp

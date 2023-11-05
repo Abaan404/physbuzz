@@ -12,7 +12,7 @@ enum class Objects {
 
 class GameObject {
   public:
-    GameObject(Objects identifier, float x, float y, SDL_Color color) : x(x), y(y), color(color), identifier(identifier) {};
+    GameObject(Objects identifier, float x, float y, SDL_Color color) : x(x), y(y), color(color), identifier(identifier){};
 
     float x;
     float y;
@@ -22,5 +22,4 @@ class GameObject {
     SDL_Color color;
 
     Objects identifier = Objects::Unknown;
-    virtual void collides(GameObject *object) = 0;
 };

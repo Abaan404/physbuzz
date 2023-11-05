@@ -10,7 +10,8 @@ void PhysicsContext::tick() {
 
             // ignore if obj1 is obj2
             if (object1 == object2) continue;
-            object1->collides(object2);
+
+            collision.check_collision(object1, object2);
         }
     }
 }

@@ -13,6 +13,4 @@ class Box : public GameObject {
     // AABB variables
     glm::vec2 min;
     glm::vec2 max;
-
-    void collides(GameObject *object) override {}
 };

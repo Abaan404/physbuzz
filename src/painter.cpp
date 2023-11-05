@@ -94,7 +94,7 @@ void Painter::draw_circle(std::shared_ptr<Circle> circle) {
     circle->rect = {circle->x - r, circle->y - r, 2 * r, 2 * r};
 }
 
-void Painter::draw_circle_quadrants(float xc, float yc, float x, float y) {
+inline void Painter::draw_circle_quadrants(float xc, float yc, float x, float y) {
     SDL_RenderDrawPoint(renderer, xc + x, yc + y);
     SDL_RenderDrawPoint(renderer, xc - x, yc + y);
     SDL_RenderDrawPoint(renderer, xc + x, yc - y);

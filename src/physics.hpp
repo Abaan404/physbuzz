@@ -1,5 +1,6 @@
 #pragma once
 
+#include "collision/collision.hpp"
 #include "geometry/object.hpp"
 
 #include <cstdio>
@@ -13,5 +14,6 @@ class PhysicsContext {
     void tick();
 
   private:
+    Collision collision;
     std::vector<std::shared_ptr<GameObject>> &objects;
 };

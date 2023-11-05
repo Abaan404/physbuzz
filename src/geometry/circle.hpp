@@ -6,6 +6,4 @@ class Circle : public GameObject {
   public:
     Circle(float x, float y, float radius, SDL_Color color) : GameObject(Objects::Circle, x, y, color), radius(radius) {}
     float radius;
-
-    void collides(GameObject *object) override {}
 };
