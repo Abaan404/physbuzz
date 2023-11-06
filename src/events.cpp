@@ -1,4 +1,5 @@
 #include "events.hpp"
+#include "geometry/box.hpp"
 #include "geometry/physics_box.hpp"
 #include "geometry/physics_circle.hpp"
 
@@ -17,13 +18,13 @@ void EventHandler::mouse_mousedown(SDL_MouseButtonEvent &event) {
         return;
 
     if (event.button == SDL_BUTTON_LEFT) {
-        std::shared_ptr<PhysicsBox> box = std::make_shared<PhysicsBox>(event.x, event.y, 10, 10, (SDL_Color){255, 0, 0, 255});
+        std::shared_ptr<PhysicsBox> box = std::make_shared<PhysicsBox>(glm::vec2(event.x, event.y), 10, 10, (SDL_Color){255, 0, 0, 255});
 
         painter.draw_box(box);
         objects.push_back(box);
 
     } else if (event.button == SDL_BUTTON_RIGHT) {
-        std::shared_ptr<PhysicsCircle> circle = std::make_shared<PhysicsCircle>(event.x, event.y, 100, (SDL_Color){0, 255, 255, 255});
+        std::shared_ptr<PhysicsCircle> circle = std::make_shared<PhysicsCircle>(glm::vec2(event.x, event.y), 100, (SDL_Color){0, 255, 255, 255});
 
         painter.draw_circle(circle);
         objects.push_back(circle);

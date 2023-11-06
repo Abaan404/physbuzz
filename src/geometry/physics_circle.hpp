@@ -4,7 +4,7 @@
 
 class PhysicsCircle : public Circle {
   public:
-    PhysicsCircle(float x, float y, float radius, SDL_Color color) : Circle(x, y, radius, color) {
+    PhysicsCircle(glm::vec2 position, float radius, SDL_Color color) : Circle(position, radius, color) {
         Circle::identifier = Objects::PhysicsCircle;
     }
 };

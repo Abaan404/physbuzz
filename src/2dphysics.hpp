@@ -2,7 +2,7 @@
 
 #include "events.hpp"
 #include "painter.hpp"
-#include "physics.hpp"
+#include "scene.hpp"
 #include "ui.hpp"
 
 #include <SDL2/SDL.h>
@@ -25,7 +25,7 @@ class Game {
     // stuff ig
     std::unique_ptr<EventHandler> event_handler;
     std::unique_ptr<Painter> painter;
-    std::unique_ptr<PhysicsContext> physics;
+    std::unique_ptr<SceneManager> scene_manager;
     std::unique_ptr<UserInferface> interface;
 
     // holds all game objects

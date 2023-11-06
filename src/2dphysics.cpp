@@ -48,7 +48,7 @@ Game::Game() {
     this->painter = std::make_unique<Painter>(renderer, objects);
     this->interface = std::make_unique<UserInferface>(*painter);
     this->event_handler = std::make_unique<EventHandler>(*painter, *interface, objects);
-    this->physics = std::make_unique<PhysicsContext>(objects);
+    this->scene_manager = std::make_unique<SceneManager>(objects);
 }
 
 void Game::game_loop() {
@@ -82,7 +82,7 @@ void Game::game_loop() {
 
         interface->render();
         painter->render();
-        physics->tick();
+        scene_manager->tick();
     }
 }
 

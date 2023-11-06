@@ -4,6 +4,6 @@
 
 class Circle : public GameObject {
   public:
-    Circle(float x, float y, float radius, SDL_Color color) : GameObject(Objects::Circle, x, y, color), radius(radius) {}
+    Circle(glm::vec2 position, float radius, SDL_Color color) : GameObject(Objects::Circle, position, color), radius(radius) {}
     float radius;
 };
