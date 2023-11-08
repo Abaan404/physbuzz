@@ -12,10 +12,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # source files
 set(SRCS
     src/collision/collision.cpp
+    src/dynamics/dynamics.cpp
     src/2dphysics.cpp
     src/events.cpp
     src/painter.cpp
-    src/physics.cpp
+    src/scene.cpp
     src/ui.cpp
 )
 

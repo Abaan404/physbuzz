@@ -35,10 +35,10 @@ bool Collision::collides(std::shared_ptr<GameObject> object1, std::shared_ptr<Ga
 
 // box rotation not implemented yet
 bool Collision::check_collision_box_box(PhysicsBox &box1, PhysicsBox &box2) {
-    if (box1.max[0] < box2.min[0] or box1.min[0] > box2.max[0])
+    if (box1.max.x < box2.min.x or box1.min.x > box2.max.x)
         return false;
 
-    if (box1.max[1] < box2.min[1] or box1.min[1] > box2.max[1])
+    if (box1.max.y < box2.min.y or box1.min.y > box2.max.y)
         return false;
 
     printf("BoxBox Collision\n");
@@ -46,11 +46,12 @@ bool Collision::check_collision_box_box(PhysicsBox &box1, PhysicsBox &box2) {
 }
 
 bool Collision::check_collision_circle_circle(PhysicsCircle &circle1, PhysicsCircle &circle2) {
-    const float dist_squared = (circle2.position[0] - circle1.position[0]) * (circle2.position[0] - circle1.position[0])
-        + (circle2.position[1] - circle1.position[1]) * (circle2.position[1] - circle1.position[1]);
+    const float dist_squared = (circle2.position.x - circle1.position.x) * (circle2.position.x - circle1.position.x) +
+                               (circle2.position.y - circle1.position.y) * (circle2.position.y - circle1.position.y);
+
     const float r_squared = (circle1.radius + circle2.radius) * (circle1.radius + circle2.radius);
 
-    if ((dist_squared - r_squared) > 0)
+    if (dist_squared > r_squared)
         return false;
 
     printf("CircleCircle Collision\n");
@@ -59,39 +60,17 @@ bool Collision::check_collision_circle_circle(PhysicsCircle &circle1, PhysicsCir
 
 // box rotation not implemented yet
 bool Collision::check_collision_box_circle(PhysicsBox &box, PhysicsCircle &circle) {
-    return false;
-    // int x_vert, y_vert;
-    //
-    // // check which quadrant the box is in hence which vertex to use
-    // if (box.x > circle.x and box.y > circle.y) {
-    //     x_vert = box.max[0];
-    //     y_vert = box.min[1];
-    //
-    // } else if (box.x < circle.x and box.y > circle.y) {
-    //     x_vert = box.max[0];
-    //     y_vert = box.max[1];
-    //
-    // } else if (box.x > circle.x and box.y < circle.y) {
-    //     x_vert = box.min[0];
-    //     y_vert = box.min[1];
-    //
-    // } else if (box.x < circle.x and box.y < circle.y) {
-    //     x_vert = box.min[0];
-    //     y_vert = box.max[1];
-    // } else {
-    //     throw std::runtime_error("Could not find the vertex for BoxCircle collision");
-    // }
-    //
-    // float theta = std::tan((y_vert - circle.y) / (x_vert - circle.x));
-    // float x_hit = circle.radius * std::cos(theta);
-    // float y_hit = circle.radius * std::sin(theta);
-    //
-    // float diagonal_half = std::sqrt((box.width / 2) * (box.width / 2) + (box.height / 2) * (box.height / 2));
-    // float dist_squared = (x_hit - x_vert) * (x_hit - x_vert) + (y_hit - y_vert) * (y_hit - y_vert);
-    //
-    // if (dist_squared - ((diagonal_half + circle.radius) * (diagonal_half + circle.radius)) > 0)
-    //     return false;
-    //
-    // printf("CircleBox Collision\n");
-    // return true;
+    glm::vec2 point;
+    point.x = glm::clamp(circle.position.x, box.min.x, box.max.x);
+    point.y = glm::clamp(circle.position.y, box.min.y, box.max.y);
+
+    glm::vec2 dist = circle.position - point;
+    float dist_squared = glm::dot(dist, dist);
+    float r_squared = circle.radius * circle.radius;
+
+    if (dist_squared > r_squared)
+        return false;
+
+    printf("Circle-Box Collision\n");
+    return true;
 }

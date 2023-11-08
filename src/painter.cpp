@@ -36,8 +36,8 @@ void Painter::clear() {
 }
 
 void Painter::draw_box(std::shared_ptr<Box> box) {
-    float width = box->max[0] - box->min[0];
-    float height = box->max[1] - box->min[1];
+    float width = box->max.x - box->min.x;
+    float height = box->max.y - box->min.y;
     SDL_Color color = box->color;
 
     // prepare texture for rendering
@@ -55,7 +55,7 @@ void Painter::draw_box(std::shared_ptr<Box> box) {
     // set target to default and cache texture and initial position
     SDL_SetRenderTarget(renderer, NULL);
     box->texture = texture;
-    box->rect = {box->min[0], box->min[1], width, height};
+    box->rect = {box->min.x, box->min.y, width, height};
 }
 
 // ref: https://www.geeksforgeeks.org/bresenhams-circle-drawing-algorithm/
@@ -104,5 +104,5 @@ void Painter::draw_circle(std::shared_ptr<Circle> circle) {
     // set target to default and cache texture and initial position
     SDL_SetRenderTarget(renderer, NULL);
     circle->texture = texture;
-    circle->rect = {circle->x - r, circle->y - r, 2 * r, 2 * r};
+    circle->rect = {circle->position.x - r, circle->position.y - r, 2 * r, 2 * r};
 }

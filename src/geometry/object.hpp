@@ -16,6 +16,7 @@ class GameObject {
     GameObject(Objects identifier, glm::vec2 position, SDL_Color color) : position(position), color(color), identifier(identifier){};
 
     glm::vec2 position;
+    float rotation;
 
     SDL_Texture *texture;
     SDL_FRect rect;
@@ -25,9 +26,8 @@ class GameObject {
 };
 
 class DynamicObject {
-public:
-    float rotation;
-
+  public:
+    float intertia;
     glm::vec2 velocity;
     glm::vec2 acceleration;
 };
