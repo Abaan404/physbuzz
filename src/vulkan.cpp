@@ -1,6 +1,5 @@
 #include "vulkan.hpp"
 #include <cstdio>
-#include <cstdlib>
 
 // ref: imgui vulkan-sdl2 example
 // could have tried to do this myself but
@@ -10,11 +9,57 @@
 
 // psa learning how to setup vulkan at 3am is not a good idea
 
-void VulkanBuilder::check_vk_result(VkResult error) {
-    if (error != 0) {
-        fprintf(stderr, "[ERROR] vulkan: VkResult = %d\n", error);
+VkSurfaceKHR VulkanBuilder::create_vulkan_surface() {
+    // Create Window Surface
+    VkSurfaceKHR surface;
+    VkResult err;
+    if (SDL_Vulkan_CreateSurface(window, vk_context.instance, &surface) == 0) {
+        printf("[ERROR] Failed to create Vulkan surface.\n");
         exit(1);
     }
+
+    return surface;
+}
+
+void VulkanBuilder::create_frame_buffers(VkSurfaceKHR surface) {
+    int w, h;
+    SDL_GetWindowSize(window, &w, &h);
+    ImGui_ImplVulkanH_Window *wd = &vk_context.main_window_data;
+    setup_vulkan_window(wd, surface, w, h);
+}
+
+void VulkanBuilder::setup_vulkan_window(ImGui_ImplVulkanH_Window *window_data, VkSurfaceKHR surface, int width, int height) {
+    window_data->Surface = surface;
+
+    // Check for WSI support
+    VkBool32 res;
+    vkGetPhysicalDeviceSurfaceSupportKHR(vk_context.physical_device, vk_context.queue_family, window_data->Surface, &res);
+    if (res != VK_TRUE) {
+        fprintf(stderr, "Error no WSI support on physical device 0\n");
+        exit(-1);
+    }
+
+    // Select Surface Format
+    const VkFormat requestSurfaceImageFormat[] = {VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM};
+    const VkColorSpaceKHR requestSurfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+    window_data->SurfaceFormat = ImGui_ImplVulkanH_SelectSurfaceFormat(vk_context.physical_device, window_data->Surface, requestSurfaceImageFormat, (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
+
+    // Select Present Mode
+#ifdef IMGUI_UNLIMITED_FRAME_RATE
+    VkPresentModeKHR present_modes[] = {VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR};
+#else
+    VkPresentModeKHR present_modes[] = {VK_PRESENT_MODE_FIFO_KHR};
+#endif
+    window_data->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(vk_context.physical_device, window_data->Surface, &present_modes[0], IM_ARRAYSIZE(present_modes));
+    // printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
+
+    // Create SwapChain, RenderPass, Framebuffer, etc.
+    if (vk_context.min_image_count < 2) {
+        printf("[ERROR] Invalid image counts\n");
+        exit(1);
+    }
+
+    ImGui_ImplVulkanH_CreateOrResizeWindow(vk_context.instance, vk_context.physical_device, vk_context.device, window_data, vk_context.queue_family, vk_context.allocator, width, height, vk_context.min_image_count);
 }
 
 void VulkanBuilder::setup() {
@@ -51,7 +96,7 @@ void VulkanBuilder::create_instance(std::vector<const char *> instance_extension
     vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, nullptr);
     properties.resize(properties_count);
     error = vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, properties.data());
-    check_vk_result(error);
+    vk_context.error_callback(error);
 
     // Enable required extensions
     if (is_extension_available(properties, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
@@ -67,13 +112,14 @@ void VulkanBuilder::create_instance(std::vector<const char *> instance_extension
     create_info.enabledExtensionCount = (uint32_t)instance_extensions.size();
     create_info.ppEnabledExtensionNames = instance_extensions.data();
     error = vkCreateInstance(&create_info, vk_context.allocator, &vk_context.instance);
-    check_vk_result(error);
+    vk_context.error_callback(error);
 }
 
 VkPhysicalDevice VulkanBuilder::select_physical_device() {
+    VkResult error;
     uint32_t gpu_count;
     VkResult err = vkEnumeratePhysicalDevices(vk_context.instance, &gpu_count, nullptr);
-    check_vk_result(err);
+    vk_context.error_callback(error);
     if (gpu_count <= 0) {
         printf("[ERROR] No GPUs found\n");
         exit(1);
@@ -82,7 +128,7 @@ VkPhysicalDevice VulkanBuilder::select_physical_device() {
     std::vector<VkPhysicalDevice> gpus;
     gpus.resize(gpu_count);
     err = vkEnumeratePhysicalDevices(vk_context.instance, &gpu_count, gpus.data());
-    check_vk_result(err);
+    vk_context.error_callback(error);
 
     // If a number >1 of GPUs got reported, find discrete GPU if present, or use first one available. This covers
     // most common cases (multi-gpu/integrated+dedicated graphics). Handling more complicated setups (multiple
@@ -148,7 +194,7 @@ void VulkanBuilder::select_device() {
     create_info.enabledExtensionCount = (uint32_t)device_extensions.size();
     create_info.ppEnabledExtensionNames = device_extensions.data();
     error = vkCreateDevice(vk_context.physical_device, &create_info, vk_context.allocator, &vk_context.device);
-    check_vk_result(error);
+    vk_context.error_callback(error);
     vkGetDeviceQueue(vk_context.device, vk_context.queue_family, 0, &vk_context.queue);
 }
 
@@ -165,5 +211,5 @@ void VulkanBuilder::create_descriptor_pool() {
     pool_info.poolSizeCount = (uint32_t)(sizeof(pool_sizes) / sizeof(VkDescriptorPoolSize));
     pool_info.pPoolSizes = pool_sizes;
     error = vkCreateDescriptorPool(vk_context.device, &pool_info, vk_context.allocator, &vk_context.descriptor_pool);
-    check_vk_result(error);
+    vk_context.error_callback(error);
 }
