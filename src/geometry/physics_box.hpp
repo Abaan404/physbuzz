@@ -4,7 +4,7 @@
 
 class PhysicsBox : public DynamicObject, public Box {
   public:
-    PhysicsBox(glm::vec2 position, float width, float height, SDL_Color color) : Box(position, width, height, color) {
+    PhysicsBox(glm::vec2 position, float width, float height) : Box(position, width, height) {
         Box::identifier = Objects::PhysicsBox;
     }
 };

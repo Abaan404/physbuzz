@@ -35,10 +35,9 @@ void Painter::clear() {
     }
 }
 
-void Painter::draw_box(std::shared_ptr<Box> box) {
+SDL_Texture *Painter::draw_box(std::shared_ptr<Box> box, SDL_Color &color) {
     float width = box->max.x - box->min.x;
     float height = box->max.y - box->min.y;
-    SDL_Color color = box->color;
 
     // prepare texture for rendering
     SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width + 1, height + 1);
@@ -54,8 +53,8 @@ void Painter::draw_box(std::shared_ptr<Box> box) {
 
     // set target to default and cache texture and initial position
     SDL_SetRenderTarget(renderer, NULL);
-    box->texture = texture;
-    box->rect = {box->min.x, box->min.y, width, height};
+
+    return texture;
 }
 
 // ref: https://www.geeksforgeeks.org/bresenhams-circle-drawing-algorithm/
@@ -73,15 +72,13 @@ inline void draw_circle_quadrants(SDL_Renderer *renderer, float xc, float yc, fl
     SDL_RenderDrawPoint(renderer, xc - y, yc - x);
 }
 
-void Painter::draw_circle(std::shared_ptr<Circle> circle) {
+SDL_Texture *Painter::draw_circle(std::shared_ptr<Circle> circle, SDL_Color &color) {
     float r = circle->radius;
     float xc = r;
     float yc = r;
 
     float x = 0;
     float y = r;
-
-    SDL_Color color = circle->color;
 
     // prepare surface for rendering (diameter + 1 pixel for center)
     SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, r * 2 + 1, r * 2 + 1);
@@ -103,6 +100,5 @@ void Painter::draw_circle(std::shared_ptr<Circle> circle) {
 
     // set target to default and cache texture and initial position
     SDL_SetRenderTarget(renderer, NULL);
-    circle->texture = texture;
-    circle->rect = {circle->position.x - r, circle->position.y - r, 2 * r, 2 * r};
+    return texture;
 }

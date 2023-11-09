@@ -13,14 +13,13 @@ enum class Objects {
 
 class GameObject {
   public:
-    GameObject(Objects identifier, glm::vec2 position, SDL_Color color) : position(position), color(color), identifier(identifier){};
+    GameObject(Objects identifier, glm::vec2 position) : position(position), identifier(identifier){};
 
     glm::vec2 position;
     float rotation;
 
     SDL_Texture *texture;
     SDL_FRect rect;
-    SDL_Color color;
 
     Objects identifier = Objects::Unknown;
 };
