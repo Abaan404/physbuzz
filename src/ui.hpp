@@ -14,16 +14,19 @@ enum class InterfaceType {
 
 class UserInferface {
   public:
-    UserInferface(Painter &painter) : painter(painter) {}
+    UserInferface(Painter &painter);
 
     void render();
 
     ImGuiIO& io = ImGui::GetIO();
-
     InterfaceType interface_type;
+
     bool draw_interface = false;
+    bool draw_shape_picker = true;
+    bool draw_demo_window = true;
 
   private:
-    bool draw_demo_window = true;
+    void show_shape_picker();
+
     Painter &painter;
 };
