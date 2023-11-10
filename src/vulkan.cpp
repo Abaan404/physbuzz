@@ -80,26 +80,26 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags, 
 //     }
 // }
 
-void VulkanContext::frame_present() {
-    VkResult err;
-    if (swapchain_rebuild)
-        return;
-    VkSemaphore render_complete_semaphore = main_window_data.FrameSemaphores[main_window_data.SemaphoreIndex].RenderCompleteSemaphore;
-    VkPresentInfoKHR info = {};
-    info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    info.waitSemaphoreCount = 1;
-    info.pWaitSemaphores = &render_complete_semaphore;
-    info.swapchainCount = 1;
-    info.pSwapchains = &main_window_data.Swapchain;
-    info.pImageIndices = &main_window_data.FrameIndex;
-    err = vkQueuePresentKHR(queue, &info);
-    if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
-        swapchain_rebuild = true;
-        return;
-    }
-    VK_CHECK(err);
-    main_window_data.SemaphoreIndex = (main_window_data.SemaphoreIndex + 1) % main_window_data.ImageCount; // Now we can use the next set of semaphores
-}
+// void VulkanContext::frame_present() {
+//     VkResult err;
+//     if (swapchain_rebuild)
+//         return;
+//     VkSemaphore render_complete_semaphore = main_window_data.FrameSemaphores[main_window_data.SemaphoreIndex].RenderCompleteSemaphore;
+//     VkPresentInfoKHR info = {};
+//     info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+//     info.waitSemaphoreCount = 1;
+//     info.pWaitSemaphores = &render_complete_semaphore;
+//     info.swapchainCount = 1;
+//     info.pSwapchains = &main_window_data.Swapchain;
+//     info.pImageIndices = &main_window_data.FrameIndex;
+//     err = vkQueuePresentKHR(queue, &info);
+//     if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR) {
+//         swapchain_rebuild = true;
+//         return;
+//     }
+//     VK_CHECK(err);
+//     main_window_data.SemaphoreIndex = (main_window_data.SemaphoreIndex + 1) % main_window_data.ImageCount; // Now we can use the next set of semaphores
+// }
 
 // void VulkanContext::rebuild_swapchain(int width, int height) {
 //     ImGui_ImplVulkan_SetMinImageCount(min_image_count);
@@ -121,12 +121,7 @@ void VulkanContext::cleanup() {
     vkDestroyDescriptorPool(device, descriptor_pool, allocator);
 }
 
-void VulkanBuilder::setup() {
-    uint32_t extensions_count = 0;
-    SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, nullptr);
-    std::vector<const char *> instance_extensions(extensions_count);
-    SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, instance_extensions.data());
-
+void VulkanBuilder::setup(std::vector<const char *> instance_extensions) {
     // Create the VkInstance here
     create_instance(instance_extensions);
 
@@ -141,10 +136,13 @@ void VulkanBuilder::setup() {
     // Create a vulkan surface and stuff to render to it
     create_vulkan_surface();
     create_swapchain(); // imgui itself creates a swapchain
+
+    // Create stuff for rendering
     create_command_pool();
+    create_render_pass();
 
     // framebuffers for SDL and ImGui
-    // create_frame_buffers();
+    create_framebuffers();
 
     // honestly dont know what this does but ImGui needs it
     // create_descriptor_pool();
@@ -158,12 +156,28 @@ void VulkanBuilder::create_vulkan_surface() {
     }
 }
 
-// void VulkanBuilder::create_frame_buffers() {
-//     int w, h;
-//     SDL_GetWindowSize(window, &w, &h);
-//     ImGui_ImplVulkanH_Window *wd = &vk_context->main_window_data;
-//     setup_vulkan_window(wd, w, h);
-// }
+void VulkanBuilder::create_framebuffers() {
+    // int w, h;
+    // SDL_GetWindowSize(window, &w, &h);
+    // ImGui_ImplVulkanH_Window *wd = &vk_context->main_window_data;
+    // setup_vulkan_window(wd, w, h);
+
+    VkFramebufferCreateInfo framebuffer_info = {
+        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        .renderPass = vk_context->render_pass,
+        .attachmentCount = 1,
+        .width = vk_context->screen_size.width,
+        .height = vk_context->screen_size.height,
+        .layers = 1,
+    };
+
+    vk_context->framebuffers.resize(vk_context->sc_image_count);
+    uint32_t i;
+    for (i = 0; i < vk_context->sc_image_count; i++) {
+        framebuffer_info.pAttachments = &vk_context->sc_image_views[i];
+        VK_CHECK(vkCreateFramebuffer(vk_context->device, &framebuffer_info, vk_context->allocator, &vk_context->framebuffers[i]));
+    }
+}
 
 // void VulkanBuilder::setup_vulkan_window(ImGui_ImplVulkanH_Window *window_data, int width, int height) {
 //     window_data->Surface = vk_context->surface;
@@ -372,27 +386,82 @@ void VulkanBuilder::create_swapchain() {
     VK_CHECK(vkGetSwapchainImagesKHR(vk_context->device, vk_context->swapchain, &vk_context->sc_image_count, 0));
     vk_context->sc_images.resize(vk_context->sc_image_count);
     VK_CHECK(vkGetSwapchainImagesKHR(vk_context->device, vk_context->swapchain, &vk_context->sc_image_count, vk_context->sc_images.data()));
+
+    // Creating image views
+    VkImageViewCreateInfo image_view_info = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format = vk_context->surface_format.format,
+        .subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .levelCount = 1,
+            .layerCount = 1,
+        },
+    };
+
+    vk_context->sc_image_views.resize(vk_context->sc_image_count);
+    uint32_t i;
+    for (i = 0; i < vk_context->sc_image_count; i++) {
+        image_view_info.image = vk_context->sc_images[i];
+        VK_CHECK(vkCreateImageView(vk_context->device, &image_view_info, vk_context->allocator, &vk_context->sc_image_views[i]));
+    }
 }
 
 void VulkanBuilder::create_command_pool() {
     VkCommandPoolCreateInfo command_pool_info = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .queueFamilyIndex = vk_context->queue_family};
+        .queueFamilyIndex = vk_context->queue_family,
+    };
 
     VK_CHECK(vkCreateCommandPool(vk_context->device, &command_pool_info, vk_context->allocator, &vk_context->command_pool));
 }
 
-void VulkanBuilder::create_descriptor_pool() {
-    VkResult error;
-    VkDescriptorPoolSize pool_sizes[] =
+void VulkanBuilder::create_render_pass() {
+    std::vector<VkAttachmentDescription> attachments = {
         {
-            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1},
-        };
-    VkDescriptorPoolCreateInfo pool_info = {};
-    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_info.maxSets = 1;
-    pool_info.poolSizeCount = (uint32_t)(sizeof(pool_sizes) / sizeof(VkDescriptorPoolSize));
-    pool_info.pPoolSizes = pool_sizes;
-    VK_CHECK(vkCreateDescriptorPool(vk_context->device, &pool_info, vk_context->allocator, &vk_context->descriptor_pool));
+            .format = vk_context->surface_format.format,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        },
+    };
+
+    VkAttachmentReference color_attachment_reference = {
+        .attachment = 0,
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    };
+
+    VkSubpassDescription subpass_description = {
+        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &color_attachment_reference,
+    };
+
+    VkRenderPassCreateInfo renderpass_info = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+        .attachmentCount = (uint32_t)attachments.size(),
+        .pAttachments = attachments.data(),
+        .subpassCount = 1,
+        .pSubpasses = &subpass_description,
+    };
+    VK_CHECK(vkCreateRenderPass(vk_context->device, &renderpass_info, vk_context->allocator, &vk_context->render_pass));
 }
+
+// void VulkanBuilder::create_descriptor_pool() {
+//     VkResult error;
+//     VkDescriptorPoolSize pool_sizes[] = {
+//         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1},
+//     };
+//
+//     VkDescriptorPoolCreateInfo pool_info = {
+//         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+//         .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+//         .maxSets = 1,
+//         .poolSizeCount = (uint32_t)(sizeof(pool_sizes) / sizeof(VkDescriptorPoolSize)),
+//         .pPoolSizes = pool_sizes,
+//     };
+//
+//     VK_CHECK(vkCreateDescriptorPool(vk_context->device, &pool_info, vk_context->allocator, &vk_context->descriptor_pool));
+// }

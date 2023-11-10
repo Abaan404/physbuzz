@@ -24,6 +24,7 @@
 struct VulkanContext {
     VkAllocationCallbacks *allocator = nullptr;
     VkInstance instance;
+    VkExtent2D screen_size;
 
 #ifdef VULKAN_DEBUG_REPORT
     VkDebugReportCallbackEXT debug_report;
@@ -42,9 +43,12 @@ struct VulkanContext {
 
     VkSwapchainKHR swapchain;
     VkCommandPool command_pool;
+    VkRenderPass render_pass;
 
     uint32_t sc_image_count;
     uint32_t min_image_count = 2;
+    std::vector<VkImageView> sc_image_views;
+    std::vector<VkFramebuffer> framebuffers;
     std::vector<VkImage> sc_images;
 
     bool swapchain_rebuild = false;
@@ -68,7 +72,7 @@ class VulkanBuilder {
   public:
     VulkanBuilder(SDL_Window *window, VulkanContext *vk_context) : window(window), vk_context(vk_context){};
 
-    void setup();
+    void setup(std::vector<const char *> instance_extensions);
 
     void create_instance(std::vector<const char *> instance_extensions);
     VkPhysicalDevice select_physical_device();
@@ -77,11 +81,12 @@ class VulkanBuilder {
     void create_descriptor_pool();
 
     void create_vulkan_surface();
-    void create_frame_buffers();
+    void create_framebuffers();
     void setup_vulkan_window(ImGui_ImplVulkanH_Window *wd, int width, int height);
 
     void create_swapchain();
     void create_command_pool();
+    void create_render_pass();
 
     bool is_extension_available(const std::vector<VkExtensionProperties> &properties, const char *extension);
 

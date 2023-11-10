@@ -23,8 +23,20 @@ Game::Game() {
     }
 
     // Setup vulkan
+    uint32_t extensions_count = 0;
+    SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, nullptr);
+    std::vector<const char *> instance_extensions(extensions_count);
+    SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, instance_extensions.data());
+
+    // Set screen size
+    int width, height;
+    SDL_GetWindowSize(window, &width, &height);
+    vk_context.screen_size.width = width;
+    vk_context.screen_size.height = height;
+
+    // Setup the rest of vulkan
     VulkanBuilder vk_builder = VulkanBuilder(window, &vk_context);
-    vk_builder.setup();
+    vk_builder.setup(instance_extensions);
     is_vulkan_init = true;
 
     // Setup ImGui

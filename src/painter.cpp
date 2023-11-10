@@ -2,20 +2,17 @@
 #include <vulkan/vulkan_core.h>
 
 void Painter::render() {
-    uint32_t image_idx;
-    VK_CHECK(vkAcquireNextImageKHR(vk_context.device, vk_context.swapchain, 0, aquire_semaphore, 0, &image_idx));
-
-    // draw all objects
-    for (auto object = objects.begin(); object != objects.end(); object++) {
-        std::shared_ptr<GameObject> obj = *object; // what was i doing
-        if (obj->texture == NULL) {
-            printf("[WARNING] Attempted to render an untextured object\n");
-            continue;
-        }
-
-        // SDL_RenderCopyF(renderer, obj->texture, NULL, &obj->rect);
-    }
-
+    // // draw all objects
+    // for (auto object = objects.begin(); object != objects.end(); object++) {
+    //     std::shared_ptr<GameObject> obj = *object; // what was i doing
+    //     if (obj->texture == NULL) {
+    //         printf("[WARNING] Attempted to render an untextured object\n");
+    //         continue;
+    //     }
+    //
+    //     // SDL_RenderCopyF(renderer, obj->texture, NULL, &obj->rect);
+    // }
+    //
     // ImGui widgets drawn in UserInterface::draw()
     // render imgui
     // ImGui::Render();
@@ -23,6 +20,9 @@ void Painter::render() {
     //
     // ImGui::UpdatePlatformWindows();
     // ImGui::RenderPlatformWindowsDefault();
+
+    uint32_t image_idx;
+    VK_CHECK(vkAcquireNextImageKHR(vk_context.device, vk_context.swapchain, 0, aquire_semaphore, 0, &image_idx));
 
     VkCommandBufferAllocateInfo cmd_info = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -38,16 +38,25 @@ void Painter::render() {
     };
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
+    VkClearValue background_color = {
+        .color = {1, 1, 0, 1},
+    };
+
+    VkRenderPassBeginInfo renderpass_begin_info = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass = vk_context.render_pass,
+        .framebuffer = vk_context.framebuffers[image_idx],
+        .renderArea = {
+            .extent = vk_context.screen_size,
+        },
+        .clearValueCount = 1,
+        .pClearValues = &background_color,
+    };
+    vkCmdBeginRenderPass(cmd, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
     // rendering here
-    {
-        VkClearColorValue background_color = {1, 1, 0, 1};
-        VkImageSubresourceRange range = {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .levelCount = 1,
-            .layerCount = 1,
-        };
-        vkCmdClearColorImage(cmd, vk_context.sc_images[image_idx], VK_IMAGE_LAYOUT_GENERAL, &background_color, 1, &range);
-    }
+
+    vkCmdEndRenderPass(cmd);
 
     VK_CHECK(vkEndCommandBuffer(cmd));
 
@@ -77,9 +86,6 @@ void Painter::render() {
 
     VK_CHECK(vkDeviceWaitIdle(vk_context.device));
     vkFreeCommandBuffers(vk_context.device, vk_context.command_pool, 1, &cmd);
-
-    // SDL_RenderPresent(renderer);
-    clear();
 }
 
 void Painter::clear() {
