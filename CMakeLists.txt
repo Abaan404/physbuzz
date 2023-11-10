@@ -16,7 +16,7 @@ set(SRCS
     src/2dphysics.cpp
     src/vulkan.cpp
     # src/events.cpp
-    # src/painter.cpp
+    src/painter.cpp
     # src/scene.cpp
     # src/ui.cpp
 )

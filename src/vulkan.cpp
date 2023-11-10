@@ -1,8 +1,6 @@
 #include "vulkan.hpp"
 #include <vulkan/vulkan_core.h>
 
-#define VULKAN_DEBUG_REPORT
-
 #ifdef VULKAN_DEBUG_REPORT
 static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char *pLayerPrefix, const char *pMessage, void *pUserData) {
     (void)flags;
@@ -129,7 +127,7 @@ void VulkanBuilder::setup() {
     std::vector<const char *> instance_extensions(extensions_count);
     SDL_Vulkan_GetInstanceExtensions(window, &extensions_count, instance_extensions.data());
 
-    // create the VkInstance here
+    // Create the VkInstance here
     create_instance(instance_extensions);
 
     // Select the GPU here
@@ -140,9 +138,10 @@ void VulkanBuilder::setup() {
     std::vector<const char *> device_extensions = {"VK_KHR_swapchain"};
     select_device(device_extensions);
 
-    // Create a vulkan surface and swapchain
+    // Create a vulkan surface and stuff to render to it
     create_vulkan_surface();
     create_swapchain(); // imgui itself creates a swapchain
+    create_command_pool();
 
     // framebuffers for SDL and ImGui
     // create_frame_buffers();
@@ -368,6 +367,19 @@ void VulkanBuilder::create_swapchain() {
     };
 
     VK_CHECK(vkCreateSwapchainKHR(vk_context->device, &swapchain_info, vk_context->allocator, &vk_context->swapchain));
+
+    // get swapchain images
+    VK_CHECK(vkGetSwapchainImagesKHR(vk_context->device, vk_context->swapchain, &vk_context->sc_image_count, 0));
+    vk_context->sc_images.resize(vk_context->sc_image_count);
+    VK_CHECK(vkGetSwapchainImagesKHR(vk_context->device, vk_context->swapchain, &vk_context->sc_image_count, vk_context->sc_images.data()));
+}
+
+void VulkanBuilder::create_command_pool() {
+    VkCommandPoolCreateInfo command_pool_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .queueFamilyIndex = vk_context->queue_family};
+
+    VK_CHECK(vkCreateCommandPool(vk_context->device, &command_pool_info, vk_context->allocator, &vk_context->command_pool));
 }
 
 void VulkanBuilder::create_descriptor_pool() {

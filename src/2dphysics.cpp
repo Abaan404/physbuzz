@@ -25,7 +25,6 @@ Game::Game() {
     // Setup vulkan
     VulkanBuilder vk_builder = VulkanBuilder(window, &vk_context);
     vk_builder.setup();
-
     is_vulkan_init = true;
 
     // Setup ImGui
@@ -104,7 +103,7 @@ void Game::game_loop() {
         //         vk_context.rebuild_swapchain(width, height);
         // }
 
-        // painter->render();
+        painter->render();
         // interface->render();
         // scene_manager->tick();
     }

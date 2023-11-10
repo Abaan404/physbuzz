@@ -1,12 +1,14 @@
 #pragma once
 
+#define VULKAN_DEBUG_REPORT
+
 #include "imgui_impl_vulkan.h"
 #include <SDL2/SDL.h>
 #include <SDL_vulkan.h>
+#include <cstdint>
 #include <cstdio>
 #include <vector>
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
 
 #define VK_CHECK(result)                 \
     if (result != VK_SUCCESS) {          \
@@ -22,18 +24,29 @@
 struct VulkanContext {
     VkAllocationCallbacks *allocator = nullptr;
     VkInstance instance;
+
+#ifdef VULKAN_DEBUG_REPORT
+    VkDebugReportCallbackEXT debug_report;
+#endif
+
     VkPhysicalDevice physical_device;
     VkDevice device;
     uint32_t queue_family = (uint32_t)-1;
     VkQueue queue;
-    VkDebugReportCallbackEXT debug_report;
+
+    VkSurfaceFormatKHR surface_format;
+    VkSurfaceKHR surface;
+
     VkPipelineCache pipeline_cache;
     VkDescriptorPool descriptor_pool;
-    VkSwapchainKHR swapchain;
-    VkSurfaceKHR surface;
-    VkSurfaceFormatKHR surface_format;
 
+    VkSwapchainKHR swapchain;
+    VkCommandPool command_pool;
+
+    uint32_t sc_image_count;
     uint32_t min_image_count = 2;
+    std::vector<VkImage> sc_images;
+
     bool swapchain_rebuild = false;
     ImGui_ImplVulkanH_Window main_window_data;
 
@@ -68,6 +81,7 @@ class VulkanBuilder {
     void setup_vulkan_window(ImGui_ImplVulkanH_Window *wd, int width, int height);
 
     void create_swapchain();
+    void create_command_pool();
 
     bool is_extension_available(const std::vector<VkExtensionProperties> &properties, const char *extension);
 
