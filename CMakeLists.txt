@@ -11,13 +11,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # source files
 set(SRCS
-    src/collision/collision.cpp
-    src/dynamics/dynamics.cpp
+    # src/collision/collision.cpp
+    # src/dynamics/dynamics.cpp
     src/2dphysics.cpp
-    src/events.cpp
-    src/painter.cpp
-    src/scene.cpp
-    src/ui.cpp
+    src/vulkan.cpp
+    # src/events.cpp
+    # src/painter.cpp
+    # src/scene.cpp
+    # src/ui.cpp
 )
 
 # executable
@@ -30,14 +31,16 @@ find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
 # ImGui as static library
+set(IMGUI_PATH "submodules/imgui")
+file(GLOB IMGUI_SOURCES ${IMGUI_PATH}/*.cpp)
+set(IMGUI_BACKENDS ${IMGUI_PATH}/backends/imgui_impl_sdl2.cpp ${IMGUI_PATH}/backends/imgui_impl_vulkan.cpp)
 
-set(IMGUI_PATH "submodules/imgui/")
-
-file(GLOB IMGUI_SOURCES ${IMGUI_PATH}*.cpp)
-set(IMGUI_BACKENDS ${IMGUI_PATH}/backends/imgui_impl_sdl2.cpp ${IMGUI_PATH}/backends/imgui_impl_sdlrenderer2.cpp)
 add_library("imgui" STATIC ${IMGUI_SOURCES} ${IMGUI_BACKENDS})
-
 target_include_directories("imgui" PUBLIC ${IMGUI_PATH} ${IMGUI_PATH}/backends)
 
+# Vulkan
+find_package(Vulkan REQUIRED)
+include_directories(${Vulkan_INCLUDE_DIRS})
+
 ### LINKING ###
-target_link_libraries(2dphysics ${SDL2_LIBRARIES} imgui)
+target_link_libraries(2dphysics ${SDL2_LIBRARIES} ${Vulkan_LIBRARIES} imgui)
