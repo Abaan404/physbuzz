@@ -7,6 +7,8 @@
 #include <SDL_vulkan.h>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -39,11 +41,13 @@ struct VulkanContext {
     VkSurfaceKHR surface;
 
     VkPipelineCache pipeline_cache;
-    VkDescriptorPool descriptor_pool;
+    VkPipeline pipeline;
+    VkPipelineLayout pipeline_layout;
 
     VkSwapchainKHR swapchain;
     VkCommandPool command_pool;
     VkRenderPass render_pass;
+    VkDescriptorPool descriptor_pool;
 
     uint32_t sc_image_count;
     uint32_t min_image_count = 2;
@@ -77,16 +81,17 @@ class VulkanBuilder {
     void create_instance(std::vector<const char *> instance_extensions);
     VkPhysicalDevice select_physical_device();
     void select_graphics_queue_family();
-    void select_device(std::vector<const char*> device_extensions);
+    void select_device(std::vector<const char *> device_extensions);
     void create_descriptor_pool();
 
     void create_vulkan_surface();
-    void create_framebuffers();
+    void create_swapchain();
     void setup_vulkan_window(ImGui_ImplVulkanH_Window *wd, int width, int height);
 
-    void create_swapchain();
     void create_command_pool();
     void create_render_pass();
+    void create_framebuffers();
+    void create_graphics_pipeline();
 
     bool is_extension_available(const std::vector<VkExtensionProperties> &properties, const char *extension);
 

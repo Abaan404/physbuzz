@@ -1,5 +1,4 @@
 #include "vulkan.hpp"
-#include <vulkan/vulkan_core.h>
 
 #ifdef VULKAN_DEBUG_REPORT
 static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char *pLayerPrefix, const char *pMessage, void *pUserData) {
@@ -140,6 +139,7 @@ void VulkanBuilder::setup(std::vector<const char *> instance_extensions) {
     // Create stuff for rendering
     create_command_pool();
     create_render_pass();
+    create_graphics_pipeline();
 
     // framebuffers for SDL and ImGui
     create_framebuffers();
@@ -177,6 +177,135 @@ void VulkanBuilder::create_framebuffers() {
         framebuffer_info.pAttachments = &vk_context->sc_image_views[i];
         VK_CHECK(vkCreateFramebuffer(vk_context->device, &framebuffer_info, vk_context->allocator, &vk_context->framebuffers[i]));
     }
+}
+
+void VulkanBuilder::create_graphics_pipeline() {
+
+    VkPipelineColorBlendAttachmentState color_attachment = {
+        .blendEnable = VK_FALSE, // disable blend for now
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+    };
+
+    VkPipelineColorBlendStateCreateInfo color_blend_state = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .attachmentCount = 1,
+        .pAttachments = &color_attachment,
+    };
+
+    VkPipelineVertexInputStateCreateInfo vertex_input_state = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+
+    };
+
+    VkShaderModule vertex_shader, fragment_shader;
+
+    // todo ASSERT here
+    {
+        std::filesystem::path fragment_path = "../../shaders/shader.frag.spv";
+
+        std::ifstream in(fragment_path, std::ios::binary);
+        std::vector<char> fragment(std::istreambuf_iterator<char>(in), {});
+
+        VkShaderModuleCreateInfo shader_info = {
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .codeSize = fragment.size(),
+            .pCode = (uint32_t *)fragment.data(),
+        };
+        VK_CHECK(vkCreateShaderModule(vk_context->device, &shader_info, vk_context->allocator, &fragment_shader));
+    }
+
+    // todo ASSERT here
+    {
+        std::filesystem::path vertex_path = "../../shaders/shader.vert.spv";
+
+        std::ifstream in(vertex_path, std::ios::binary);
+        std::vector<char> vertex(std::istreambuf_iterator<char>(in), {});
+
+        VkShaderModuleCreateInfo shader_info = {
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .codeSize = vertex.size(),
+            .pCode = (uint32_t *)vertex.data(),
+        };
+        VK_CHECK(vkCreateShaderModule(vk_context->device, &shader_info, vk_context->allocator, &vertex_shader));
+    }
+
+    VkPipelineShaderStageCreateInfo vertex_stage = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .stage = VK_SHADER_STAGE_VERTEX_BIT,
+        .module = vertex_shader,
+        .pName = "main",
+    };
+
+    VkPipelineShaderStageCreateInfo fragment_stage = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .module = fragment_shader,
+        .pName = "main",
+    };
+
+    std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {vertex_stage, fragment_stage};
+
+    VkPipelineRasterizationStateCreateInfo rasterization_state = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+        .polygonMode = VK_POLYGON_MODE_FILL,
+        .cullMode = VK_CULL_MODE_BACK_BIT,
+        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        .lineWidth = 1.0f,
+    };
+
+    VkPipelineLayoutCreateInfo pipeline_layout_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+    };
+    VK_CHECK(vkCreatePipelineLayout(vk_context->device, &pipeline_layout_info, vk_context->allocator, &vk_context->pipeline_layout));
+
+    VkRect2D scissor = {};
+    VkViewport viewport = {};
+
+    VkPipelineViewportStateCreateInfo viewport_state_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .viewportCount = 1,
+        .pViewports = &viewport,
+        .scissorCount = 1,
+        .pScissors = &scissor,
+    };
+
+    std::vector<VkDynamicState> dynamic_states = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR,
+    };
+
+    VkPipelineDynamicStateCreateInfo dynamic_state_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .dynamicStateCount = (uint32_t)dynamic_states.size(),
+        .pDynamicStates = dynamic_states.data(),
+    };
+
+    VkPipelineMultisampleStateCreateInfo multisample_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+    };
+
+    VkPipelineInputAssemblyStateCreateInfo inputassembly_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+    };
+
+    VkGraphicsPipelineCreateInfo pipeline_info = {
+        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .stageCount = (uint32_t)shader_stages.size(),
+        .pStages = shader_stages.data(),
+        .pVertexInputState = &vertex_input_state,
+        .pInputAssemblyState = &inputassembly_info,
+        .pViewportState = &viewport_state_info,
+        .pRasterizationState = &rasterization_state,
+        .pMultisampleState = &multisample_info,
+        .pColorBlendState = &color_blend_state,
+        .pDynamicState = &dynamic_state_info,
+        .layout = vk_context->pipeline_layout,
+        .renderPass = vk_context->render_pass,
+    };
+
+    VK_CHECK(vkCreateGraphicsPipelines(vk_context->device, vk_context->pipeline_cache, 1, &pipeline_info, vk_context->allocator, &vk_context->pipeline));
 }
 
 // void VulkanBuilder::setup_vulkan_window(ImGui_ImplVulkanH_Window *window_data, int width, int height) {

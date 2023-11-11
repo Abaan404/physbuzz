@@ -1,5 +1,4 @@
 #include "painter.hpp"
-#include <vulkan/vulkan_core.h>
 
 void Painter::render() {
     // // draw all objects
@@ -39,7 +38,7 @@ void Painter::render() {
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
     VkClearValue background_color = {
-        .color = {1, 1, 0, 1},
+        .color = {0, 0, 0, 1},
     };
 
     VkRenderPassBeginInfo renderpass_begin_info = {
@@ -55,6 +54,23 @@ void Painter::render() {
     vkCmdBeginRenderPass(cmd, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
     // rendering here
+    {
+
+        VkRect2D scissor = {
+            .extent = vk_context.screen_size};
+        VkViewport viewport = {
+            .width = (float)vk_context.screen_size.width,
+            .height = (float)vk_context.screen_size.height,
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f,
+        };
+
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
+        vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, vk_context.pipeline);
+        vkCmdDraw(cmd, 3, 1, 0, 0);
+    }
 
     vkCmdEndRenderPass(cmd);
 
