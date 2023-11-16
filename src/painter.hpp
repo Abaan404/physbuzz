@@ -3,16 +3,14 @@
 #include "geometry/box.hpp"
 #include "geometry/circle.hpp"
 #include "geometry/object.hpp"
-#include "imgui_impl_sdlrenderer2.h"
-#include <SDL2/SDL_render.h>
+#include "imgui_impl_opengl3.h"
+#include <glad/gl.h>
 #include <memory>
 #include <vector>
 
 class Painter {
   public:
-    Painter(SDL_Renderer *renderer, std::vector<std::shared_ptr<GameObject>> &objects) : renderer(renderer), objects(objects) {
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    };
+    Painter(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects);
 
     void render();
     void clear();
@@ -21,6 +19,12 @@ class Painter {
     SDL_Texture *draw_circle(std::shared_ptr<Circle> circle, SDL_Color &color);
 
     SDL_Renderer *renderer;
+    SDL_GLContext *context;
+
+    SDL_Window *window;
+    glm::ivec2 window_size;
+
+    glm::vec4 clear_color = {1.0f, 1.0f, 1.0f, 0.0f};
 
   private:
     std::vector<std::shared_ptr<GameObject>> &objects;

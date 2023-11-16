@@ -1,10 +1,12 @@
 #pragma once
 
-#include "imgui.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_sdlrenderer2.h"
-
 #include "painter.hpp"
+
+#include "imgui.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_impl_sdl2.h"
+
+#include <unordered_map>
 
 enum class InterfaceType {
     Debug,
@@ -18,7 +20,7 @@ class UserInferface {
 
     void render();
 
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
     InterfaceType interface_type;
 
     bool draw_interface = false;

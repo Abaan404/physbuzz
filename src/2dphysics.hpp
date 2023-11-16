@@ -5,11 +5,13 @@
 #include "scene.hpp"
 #include "ui.hpp"
 
+#include <glad/gl.h>
+
 #include <SDL2/SDL.h>
 #include <cstdio>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
-#include <imgui_impl_sdlrenderer2.h>
+#include <imgui_impl_opengl3.h>
 #include <memory>
 #include <vector>
 
@@ -33,5 +35,7 @@ class Game {
 
     // SDL Variables
     SDL_Window *window;
-    SDL_Renderer *renderer;
+
+    // OpenGL Variables
+    SDL_GLContext context;
 };

@@ -1,6 +1,4 @@
 #include "ui.hpp"
-#include "imgui.h"
-#include <unordered_map>
 
 UserInferface::UserInferface(Painter &painter) : painter(painter) {}
 
@@ -68,7 +66,7 @@ void UserInferface::show_shape_picker() {
 
 void UserInferface::render() {
     // draw a new frame
-    ImGui_ImplSDLRenderer2_NewFrame();
+    ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
@@ -79,8 +77,8 @@ void UserInferface::render() {
     if (draw_demo_window)
         ImGui::ShowDemoWindow(&draw_demo_window);
 
-    if (draw_shape_picker)
-        this->show_shape_picker();
+    // if (draw_shape_picker)
+    //     this->show_shape_picker();
 
     // ImGui_ImplSDLRenderer2_RenderDrawData() gets
     // called from Painter::clear()

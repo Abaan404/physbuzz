@@ -7,7 +7,7 @@ Game::Game() {
     }
 
     // Create a window
-    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
     window = SDL_CreateWindow("SDL2 Example", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, window_flags);
     if (window == nullptr) {
         printf("[ERROR] SDL_CreateWindow: %s\n", SDL_GetError());
@@ -15,14 +15,35 @@ Game::Game() {
         exit(1);
     }
 
-    // Create a renderer
-    SDL_RendererFlags renderer_flags = (SDL_RendererFlags)(SDL_RENDERER_ACCELERATED);
-    renderer = SDL_CreateRenderer(window, -2, renderer_flags);
-    if (renderer == nullptr) {
-        printf("[ERROR] SDL_CreateRenderer: %s\n", SDL_GetError());
+    // Setup OpenGL
+    SDL_GL_LoadLibrary(NULL);
+    context = SDL_GL_CreateContext(window);
+    if (context == NULL) {
+        printf("[ERROR] SDL_GL_CreateContext: Failed to create OpenGL context\n");
         SDL_Quit();
         exit(1);
     }
+
+    int version = gladLoadGL((GLADloadfunc) SDL_GL_GetProcAddress);
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+    // SDL_GL_SetSwapInterval(1); // Enable vsync
+
+    int w, h;
+    SDL_GetWindowSize(window, &w, &h);
+    glViewport(0, 0, w, h);
+    glClearColor(0.0f, 0.5f, 1.0f, 0.0f);
 
     // Setup ImGui
     ImGui::CreateContext();
@@ -39,13 +60,13 @@ Game::Game() {
 
     ImGui::StyleColorsDark();
 
-    ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-    ImGui_ImplSDLRenderer2_Init(renderer);
+    ImGui_ImplSDL2_InitForOpenGL(window, context);
+    ImGui_ImplOpenGL3_Init("#version 130");
 
     is_running = true;
 
     // there has to be a better way to pass by reference
-    this->painter = std::make_unique<Painter>(renderer, objects);
+    this->painter = std::make_unique<Painter>(&context, window, objects);
     this->interface = std::make_unique<UserInferface>(*painter);
     this->event_handler = std::make_unique<EventHandler>(*painter, *interface, objects);
     this->scene_manager = std::make_unique<SceneManager>(objects);
@@ -83,15 +104,17 @@ void Game::game_loop() {
         interface->render();
         painter->render();
         scene_manager->tick();
+
+        SDL_GL_SwapWindow(window);
     }
 }
 
 void Game::cleanup() {
-    ImGui_ImplSDLRenderer2_Shutdown();
+    ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 
-    SDL_DestroyRenderer(renderer);
+    SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }

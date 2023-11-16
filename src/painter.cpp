@@ -1,38 +1,36 @@
 #include "painter.hpp"
 
+Painter::Painter(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects) : context(context), objects(objects), window(window){};
+
 void Painter::render() {
-    // draw all objects
-    for (auto object = objects.begin(); object != objects.end(); object++) {
-        GameObject *obj = &**object; // what was i doing
-        if (obj->texture == NULL) {
-            printf("[WARNING] Attempted to render an untextured object\n");
-            continue;
-        }
+    // // draw all objects
+    // for (auto object = objects.begin(); object != objects.end(); object++) {
+    //     GameObject *obj = &**object; // what was i doing
+    //     if (obj->texture == NULL) {
+    //         printf("[WARNING] Attempted to render an untextured object\n");
+    //         continue;
+    //     }
+    //
+    //     SDL_RenderCopyF(renderer, obj->texture, NULL, &obj->rect);
+    // }
 
-        SDL_RenderCopyF(renderer, obj->texture, NULL, &obj->rect);
-    }
-
-    // ImGui widgets drawn in UserInterface::draw()
-    // render imgui
+    // ImGui windows are drawn in UserInterface::draw()
     ImGui::Render();
-    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();
 
-    SDL_RenderPresent(renderer);
+    // clear the frame
     clear();
 }
 
 void Painter::clear() {
-    // Clear the screen
-    if (SDL_RenderClear(renderer) < 0) {
-        printf("[ERROR] SDL_RenderClear: %s\n", SDL_GetError());
-    }
+    SDL_GetWindowSize(window, &window_size.x, &window_size.y);
+    glViewport(0, 0, window_size.x, window_size.y);
 
-    if (SDL_SetRenderDrawColor(renderer, 64, 64, 64, 255) < 0) {
-        printf("[ERROR] SDL_SetRenderDrawSDL_Color: %s\n", SDL_GetError());
-    }
+    glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 SDL_Texture *Painter::draw_box(std::shared_ptr<Box> box, SDL_Color &color) {
