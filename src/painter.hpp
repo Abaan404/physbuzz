@@ -3,32 +3,39 @@
 #include "geometry/box.hpp"
 #include "geometry/circle.hpp"
 #include "geometry/object.hpp"
-#include "imgui_impl_opengl3.h"
 #include "opengl/shaders.hpp"
+#include "shaders/glsl.hpp"
+#include <SDL_video.h>
 #include <glad/gl.h>
 #include <memory>
 #include <vector>
 
+// need a better color management eventually
 typedef glm::ivec4 Color;
+
+// A collection of hard-coded shader for primitive objects
+struct ShaderCollection {
+    ShaderContext box = ShaderContext(box_vertex, box_frag);
+};
 
 class Painter {
   public:
     Painter(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects);
 
-    void render();
-    void clear();
-
-    SDL_Texture *draw_box(std::shared_ptr<Box> box, SDL_Color &color);
-    SDL_Texture *draw_circle(std::shared_ptr<Circle> circle, SDL_Color &color);
-
-    SDL_Renderer *renderer;
-    SDL_GLContext *context;
-
     SDL_Window *window;
-    glm::ivec2 window_size;
 
-    Color clear_color = {1.0f, 1.0f, 1.0f, 0.0f};
+    ShaderCollection shaders;
+    SDL_GLContext *context;
+    GLuint VBO;
+
+    void render();
+    void clear(Color clear_color);
+
+    void render_box(std::shared_ptr<Box> box);
+    void render_circle(std::shared_ptr<Circle> circle);
 
   private:
     std::vector<std::shared_ptr<GameObject>> &objects;
+
+    void load_object(std::shared_ptr<GameObject> object, GLboolean normalized, GLenum usage);
 };

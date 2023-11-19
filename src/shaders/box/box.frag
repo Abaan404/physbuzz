@@ -1,4 +1,4 @@
-std::string box_frag = R"(
+static const std::string box_frag = R"(
 #version 460
 
 out vec4 FragColor;

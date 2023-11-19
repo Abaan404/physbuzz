@@ -17,6 +17,7 @@ enum class InterfaceType {
 class UserInferface {
   public:
     UserInferface(Painter &painter);
+    ~UserInferface();
 
     void render();
 

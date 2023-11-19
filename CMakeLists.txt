@@ -13,6 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SRCS
     src/collision/collision.cpp
     src/dynamics/dynamics.cpp
+    src/opengl/shaders.cpp
     src/2dphysics.cpp
     src/events.cpp
     src/painter.cpp

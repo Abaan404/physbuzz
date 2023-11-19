@@ -18,8 +18,9 @@
 class Game {
   public:
     Game();
+    ~Game();
+
     void game_loop();
-    void cleanup();
 
   private:
     bool is_running;
