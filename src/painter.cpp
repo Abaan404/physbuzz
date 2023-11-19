@@ -22,7 +22,7 @@ void Painter::render() {
     ImGui::RenderPlatformWindowsDefault();
 
     // clear the frame
-    clear();
+    // clear();
 }
 
 void Painter::clear() {

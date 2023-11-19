@@ -4,9 +4,12 @@
 #include "geometry/circle.hpp"
 #include "geometry/object.hpp"
 #include "imgui_impl_opengl3.h"
+#include "opengl/shaders.hpp"
 #include <glad/gl.h>
 #include <memory>
 #include <vector>
+
+typedef glm::ivec4 Color;
 
 class Painter {
   public:
@@ -24,7 +27,7 @@ class Painter {
     SDL_Window *window;
     glm::ivec2 window_size;
 
-    glm::vec4 clear_color = {1.0f, 1.0f, 1.0f, 0.0f};
+    Color clear_color = {1.0f, 1.0f, 1.0f, 0.0f};
 
   private:
     std::vector<std::shared_ptr<GameObject>> &objects;

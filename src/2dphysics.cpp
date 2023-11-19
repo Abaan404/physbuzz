@@ -1,5 +1,8 @@
 #include "2dphysics.hpp"
 
+#include "shaders/box/box.frag"
+#include "shaders/box/box.vert"
+
 Game::Game() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         printf("[ERROR] SDL_Init: %s\n", SDL_GetError());
@@ -24,7 +27,7 @@ Game::Game() {
         exit(1);
     }
 
-    int version = gladLoadGL((GLADloadfunc) SDL_GL_GetProcAddress);
+    int version = gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
@@ -61,7 +64,7 @@ Game::Game() {
     ImGui::StyleColorsDark();
 
     ImGui_ImplSDL2_InitForOpenGL(window, context);
-    ImGui_ImplOpenGL3_Init("#version 130");
+    ImGui_ImplOpenGL3_Init("#version 460");
 
     is_running = true;
 
@@ -73,6 +76,27 @@ Game::Game() {
 }
 
 void Game::game_loop() {
+    // compile the shaders
+    ShaderFile box = ShaderFile(box_vertex, box_frag);
+    GLuint program = box.load();
+
+    // Create a Vertex Objects
+    GLuint VBO, VAO;
+    glGenBuffers(1, &VBO);
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    // send data to the gpu
+    float vertices[] = {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+
+    // unbind i guess?
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
     SDL_Event event;
     while (is_running) {
 
@@ -104,6 +128,10 @@ void Game::game_loop() {
         interface->render();
         painter->render();
         scene_manager->tick();
+
+        glUseProgram(program);
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         SDL_GL_SwapWindow(window);
     }
