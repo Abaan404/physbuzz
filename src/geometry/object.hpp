@@ -17,20 +17,43 @@ class GameObject {
   public:
     GameObject(Objects identifier, glm::vec2 position) : position(position), identifier(identifier) {
         glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &EBO);
         glBindVertexArray(VAO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     };
 
-    GLuint VAO;
+    GLuint VAO, EBO;
     GLuint program;
 
     glm::vec2 position;
     float rotation;
-    std::vector<glm::vec3> vertices;
+    std::vector<float> vertices;
+    std::vector<GLuint> indices;
 
     SDL_Texture *texture;
     SDL_FRect rect;
 
     Objects identifier = Objects::Unknown;
+
+    void set_vertex(std::vector<glm::vec3> vertex_buffer) {
+        int idx = 0;
+        vertices.resize(vertex_buffer.size() * 3);
+        for (auto vertex = vertex_buffer.begin(); vertex != vertex_buffer.end(); vertex++) {
+            vertices[idx++] = vertex->x;
+            vertices[idx++] = vertex->y;
+            vertices[idx++] = vertex->z;
+        }
+    }
+
+    void set_index(std::vector<glm::uvec3> index_buffer) {
+        int idx = 0;
+        indices.resize(index_buffer.size() * 3);
+        for (auto index = index_buffer.begin(); index != index_buffer.end(); index++) {
+            indices[idx++] = index->x;
+            indices[idx++] = index->y;
+            indices[idx++] = index->z;
+        }
+    }
 };
 
 class DynamicObject {

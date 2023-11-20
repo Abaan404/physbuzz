@@ -15,7 +15,8 @@ void Painter::render() {
 
         glUseProgram(obj.program);
         glBindVertexArray(obj.VAO);
-        glDrawArrays(GL_TRIANGLES, 0, obj.vertices.size());
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj.EBO);
+        glDrawElements(GL_TRIANGLES, obj.indices.size(), GL_UNSIGNED_INT, 0);
     }
 
     SDL_GL_SwapWindow(window);
@@ -34,12 +35,21 @@ void Painter::clear(Color clear_color) {
 }
 
 void Painter::render_box(std::shared_ptr<Box> box) {
-    box->program = shaders.box.load();
-    box->vertices = {
-        glm::vec3(-0.5f, -0.5f, 0.0f),
+    std::vector<glm::vec3> vertex_buffer = {
+        glm::vec3(0.5f, 0.5f, 0.0f),
         glm::vec3(0.5f, -0.5f, 0.0f),
-        glm::vec3(0.0f, 0.5f, 0.0f),
+        glm::vec3(-0.5f, -0.5f, 0.0f),
+        glm::vec3(-0.5f, 0.5f, 0.0f),
     };
+
+    std::vector<glm::uvec3> index_buffer = {
+        glm::vec3(0, 1, 3),
+        glm::vec3(1, 2, 3),
+    };
+
+    box->program = shaders.box.load();
+    box->set_vertex(vertex_buffer);
+    box->set_index(index_buffer);
 
     load_object(box, GL_FALSE, GL_STATIC_DRAW);
 
@@ -109,22 +119,17 @@ void Painter::render_circle(std::shared_ptr<Circle> circle) {
 }
 
 void Painter::load_object(std::shared_ptr<GameObject> object, GLboolean normalized, GLenum usage) {
-    float vertex_buffer[object->vertices.size() * 3];
-
-    int idx = 0;
-    for (auto vertex = object->vertices.begin(); vertex != object->vertices.end(); vertex++) {
-        vertex_buffer[idx++] = vertex->x;
-        vertex_buffer[idx++] = vertex->y;
-        vertex_buffer[idx++] = vertex->z;
-    }
-
     // send data to the gpu
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer), vertex_buffer, usage);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * object->vertices.size(), object->vertices.data(), usage);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object->EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * object->indices.size(), object->indices.data(), usage);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, normalized, 3 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
