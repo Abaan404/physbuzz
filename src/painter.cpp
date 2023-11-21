@@ -26,9 +26,9 @@ void Painter::render() {
 }
 
 void Painter::clear(Color clear_color) {
-    int height, width;
-    SDL_GetWindowSize(window, &height, &width);
-    glViewport(0, 0, height, width);
+    int width, height;
+    SDL_GetWindowSize(window, &width, &height);
+    glViewport(0, 0, width, height);
 
     glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
     glClear(GL_COLOR_BUFFER_BIT);
