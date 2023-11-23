@@ -26,7 +26,7 @@ void EventHandler::mouse_mousedown(SDL_MouseButtonEvent &event) {
 
     } else if (event.button == SDL_BUTTON_RIGHT) {
         std::shared_ptr<PhysicsCircle> circle = std::make_shared<PhysicsCircle>(glm::vec2(event.x, event.y), 100);
-        circle->velocity = glm::vec2(.01f, .01f);
+        circle->dynamics.velocity = glm::vec2(.01f, .01f);
 
         SDL_Color color = {0, 255, 255, 255};
         circle->texture = painter.draw_circle(circle, color);

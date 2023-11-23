@@ -21,6 +21,6 @@ void Dynamics::apply_dynamics(PhysicsBox &box) {
 }
 
 void Dynamics::apply_dynamics(PhysicsCircle &circle) {
-    circle.position += circle.velocity + 0.5f * circle.acceleration;
+    circle.position += circle.dynamics.velocity + 0.5f * circle.dynamics.acceleration;
     circle.rect = {circle.position.x - circle.radius, circle.position.y - circle.radius, 2 * circle.radius, 2 * circle.radius};
 }

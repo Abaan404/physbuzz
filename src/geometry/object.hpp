@@ -11,6 +11,12 @@ enum class Objects {
     PhysicsCircle
 };
 
+struct DynamicProperties {
+    float intertia;
+    glm::vec2 velocity;
+    glm::vec2 acceleration;
+};
+
 class GameObject {
   public:
     GameObject(Objects identifier, glm::vec2 position) : position(position), identifier(identifier){};
@@ -21,12 +27,7 @@ class GameObject {
     SDL_Texture *texture;
     SDL_FRect rect;
 
+    DynamicProperties dynamics;
     Objects identifier = Objects::Unknown;
 };
 
-class DynamicObject {
-  public:
-    float intertia;
-    glm::vec2 velocity;
-    glm::vec2 acceleration;
-};
