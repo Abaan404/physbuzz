@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.27)
 
-project(2dphysics
+project(physbuzz
     DESCRIPTION "A basic 2d physics engine"
     VERSION 0.0.1
     LANGUAGES CXX
@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SRCS
     src/collision/collision.cpp
     src/dynamics/dynamics.cpp
-    src/2dphysics.cpp
+    src/physbuzz.cpp
     src/events.cpp
     src/painter.cpp
     src/scene.cpp
@@ -40,4 +40,4 @@ add_library("imgui" STATIC ${IMGUI_SOURCES} ${IMGUI_BACKENDS})
 target_include_directories("imgui" PUBLIC ${IMGUI_PATH} ${IMGUI_PATH}/backends)
 
 ### LINKING ###
-target_link_libraries(2dphysics ${SDL2_LIBRARIES} imgui)
+target_link_libraries(physbuzz ${SDL2_LIBRARIES} imgui)
