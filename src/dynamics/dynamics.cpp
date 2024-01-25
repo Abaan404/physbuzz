@@ -1,6 +1,8 @@
 #include "dynamics.hpp"
 
-void Dynamics::tick_object(std::shared_ptr<GameObject> object) {
+#include <glm/glm.hpp>
+
+void Dynamics::tick(std::shared_ptr<GameObject> object) {
     // ignore non physics objects
     // eh not the most ideal solution but it works, idc
     switch (object->identifier) {
@@ -21,6 +23,6 @@ void Dynamics::apply_dynamics(PhysicsBox &box) {
 }
 
 void Dynamics::apply_dynamics(PhysicsCircle &circle) {
-    circle.position += circle.velocity + 0.5f * circle.acceleration;
+    circle.position += circle.dynamics.velocity + 0.5f * circle.dynamics.acceleration;
     circle.rect = {circle.position.x - circle.radius, circle.position.y - circle.radius, 2 * circle.radius, 2 * circle.radius};
 }

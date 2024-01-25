@@ -1,12 +1,15 @@
 #include "ui.hpp"
 
+#include "imgui_impl_opengl3.h"
+#include "imgui_impl_sdl2.h"
+
 UserInferface::UserInferface(Painter &painter) : painter(painter) {
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     // Does not work under wayland, use xwayland to support this
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
 
     ImGui::StyleColorsDark();
 
@@ -103,5 +106,4 @@ void UserInferface::render() {
 
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();
-
 }

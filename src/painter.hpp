@@ -5,6 +5,7 @@
 #include "geometry/object.hpp"
 #include "opengl/shaders.hpp"
 #include "shaders/glsl.hpp"
+
 #include <SDL_video.h>
 #include <glad/gl.h>
 #include <memory>

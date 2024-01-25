@@ -1,4 +1,6 @@
-#include "2dphysics.hpp"
+#include "physbuzz.hpp"
+
+#include <cstdio>
 
 Game::Game() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
@@ -8,7 +10,7 @@ Game::Game() {
 
     // Create a window
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
-    window = SDL_CreateWindow("SDL2 Example", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, window_flags);
+    window = SDL_CreateWindow("phyzbuzz engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, window_flags);
     if (window == nullptr) {
         printf("[ERROR] SDL_CreateWindow: %s\n", SDL_GetError());
         SDL_Quit();
@@ -49,7 +51,7 @@ Game::Game() {
     is_running = true;
 
     // create ImGui context
-    // (this doesnt work if its called in the UserInferface 
+    // (this doesnt work if its called in the UserInferface
     // constructor for some reason
     ImGui::CreateContext();
 
@@ -91,7 +93,7 @@ void Game::game_loop() {
 
         interface->render();
         painter->render();
-       scene_manager->tick();
+        scene_manager->tick();
     }
 }
 

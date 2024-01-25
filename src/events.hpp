@@ -1,13 +1,9 @@
 #pragma once
 
-#include "geometry/box.hpp"
-#include "geometry/physics_box.hpp"
-#include "geometry/physics_circle.hpp"
 #include "painter.hpp"
 #include "ui.hpp"
 
 #include <SDL2/SDL.h>
-#include <cstdio>
 #include <memory>
 #include <vector>
 

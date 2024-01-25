@@ -6,7 +6,7 @@ void SceneManager::tick() {
         object = *obj1;
 
         // apply dynamics
-        dynamics.tick_object(object);
+        dynamics.tick(object);
 
         // collision check
         std::shared_ptr<GameObject> other;
@@ -16,7 +16,7 @@ void SceneManager::tick() {
             // ignore if obj1 is obj2
             if (object == other) continue;
 
-            collision.collides(object, other);
+            collision.tick(object, other);
         }
     }
 }

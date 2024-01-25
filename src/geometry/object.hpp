@@ -13,6 +13,13 @@ enum class Objects {
     PhysicsCircle
 };
 
+struct DynamicProperties {
+    float mass = 0.0f;
+    float intertia = 0.0f;
+    glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
+    glm::vec2 acceleration = glm::vec2(0.0f, 0.0f);
+};
+
 class GameObject {
   public:
     GameObject(Objects identifier, glm::vec2 position) : position(position), identifier(identifier) {
@@ -33,6 +40,7 @@ class GameObject {
     SDL_Texture *texture;
     SDL_FRect rect;
 
+    DynamicProperties dynamics;
     Objects identifier = Objects::Unknown;
 
     void set_vertex(std::vector<glm::vec3> vertex_buffer) {
@@ -54,11 +62,4 @@ class GameObject {
             indices[idx++] = index->z;
         }
     }
-};
-
-class DynamicObject {
-  public:
-    float intertia;
-    glm::vec2 velocity;
-    glm::vec2 acceleration;
 };

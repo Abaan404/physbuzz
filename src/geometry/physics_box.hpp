@@ -2,9 +2,10 @@
 
 #include "box.hpp"
 
-class PhysicsBox : public DynamicObject, public Box {
+class PhysicsBox : public Box {
   public:
-    PhysicsBox(glm::vec2 position, float width, float height) : Box(position, width, height) {
+    PhysicsBox(glm::vec2 position, float width, float height, float mass) : Box(position, width, height) {
         Box::identifier = Objects::PhysicsBox;
+        dynamics.mass = mass;
     }
 };

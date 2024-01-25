@@ -1,9 +1,7 @@
 #pragma once
 
 #include <glad/gl.h>
-#include <stdexcept>
 #include <string>
-#include <vector>
 
 class Shader {
   public:
