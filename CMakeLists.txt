@@ -16,7 +16,7 @@ set(SRCS
     src/opengl/shaders.cpp
     src/physbuzz.cpp
     src/events.cpp
-    src/painter.cpp
+    src/renderer.cpp
     src/scene.cpp
     src/ui.cpp
 )
@@ -24,12 +24,12 @@ set(SRCS
 # executable
 add_executable(${PROJECT_NAME} ${SRCS})
 
-### LIBRARIES ###
+# OpenGL
+find_package(OpenGL REQUIRED)
 
 # Glad
 set(GLAD_SOURCES_DIR "${PROJECT_SOURCE_DIR}/submodules/glad")
 add_subdirectory("${GLAD_SOURCES_DIR}/cmake" glad_cmake)
-
 glad_add_library(glad_lib STATIC API gl:core=3.2)
 
 # SDL2
@@ -42,13 +42,13 @@ set(IMGUI_PATH "submodules/imgui/")
 file(GLOB IMGUI_SOURCES ${IMGUI_PATH}*.cpp)
 set(IMGUI_BACKENDS ${IMGUI_PATH}/backends/imgui_impl_sdl2.cpp ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp)
 add_library("imgui" STATIC ${IMGUI_SOURCES} ${IMGUI_BACKENDS})
-
 target_include_directories("imgui" PUBLIC  ${IMGUI_PATH} ${IMGUI_PATH}/backends)
 
 ### LINKING ###
 target_link_libraries(physbuzz
     PUBLIC
     ${SDL2_LIBRARIES}
+    ${OPENGL_LIBRARIES}
     imgui
     glad_lib
 )

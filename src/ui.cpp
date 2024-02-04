@@ -3,7 +3,7 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
 
-UserInferface::UserInferface(Painter &painter) : painter(painter) {
+UserInferface::UserInferface(Renderer &renderer) : renderer(renderer) {
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -13,7 +13,7 @@ UserInferface::UserInferface(Painter &painter) : painter(painter) {
 
     ImGui::StyleColorsDark();
 
-    ImGui_ImplSDL2_InitForOpenGL(painter.window, painter.context);
+    ImGui_ImplSDL2_InitForOpenGL(renderer.window, renderer.context);
     ImGui_ImplOpenGL3_Init("#version 460");
 }
 
@@ -47,10 +47,10 @@ void UserInferface::show_shape_picker() {
     // static SDL_Color physics_circle_color = {255, 255, 255, 255};
     //
     // std::unordered_map<std::string, SDL_Texture *> textures = {
-    //     {"box", painter.draw_box(box, box_color)},
-    //     {"circle", painter.draw_circle(circle, circle_color)},
-    //     {"physics_box", painter.draw_box(box, physics_box_color)},
-    //     {"physics_circle", painter.draw_circle(circle, physics_circle_color)},
+    //     {"box", renderer.draw_box(box, box_color)},
+    //     {"circle", renderer.draw_circle(circle, circle_color)},
+    //     {"physics_box", renderer.draw_box(box, physics_box_color)},
+    //     {"physics_circle", renderer.draw_circle(circle, physics_circle_color)},
     // };
     //
     // static int pressed_count = 0;

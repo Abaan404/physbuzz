@@ -7,3 +7,6 @@ build/
 
 # imgui persistent file
 imgui.ini
+
+# cmake tools
+*cmake-tools*

@@ -25,17 +25,20 @@ class GameObject {
     GameObject(Objects identifier, glm::vec2 position) : position(position), identifier(identifier) {
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &EBO);
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     };
 
-    GLuint VAO, EBO;
-    GLuint program;
+    ~GameObject() {
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &EBO);
+    }
+
+    unsigned int VAO, EBO;
+    unsigned int program;
 
     glm::vec2 position;
     float rotation;
     std::vector<float> vertices;
-    std::vector<GLuint> indices;
+    std::vector<unsigned int> indices;
 
     SDL_Texture *texture;
     SDL_FRect rect;

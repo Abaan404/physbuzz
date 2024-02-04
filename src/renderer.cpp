@@ -1,31 +1,37 @@
-#include "painter.hpp"
+#include "renderer.hpp"
+#include "opengl/shaders.hpp"
 
-Painter::Painter(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects) : context(context), objects(objects), window(window) {
+Renderer::Renderer(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects) : context(context), objects(objects), window(window) {
     glGenBuffers(1, &VBO);
+
+    // load static shaders
+    shaders.box.load();
 }
 
-void Painter::render() {
+void Renderer::render() {
+    // clear the frame
+    clear({1.0f, 0.0f, 1.0f, 0.0f});
+
     // draw all objects
-    for (auto object = objects.begin(); object != objects.end(); object++) {
-        GameObject obj = **object;
-        if (obj.program == 0) {
+    for (auto object : objects) {
+        if (object->program == 0) {
             printf("[WARNING] Attempted to render an untextured object\n");
             continue;
         }
 
-        glUseProgram(obj.program);
-        glBindVertexArray(obj.VAO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj.EBO);
-        glDrawElements(GL_TRIANGLES, obj.indices.size(), GL_UNSIGNED_INT, 0);
+        glUseProgram(object->program);
+        glBindVertexArray(object->VAO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object->EBO);
+        glDrawElements(GL_TRIANGLES, object->indices.size(), GL_UNSIGNED_INT, 0);
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
     SDL_GL_SwapWindow(window);
-
-    // clear the frame
-    clear({1.0f, 0.0f, 1.0f, 0.0f});
 }
 
-void Painter::clear(Color clear_color) {
+void Renderer::clear(Color clear_color) {
     int width, height;
     SDL_GetWindowSize(window, &width, &height);
     glViewport(0, 0, width, height);
@@ -34,44 +40,30 @@ void Painter::clear(Color clear_color) {
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void Painter::render_box(std::shared_ptr<Box> box) {
+void Renderer::render_box(std::shared_ptr<Box> box) {
+    SDL_FRect rect = box->rect;
+
     std::vector<glm::vec3> vertex_buffer = {
-        glm::vec3(0.5f, 0.5f, 0.0f),
-        glm::vec3(0.5f, -0.5f, 0.0f),
-        glm::vec3(-0.5f, -0.5f, 0.0f),
-        glm::vec3(-0.5f, 0.5f, 0.0f),
+        glm::vec3(rect.x, rect.y, 0),                   // bottom-left
+        glm::vec3(rect.x + rect.w, rect.y, 0),          // bottom-right
+        glm::vec3(rect.x, rect.y + rect.h, 0),          // top-left
+        glm::vec3(rect.x + rect.w, rect.y + rect.h, 0), // top-right
     };
 
+    for (int i = 0; i < vertex_buffer.size(); i++) {
+        vertex_buffer[i] = screen_to_world(vertex_buffer[i]);
+    }
+
     std::vector<glm::uvec3> index_buffer = {
-        glm::vec3(0, 1, 3),
+        glm::vec3(0, 1, 2),
         glm::vec3(1, 2, 3),
     };
 
-    box->program = shaders.box.load();
+    box->program = shaders.box.program;
     box->set_vertex(vertex_buffer);
     box->set_index(index_buffer);
 
     load_object(box, GL_FALSE, GL_STATIC_DRAW);
-
-    // float width = box->max.x - box->min.x;
-    // float height = box->max.y - box->min.y;
-    //
-    // // prepare texture for rendering
-    // SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width + 1, height + 1);
-    // SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-    // SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
-    // SDL_SetRenderTarget(renderer, texture);
-    //
-    // // draw edges
-    // SDL_RenderDrawLine(renderer, 0, 0, width, 0);
-    // SDL_RenderDrawLine(renderer, 0, 0, 0, height);
-    // SDL_RenderDrawLine(renderer, width, 0, width, height);
-    // SDL_RenderDrawLine(renderer, 0, height, width, height);
-    //
-    // // set target to default and cache texture and initial position
-    // SDL_SetRenderTarget(renderer, NULL);
-    //
-    // return texture;
 }
 
 // ref: https://www.geeksforgeeks.org/bresenhams-circle-drawing-algorithm/
@@ -88,7 +80,7 @@ void Painter::render_box(std::shared_ptr<Box> box) {
 //     SDL_RenderDrawPoint(renderer, xc - y, yc - x);
 // }
 
-void Painter::render_circle(std::shared_ptr<Circle> circle) {
+void Renderer::render_circle(std::shared_ptr<Circle> circle) {
     // float r = circle->radius;
     // float xc = r;
     // float yc = r;
@@ -118,16 +110,24 @@ void Painter::render_circle(std::shared_ptr<Circle> circle) {
     // SDL_SetRenderTarget(renderer, NULL);
 }
 
-void Painter::load_object(std::shared_ptr<GameObject> object, GLboolean normalized, GLenum usage) {
+glm::vec3 Renderer::screen_to_world(glm::vec3 vertex) {
+    int width, height;
+    SDL_GetWindowSize(window, &width, &height);
+
+    return glm::vec3((2.0f * vertex.x) / width - 1.0f, 1.0f - (2.0f * vertex.y) / height, 0);
+}
+
+void Renderer::load_object(std::shared_ptr<GameObject> object, GLboolean normalized, GLenum usage) {
     // send data to the gpu
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * object->vertices.size(), object->vertices.data(), usage);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * object->indices.size(), object->indices.data(), usage);
-
+    glBindVertexArray(object->VAO);
     glVertexAttribPointer(0, 3, GL_FLOAT, normalized, 3 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object->EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * object->indices.size(), object->indices.data(), usage);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

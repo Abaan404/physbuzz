@@ -22,12 +22,12 @@ void EventHandler::mouse_mousedown(SDL_MouseButtonEvent &event) {
         // circle->dynamics.velocity = glm::vec2(-.05f, -.01f);
         //
         // SDL_Color color = {0, 255, 255, 255};
-        // circle->texture = painter.render_circle(circle, color);
+        // circle->texture = renderer.render_circle(circle, color);
         // objects.push_back(circle);
 
         std::shared_ptr<PhysicsBox> box = std::make_shared<PhysicsBox>(glm::vec2(event.x, event.y), 10, 10, 1.0f);
 
-        painter.render_box(box);
+        renderer.render_box(box);
         objects.push_back(box);
 
 
@@ -35,7 +35,7 @@ void EventHandler::mouse_mousedown(SDL_MouseButtonEvent &event) {
         std::shared_ptr<PhysicsCircle> circle = std::make_shared<PhysicsCircle>(glm::vec2(event.x, event.y), 100, 1.0f);
         circle->dynamics.velocity = glm::vec2(.01f, .01f);
 
-        painter.render_circle(circle);
+        renderer.render_circle(circle);
         objects.push_back(circle);
     }
 }

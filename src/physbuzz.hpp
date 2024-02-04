@@ -1,9 +1,10 @@
 #pragma once
 
 #include "events.hpp"
-#include "painter.hpp"
+#include "renderer.hpp"
 #include "scene.hpp"
 #include "ui.hpp"
+#include "opengl/debug.hpp"
 
 #include <SDL2/SDL.h>
 #include <glad/gl.h>
@@ -25,7 +26,7 @@ class Game {
 
     // stuff ig
     std::unique_ptr<EventHandler> event_handler;
-    std::unique_ptr<Painter> painter;
+    std::unique_ptr<Renderer> renderer;
     std::unique_ptr<SceneManager> scene_manager;
     std::unique_ptr<UserInferface> interface;
 

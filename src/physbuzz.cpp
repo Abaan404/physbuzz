@@ -1,4 +1,5 @@
 #include "physbuzz.hpp"
+#include "glad/gl.h"
 
 #include <cstdio>
 
@@ -32,7 +33,7 @@ Game::Game() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
@@ -42,6 +43,10 @@ Game::Game() {
 
     SDL_GL_MakeCurrent(window, context);
     // SDL_GL_SetSwapInterval(1); // Enable vsync
+
+    // debug context setup
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(OpenGLDebugCallback, 0);
 
     int w, h;
     SDL_GetWindowSize(window, &w, &h);
@@ -56,9 +61,9 @@ Game::Game() {
     ImGui::CreateContext();
 
     // there has to be a better way to pass by reference
-    this->painter = std::make_unique<Painter>(&context, window, objects);
-    this->interface = std::make_unique<UserInferface>(*painter);
-    this->event_handler = std::make_unique<EventHandler>(*painter, *interface, objects);
+    this->renderer = std::make_unique<Renderer>(&context, window, objects);
+    this->interface = std::make_unique<UserInferface>(*renderer);
+    this->event_handler = std::make_unique<EventHandler>(*renderer, *interface, objects);
     this->scene_manager = std::make_unique<SceneManager>(objects);
 }
 
@@ -92,7 +97,7 @@ void Game::game_loop() {
         }
 
         interface->render();
-        painter->render();
+        renderer->render();
         scene_manager->tick();
     }
 }

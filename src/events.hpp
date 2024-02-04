@@ -1,6 +1,6 @@
 #pragma once
 
-#include "painter.hpp"
+#include "renderer.hpp"
 #include "ui.hpp"
 
 #include <SDL2/SDL.h>
@@ -9,7 +9,7 @@
 
 class EventHandler {
   public:
-    EventHandler(Painter &painter, UserInferface &interface, std::vector<std::shared_ptr<GameObject>> &objects) : painter(painter), interface(interface), objects(objects){};
+    EventHandler(Renderer &renderer, UserInferface &interface, std::vector<std::shared_ptr<GameObject>> &objects) : renderer(renderer), interface(interface), objects(objects){};
 
     // execute all event in queue
     void execute();
@@ -24,7 +24,7 @@ class EventHandler {
     void video_resize(SDL_Event &event);
 
   private:
-    Painter &painter;
+    Renderer &renderer;
     UserInferface &interface;
     std::vector<std::shared_ptr<GameObject>> &objects;
 };

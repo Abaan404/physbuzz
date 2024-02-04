@@ -1,6 +1,6 @@
 #pragma once
 
-#include "painter.hpp"
+#include "renderer.hpp"
 
 #include "imgui.h"
 
@@ -12,7 +12,7 @@ enum class InterfaceType {
 
 class UserInferface {
   public:
-    UserInferface(Painter &painter);
+    UserInferface(Renderer &renderer);
     ~UserInferface();
 
     void render();
@@ -27,5 +27,5 @@ class UserInferface {
   private:
     void show_shape_picker();
 
-    Painter &painter;
+    Renderer &renderer;
 };

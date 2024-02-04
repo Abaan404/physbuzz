@@ -19,15 +19,15 @@ struct ShaderCollection {
     ShaderContext box = ShaderContext(box_vertex, box_frag);
 };
 
-class Painter {
+class Renderer {
   public:
-    Painter(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects);
+    Renderer(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects);
 
     SDL_Window *window;
 
     ShaderCollection shaders;
     SDL_GLContext *context;
-    GLuint VBO;
+    unsigned int VBO;
 
     void render();
     void clear(Color clear_color);
@@ -38,5 +38,6 @@ class Painter {
   private:
     std::vector<std::shared_ptr<GameObject>> &objects;
 
+    glm::vec3 screen_to_world(glm::vec3 position);
     void load_object(std::shared_ptr<GameObject> object, GLboolean normalized, GLenum usage);
 };

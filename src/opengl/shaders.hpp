@@ -5,26 +5,29 @@
 
 class Shader {
   public:
-    Shader(std::string source, uint32_t type);
+    Shader(std::string source, unsigned int type);
     ~Shader();
 
-    GLuint shader;
+    unsigned int shader;
 
-    GLuint load();
+    unsigned int compile();
 
   private:
     std::string source;
 };
 
-struct ShaderContext {
+class ShaderContext {
+  public:
     ShaderContext(std::string vertex, std::string fragment);
     ~ShaderContext();
 
-    GLuint program;
+    unsigned int program;
+
+    unsigned int load();
+
+  private:
     Shader vertex;
     Shader fragment;
-
-    GLuint load();
 };
 
 // TODO util class to create and manage VBO, VAO, etc
