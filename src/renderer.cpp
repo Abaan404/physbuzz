@@ -1,5 +1,6 @@
 #include "renderer.hpp"
-#include "opengl/shaders.hpp"
+
+#include <glad/gl.h>
 
 Renderer::Renderer(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects) : context(context), objects(objects), window(window) {
     glGenBuffers(1, &VBO);
@@ -41,7 +42,7 @@ void Renderer::clear(Color clear_color) {
 }
 
 void Renderer::render_box(std::shared_ptr<Box> box) {
-    SDL_FRect rect = box->rect;
+    AABB rect = box->rect;
 
     std::vector<glm::vec3> vertex_buffer = {
         glm::vec3(rect.x, rect.y, 0),                   // bottom-left

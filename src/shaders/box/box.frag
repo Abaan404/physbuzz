@@ -1,3 +1,5 @@
+#include <string>
+
 static const std::string box_frag = R"(
 #version 460
 

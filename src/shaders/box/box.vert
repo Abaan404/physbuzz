@@ -1,3 +1,5 @@
+#include <string>
+
 static const std::string box_vertex = R"(
 #version 460
 

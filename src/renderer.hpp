@@ -4,12 +4,13 @@
 #include "geometry/circle.hpp"
 #include "geometry/object.hpp"
 #include "opengl/shaders.hpp"
-#include "shaders/glsl.hpp"
 
-#include <SDL_video.h>
-#include <glad/gl.h>
+#include <SDL2/SDL.h>
 #include <memory>
 #include <vector>
+
+#include "shaders/box/box.frag"
+#include "shaders/box/box.vert"
 
 // need a better color management eventually
 typedef glm::ivec4 Color;
@@ -39,5 +40,5 @@ class Renderer {
     std::vector<std::shared_ptr<GameObject>> &objects;
 
     glm::vec3 screen_to_world(glm::vec3 position);
-    void load_object(std::shared_ptr<GameObject> object, GLboolean normalized, GLenum usage);
+    void load_object(std::shared_ptr<GameObject> object, unsigned char normalized, unsigned int usage);
 };

@@ -1,7 +1,14 @@
 #include "physbuzz.hpp"
-#include "glad/gl.h"
 
+#include "opengl/debug.hpp"
+
+#include <SDL2/SDL.h>
 #include <cstdio>
+#include <glad/gl.h>
+#include <imgui.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_sdl2.h>
+#include <memory>
 
 Game::Game() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {

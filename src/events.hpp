@@ -3,7 +3,7 @@
 #include "renderer.hpp"
 #include "ui.hpp"
 
-#include <SDL2/SDL.h>
+#include <SDL_events.h>
 #include <memory>
 #include <vector>
 

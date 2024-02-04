@@ -3,16 +3,8 @@
 #include "events.hpp"
 #include "renderer.hpp"
 #include "scene.hpp"
-#include "ui.hpp"
-#include "opengl/debug.hpp"
 
-#include <SDL2/SDL.h>
-#include <glad/gl.h>
-#include <imgui.h>
-#include <imgui_impl_opengl3.h>
-#include <imgui_impl_sdl2.h>
 #include <memory>
-#include <vector>
 
 class Game {
   public:

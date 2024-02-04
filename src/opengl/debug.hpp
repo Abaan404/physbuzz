@@ -1,8 +1,9 @@
-// https://gist.github.com/liam-middlebrook/c52b069e4be2d87a6d2f
+#pragma once
 
 #include <cstdio>
 #include <glad/gl.h>
 
+// https://gist.github.com/liam-middlebrook/c52b069e4be2d87a6d2f
 static void OpenGLDebugCallback(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const GLchar *msg, const void *data) {
     const char *_source;
     const char *_type;
