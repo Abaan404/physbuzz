@@ -31,7 +31,7 @@ class GameObject {
 
     ~GameObject();
 
-    unsigned int VAO, EBO;
+    unsigned int VBO, VAO, EBO;
     unsigned int program;
 
     glm::vec2 position;

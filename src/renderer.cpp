@@ -3,15 +3,13 @@
 #include <glad/gl.h>
 
 Renderer::Renderer(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects) : context(context), objects(objects), window(window) {
-    glGenBuffers(1, &VBO);
-
     // load static shaders
     shaders.box.load();
 }
 
 void Renderer::render() {
     // clear the frame
-    clear({1.0f, 0.0f, 1.0f, 0.0f});
+    clear({0.0f, 0.0f, 0.0f, 0.0f});
 
     // draw all objects
     for (auto object : objects) {
@@ -44,6 +42,7 @@ void Renderer::clear(Color clear_color) {
 void Renderer::render_box(std::shared_ptr<Box> box) {
     AABB rect = box->rect;
 
+    // TODO uniforms
     std::vector<glm::vec3> vertex_buffer = {
         glm::vec3(rect.x, rect.y, 0),                   // bottom-left
         glm::vec3(rect.x + rect.w, rect.y, 0),          // bottom-right
@@ -120,7 +119,7 @@ glm::vec3 Renderer::screen_to_world(glm::vec3 vertex) {
 
 void Renderer::load_object(std::shared_ptr<GameObject> object, GLboolean normalized, GLenum usage) {
     // send data to the gpu
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, object->VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * object->vertices.size(), object->vertices.data(), usage);
 
     glBindVertexArray(object->VAO);

@@ -2,8 +2,9 @@
 #include <glad/gl.h>
 
 GameObject::GameObject(Objects identifier, glm::vec2 position) : position(position), identifier(identifier) {
-    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
+    glGenVertexArrays(1, &VAO);
 };
 
 GameObject::~GameObject() {

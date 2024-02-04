@@ -49,7 +49,7 @@ Game::Game() {
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
     SDL_GL_MakeCurrent(window, context);
-    // SDL_GL_SetSwapInterval(1); // Enable vsync
+    SDL_GL_SetSwapInterval(1); // Enable vsync
 
     // debug context setup
     glEnable(GL_DEBUG_OUTPUT);

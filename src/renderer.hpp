@@ -28,7 +28,6 @@ class Renderer {
 
     ShaderCollection shaders;
     SDL_GLContext *context;
-    unsigned int VBO;
 
     void render();
     void clear(Color clear_color);
