@@ -3,6 +3,12 @@
 #include <cstdio>
 #include <glad/gl.h>
 
+#define ASSERT(result)                                                  \
+    if ((result) != true) {                                             \
+        printf("[ASSERTION %d::%s] %s\n", __LINE__, __FILE__, #result); \
+        __builtin_trap();                                               \
+    }
+
 // https://gist.github.com/liam-middlebrook/c52b069e4be2d87a6d2f
 static void OpenGLDebugCallback(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const GLchar *msg, const void *data) {
     const char *_source;
@@ -96,4 +102,5 @@ static void OpenGLDebugCallback(GLenum source, GLenum type, unsigned int id, GLe
     }
 
     fprintf(stderr, "[OpenGL %s %s %s]: %s\n", _source, _type, _severity, msg);
+    ASSERT(type != GL_DEBUG_TYPE_ERROR)
 }

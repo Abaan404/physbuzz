@@ -28,8 +28,3 @@ class ShaderContext {
     Shader vertex;
     Shader fragment;
 };
-
-// TODO util class to create and manage VBO, VAO, etc
-class ShaderHelper {
-
-};

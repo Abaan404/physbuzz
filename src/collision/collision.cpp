@@ -4,26 +4,26 @@
 
 bool Collision::tick(std::shared_ptr<GameObject> object1, std::shared_ptr<GameObject> object2) {
     switch (object1->identifier) {
-    case Objects::PhysicsBox:
+    case Objects::Box:
         switch (object2->identifier) {
-        case Objects::PhysicsBox:
-            return check_collision(*std::static_pointer_cast<PhysicsBox>(object1), *std::static_pointer_cast<PhysicsBox>(object2));
+        case Objects::Box:
+            return check_collision(*std::static_pointer_cast<Box>(object1), *std::static_pointer_cast<Box>(object2));
 
-        case Objects::PhysicsCircle:
-            return check_collision(*std::static_pointer_cast<PhysicsBox>(object1), *std::static_pointer_cast<PhysicsCircle>(object2));
+        case Objects::Circle:
+            return check_collision(*std::static_pointer_cast<Box>(object1), *std::static_pointer_cast<Circle>(object2));
 
         default:
             break;
         }
         break;
 
-    case Objects::PhysicsCircle:
+    case Objects::Circle:
         switch (object2->identifier) {
-        case Objects::PhysicsCircle:
-            return check_collision(*std::static_pointer_cast<PhysicsCircle>(object1), *std::static_pointer_cast<PhysicsCircle>(object2));
+        case Objects::Circle:
+            return check_collision(*std::static_pointer_cast<Circle>(object1), *std::static_pointer_cast<Circle>(object2));
 
-        case Objects::PhysicsBox:
-            return check_collision(*std::static_pointer_cast<PhysicsBox>(object2), *std::static_pointer_cast<PhysicsCircle>(object1));
+        case Objects::Box:
+            return check_collision(*std::static_pointer_cast<Box>(object2), *std::static_pointer_cast<Circle>(object1));
 
         default:
             break;
@@ -38,7 +38,7 @@ bool Collision::tick(std::shared_ptr<GameObject> object1, std::shared_ptr<GameOb
 }
 
 // box rotation not implemented yet
-bool Collision::check_collision(PhysicsBox &box1, PhysicsBox &box2) {
+bool Collision::check_collision(Box &box1, Box &box2) {
     if (box1.max.x < box2.min.x or box1.min.x > box2.max.x)
         return false;
 
@@ -50,7 +50,7 @@ bool Collision::check_collision(PhysicsBox &box1, PhysicsBox &box2) {
     return true;
 }
 
-bool Collision::check_collision(PhysicsCircle &circle1, PhysicsCircle &circle2) {
+bool Collision::check_collision(Circle &circle1, Circle &circle2) {
     const float dist_squared = (circle2.position.x - circle1.position.x) * (circle2.position.x - circle1.position.x) +
                                (circle2.position.y - circle1.position.y) * (circle2.position.y - circle1.position.y);
 
@@ -65,7 +65,7 @@ bool Collision::check_collision(PhysicsCircle &circle1, PhysicsCircle &circle2) 
 }
 
 // box rotation not implemented yet
-bool Collision::check_collision(PhysicsBox &box, PhysicsCircle &circle) {
+bool Collision::check_collision(Box &box, Circle &circle) {
     glm::vec2 point;
     point.x = glm::clamp(circle.position.x, box.min.x, box.max.x);
     point.y = glm::clamp(circle.position.y, box.min.y, box.max.y);
@@ -82,11 +82,11 @@ bool Collision::check_collision(PhysicsBox &box, PhysicsCircle &circle) {
     return true;
 }
 
-void Collision::resolve_collision(PhysicsBox &box1, PhysicsBox &box2) {
+void Collision::resolve_collision(Box &box1, Box &box2) {
     return;
 }
 
-void Collision::resolve_collision(PhysicsCircle &circle1, PhysicsCircle &circle2) {
+void Collision::resolve_collision(Circle &circle1, Circle &circle2) {
     glm::vec2 normal = glm::normalize(circle2.position - circle1.position);
     glm::vec2 tangent = glm::vec2(-normal.y, normal.x);
 
@@ -106,6 +106,6 @@ void Collision::resolve_collision(PhysicsCircle &circle1, PhysicsCircle &circle2
     circle2.dynamics.velocity -= (normal_impulse * normal + tangent_impulse * tangent) / mass_total;
 }
 
-void Collision::resolve_collision(PhysicsBox &box, PhysicsCircle &circle) {
+void Collision::resolve_collision(Box &box, Circle &circle) {
     return;
 }

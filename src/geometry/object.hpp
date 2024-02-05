@@ -3,12 +3,15 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+class Renderer;
+
 enum class Objects {
     Unknown = -1,
     Box,
-    PhysicsBox,
     Circle,
-    PhysicsCircle
+    Triangle,
+    Bezier,
+    Polygon,
 };
 
 struct DynamicProperties {
@@ -33,17 +36,19 @@ class GameObject {
 
     unsigned int VBO, VAO, EBO;
     unsigned int program;
-
-    glm::vec2 position;
-    float rotation;
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
 
+    glm::vec2 position;
+    float rotation;
     AABB rect;
 
     DynamicProperties dynamics;
     Objects identifier = Objects::Unknown;
 
+    virtual void draw(Renderer *renderer, unsigned int usage);
+
+  protected:
     void set_vertex(std::vector<glm::vec3> vertex_buffer);
     void set_index(std::vector<glm::uvec3> index_buffer);
 };

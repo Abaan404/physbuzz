@@ -1,7 +1,7 @@
 #pragma once
 
 #include "events.hpp"
-#include "renderer.hpp"
+#include "renderer/renderer.hpp"
 #include "scene.hpp"
 
 #include <memory>

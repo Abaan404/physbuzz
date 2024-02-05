@@ -1,6 +1,6 @@
 #include "physbuzz.hpp"
 
-#include "opengl/debug.hpp"
+#include "debug.hpp"
 
 #include <SDL2/SDL.h>
 #include <cstdio>

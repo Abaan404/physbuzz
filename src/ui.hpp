@@ -1,8 +1,8 @@
 #pragma once
 
-#include "renderer.hpp"
+#include "renderer/renderer.hpp"
 
-#include "imgui.h"
+#include <imgui.h>
 
 enum class InterfaceType {
     Debug,

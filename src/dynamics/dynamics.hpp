@@ -1,6 +1,6 @@
 #include "../geometry/object.hpp"
-#include "../geometry/physics_box.hpp"
-#include "../geometry/physics_circle.hpp"
+#include "../geometry/box/box.hpp"
+#include "../geometry/circle/circle.hpp"
 
 #include <memory>
 
@@ -9,6 +9,6 @@ class Dynamics {
     static void tick(std::shared_ptr<GameObject> object);
 
   private:
-    static void apply_dynamics(PhysicsCircle &circle);
-    static void apply_dynamics(PhysicsBox &box);
+    static void apply_dynamics(Circle &circle);
+    static void apply_dynamics(Box &box);
 };

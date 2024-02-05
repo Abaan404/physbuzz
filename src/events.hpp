@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer.hpp"
+#include "renderer/renderer.hpp"
 #include "ui.hpp"
 
 #include <SDL_events.h>
