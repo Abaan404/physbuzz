@@ -1,7 +1,6 @@
 #include "object.hpp"
 
 #include "../renderer/renderer.hpp"
-
 #include <glad/gl.h>
 
 GameObject::GameObject(Objects identifier, glm::vec2 position) : position(position), identifier(identifier) {
@@ -36,6 +35,15 @@ void GameObject::set_index(std::vector<glm::uvec3> index_buffer) {
     }
 }
 
+void GameObject::set_program(unsigned int program) {
+    glUseProgram(program);
+    GameObject::program = program;
+
+    // common uniforms for every shader
+    glu_time = glGetUniformLocation(program, "u_time");
+    glu_resolution = glGetUniformLocation(program, "u_resolution");
+}
+
 void GameObject::draw(Renderer *renderer, GLenum usage) {
     // send data to the gpu
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -48,10 +56,13 @@ void GameObject::draw(Renderer *renderer, GLenum usage) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), usage);
 
+    glUniform1ui(glu_time, renderer->time);
+    glUniform2f(glu_resolution, renderer->width, renderer->height);
+
     // draw object on screen
-    glUseProgram(program);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
+    // cleanup
     glBindVertexArray(0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);

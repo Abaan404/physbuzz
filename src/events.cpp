@@ -35,7 +35,7 @@ void EventHandler::mouse_mousedown(SDL_MouseButtonEvent &event) {
 
     } else if (event.button == SDL_BUTTON_RIGHT) {
         std::shared_ptr<Circle> circle = std::make_shared<Circle>(glm::vec2(event.x, event.y), 100, 1.0f);
-        circle->dynamics.velocity = glm::vec2(.01f, .01f);
+        circle->dynamics.velocity = glm::vec2(.1f, .1f);
 
         // renderer.render_circle(circle);
         objects.push_back(circle);

@@ -11,4 +11,7 @@ class Box : public GameObject {
     glm::vec2 max;
 
     void draw(Renderer *renderer, unsigned int usage) override;
+
+  private:
+    int u_color;
 };

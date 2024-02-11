@@ -13,8 +13,9 @@ Box::Box(glm::vec2 position, float width, float height, float mass) : GameObject
 
     // reuse the same shader
     static ShaderContext shader = ShaderContext(box_vertex, box_frag);
+    u_color = glGetUniformLocation(shader.program, "u_color");
 
-    GameObject::program = shader.program;
+    GameObject::set_program(shader.program);
     GameObject::dynamics.mass = mass;
     GameObject::rect = {min.x, min.y, width, height};
 };
@@ -36,6 +37,8 @@ void Box::draw(Renderer *renderer, unsigned int usage) {
         glm::vec3(1, 2, 3),
     };
 
+    glUseProgram(program);
+    glUniform4f(u_color, 0.5, 0.0, 0.0, 0.0);
     GameObject::set_vertex(vertex_buffer);
     GameObject::set_index(index_buffer);
     GameObject::draw(renderer, usage);

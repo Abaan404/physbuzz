@@ -14,8 +14,11 @@ class Renderer {
   public:
     Renderer(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects);
 
-    SDL_Window *window;
+    int width;
+    int height;
+    unsigned int time;
 
+    SDL_Window *window;
     SDL_GLContext *context;
 
     void render();
@@ -26,6 +29,4 @@ class Renderer {
 
   private:
     std::vector<std::shared_ptr<GameObject>> &objects;
-
-    void load_object(std::shared_ptr<GameObject> object, unsigned char normalized, unsigned int usage);
 };
