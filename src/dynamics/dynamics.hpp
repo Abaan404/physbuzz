@@ -1,14 +1,15 @@
-#include "../geometry/object.hpp"
-#include "../geometry/box/box.hpp"
-#include "../geometry/circle/circle.hpp"
+#pragma once
 
-#include <memory>
+#include <glm/glm.hpp>
 
-class Dynamics {
+class DynamicObject {
   public:
-    static void tick(std::shared_ptr<GameObject> object);
+    DynamicObject(float mass);
+    float mass;
+    float intertia = 0.0f;
 
-  private:
-    static void apply_dynamics(Circle &circle);
-    static void apply_dynamics(Box &box);
+    glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
+    glm::vec2 acceleration = glm::vec2(0.0f, 0.0f);
+
+    virtual void tick() = 0;
 };

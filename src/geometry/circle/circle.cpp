@@ -13,9 +13,8 @@ Circle::Circle(glm::vec2 position, float radius, float mass) : GameObject(Object
     // setup opengl texture
     static ShaderContext shader = ShaderContext(circle_vertex, circle_frag);
 
-    GameObject::dynamics.mass = mass;
     GameObject::texture = std::make_unique<TextureCircle>(*this, shader.program);
-    GameObject::rect = {position.x - radius, position.y - radius, 2 * radius, 2 * radius};
+    GameObject::dynamics = std::make_unique<DynamicCircle>(*this, mass);
 }
 
 TextureCircle::TextureCircle(Circle &circle, unsigned int &program) : TextureObject(program), circle(circle) {
@@ -46,8 +45,14 @@ void TextureCircle::draw(Renderer &renderer, unsigned int usage) {
     }
 
     glUseProgram(program);
-    glUniform4f(gl_color, 0.5, 0.0, 0.0, 0.0);
+    glUniform4f(gl_color, 0.5f, 0.0f, 0.0f, 0.0f);
     TextureObject::set_vertex(vertex_buffer);
     TextureObject::set_index(index_buffer);
     TextureObject::draw(renderer, usage);
+}
+
+DynamicCircle::DynamicCircle(Circle &circle, float mass) : DynamicObject(mass), circle(circle) {}
+
+void DynamicCircle::tick() {
+    circle.position += velocity + 0.5f * acceleration;
 }

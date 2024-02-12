@@ -20,3 +20,12 @@ class TextureCircle : public TextureObject {
   private:
     int gl_color;
 };
+
+class DynamicCircle : public DynamicObject {
+  public:
+    DynamicCircle(Circle &circle, float mass);
+
+    Circle &circle;
+
+    void tick() override;
+};

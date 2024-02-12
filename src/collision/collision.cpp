@@ -96,14 +96,14 @@ void Collision::resolve_collision(Circle &circle1, Circle &circle2) {
     circle1.position -= displacement;
     circle2.position += displacement;
 
-    glm::vec2 rel_velocity = circle2.dynamics.velocity - circle1.dynamics.velocity;
+    glm::vec2 rel_velocity = circle2.dynamics->velocity - circle1.dynamics->velocity;
 
-    float normal_impulse = glm::dot(rel_velocity, normal) * (circle1.dynamics.mass + circle2.dynamics.mass);
-    float tangent_impulse = glm::dot(rel_velocity, tangent) * (circle1.dynamics.mass + circle2.dynamics.mass);
-    float mass_total = circle1.dynamics.mass + circle2.dynamics.mass;
+    float normal_impulse = glm::dot(rel_velocity, normal) * (circle1.dynamics->mass + circle2.dynamics->mass);
+    float tangent_impulse = glm::dot(rel_velocity, tangent) * (circle1.dynamics->mass + circle2.dynamics->mass);
+    float mass_total = circle1.dynamics->mass + circle2.dynamics->mass;
 
-    circle1.dynamics.velocity += (normal_impulse * normal + tangent_impulse * tangent) / mass_total;
-    circle2.dynamics.velocity -= (normal_impulse * normal + tangent_impulse * tangent) / mass_total;
+    circle1.dynamics->velocity += (normal_impulse * normal + tangent_impulse * tangent) / mass_total;
+    circle2.dynamics->velocity -= (normal_impulse * normal + tangent_impulse * tangent) / mass_total;
 }
 
 void Collision::resolve_collision(Box &box, Circle &circle) {

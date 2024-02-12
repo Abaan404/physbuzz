@@ -6,8 +6,8 @@ class Box : public GameObject {
   public:
     Box(glm::vec2 position, float width, float height, float mass);
 
-    glm::vec2 min;
-    glm::vec2 max;
+    float width, height;
+    glm::vec2 min, max;
 };
 
 class TextureBox : public TextureObject {
@@ -20,4 +20,13 @@ class TextureBox : public TextureObject {
 
   private:
     int u_color;
+};
+
+class DynamicBox : public DynamicObject {
+  public:
+    DynamicBox(Box &box, float mass);
+
+    Box &box;
+
+    void tick() override;
 };
