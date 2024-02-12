@@ -1,30 +1,24 @@
 #pragma once
 
 #include "events.hpp"
-#include "painter.hpp"
+#include "renderer/renderer.hpp"
 #include "scene.hpp"
-#include "ui.hpp"
 
-#include <SDL2/SDL.h>
-#include <cstdio>
-#include <imgui.h>
-#include <imgui_impl_sdl2.h>
-#include <imgui_impl_sdlrenderer2.h>
 #include <memory>
-#include <vector>
 
 class Game {
   public:
     Game();
+    ~Game();
+
     void game_loop();
-    void cleanup();
 
   private:
     bool is_running;
 
     // stuff ig
     std::unique_ptr<EventHandler> event_handler;
-    std::unique_ptr<Painter> painter;
+    std::unique_ptr<Renderer> renderer;
     std::unique_ptr<SceneManager> scene_manager;
     std::unique_ptr<UserInferface> interface;
 
@@ -33,5 +27,7 @@ class Game {
 
     // SDL Variables
     SDL_Window *window;
-    SDL_Renderer *renderer;
+
+    // OpenGL Variables
+    SDL_GLContext context;
 };

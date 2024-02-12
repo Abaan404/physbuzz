@@ -1,14 +1,15 @@
 #pragma once
 
-#include <SDL2/SDL_render.h>
-#include <glm/glm.hpp>
+#include "../renderer/texture.hpp"
+#include <memory>
 
 enum class Objects {
     Unknown = -1,
     Box,
-    PhysicsBox,
     Circle,
-    PhysicsCircle
+    Triangle,
+    Bezier,
+    Polygon,
 };
 
 struct DynamicProperties {
@@ -18,15 +19,22 @@ struct DynamicProperties {
     glm::vec2 acceleration = glm::vec2(0.0f, 0.0f);
 };
 
+struct AABB {
+    float x;
+    float y;
+    float w;
+    float h;
+};
+
 class GameObject {
   public:
-    GameObject(Objects identifier, glm::vec2 position) : position(position), identifier(identifier){};
+    GameObject(Objects identifier, glm::vec2 position);
+
+    std::unique_ptr<TextureObject> texture;
 
     glm::vec2 position;
     float rotation;
-
-    SDL_Texture *texture;
-    SDL_FRect rect;
+    AABB rect;
 
     DynamicProperties dynamics;
     Objects identifier = Objects::Unknown;

@@ -1,10 +1,8 @@
 #pragma once
 
-#include "imgui.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_sdlrenderer2.h"
+#include "renderer/renderer.hpp"
 
-#include "painter.hpp"
+#include <imgui.h>
 
 enum class InterfaceType {
     Debug,
@@ -14,11 +12,12 @@ enum class InterfaceType {
 
 class UserInferface {
   public:
-    UserInferface(Painter &painter);
+    UserInferface(Renderer &renderer);
+    ~UserInferface();
 
     void render();
 
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
     InterfaceType interface_type;
 
     bool draw_interface = false;
@@ -28,5 +27,5 @@ class UserInferface {
   private:
     void show_shape_picker();
 
-    Painter &painter;
+    Renderer &renderer;
 };

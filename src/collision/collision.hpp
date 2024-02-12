@@ -1,23 +1,20 @@
 #pragma once
 
 #include "../geometry/object.hpp"
-#include "../geometry/physics_box.hpp"
-#include "../geometry/physics_circle.hpp"
-#include <cmath>
-#include <cstdio>
+#include "../geometry/box/box.hpp"
+#include "../geometry/circle/circle.hpp"
 #include <memory>
-#include <stdexcept>
 
 class Collision {
   public:
     static bool tick(std::shared_ptr<GameObject> object1, std::shared_ptr<GameObject> object2);
 
   private:
-    static bool check_collision(PhysicsBox &box1, PhysicsBox &box2);
-    static bool check_collision(PhysicsCircle &circle1, PhysicsCircle &circle2);
-    static bool check_collision(PhysicsBox &box, PhysicsCircle &circle);
+    static bool check_collision(Box &box1, Box &box2);
+    static bool check_collision(Circle &circle1, Circle &circle2);
+    static bool check_collision(Box &box, Circle &circle);
 
-    static void resolve_collision(PhysicsBox &box1, PhysicsBox &box2);
-    static void resolve_collision(PhysicsCircle &circle1, PhysicsCircle &circle2);
-    static void resolve_collision(PhysicsBox &box, PhysicsCircle &circle);
+    static void resolve_collision(Box &box1, Box &box2);
+    static void resolve_collision(Circle &circle1, Circle &circle2);
+    static void resolve_collision(Box &box, Circle &circle);
 };

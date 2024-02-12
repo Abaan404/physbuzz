@@ -1,10 +1,9 @@
 #pragma once
 
 #include "collision/collision.hpp"
-#include "geometry/object.hpp"
 #include "dynamics/dynamics.hpp"
+#include "geometry/object.hpp"
 
-#include <cstdio>
 #include <memory>
 #include <vector>
 

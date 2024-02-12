@@ -1,5 +1,15 @@
 #include "physbuzz.hpp"
 
+#include "debug.hpp"
+
+#include <SDL2/SDL.h>
+#include <cstdio>
+#include <glad/gl.h>
+#include <imgui.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_sdl2.h>
+#include <memory>
+
 Game::Game() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         printf("[ERROR] SDL_Init: %s\n", SDL_GetError());
@@ -7,7 +17,7 @@ Game::Game() {
     }
 
     // Create a window
-    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
     window = SDL_CreateWindow("phyzbuzz engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, window_flags);
     if (window == nullptr) {
         printf("[ERROR] SDL_CreateWindow: %s\n", SDL_GetError());
@@ -15,39 +25,52 @@ Game::Game() {
         exit(1);
     }
 
-    // Create a renderer
-    SDL_RendererFlags renderer_flags = (SDL_RendererFlags)(SDL_RENDERER_ACCELERATED);
-    renderer = SDL_CreateRenderer(window, -2, renderer_flags);
-    if (renderer == nullptr) {
-        printf("[ERROR] SDL_CreateRenderer: %s\n", SDL_GetError());
+    // Setup OpenGL
+    SDL_GL_LoadLibrary(NULL);
+    context = SDL_GL_CreateContext(window);
+    if (context == NULL) {
+        printf("[ERROR] SDL_GL_CreateContext: Failed to create OpenGL context\n");
         SDL_Quit();
         exit(1);
     }
 
-    // Setup ImGui
-    ImGui::CreateContext();
+    int version = gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
 
-    ImGuiIO &io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-    // multi-viewport does not work on wayland due to wayland devs
-    // being wayland devs (as of October 2023) Could try and find
-    // a way to make it work with xwayland (rootful?) in the future
-    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-    ImGui::StyleColorsDark();
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-    ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-    ImGui_ImplSDLRenderer2_Init(renderer);
+    SDL_GL_MakeCurrent(window, context);
+    SDL_GL_SetSwapInterval(1); // Enable vsync
+
+    // debug context setup
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(OpenGLDebugCallback, 0);
+
+    int w, h;
+    SDL_GetWindowSize(window, &w, &h);
+    glViewport(0, 0, w, h);
+    glClearColor(0.0f, 0.5f, 1.0f, 0.0f);
 
     is_running = true;
 
+    // create ImGui context
+    // (this doesnt work if its called in the UserInferface
+    // constructor for some reason
+    ImGui::CreateContext();
+
     // there has to be a better way to pass by reference
-    this->painter = std::make_unique<Painter>(renderer, objects);
-    this->interface = std::make_unique<UserInferface>(*painter);
-    this->event_handler = std::make_unique<EventHandler>(*painter, *interface, objects);
+    this->renderer = std::make_unique<Renderer>(&context, window, objects);
+    this->interface = std::make_unique<UserInferface>(*renderer);
+    this->event_handler = std::make_unique<EventHandler>(*renderer, *interface, objects);
     this->scene_manager = std::make_unique<SceneManager>(objects);
 }
 
@@ -81,17 +104,13 @@ void Game::game_loop() {
         }
 
         interface->render();
-        painter->render();
+        renderer->render();
         scene_manager->tick();
     }
 }
 
-void Game::cleanup() {
-    ImGui_ImplSDLRenderer2_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
-    ImGui::DestroyContext();
-
-    SDL_DestroyRenderer(renderer);
+Game::~Game() {
+    SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
@@ -99,7 +118,6 @@ void Game::cleanup() {
 int main(int argc, char *argv[]) {
     Game game = Game();
     game.game_loop();
-    game.cleanup();
 
     return 0;
 }
