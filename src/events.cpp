@@ -28,7 +28,6 @@ void EventHandler::mouse_mousedown(SDL_MouseButtonEvent &event) {
         // objects.push_back(circle);
 
         std::shared_ptr<Box> box = std::make_shared<Box>(glm::vec2(event.x, event.y), 10, 10, 1.0f);
-        box->draw(&renderer, GL_DYNAMIC_DRAW);
         box->dynamics.velocity = glm::vec2(-.05f, -.01f);
 
         objects.push_back(box);

@@ -9,10 +9,13 @@ void Renderer::render() {
     SDL_GetWindowSize(window, &width, &height);
     time = SDL_GetTicks();
 
-    // draw all objects
+    // draw all textures
     clear({0.0f, 0.0f, 0.0f, 0.0f});
     for (auto object : objects) {
-        object->draw(this, GL_DYNAMIC_DRAW);
+        if (object->texture == nullptr)
+            continue;
+
+        object->texture->draw(*this, GL_DYNAMIC_DRAW);
     }
 
     SDL_GL_SwapWindow(window);

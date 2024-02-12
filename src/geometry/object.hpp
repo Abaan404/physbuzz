@@ -1,9 +1,7 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <vector>
-
-class Renderer;
+#include "../renderer/texture.hpp"
+#include <memory>
 
 enum class Objects {
     Unknown = -1,
@@ -32,11 +30,7 @@ class GameObject {
   public:
     GameObject(Objects identifier, glm::vec2 position);
 
-    ~GameObject();
-
-    unsigned int VBO, VAO, EBO;
-    std::vector<float> vertices;
-    std::vector<unsigned int> indices;
+    std::unique_ptr<TextureObject> texture;
 
     glm::vec2 position;
     float rotation;
@@ -44,19 +38,4 @@ class GameObject {
 
     DynamicProperties dynamics;
     Objects identifier = Objects::Unknown;
-
-    virtual void draw(Renderer *renderer, unsigned int usage);
-
-    void set_program(unsigned int program);
-
-  protected:
-    unsigned int program;
-
-    // uniforms
-    int glu_time;
-    int glu_timedelta;
-    int glu_resolution;
-
-    void set_vertex(std::vector<glm::vec3> vertex_buffer);
-    void set_index(std::vector<glm::uvec3> index_buffer);
 };

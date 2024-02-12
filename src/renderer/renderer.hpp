@@ -1,11 +1,7 @@
 #pragma once
 
 #include "../geometry/object.hpp"
-
-#include <glm/glm.hpp>
 #include <SDL2/SDL.h>
-#include <memory>
-#include <vector>
 
 // need a better color management eventually
 typedef glm::vec4 Color;
@@ -23,7 +19,7 @@ class Renderer {
 
     void render();
     void clear(Color clear_color);
-    
+
     // helper method(s)
     glm::vec3 screen_to_world(glm::vec3 position);
 

@@ -43,8 +43,8 @@ unsigned int ShaderContext::load() {
     }
 
     // cleanup
-    // glDetachShader(program, vertex.shader);
-    // glDetachShader(program, fragment.shader);
+    glDetachShader(program, vertex.shader);
+    glDetachShader(program, fragment.shader);
 
     glDeleteShader(vertex.shader);
     glDeleteShader(fragment.shader);

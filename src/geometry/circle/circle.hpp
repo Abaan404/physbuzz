@@ -7,8 +7,15 @@ class Circle : public GameObject {
     Circle(glm::vec2 position, float radius, float mass);
 
     float radius;
+};
 
-    void draw(Renderer *renderer, unsigned int usage) override;
+class TextureCircle : public TextureObject {
+  public:
+    TextureCircle(Circle &circle, unsigned int &program);
+
+    Circle &circle;
+
+    void draw(Renderer &renderer, unsigned int usage) override;
 
   private:
     int gl_color;
