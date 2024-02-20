@@ -8,7 +8,7 @@
 void EventHandler::keyboard_keydown(SDL_KeyboardEvent &event) {
     switch (event.keysym.scancode | (1 << 30)) {
     case (SDLK_F3):
-        interface.draw_interface ^= true;
+        interface.draw ^= true;
         break;
     }
 }

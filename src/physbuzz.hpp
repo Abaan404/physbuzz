@@ -20,7 +20,7 @@ class Game {
     std::unique_ptr<EventHandler> event_handler;
     std::unique_ptr<Renderer> renderer;
     std::unique_ptr<SceneManager> scene_manager;
-    std::unique_ptr<UserInferface> interface;
+    std::unique_ptr<InterfaceHandler> interface;
 
     // holds all game objects
     std::vector<std::shared_ptr<GameObject>> objects;

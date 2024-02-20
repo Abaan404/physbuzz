@@ -69,7 +69,7 @@ Game::Game() {
 
     // there has to be a better way to pass by reference
     this->renderer = std::make_unique<Renderer>(&context, window, objects);
-    this->interface = std::make_unique<UserInferface>(*renderer);
+    this->interface = std::make_unique<InterfaceHandler>(*renderer, objects);
     this->event_handler = std::make_unique<EventHandler>(*renderer, *interface, objects);
     this->scene_manager = std::make_unique<SceneManager>(objects);
 }
