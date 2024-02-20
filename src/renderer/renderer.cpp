@@ -2,34 +2,42 @@
 
 #include <glad/gl.h>
 
-Renderer::Renderer(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects) : context(context), objects(objects), window(window) {}
+Renderer::Renderer(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects) : context(context), objects(objects), window(window) {
+    target(nullptr);
+}
 
 void Renderer::render() {
-    // update variables
-    SDL_GetWindowSize(window, &width, &height);
     time = SDL_GetTicks();
 
-    // draw all textures
-    clear({0.0f, 0.0f, 0.0f, 0.0f});
     for (auto object : objects) {
         if (object->texture == nullptr)
             continue;
 
-        object->texture->draw(*this, GL_DYNAMIC_DRAW);
+        object->texture->draw(*this);
+    }
+}
+
+void Renderer::target(Framebuffer *framebuffer) {
+    this->framebuffer = framebuffer;
+
+    if (framebuffer == nullptr) {
+        framebuffer->unbind();
+        SDL_GetWindowSize(window, &resolution.x, &resolution.y);
+        return;
     }
 
-    SDL_GL_SwapWindow(window);
+    framebuffer->bind();
+    resolution = framebuffer->resolution;
 }
 
-void Renderer::clear(Color clear_color) {
-    glViewport(0, 0, width, height);
-    glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-    glClear(GL_COLOR_BUFFER_BIT);
+void Renderer::clear(glm::vec4 &color) {
+    framebuffer->clear(color);
 }
 
-glm::vec3 Renderer::screen_to_world(glm::vec3 vertex) {
-    int width, height;
-    SDL_GetWindowSize(window, &width, &height);
+void Renderer::resize() {
+    if (framebuffer != nullptr)
+        framebuffer->resize(resolution);
 
-    return glm::vec3((2.0f * vertex.x) / width - 1.0f, 1.0f - (2.0f * vertex.y) / height, 0);
+    SDL_GetWindowSize(window, &resolution.x, &resolution.y);
+    glViewport(0, 0, resolution.x, resolution.y);
 }

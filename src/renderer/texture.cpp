@@ -46,20 +46,27 @@ void TextureObject::set_program(unsigned int program) {
     glu_resolution = glGetUniformLocation(program, "u_resolution");
 }
 
-void TextureObject::draw(Renderer &renderer, GLenum usage) {
+glm::vec3 TextureObject::normalize_vertex(Renderer &renderer, glm::vec3 vertex) {
+    glm::vec2 resolution = renderer.get_resolution();
+    return glm::vec3((2.0f * vertex.x) / resolution.x - 1.0f, 1.0f - (2.0f * vertex.y) / resolution.y, 0.0f);
+}
+
+void TextureObject::draw(Renderer &renderer) {
+    glm::vec2 resolution = renderer.get_resolution();
+
     // send data to the gpu
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), usage);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STREAM_DRAW);
 
     glBindVertexArray(VAO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), usage);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STREAM_DRAW);
 
     glUniform1ui(glu_time, renderer.time);
-    glUniform2f(glu_resolution, renderer.width, renderer.height);
+    glUniform2f(glu_resolution, resolution.x, resolution.y);
 
     // draw object on screen
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);

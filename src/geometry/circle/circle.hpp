@@ -15,7 +15,7 @@ class TextureCircle : public TextureObject {
 
     Circle &circle;
 
-    void draw(Renderer &renderer, unsigned int usage) override;
+    void draw(Renderer &renderer) override;
 
   private:
     int gl_color;

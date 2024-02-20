@@ -21,7 +21,7 @@ TextureCircle::TextureCircle(Circle &circle, unsigned int &program) : TextureObj
     gl_color = glGetUniformLocation(program, "u_color");
 }
 
-void TextureCircle::draw(Renderer &renderer, unsigned int usage) {
+void TextureCircle::draw(Renderer &renderer) {
     std::vector<glm::vec3> vertex_buffer;
     std::vector<glm::uvec3> index_buffer;
 
@@ -41,14 +41,14 @@ void TextureCircle::draw(Renderer &renderer, unsigned int usage) {
     index_buffer.push_back(glm::uvec3(0, MAX_VERTICES - 1, 1));
 
     for (int i = 0; i < vertex_buffer.size(); i++) {
-        vertex_buffer[i] = renderer.screen_to_world(vertex_buffer[i]);
+        vertex_buffer[i] = normalize_vertex(renderer, vertex_buffer[i]);
     }
 
     glUseProgram(program);
     glUniform4f(gl_color, 0.5f, 0.0f, 0.0f, 0.0f);
     TextureObject::set_vertex(vertex_buffer);
     TextureObject::set_index(index_buffer);
-    TextureObject::draw(renderer, usage);
+    TextureObject::draw(renderer);
 }
 
 DynamicCircle::DynamicCircle(Circle &circle, float mass) : DynamicObject(mass), circle(circle) {}

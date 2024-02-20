@@ -76,6 +76,8 @@ Game::Game() {
 
 void Game::game_loop() {
     SDL_Event event;
+
+    glm::vec4 clear_color = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     while (is_running) {
 
         // get the next event in queue
@@ -103,9 +105,14 @@ void Game::game_loop() {
             break;
         }
 
-        interface->render();
-        renderer->render();
+        renderer->resize();
+        renderer->clear(clear_color);
+
         scene_manager->tick();
+        renderer->render();
+        interface->render();
+
+        SDL_GL_SwapWindow(window);
     }
 }
 

@@ -16,7 +16,7 @@ class TextureBox : public TextureObject {
 
     Box &box;
 
-    void draw(Renderer &renderer, unsigned int usage) override;
+    void draw(Renderer &renderer) override;
 
   private:
     int u_color;

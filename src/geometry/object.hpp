@@ -5,7 +5,7 @@
 #include <memory>
 
 enum class Objects {
-    Unknown = -1,
+    Unknown,
     Box,
     Circle,
     Triangle,

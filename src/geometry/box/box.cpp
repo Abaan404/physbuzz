@@ -20,7 +20,7 @@ TextureBox::TextureBox(Box &box, unsigned int &program) : TextureObject(program)
     u_color = glGetUniformLocation(program, "u_color");
 }
 
-void TextureBox::draw(Renderer &renderer, unsigned int usage) {
+void TextureBox::draw(Renderer &renderer) {
     std::vector<glm::vec3> vertex_buffer = {
         glm::vec3(box.min.x, box.min.y, 0), // top-left
         glm::vec3(box.min.x, box.max.y, 0), // top-right
@@ -29,7 +29,7 @@ void TextureBox::draw(Renderer &renderer, unsigned int usage) {
     };
 
     for (int i = 0; i < vertex_buffer.size(); i++) {
-        vertex_buffer[i] = renderer.screen_to_world(vertex_buffer[i]);
+        vertex_buffer[i] = normalize_vertex(renderer, vertex_buffer[i]);
     }
 
     std::vector<glm::uvec3> index_buffer = {
@@ -41,7 +41,7 @@ void TextureBox::draw(Renderer &renderer, unsigned int usage) {
     glUniform4f(u_color, 0.5f, 0.0f, 0.0f, 0.0f);
     TextureObject::set_vertex(vertex_buffer);
     TextureObject::set_index(index_buffer);
-    TextureObject::draw(renderer, usage);
+    TextureObject::draw(renderer);
 }
 
 DynamicBox::DynamicBox(Box &box, float mass) : DynamicObject(mass), box(box) {}
