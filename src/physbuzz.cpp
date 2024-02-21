@@ -1,14 +1,8 @@
 #include "physbuzz.hpp"
 
 #include "debug.hpp"
-
 #include <SDL2/SDL.h>
-#include <cstdio>
-#include <glad/gl.h>
-#include <imgui.h>
-#include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
-#include <memory>
 
 Game::Game() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
@@ -55,11 +49,6 @@ Game::Game() {
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(OpenGLDebugCallback, 0);
 
-    int w, h;
-    SDL_GetWindowSize(window, &w, &h);
-    glViewport(0, 0, w, h);
-    glClearColor(0.0f, 0.5f, 1.0f, 0.0f);
-
     is_running = true;
 
     // create ImGui context
@@ -76,9 +65,11 @@ Game::Game() {
 
 void Game::game_loop() {
     SDL_Event event;
+    int width, height;
 
-    glm::vec4 clear_color = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     while (is_running) {
+        // get window size
+        SDL_GetWindowSize(window, &width, &height);
 
         // get the next event in queue
         SDL_PollEvent(&event);
@@ -105,11 +96,13 @@ void Game::game_loop() {
             break;
         }
 
-        renderer->resize();
-        renderer->clear(clear_color);
-
         scene_manager->tick();
-        renderer->render();
+        if (!interface->draw) {
+            renderer->resize(glm::ivec2(width, height));
+            renderer->clear(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+            renderer->render();
+        }
+
         interface->render();
 
         SDL_GL_SwapWindow(window);

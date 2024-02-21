@@ -1,34 +1,32 @@
 #include "handler.hpp"
 
-#include "../renderer/renderer.hpp"
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 #include <memory>
 
 #include "demo/demo.hpp"
-
-enum class InterfaceType {
-    Debug,
-    ShapePicker,
-    ObjectList,
-    SceneViewer,
-    Demo,
-    Unknown,
-};
+#include "dockspace/dockspace.hpp"
+#include "objectlist/objectlist.hpp"
+#include "objectpicker/objectpicker.hpp"
+#include "viewport/viewport.hpp"
 
 InterfaceHandler::InterfaceHandler(Renderer &renderer, std::vector<std::shared_ptr<GameObject>> &objects) : renderer(renderer), objects(objects) {
-    ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
+    io.IniFilename = nullptr;
 
     ImGui_ImplSDL2_InitForOpenGL(renderer.window, renderer.context);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    interfaces[InterfaceType::Demo] = std::make_unique<Demo>();
+    interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
+    interfaces["Demo"] = std::make_unique<Demo>();
+    interfaces["ObjectList"] = std::make_unique<ObjectList>(objects);
+    interfaces["Viewport"] = std::make_unique<Viewport>(renderer);
+    interfaces["Dockspace"] = std::make_unique<Dockspace>();
 
-    interfaces[InterfaceType::Demo]->show = true;
+    interfaces["Demo"]->show = false;
 }
 
 InterfaceHandler::~InterfaceHandler() {
@@ -38,18 +36,15 @@ InterfaceHandler::~InterfaceHandler() {
 }
 
 void InterfaceHandler::render() {
-    if (!draw)
-        return;
-
     // draw a new frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    for (auto const &interface : interfaces) {
-        if (interface.second->show)
-            interface.second->draw(renderer);
-    }
+    if (draw)
+        for (const auto &interface : interfaces)
+            if (interface.second->show)
+                interface.second->draw(renderer);
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

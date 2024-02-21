@@ -3,7 +3,7 @@
 #include "events.hpp"
 #include "renderer/renderer.hpp"
 #include "scene.hpp"
-
+#include "ui/handler.hpp"
 #include <memory>
 
 class Game {

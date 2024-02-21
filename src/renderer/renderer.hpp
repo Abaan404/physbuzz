@@ -13,9 +13,9 @@ class Renderer {
     SDL_GLContext *context;
 
     void render();
-    void clear(glm::vec4 &color);
     void target(Framebuffer *framebuffer);
-    void resize();
+    void clear(glm::vec4 color);
+    void resize(glm::ivec2 resolution);
 
     glm::vec2 get_resolution() { return resolution; };
 

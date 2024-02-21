@@ -30,14 +30,15 @@ void Renderer::target(Framebuffer *framebuffer) {
     resolution = framebuffer->resolution;
 }
 
-void Renderer::clear(glm::vec4 &color) {
+void Renderer::clear(glm::vec4 color) {
     framebuffer->clear(color);
 }
 
-void Renderer::resize() {
+void Renderer::resize(glm::ivec2 resolution) {
     if (framebuffer != nullptr)
         framebuffer->resize(resolution);
+    else
+        SDL_GetWindowSize(window, &resolution.x, &resolution.y);
 
-    SDL_GetWindowSize(window, &resolution.x, &resolution.y);
     glViewport(0, 0, resolution.x, resolution.y);
 }

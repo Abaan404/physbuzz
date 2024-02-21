@@ -4,8 +4,6 @@
 
 class IUserInterface {
   public:
-    virtual ~IUserInterface() = default;
-
-    bool show = false;
+    bool show = true;
     virtual void draw(Renderer &renderer) = 0;
 };
