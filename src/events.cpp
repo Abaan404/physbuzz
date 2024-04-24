@@ -1,7 +1,6 @@
 #include "events.hpp"
 
-#include "geometry/box/box.hpp"
-#include "geometry/circle/circle.hpp"
+#include "objects/objects.hpp"
 
 void EventHandler::keyboard_keydown(SDL_KeyboardEvent &event) {
     switch (event.keysym.scancode | (1 << 30)) {
@@ -19,15 +18,8 @@ void EventHandler::mouse_mousedown(SDL_MouseButtonEvent &event) {
         return;
 
     if (event.button == SDL_BUTTON_LEFT) {
-        std::shared_ptr<Box> box = std::make_shared<Box>(glm::vec2(event.x, event.y), 10, 10, 1.0f);
-        box->dynamics->velocity = glm::vec2(-.05f, -.01f);
-
-        objects.push_back(box);
-
+        create_box(scene, glm::vec3(event.x, event.y, 0.0f), 10, 10);
     } else if (event.button == SDL_BUTTON_RIGHT) {
-        std::shared_ptr<Circle> circle = std::make_shared<Circle>(glm::vec2(event.x, event.y), 100, 1.0f);
-        circle->dynamics->velocity = glm::vec2(.1f, .1f);
-
-        objects.push_back(circle);
+        create_circle(scene, glm::vec3(event.x, event.y, 0.0f), 50);
     }
 }

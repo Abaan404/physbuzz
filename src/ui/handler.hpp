@@ -7,7 +7,7 @@
 
 class InterfaceHandler {
   public:
-    InterfaceHandler(Renderer &renderer, std::vector<std::shared_ptr<GameObject>> &objects);
+    InterfaceHandler(Renderer &renderer, Scene &scene);
     ~InterfaceHandler();
 
     ImGuiIO &io = ImGui::GetIO();
@@ -20,5 +20,5 @@ class InterfaceHandler {
 
   private:
     Renderer &renderer;
-    std::vector<std::shared_ptr<GameObject>> &objects;
+    Scene &scene;
 };

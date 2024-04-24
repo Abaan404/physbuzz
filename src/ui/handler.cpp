@@ -6,11 +6,11 @@
 
 #include "demo/demo.hpp"
 #include "dockspace/dockspace.hpp"
-#include "objectlist/objectlist.hpp"
-#include "objectpicker/objectpicker.hpp"
+// #include "objectlist/objectlist.hpp"
+// #include "objectpicker/objectpicker.hpp"
 #include "viewport/viewport.hpp"
 
-InterfaceHandler::InterfaceHandler(Renderer &renderer, std::vector<std::shared_ptr<GameObject>> &objects) : renderer(renderer), objects(objects) {
+InterfaceHandler::InterfaceHandler(Renderer &renderer, Scene &scene) : renderer(renderer), scene(scene) {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -20,9 +20,9 @@ InterfaceHandler::InterfaceHandler(Renderer &renderer, std::vector<std::shared_p
     ImGui_ImplSDL2_InitForOpenGL(renderer.window, renderer.context);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
+    // interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
     interfaces["Demo"] = std::make_unique<Demo>();
-    interfaces["ObjectList"] = std::make_unique<ObjectList>(objects);
+    // interfaces["ObjectList"] = std::make_unique<ObjectList>(objects);
     interfaces["Viewport"] = std::make_unique<Viewport>(renderer);
     interfaces["Dockspace"] = std::make_unique<Dockspace>();
 

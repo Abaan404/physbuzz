@@ -1,12 +1,14 @@
 #pragma once
 
-#include "../geometry/object.hpp"
+#include "../scene/scene.hpp"
+#include "mesh.hpp"
 #include "framebuffer.hpp"
 #include <SDL2/SDL.h>
+#include <glad/gl.h>
 
 class Renderer {
   public:
-    Renderer(SDL_GLContext *context, SDL_Window *window, std::vector<std::shared_ptr<GameObject>> &objects);
+    Renderer(SDL_GLContext *context, SDL_Window *window, Scene &scene);
 
     unsigned int time;
     SDL_Window *window;
@@ -22,5 +24,8 @@ class Renderer {
   private:
     glm::ivec2 resolution;
     Framebuffer *framebuffer;
-    std::vector<std::shared_ptr<GameObject>> &objects;
+    Scene &scene;
+
+    std::vector<float> normalize_vertex(MeshComponent &mesh);
+    void render_mesh(MeshComponent &mesh);
 };

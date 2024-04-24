@@ -1,6 +1,7 @@
 #include "physbuzz.hpp"
 
 #include "debug.hpp"
+#include "renderer/renderer.hpp"
 #include <SDL2/SDL.h>
 #include <imgui_impl_sdl2.h>
 
@@ -57,10 +58,11 @@ Game::Game() {
     ImGui::CreateContext();
 
     // there has to be a better way to pass by reference
-    this->renderer = std::make_unique<Renderer>(&context, window, objects);
-    this->interface = std::make_unique<InterfaceHandler>(*renderer, objects);
-    this->event_handler = std::make_unique<EventHandler>(*renderer, *interface, objects);
-    this->scene_manager = std::make_unique<SceneManager>(objects);
+    this->scene = std::make_unique<Scene>();
+    this->renderer = std::make_unique<Renderer>(&context, window, *scene);
+    this->dynamics = std::make_unique<Dynamics>(*scene);
+    this->interface = std::make_unique<InterfaceHandler>(*renderer, *scene);
+    this->event_handler = std::make_unique<EventHandler>(*renderer, *interface, *scene);
 }
 
 void Game::game_loop() {
@@ -96,13 +98,13 @@ void Game::game_loop() {
             break;
         }
 
-        scene_manager->tick();
         if (!interface->draw) {
             renderer->resize(glm::ivec2(width, height));
             renderer->clear(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
             renderer->render();
         }
 
+        dynamics->tick();
         interface->render();
 
         SDL_GL_SwapWindow(window);

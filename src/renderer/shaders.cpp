@@ -7,7 +7,6 @@
 ShaderContext::ShaderContext(std::string vertex, std::string fragment) : vertex(Shader(vertex, GL_VERTEX_SHADER)),
                                                                          fragment(Shader(fragment, GL_FRAGMENT_SHADER)) {
     program = glCreateProgram();
-    load();
 }
 
 ShaderContext::~ShaderContext() {

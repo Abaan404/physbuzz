@@ -4,12 +4,10 @@
 #include "ui/handler.hpp"
 
 #include <SDL_events.h>
-#include <memory>
-#include <vector>
 
 class EventHandler {
   public:
-    EventHandler(Renderer &renderer, InterfaceHandler &interface, std::vector<std::shared_ptr<GameObject>> &objects) : renderer(renderer), interface(interface), objects(objects){};
+    EventHandler(Renderer &renderer, InterfaceHandler &interface, Scene &scene) : renderer(renderer), interface(interface), scene(scene){};
 
     // execute all event in queue
     void execute();
@@ -26,5 +24,5 @@ class EventHandler {
   private:
     Renderer &renderer;
     InterfaceHandler &interface;
-    std::vector<std::shared_ptr<GameObject>> &objects;
+    Scene &scene;
 };

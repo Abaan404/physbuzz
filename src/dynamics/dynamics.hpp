@@ -1,15 +1,25 @@
 #pragma once
 
+#include "../scene/scene.hpp"
 #include <glm/glm.hpp>
 
-class DynamicObject {
+struct TransformableComponent {
+    glm::vec3 position;
+    glm::vec3 rotation;
+    glm::vec3 scale;
+};
+
+struct RigidBodyComponent {
+    glm::vec3 velocity;
+    glm::vec3 acceleration;
+};
+
+class Dynamics {
   public:
-    DynamicObject(float mass);
-    float mass;
-    float intertia = 0.0f;
+    Dynamics(Scene &scene);
 
-    glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
-    glm::vec2 acceleration = glm::vec2(0.0f, 0.0f);
+    void tick();
 
-    virtual void tick() = 0;
+  private:
+    Scene &scene;
 };

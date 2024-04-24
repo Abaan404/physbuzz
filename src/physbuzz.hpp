@@ -1,8 +1,9 @@
 #pragma once
 
+#include "dynamics/dynamics.hpp"
 #include "events.hpp"
 #include "renderer/renderer.hpp"
-#include "scene.hpp"
+#include "scene/scene.hpp"
 #include "ui/handler.hpp"
 #include <memory>
 
@@ -18,16 +19,12 @@ class Game {
 
     // stuff ig
     std::unique_ptr<EventHandler> event_handler;
+    std::unique_ptr<Dynamics> dynamics;
     std::unique_ptr<Renderer> renderer;
-    std::unique_ptr<SceneManager> scene_manager;
+    std::unique_ptr<Scene> scene;
     std::unique_ptr<InterfaceHandler> interface;
-
-    // holds all game objects
-    std::vector<std::shared_ptr<GameObject>> objects;
 
     // SDL Variables
     SDL_Window *window;
-
-    // OpenGL Variables
     SDL_GLContext context;
 };
