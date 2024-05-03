@@ -18,11 +18,14 @@ void Game::loop() {
 
     while (isRunning) {
         eventManager.poll();
+
         dynamics.tick(scene);
+        clock.tick();
 
         renderer.clear(clear);
         renderer.render(scene);
         interface.render();
+
         window.flip();
     }
 }

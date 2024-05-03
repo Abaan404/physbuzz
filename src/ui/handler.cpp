@@ -7,9 +7,10 @@
 #include <memory>
 
 #include "demo/demo.hpp"
-#include "objectpicker/objectpicker.hpp"
 #include "dockspace/dockspace.hpp"
 #include "objectlist/objectlist.hpp"
+#include "objectpicker/objectpicker.hpp"
+#include "overlay/overlay.hpp"
 
 InterfaceManager::InterfaceManager(Physbuzz::Renderer &renderer) : m_Renderer(renderer) {
     IMGUI_CHECKVERSION();
@@ -64,6 +65,9 @@ void InterfaceManager::render() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+
+    static FrametimeOverlay frametimeOverlay;
+    frametimeOverlay.draw(m_Renderer);
 
     if (draw) {
         for (const auto &interface : interfaces) {
