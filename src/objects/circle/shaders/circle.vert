@@ -1,6 +1,6 @@
 #include <string>
 
-static const std::string circle_vertex = R"(
+static const char *circleVertex = R"(
 #version 460
 
 layout (location = 0) in vec3 position;

@@ -1,14 +1,22 @@
 #include "../objects.hpp"
 
-#include "../../dynamics/dynamics.hpp"
-#include "../../renderer/mesh.hpp"
-#include "../../renderer/shaders.hpp"
+#include <physbuzz/dynamics.hpp>
+#include <physbuzz/mesh.hpp>
+#include <physbuzz/shaders.hpp>
 
-#include "shaders/box.vert"
 #include "shaders/box.frag"
+#include "shaders/box.vert"
 
-Object &create_box(Scene &scene, glm::vec3 position, float width, float height) {
-    Object &box = scene.create_object();
+void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float height) {
+    // name
+    {
+        IdentifiableComponent identifiable = {
+            .type = ObjectType::Box,
+            .name = "Box",
+        };
+
+        box.addComponent(identifiable);
+    }
 
     // box props
     {
@@ -17,31 +25,31 @@ Object &create_box(Scene &scene, glm::vec3 position, float width, float height) 
             .max = glm::vec3(position[0] + (width / 2.0f), position[1] + (height / 2.0f), 0.0f),
         };
 
-        box.add_component(aabb);
+        box.addComponent(aabb);
     }
 
     // transform
     {
-        TransformableComponent transform = {
+        Physbuzz::TransformableComponent transform = {
             .position = position,
         };
-        box.add_component(transform);
+        box.addComponent(transform);
     }
 
     // physics
     {
-        RigidBodyComponent physics = {
+        Physbuzz::RigidBodyComponent physics = {
             .velocity = glm::vec3(0.0f, 0.0f, 0.0f),
             .acceleration = glm::vec3(0.0f, 0.0f, 0.0f),
         };
-        box.add_component(physics);
+        box.addComponent(physics);
     }
 
     // mesh
     {
-        MeshComponent mesh = MeshComponent();
-        AABBComponent aabb = box.get_component<AABBComponent>();
-        static ShaderContext shader = ShaderContext(box_vertex, box_frag);
+        Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent();
+        AABBComponent aabb = box.getComponent<AABBComponent>();
+        static Physbuzz::ShaderContext shader = Physbuzz::ShaderContext(boxVertex, boxFrag);
         static GLuint program = shader.load();
 
         std::vector<glm::vec3> vertices = {
@@ -56,17 +64,15 @@ Object &create_box(Scene &scene, glm::vec3 position, float width, float height) 
             glm::vec3(1, 2, 3),
         };
 
-        mesh.normalized = false;
-        mesh.set_program(program);
-        mesh.set_vertex(vertices);
-        mesh.set_index(indices);
+        mesh.build();
+        mesh.setProgram(program);
+        mesh.setVertex(vertices);
+        mesh.setIndex(indices);
 
         // todo uniforms
         // glUseProgram(mesh.get_program());
         // glUniform4f(mesh.glu_color, 0.5f, 0.0f, 0.0f, 0.0f);
 
-        box.add_component(mesh);
+        box.addComponent(mesh);
     }
-
-    return box;
 }

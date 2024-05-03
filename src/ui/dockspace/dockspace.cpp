@@ -1,13 +1,16 @@
 #include "dockspace.hpp"
+
 #include <imgui.h>
 #include <imgui_internal.h> // for DockBuilder API
 
-void Dockspace::draw(Renderer &renderer) {
+void Dockspace::draw(Physbuzz::Renderer &renderer) {
     // setup dockspace
-    ImGuiDockNodeFlags dockspace_flags = 0;
-    ImGuiWindowFlags window_flags = (ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+    ImGuiDockNodeFlags dockspaceFlags = 0;
+    ImGuiWindowFlags windowFlags = (ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                                      ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground |
                                      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
+
+    ImGuiViewport *viewport = ImGui::GetMainViewport();
 
     ImGui::SetNextWindowPos(viewport->Pos);
     ImGui::SetNextWindowSize(viewport->Size);
@@ -17,39 +20,33 @@ void Dockspace::draw(Renderer &renderer) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("DockSpace", nullptr, window_flags);
+    ImGui::Begin("DockSpace", nullptr, windowFlags);
     ImGui::PopStyleVar(3);
 
     // dockspace
-    ImGuiID dockspace = ImGui::GetMainViewport()->ID;
-    ImGui::DockSpace(dockspace, ImVec2(0.0f, 0.0f), dockspace_flags | ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGuiID dockspace = viewport->ID;
+    ImGui::DockSpace(dockspace, ImVec2(0.0f, 0.0f), dockspaceFlags | ImGuiDockNodeFlags_PassthruCentralNode);
 
-    static bool first_time = true;
-    if (first_time) {
-        first_time = false;
+    static bool firstTime = true;
+    if (firstTime) {
+        firstTime = false;
 
         // DockBuilder is experimental
         // see: https://github.com/ocornut/imgui/wiki/Docking
-        ImGui::DockBuilderAddNode(dockspace, dockspace_flags | ImGuiDockNodeFlags_DockSpace);
+        ImGui::DockBuilderAddNode(dockspace, dockspaceFlags | ImGuiDockNodeFlags_DockSpace);
         ImGui::DockBuilderSetNodeSize(dockspace, viewport->Size);
 
         // split dockspace
-        ImGuiID dockspace_viewport = ImGui::GetID("DockspaceLeft");
-        ImGuiID dockspace_objects = ImGui::GetID("DockspaceRight");
-        ImGui::DockBuilderSplitNode(dockspace, ImGuiDir_Right, 0.25f, &dockspace_objects, &dockspace_viewport);
+        ImGuiID dockspaceObjects = ImGui::GetID("DockspaceRight");
+        ImGui::DockBuilderSplitNode(dockspace, ImGuiDir_Right, 0.25f, &dockspaceObjects, nullptr);
 
         // setup right hand side
         {
-            ImGuiID dockspace_objects_list = ImGui::GetID("DockspaceRightUp");
-            ImGuiID dockspace_objects_picker = ImGui::GetID("DockspaceRightDown");
-            ImGui::DockBuilderSplitNode(dockspace_objects, ImGuiDir_Up, 0.5f, &dockspace_objects_list, &dockspace_objects_picker);
-            ImGui::DockBuilderDockWindow("ObjectList", dockspace_objects_list);
-            ImGui::DockBuilderDockWindow("ShapePicker", dockspace_objects_picker);
-        }
-
-        // setup middle
-        {
-            ImGui::DockBuilderDockWindow("Viewport", dockspace_viewport);
+            ImGuiID dockspaceObjectsList = ImGui::GetID("DockspaceRightUp");
+            ImGuiID dockspaceObjectsPicker = ImGui::GetID("DockspaceRightDown");
+            ImGui::DockBuilderSplitNode(dockspaceObjects, ImGuiDir_Up, 0.5f, &dockspaceObjectsList, &dockspaceObjectsPicker);
+            ImGui::DockBuilderDockWindow("ObjectList", dockspaceObjectsList);
+            ImGui::DockBuilderDockWindow("ShapePicker", dockspaceObjectsPicker);
         }
 
         ImGui::DockBuilderFinish(dockspace);

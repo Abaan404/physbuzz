@@ -1,14 +1,22 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include "../../renderer/framebuffer.hpp"
 #include "../ui.hpp"
+#include <glm/glm.hpp>
+#include <physbuzz/framebuffer.hpp>
+
+struct PickableComponent {
+    bool selected;
+    Physbuzz::Framebuffer framebuffer;
+};
 
 class ObjectPicker : public IUserInterface {
   public:
-    void draw(Renderer &renderer) override;
+    ObjectPicker();
+    ~ObjectPicker();
+
+    void draw(Physbuzz::Renderer &renderer) override;
 
   private:
-    glm::ivec2 preview_size = glm::ivec2(120, 120);
-    Framebuffer framebuffer = Framebuffer(preview_size);
+    Physbuzz::Scene m_Scene{};
+    glm::ivec2 m_PreviewSize{120, 120};
 };

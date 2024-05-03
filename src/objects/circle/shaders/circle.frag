@@ -1,6 +1,6 @@
 #include <string>
 
-static const std::string circle_frag = R"(
+static const char *circleFrag = R"(
 #version 460
 
 in vec3 fragPosition;

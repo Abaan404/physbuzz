@@ -1,50 +1,77 @@
 #include "handler.hpp"
 
+#include "../game.hpp"
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-#include <imgui_impl_sdl2.h>
 #include <memory>
 
 #include "demo/demo.hpp"
+#include "objectpicker/objectpicker.hpp"
 #include "dockspace/dockspace.hpp"
-// #include "objectlist/objectlist.hpp"
-// #include "objectpicker/objectpicker.hpp"
-#include "viewport/viewport.hpp"
+#include "objectlist/objectlist.hpp"
 
-InterfaceHandler::InterfaceHandler(Renderer &renderer, Scene &scene) : renderer(renderer), scene(scene) {
+InterfaceManager::InterfaceManager(Physbuzz::Renderer &renderer) : m_Renderer(renderer) {
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
-    io.IniFilename = nullptr;
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows (buggy on wayland)
+    io.IniFilename = nullptr; // disable imgui.ini
 
-    ImGui_ImplSDL2_InitForOpenGL(renderer.window, renderer.context);
+    GLFWwindow *window = renderer.getWindow().getWindow();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    // interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
-    interfaces["Demo"] = std::make_unique<Demo>();
-    // interfaces["ObjectList"] = std::make_unique<ObjectList>(objects);
-    interfaces["Viewport"] = std::make_unique<Viewport>(renderer);
+    interfaces["Demo"] = std::make_shared<Demo>();
+    interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
+    interfaces["ObjectList"] = std::make_unique<ObjectList>();
     interfaces["Dockspace"] = std::make_unique<Dockspace>();
 
     interfaces["Demo"]->show = false;
 }
 
-InterfaceHandler::~InterfaceHandler() {
+InterfaceManager::InterfaceManager(const InterfaceManager &other) : m_Renderer(other.m_Renderer) {
+    if (this != &other) {
+        interfaces = other.interfaces;
+        draw = other.draw;
+    }
+}
+
+InterfaceManager InterfaceManager::operator=(const InterfaceManager &other) {
+    if (this != &other) {
+        interfaces = other.interfaces;
+        draw = other.draw;
+
+        m_Renderer = other.m_Renderer;
+    }
+
+    return *this;
+}
+
+InterfaceManager::~InterfaceManager() {
     ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
 
-void InterfaceHandler::render() {
+void InterfaceManager::render() {
     // draw a new frame
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    if (draw)
-        for (const auto &interface : interfaces)
-            if (interface.second->show)
-                interface.second->draw(renderer);
+    if (draw) {
+        for (const auto &interface : interfaces) {
+            if (interface.second->show) {
+                interface.second->draw(m_Renderer);
+            }
+        }
+    }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -4,5 +4,5 @@
 
 class Demo : public IUserInterface {
   public:
-    void draw(Renderer &renderer) override;
+    void draw(Physbuzz::Renderer &renderer) override;
 };

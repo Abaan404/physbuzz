@@ -1,10 +1,10 @@
 #pragma once
 
-#include <string>
+namespace Physbuzz {
 
 class Shader {
   public:
-    Shader(std::string source, unsigned int type);
+    Shader(const char* source, unsigned int type);
     ~Shader();
 
     unsigned int shader;
@@ -12,12 +12,12 @@ class Shader {
     unsigned int compile();
 
   private:
-    std::string source;
+    const char* m_Source;
 };
 
 class ShaderContext {
   public:
-    ShaderContext(std::string vertex, std::string fragment);
+    ShaderContext(const char* vertex, const char* fragment);
     ~ShaderContext();
 
     unsigned int program;
@@ -25,6 +25,8 @@ class ShaderContext {
     unsigned int load();
 
   private:
-    Shader vertex;
-    Shader fragment;
+    Shader m_Vertex;
+    Shader m_Fragment;
 };
+
+} // namespace Physbuzz

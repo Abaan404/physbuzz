@@ -1,6 +1,4 @@
-#include <string>
-
-static const std::string box_frag = R"(
+static const char *boxFrag = R"(
 #version 460
 
 out vec4 fragColor;

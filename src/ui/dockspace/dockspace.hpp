@@ -5,7 +5,5 @@
 
 class Dockspace : public IUserInterface {
   public:
-    ImGuiViewport *viewport = ImGui::GetMainViewport();
-
-    void draw(Renderer &renderer) override;
+    void draw(Physbuzz::Renderer &renderer) override;
 };

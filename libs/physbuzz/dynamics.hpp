@@ -1,11 +1,13 @@
 #pragma once
 
-#include "../scene/scene.hpp"
+#include "scene.hpp"
 #include <glm/glm.hpp>
+
+namespace Physbuzz {
 
 struct TransformableComponent {
     glm::vec3 position;
-    glm::vec3 rotation;
+    // glm::vec3 rotation; // quaternions?
     glm::vec3 scale;
 };
 
@@ -16,10 +18,7 @@ struct RigidBodyComponent {
 
 class Dynamics {
   public:
-    Dynamics(Scene &scene);
-
-    void tick();
-
-  private:
-    Scene &scene;
+    void tick(Scene &scene) const;
 };
+
+} // namespace Physbuzz

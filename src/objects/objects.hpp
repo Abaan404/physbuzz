@@ -1,7 +1,19 @@
 #pragma once
 
-#include "../scene/scene.hpp"
 #include <glm/glm.hpp>
+#include <physbuzz/object.hpp>
+
+// TODO these only exist to figure out what function to call
+// for a rebuild, a rebuild callback would be better.
+enum class ObjectType {
+    Circle,
+    Box,
+};
+
+struct IdentifiableComponent {
+    ObjectType type;
+    std::string_view name;
+};
 
 struct AABBComponent {
     glm::vec3 min;
@@ -13,7 +25,7 @@ struct RadiusComponent {
 };
 
 // An AABB box.
-Object &create_box(Scene &scene, glm::vec3 position, float width, float height);
+void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float height);
 
 // A basic circle.
-Object &create_circle(Scene &scene, glm::vec3 position, float radius);
+void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius);

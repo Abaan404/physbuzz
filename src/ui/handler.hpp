@@ -1,24 +1,21 @@
 #pragma once
 
-#include "../renderer/renderer.hpp"
 #include "ui.hpp"
 #include <imgui.h>
 #include <unordered_map>
 
-class InterfaceHandler {
+class InterfaceManager {
   public:
-    InterfaceHandler(Renderer &renderer, Scene &scene);
-    ~InterfaceHandler();
-
-    ImGuiIO &io = ImGui::GetIO();
-    ImGuiViewport *viewport = ImGui::GetMainViewport();
-
-    bool draw = false;
-    std::unordered_map<std::string, std::unique_ptr<IUserInterface>> interfaces;
+    InterfaceManager(Physbuzz::Renderer &renderer);
+    InterfaceManager(const InterfaceManager &other);
+    InterfaceManager operator=(const InterfaceManager &other);
+    ~InterfaceManager();
 
     void render();
 
+    bool draw = false;
+    std::unordered_map<std::string, std::shared_ptr<IUserInterface>> interfaces;
+
   private:
-    Renderer &renderer;
-    Scene &scene;
+    Physbuzz::Renderer &m_Renderer;
 };

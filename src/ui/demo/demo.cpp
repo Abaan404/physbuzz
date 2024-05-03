@@ -1,6 +1,6 @@
 #include "demo.hpp"
 #include <imgui.h>
 
-void Demo::draw(Renderer &renderer) {
+void Demo::draw(Physbuzz::Renderer &renderer) {
     ImGui::ShowDemoWindow();
 }

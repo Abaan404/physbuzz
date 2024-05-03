@@ -1,6 +1,4 @@
-#include <string>
-
-static const std::string box_vertex = R"(
+static const char *boxVertex = R"(
 #version 460
 
 layout (location = 0) in vec3 position;

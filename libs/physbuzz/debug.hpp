@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <glad/gl.h>
 
+namespace Physbuzz {
+
 #define ASSERT(result, message)                                                     \
     if ((result) != true) {                                                         \
         printf("[ASSERTION %d::%s] %s %s\n", __LINE__, __FILE__, #result, message); \
@@ -107,3 +109,11 @@ static void OpenGLDebugCallback(GLenum source, GLenum type, unsigned int id, GLe
     fprintf(stderr, "[OpenGL %s %s %s]: %s\n", _source, _type, _severity, msg);
     ASSERT(type != GL_DEBUG_TYPE_ERROR, "OpenGL ERROR")
 }
+
+static void glfwErrorCallback(int error, const char *description) {
+    char* formattedError;
+    sprintf(formattedError, "[GLFW ERROR] (%d) %s", error, description);
+    ASSERT(true, formattedError);
+}
+
+} // namespace Physbuzz
