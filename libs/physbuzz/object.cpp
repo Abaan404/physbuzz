@@ -34,8 +34,7 @@ Object &ObjectManager::createObject(ComponentManager &component_manager) {
 }
 
 void ObjectManager::deleteObject(ComponentManager &component_manager, ObjectID id) {
-    ASSERT(m_Objects.size() > 0, "Removing object from an empty array.")
-    ASSERT(m_ObjectIdMap.find(id) != m_ObjectIdMap.end(), "id doesnt exist in map.")
+    ASSERT(m_ObjectIdMap.contains(id), "Object doesnt exist in map.")
 
     // pop id from map
     std::size_t idx = m_ObjectIdMap[id];

@@ -1,9 +1,7 @@
 #pragma once
 
-#include "scene.hpp"
+#include <physbuzz/scene.hpp>
 #include <glm/glm.hpp>
-
-namespace Physbuzz {
 
 struct TransformableComponent {
     glm::vec3 position;
@@ -12,13 +10,12 @@ struct TransformableComponent {
 };
 
 struct RigidBodyComponent {
+    float mass;
     glm::vec3 velocity;
     glm::vec3 acceleration;
 };
 
 class Dynamics {
   public:
-    void tick(Scene &scene) const;
+    void tick(Physbuzz::Scene &scene) const;
 };
-
-} // namespace Physbuzz

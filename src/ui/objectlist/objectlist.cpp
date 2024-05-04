@@ -2,7 +2,6 @@
 
 #include "../../game.hpp"
 #include "../../objects/objects.hpp"
-#include <physbuzz/dynamics.hpp>
 #include <physbuzz/renderer.hpp>
 
 #include <format>
@@ -41,8 +40,8 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                 ImGui::SeparatorText(std::format("{}) {}", object.getId(), identifier.name).c_str());
             }
 
-            if (object.hasComponent<Physbuzz::TransformableComponent>()) {
-                Physbuzz::TransformableComponent &transform = object.getComponent<Physbuzz::TransformableComponent>();
+            if (object.hasComponent<TransformableComponent>()) {
+                TransformableComponent &transform = object.getComponent<TransformableComponent>();
                 float position[] = {transform.position.x, transform.position.y, transform.position.z};
                 float scale[] = {transform.scale.x, transform.scale.y, transform.scale.z};
 
@@ -61,8 +60,8 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                 }
             }
 
-            if (object.hasComponent<Physbuzz::RigidBodyComponent>()) {
-                Physbuzz::RigidBodyComponent &physics = object.getComponent<Physbuzz::RigidBodyComponent>();
+            if (object.hasComponent<RigidBodyComponent>()) {
+                RigidBodyComponent &physics = object.getComponent<RigidBodyComponent>();
                 float velocity[] = {physics.velocity.x, physics.velocity.y, physics.velocity.z};
                 float acceleration[] = {physics.acceleration.x, physics.acceleration.y, physics.acceleration.z};
 
@@ -82,7 +81,7 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                 float wh[] = {aabb.max.x - aabb.min.x, aabb.max.y - aabb.min.y};
 
                 if (ImGui::DragFloat2("AABB", wh, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    Physbuzz::TransformableComponent &transform = object.getComponent<Physbuzz::TransformableComponent>();
+                    TransformableComponent &transform = object.getComponent<TransformableComponent>();
                     glm::vec3 dwh = glm::vec3(wh[0] - (aabb.max.x - aabb.min.x), wh[1] - (aabb.max.y - aabb.min.y), 0);
 
                     aabb.max += dwh / 2.0f;
@@ -110,7 +109,7 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                     switch (identifier.type) {
                     case (ObjectType::Box): {
                         AABBComponent &aabb = object.getComponent<AABBComponent>();
-                        Physbuzz::TransformableComponent &transform = object.getComponent<Physbuzz::TransformableComponent>();
+                        TransformableComponent &transform = object.getComponent<TransformableComponent>();
 
                         float width = aabb.max.x - aabb.min.x;
                         float height = aabb.max.y - aabb.min.y;
@@ -121,7 +120,7 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                     } break;
 
                     case (ObjectType::Circle): {
-                        glm::vec3 position = object.getComponent<Physbuzz::TransformableComponent>().position;
+                        glm::vec3 position = object.getComponent<TransformableComponent>().position;
                         float radius = object.getComponent<RadiusComponent>().radius;
 
                         object.eraseComponents();

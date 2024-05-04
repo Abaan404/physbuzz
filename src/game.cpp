@@ -19,6 +19,7 @@ void Game::loop() {
     while (isRunning) {
         eventManager.poll();
 
+        collision.tick(scene);
         dynamics.tick(scene);
         clock.tick();
 

@@ -19,7 +19,7 @@ template <typename T>
 class ComponentArray : public IComponentArray {
   public:
     void addComponent(T &component, ObjectID id) {
-        ASSERT(m_ObjectIdMap.find(id) == m_ObjectIdMap.end(), "Component Already Exists.");
+        ASSERT(!hasComponent(id), "Component Already Exists.");
 
         // simply append to the end of the array
         m_ObjectIdMap[id] = m_Components.size();
@@ -28,8 +28,7 @@ class ComponentArray : public IComponentArray {
     }
 
     void removeComponent(ObjectID id) {
-        ASSERT(m_ObjectIdMap.find(id) != m_ObjectIdMap.end(), "Component Does Not Exist.");
-        ASSERT(m_Components.size() > 0, "Removing From An Empty ComponentArray.");
+        ASSERT(hasComponent(id), "Component Does Not Exist.");
 
         // get the component idx from the object
         std::size_t idx = m_ObjectIdMap[id];
@@ -46,7 +45,7 @@ class ComponentArray : public IComponentArray {
     }
 
     T &getComponent(ObjectID id) {
-        ASSERT(m_ObjectIdMap.find(id) != m_ObjectIdMap.end(), "Component Does Not Exist.");
+        ASSERT(hasComponent(id), "Component Does Not Exist.");
 
         return m_Components[m_ObjectIdMap[id]];
     }
@@ -56,7 +55,7 @@ class ComponentArray : public IComponentArray {
     }
 
     bool hasComponent(ObjectID id) {
-        return m_ObjectIdMap.find(id) != m_ObjectIdMap.end();
+        return m_ObjectIdMap.contains(id);
     }
 
     void objectDestroyed(ObjectID id) override {
@@ -110,7 +109,7 @@ class ComponentManager {
     std::shared_ptr<ComponentArray<T>> getComponentArray() {
         std::string name = typeid(T).name();
 
-        if (components.find(name) == components.end()) {
+        if (!components.contains(name)) {
             components[name] = std::make_shared<ComponentArray<T>>();
         }
 

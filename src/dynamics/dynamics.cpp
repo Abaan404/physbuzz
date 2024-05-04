@@ -1,18 +1,16 @@
 #include "dynamics.hpp"
 
-#include "mesh.hpp"
-#include "object.hpp"
+#include <physbuzz/mesh.hpp>
+#include <physbuzz/object.hpp>
 #include <vector>
 
-namespace Physbuzz {
-
-void Dynamics::tick(Scene &scene) const {
+void Dynamics::tick(Physbuzz::Scene &scene) const {
     auto &objects = scene.getObjects();
 
     for (auto &object : objects) {
         RigidBodyComponent &body = object.getComponent<RigidBodyComponent>();
         TransformableComponent &transform = object.getComponent<TransformableComponent>();
-        MeshComponent &mesh = object.getComponent<MeshComponent>();
+        Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
 
         glm::vec3 delta = body.velocity + 0.5f * body.acceleration;
 
@@ -27,5 +25,3 @@ void Dynamics::tick(Scene &scene) const {
         body.velocity += body.acceleration;
     }
 }
-
-} // namespace Physbuzz

@@ -1,6 +1,6 @@
 #include "../objects.hpp"
 
-#include <physbuzz/dynamics.hpp>
+#include "../../dynamics/dynamics.hpp"
 #include <physbuzz/mesh.hpp>
 #include <physbuzz/shaders.hpp>
 
@@ -30,7 +30,7 @@ void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float heig
 
     // transform
     {
-        Physbuzz::TransformableComponent transform = {
+        TransformableComponent transform = {
             .position = position,
         };
         box.addComponent(transform);
@@ -38,7 +38,8 @@ void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float heig
 
     // physics
     {
-        Physbuzz::RigidBodyComponent physics = {
+        RigidBodyComponent physics = {
+            .mass = 1.0f,
             .velocity = glm::vec3(0.0f, 0.0f, 0.0f),
             .acceleration = glm::vec3(0.0f, 0.0f, 0.0f),
         };

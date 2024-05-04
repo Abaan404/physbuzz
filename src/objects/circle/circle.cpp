@@ -1,7 +1,7 @@
 #include "../objects.hpp"
 
+#include "../../dynamics/dynamics.hpp"
 #include <glm/ext/scalar_constants.hpp>
-#include <physbuzz/dynamics.hpp>
 #include <physbuzz/mesh.hpp>
 #include <physbuzz/shaders.hpp>
 
@@ -32,7 +32,7 @@ void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
 
     // transform
     {
-        Physbuzz::TransformableComponent transform = {
+        TransformableComponent transform = {
             .position = position,
         };
         circle.addComponent(transform);
@@ -40,7 +40,8 @@ void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
 
     // physics
     {
-        Physbuzz::RigidBodyComponent physics = {
+        RigidBodyComponent physics = {
+            .mass = 1.0f,
             .velocity = glm::vec3(0.01f, 0.01f, 0.0f),
             .acceleration = glm::vec3(0.0f, 0.0f, 0.0f),
         };
@@ -60,7 +61,7 @@ void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
         static float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
 
         // good ol trig
-        Physbuzz::TransformableComponent transform = circle.getComponent<Physbuzz::TransformableComponent>();
+        TransformableComponent transform = circle.getComponent<TransformableComponent>();
         for (int i = 0; i < MAX_VERTICES; i++) {
             float angle = i * angleIncrement;
             float x = transform.position.x + radius * glm::cos(angle);
