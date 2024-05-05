@@ -4,12 +4,12 @@
 [submodule "submodules/glad"]
 	path = submodules/glad
 	url = https://github.com/Dav1dde/glad
-[submodule "SDL"]
-	path = submodules/SDL
-	url = https://github.com/libsdl-org/SDL/
-[submodule "glm"]
+[submodule "submodules/glm"]
 	path = submodules/glm
 	url = https://github.com/g-truc/glm
 [submodule "submodules/glfw"]
 	path = submodules/glfw
 	url = https://github.com/glfw/glfw
+[submodule "submodules/Catch2"]
+	path = submodules/Catch2
+	url = https://github.com/catchorg/Catch2

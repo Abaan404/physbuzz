@@ -23,20 +23,7 @@ glad_add_library(glad STATIC API gl:core=4.6)
 set(GLFW_PATH "submodules/glfw")
 add_subdirectory(${GLFW_PATH})
 
-# ImGui
-set(IMGUI_PATH "submodules/imgui")
-file(GLOB IMGUI_SOURCES
-    ${IMGUI_PATH}/*.cpp
-    ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
-    ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp)
-
-add_library(imgui STATIC ${IMGUI_SOURCES})
-target_include_directories(imgui PUBLIC
-    ${IMGUI_PATH}
-    ${IMGUI_PATH}/backends
-    ${GLFW_PATH}/include) # for glfw backend
-
-# Engine
+# engine
 set(ENGINE_PATH "libs")
 file(GLOB_RECURSE ENGINE_SRCS "${ENGINE_PATH}/*.cpp")
 
@@ -50,10 +37,39 @@ target_link_libraries(libphysbuzz PUBLIC
     glm
 )
 
+# ImGui
+set(IMGUI_PATH "submodules/imgui")
+file(GLOB IMGUI_SOURCES
+    ${IMGUI_PATH}/*.cpp
+    ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp)
+
+add_library(imgui STATIC ${IMGUI_SOURCES})
+target_include_directories(imgui PUBLIC
+    ${IMGUI_PATH}
+    ${IMGUI_PATH}/backends
+    ${GLFW_PATH}/include) # for glfw backend
+
+# driver code
 file(GLOB_RECURSE SRCS "src/*.cpp")
-add_executable("physbuzz" ${SRCS})
+add_executable(physbuzz ${SRCS})
 
 target_link_libraries(physbuzz PRIVATE
     libphysbuzz
     imgui
 )
+
+# tests
+set(CATCH2_PATH "submodules/Catch2")
+set(TEST_PATH "tests")
+add_subdirectory(${CATCH2_PATH})
+
+file(GLOB_RECURSE TESTS_SRCS "${TEST_PATH}/*.cpp")
+add_executable(tests ${TESTS_SRCS})
+target_link_libraries(tests PRIVATE
+    libphysbuzz
+    Catch2::Catch2WithMain)
+
+include(CTest)
+include(Catch)
+catch_discover_tests(tests)

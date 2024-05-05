@@ -38,17 +38,17 @@ void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
         switch (event.button) {
         case (GLFW_MOUSE_BUTTON_LEFT): {
             glm::dvec2 cursor = Game::window.getCursorPos();
-            Physbuzz::Object &box = Game::scene.createObject();
+            Physbuzz::ObjectID id = Game::scene.createObject();
 
-            buildBox(box, glm::vec3(cursor.x, cursor.y, 0.0f), 10, 10);
+            buildBox(Game::scene.getObject(id), glm::vec3(cursor.x, cursor.y, 0.0f), 10, 10);
 
         } break;
 
         case (GLFW_MOUSE_BUTTON_RIGHT): {
             glm::dvec2 cursor = Game::window.getCursorPos();
-            Physbuzz::Object &circle = Game::scene.createObject();
+            Physbuzz::ObjectID id = Game::scene.createObject();
 
-            buildCircle(circle, glm::vec3(cursor.x, cursor.y, 0.0f), 20);
+            buildCircle(Game::scene.getObject(id), glm::vec3(cursor.x, cursor.y, 0.0f), 20);
 
         } break;
 

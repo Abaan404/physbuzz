@@ -1,9 +1,9 @@
 #include "collision.hpp"
 
-#include "../objects/objects.hpp"
 #include "../dynamics/dynamics.hpp"
-#include <physbuzz/renderer.hpp>
+#include "../objects/objects.hpp"
 #include <iostream>
+#include <physbuzz/renderer.hpp>
 #include <vector>
 
 // sweep and prune
@@ -12,7 +12,6 @@ void Collision::tick(Physbuzz::Scene &scene) {
     // classic O(n^2)
     std::vector<Physbuzz::Object> &objects = scene.getObjects();
     for (auto &object1 : objects) {
-
         for (auto &object2 : objects) {
             if (&object1 == &object2) {
                 continue;

@@ -2,6 +2,7 @@
 
 #include "component.hpp"
 #include "defines.hpp"
+#include "physbuzz/containers/vectormap.hpp"
 #include <vector>
 
 namespace Physbuzz {
@@ -13,18 +14,18 @@ class Object {
     Object &operator=(const Object &other);
 
     template <typename T>
+    void setComponent(T component) {
+        m_ComponentManager.setComponent<T>(component, m_Id);
+    }
+
+    template <typename T>
+    bool removeComponent() {
+        return m_ComponentManager.removeComponent<T>(m_Id);
+    }
+
+    template <typename T>
     T &getComponent() {
         return m_ComponentManager.getComponent<T>(m_Id);
-    }
-
-    template <typename T>
-    void addComponent(T component) {
-        m_ComponentManager.addComponent<T>(component, m_Id);
-    }
-
-    template <typename T>
-    void removeComponent() {
-        m_ComponentManager.removeComponent<T>(m_Id);
     }
 
     template <typename T>
@@ -43,16 +44,16 @@ class Object {
 
 class ObjectManager {
   public:
-    Object &createObject(ComponentManager &component_manager);
-    void deleteObject(ComponentManager &component_manager, ObjectID id);
+    ObjectID createObject(ComponentManager &componentManager);
+    void deleteObject(ComponentManager &componentManager, ObjectID id);
 
+    bool hasObject(ObjectID id);
     Object &getObject(ObjectID id);
     std::vector<Object> &getObjects();
 
   private:
     ObjectID m_ObjectCounter = 0;
-    std::vector<Object> m_Objects;
-    std::unordered_map<ObjectID, std::size_t> m_ObjectIdMap;
+    VectorMap<ObjectID, Object> m_Map;
 };
 
-}
+} // namespace Physbuzz

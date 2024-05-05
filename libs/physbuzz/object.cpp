@@ -1,5 +1,4 @@
 #include "object.hpp"
-#include "physbuzz/debug.hpp"
 
 namespace Physbuzz {
 
@@ -20,45 +19,32 @@ void Object::eraseComponents() {
     m_ComponentManager.objectDestroyed(m_Id);
 }
 
+ObjectID Object::getId() const {
+    return m_Id;
+}
+
 Object &ObjectManager::getObject(ObjectID id) {
-    std::size_t idx = m_ObjectIdMap[id];
-    return m_Objects[idx];
+    return m_Map.get(id);
 }
 
-Object &ObjectManager::createObject(ComponentManager &component_manager) {
-    // create an object
-    m_Objects.emplace_back(component_manager, m_ObjectCounter);
-    m_ObjectIdMap[m_Objects.size()] = m_ObjectCounter++;
-
-    return m_Objects.back();
+ObjectID ObjectManager::createObject(ComponentManager &componentManager) {
+    Object object = Object(componentManager, m_ObjectCounter);
+    return m_Map.insert(object, m_ObjectCounter++);
 }
 
-void ObjectManager::deleteObject(ComponentManager &component_manager, ObjectID id) {
-    ASSERT(m_ObjectIdMap.contains(id), "Object doesnt exist in map.")
-
-    // pop id from map
-    std::size_t idx = m_ObjectIdMap[id];
-    m_ObjectIdMap.erase(id);
-
-    // swap elements and update map (if the idx isnt the end)
-    if (idx != m_Objects.size() - 1) {
-        std::iter_swap(m_Objects.begin() + idx, m_Objects.end() - 1);
-        m_ObjectIdMap[m_Objects[idx].getId()] = idx;
-    }
-
-    // pop object
-    m_Objects.pop_back();
+void ObjectManager::deleteObject(ComponentManager &componentManager, ObjectID id) {
+    m_Map.remove(id);
 
     // update components
-    component_manager.objectDestroyed(id);
+    componentManager.objectDestroyed(id);
+}
+
+bool ObjectManager::hasObject(ObjectID id) {
+    return m_Map.contains(id);
 }
 
 std::vector<Object> &ObjectManager::getObjects() {
-    return m_Objects;
-}
-
-ObjectID Object::getId() const {
-    return m_Id;
+    return m_Map.getArray();
 }
 
 } // namespace Physbuzz

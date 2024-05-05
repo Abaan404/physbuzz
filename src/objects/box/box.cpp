@@ -15,7 +15,7 @@ void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float heig
             .name = "Box",
         };
 
-        box.addComponent(identifiable);
+        box.setComponent(identifiable);
     }
 
     // box props
@@ -25,7 +25,7 @@ void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float heig
             .max = glm::vec3(position[0] + (width / 2.0f), position[1] + (height / 2.0f), 0.0f),
         };
 
-        box.addComponent(aabb);
+        box.setComponent(aabb);
     }
 
     // transform
@@ -33,7 +33,7 @@ void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float heig
         TransformableComponent transform = {
             .position = position,
         };
-        box.addComponent(transform);
+        box.setComponent(transform);
     }
 
     // physics
@@ -43,7 +43,7 @@ void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float heig
             .velocity = glm::vec3(0.0f, 0.0f, 0.0f),
             .acceleration = glm::vec3(0.0f, 0.0f, 0.0f),
         };
-        box.addComponent(physics);
+        box.setComponent(physics);
     }
 
     // mesh
@@ -74,6 +74,6 @@ void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float heig
         // glUseProgram(mesh.get_program());
         // glUniform4f(mesh.glu_color, 0.5f, 0.0f, 0.0f, 0.0f);
 
-        box.addComponent(mesh);
+        box.setComponent(mesh);
     }
 }

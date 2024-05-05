@@ -18,7 +18,7 @@ void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
             .name = "Circle",
         };
 
-        circle.addComponent(identifiable);
+        circle.setComponent(identifiable);
     }
 
     // circle props
@@ -27,7 +27,7 @@ void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
             .radius = radius,
         };
 
-        circle.addComponent(radi);
+        circle.setComponent(radi);
     }
 
     // transform
@@ -35,7 +35,7 @@ void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
         TransformableComponent transform = {
             .position = position,
         };
-        circle.addComponent(transform);
+        circle.setComponent(transform);
     }
 
     // physics
@@ -45,7 +45,7 @@ void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
             .velocity = glm::vec3(0.01f, 0.01f, 0.0f),
             .acceleration = glm::vec3(0.0f, 0.0f, 0.0f),
         };
-        circle.addComponent(physics);
+        circle.setComponent(physics);
     }
 
     // mesh
@@ -86,6 +86,6 @@ void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
         // glUseProgram(program);
         // glUniform4f(gl_color, 0.5f, 0.0f, 0.0f, 0.0f);
 
-        circle.addComponent(mesh);
+        circle.setComponent(mesh);
     }
 }

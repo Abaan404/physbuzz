@@ -8,8 +8,11 @@
 #include <physbuzz/scene.hpp>
 
 ObjectPicker::ObjectPicker() {
-    buildBox(m_Scene.createObject(), glm::vec3(m_PreviewSize.x >> 1, m_PreviewSize.y >> 1, 0.0f), m_PreviewSize.x, m_PreviewSize.y);
-    buildCircle(m_Scene.createObject(), glm::vec3(m_PreviewSize.x >> 1, m_PreviewSize.y >> 1, 0.0f), glm::min(m_PreviewSize.x, m_PreviewSize.y) >> 1);
+    Physbuzz::ObjectID id1 = m_Scene.createObject();
+    Physbuzz::ObjectID id2 = m_Scene.createObject();
+
+    buildBox(m_Scene.getObject(id1), glm::vec3(m_PreviewSize.x >> 1, m_PreviewSize.y >> 1, 0.0f), m_PreviewSize.x, m_PreviewSize.y);
+    buildCircle(m_Scene.getObject(id2), glm::vec3(m_PreviewSize.x >> 1, m_PreviewSize.y >> 1, 0.0f), glm::min(m_PreviewSize.x, m_PreviewSize.y) >> 1);
 
     for (auto &object : m_Scene.getObjects()) {
         PickableComponent pickable = {
@@ -18,7 +21,7 @@ ObjectPicker::ObjectPicker() {
         };
 
         pickable.framebuffer.build();
-        object.addComponent(pickable);
+        object.setComponent(pickable);
     }
 }
 

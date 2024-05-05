@@ -1,5 +1,6 @@
 #pragma once
 
+#include "containers/vectormap.hpp"
 #include "debug.hpp"
 #include "defines.hpp"
 #include <memory>
@@ -18,69 +19,55 @@ class IComponentArray {
 template <typename T>
 class ComponentArray : public IComponentArray {
   public:
-    void addComponent(T &component, ObjectID id) {
-        ASSERT(!hasComponent(id), "Component Already Exists.");
-
-        // simply append to the end of the array
-        m_ObjectIdMap[id] = m_Components.size();
-        m_Components.emplace_back(component);
-        m_PrevId = id;
+    void setComponent(T &component, ObjectID id) {
+        m_Map.insert(component, id);
     }
 
-    void removeComponent(ObjectID id) {
-        ASSERT(hasComponent(id), "Component Does Not Exist.");
-
-        // get the component idx from the object
-        std::size_t idx = m_ObjectIdMap[id];
-        m_ObjectIdMap.erase(id);
-
-        // swap elements and update map (if the idx isnt the end)
-        if (idx != m_Components.size() - 1) {
-            std::iter_swap(m_Components.begin() + idx, m_Components.end() - 1);
-            m_ObjectIdMap[m_PrevId] = idx;
-        }
-
-        // pop component
-        m_Components.pop_back();
-    }
-
-    T &getComponent(ObjectID id) {
-        ASSERT(hasComponent(id), "Component Does Not Exist.");
-
-        return m_Components[m_ObjectIdMap[id]];
-    }
-
-    std::vector<T> &getComponents() {
-        return m_Components;
+    bool removeComponent(ObjectID id) {
+        return m_Map.remove(id);
     }
 
     bool hasComponent(ObjectID id) {
-        return m_ObjectIdMap.contains(id);
+        return m_Map.contains(id);
+    }
+
+    T &getComponent(ObjectID id) {
+        ASSERT(m_Map.contains(id), "Component Does Not Exist.");
+        return m_Map.get(id);
+    }
+
+    std::vector<T> &getComponents() {
+        return m_Map.getArray();
     }
 
     void objectDestroyed(ObjectID id) override {
-        if (hasComponent(id)) {
-            removeComponent(id);
+        if (!m_Map.contains(id)) {
+            return;
         }
+
+        removeComponent(id);
     }
 
   private:
-    std::vector<T> m_Components;
-    std::unordered_map<ObjectID, std::size_t> m_ObjectIdMap;
-
-    ObjectID m_PrevId = -1;
+    VectorMap<ObjectID, T> m_Map;
 };
 
 class ComponentManager {
   public:
+    // how any of these symbols are resolved is beyond me.
     template <typename T>
-    void addComponent(T &component, ObjectID object) {
-        getComponentArray<T>()->addComponent(component, object);
+    void setComponent(T &component, ObjectID object) {
+        getComponentArray<T>()->setComponent(component, object);
     }
 
     template <typename T>
-    void removeComponent(ObjectID object) {
-        getComponentArray<T>()->removeComponent(object);
+    bool removeComponent(ObjectID object) {
+        return getComponentArray<T>()->removeComponent(object);
+    }
+
+    template <typename T>
+    bool hasComponent(ObjectID id) {
+        return getComponentArray<T>()->hasComponent(id);
     }
 
     template <typename T>
@@ -91,11 +78,6 @@ class ComponentManager {
     template <typename T>
     std::vector<T> &getComponents() {
         return getComponentArray<T>()->getComponents();
-    }
-
-    template <typename T>
-    bool hasComponent(ObjectID id) {
-        return getComponentArray<T>()->hasComponent(id);
     }
 
     void objectDestroyed(ObjectID id) {
