@@ -48,6 +48,15 @@ void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
         circle.setComponent(physics);
     }
 
+    // bounding box
+    {
+        AABBComponent aabb = {
+            .min = position - radius / 2.0f,
+            .max = position + radius / 2.0f,
+        };
+        circle.setComponent(aabb);
+    }
+
     // mesh
     {
         Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent();

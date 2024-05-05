@@ -20,6 +20,18 @@ class Scene {
         return m_ComponentManager.getComponents<T>();
     }
 
+    template <typename T, typename F>
+        requires Comparator<F, T>
+    void sortComponents(F comparator) {
+        return m_ComponentManager.sortComponents(comparator);
+    }
+
+    template <typename F>
+        requires Comparator<F, Physbuzz::Object>
+    void sortObjects(F comparator) {
+        return m_ObjectManager.sortObjects(comparator);
+    }
+
   private:
     ComponentManager m_ComponentManager;
     ObjectManager m_ObjectManager;

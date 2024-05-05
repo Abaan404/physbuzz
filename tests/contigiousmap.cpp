@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <physbuzz/containers/vectormap.hpp>
+#include <physbuzz/containers/contigiousmap.hpp>
 
 using ID = std::uint32_t;
 
@@ -18,7 +18,7 @@ TEST_CASE("Physbuzz::VectorMap") {
     };
 
     SECTION("insert()") {
-        Physbuzz::VectorMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Object> map;
 
         ID id1 = map.insert(obj1);
         ID id2 = map.insert(obj2);
@@ -32,7 +32,7 @@ TEST_CASE("Physbuzz::VectorMap") {
     }
 
     SECTION("insert() overwrite") {
-        Physbuzz::VectorMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Object> map;
 
         ID id1 = map.insert(obj1);
         ID id2 = map.insert(obj2, 20);
@@ -49,7 +49,7 @@ TEST_CASE("Physbuzz::VectorMap") {
     }
 
     SECTION("clear()") {
-        Physbuzz::VectorMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Object> map;
 
         ID id1 = map.insert(obj1);
         ID id2 = map.insert(obj2);
@@ -63,7 +63,7 @@ TEST_CASE("Physbuzz::VectorMap") {
     }
 
     SECTION("remove()") {
-        Physbuzz::VectorMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Object> map;
 
         ID id1 = map.insert(obj1);
         ID id2 = map.insert(obj2);
@@ -94,7 +94,7 @@ TEST_CASE("Physbuzz::VectorMap") {
     }
 
     SECTION("get()") {
-        Physbuzz::VectorMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Object> map;
 
         ID id1 = map.insert(obj1);
         ID id2 = map.insert(obj2);
@@ -112,5 +112,35 @@ TEST_CASE("Physbuzz::VectorMap") {
 
         Object &obj4 = map.get(id4);
         CHECK(obj4.x == 12);
+    }
+
+    SECTION("sort()") {
+        Physbuzz::ContiguousMap<ID, Object> map;
+
+        ID id1 = map.insert(Object{.x = 50});
+        ID id2 = map.insert(Object{.x = 30});
+        ID id3 = map.insert(Object{.x = 20});
+        ID id4 = map.insert(Object{.x = 10});
+
+        map.sort([](Object &obj1, Object &obj2) {
+            return obj1.x < obj2.x;
+        });
+
+        std::vector<Object> &array = map.getArray();
+
+        // check if id is still valid
+        CHECK(map.get(id1).x == 50);
+        CHECK(map.get(id2).x == 30);
+        CHECK(map.get(id3).x == 20);
+        CHECK(map.get(id4).x == 10);
+
+        // check if vector has been sorted
+        CHECK(array[0].x == 10);
+        CHECK(array[1].x == 20);
+        CHECK(array[2].x == 30);
+        CHECK(array[3].x == 50);
+
+        // why not
+        CHECK(map.size() == 4);
     }
 }

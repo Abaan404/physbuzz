@@ -2,12 +2,17 @@
 
 #include "../dynamics/dynamics.hpp"
 #include "../objects/objects.hpp"
-#include <iostream>
 #include <physbuzz/renderer.hpp>
 #include <vector>
 
 // sweep and prune
 void Collision::tick(Physbuzz::Scene &scene) {
+    scene.sortObjects([](Physbuzz::Object &object1, Physbuzz::Object &object2) {
+        AABBComponent &aabb1 = object1.getComponent<AABBComponent>();
+        AABBComponent &aabb2 = object2.getComponent<AABBComponent>();
+
+        return aabb1.min.x < aabb2.min.x;
+    });
 
     // classic O(n^2)
     std::vector<Physbuzz::Object> &objects = scene.getObjects();
@@ -17,11 +22,14 @@ void Collision::tick(Physbuzz::Scene &scene) {
                 continue;
             }
 
-            if (check(object1, object2)) {
-                std::cout
-                    << "Collision"
-                    << std::endl;
+            AABBComponent &aabb1 = object1.getComponent<AABBComponent>();
+            AABBComponent &aabb2 = object2.getComponent<AABBComponent>();
 
+            if (aabb2.min.x > aabb1.max.x) {
+                continue;
+            }
+
+            if (check(object1, object2)) {
                 resolve(object1, object2);
             }
         }
@@ -78,12 +86,21 @@ void Collision::resolve(Physbuzz::Object &object1, Physbuzz::Object &object2) {
     body1.velocity += (normal_impulse * normal + tangent_impulse * tangent) / mass_total;
     body2.velocity -= (normal_impulse * normal + tangent_impulse * tangent) / mass_total;
 
-    object1.getComponent<Physbuzz::MeshComponent>().redraw();
-    object2.getComponent<Physbuzz::MeshComponent>().redraw();
+    // update mesh
+    Physbuzz::MeshComponent &mesh1 = object1.getComponent<Physbuzz::MeshComponent>();
+    Physbuzz::MeshComponent &mesh2 = object2.getComponent<Physbuzz::MeshComponent>();
 
-    glm::vec3 position1 = transform1.position;
-    glm::vec3 position2 = transform2.position;
+    std::vector<glm::vec3> vertex1 = mesh1.getVertex();
+    std::vector<glm::vec3> vertex2 = mesh2.getVertex();
 
-    float radius_1 = radius1.radius;
-    float radius_2 = radius2.radius;
+    for (auto &vertex : vertex1) {
+        vertex -= displacement;
+    }
+
+    for (auto &vertex : vertex2) {
+        vertex += displacement;
+    }
+
+    mesh1.setVertex(vertex1);
+    mesh2.setVertex(vertex2);
 }
