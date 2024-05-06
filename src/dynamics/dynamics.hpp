@@ -17,5 +17,11 @@ struct RigidBodyComponent {
 
 class Dynamics {
   public:
-    void tick(Physbuzz::Scene &scene) const;
+    void tick(Physbuzz::Scene &scene);
+
+  private:
+    void motion(Physbuzz::Object &object);
+    void gravity(Physbuzz::Object &object);
+
+    glm::vec3 m_Gravity = glm::vec3(0.0f, 0.001f, 0.0f);
 };
