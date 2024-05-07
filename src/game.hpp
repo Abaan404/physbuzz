@@ -1,3 +1,5 @@
+#pragma once
+
 #include "collision/collision.hpp"
 #include "dynamics/dynamics.hpp"
 #include "ui/handler.hpp"

@@ -22,6 +22,10 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
         return;
     }
 
+    Game::scene.sortObjects([](const Physbuzz::Object &object1, const Physbuzz::Object &object2) {
+        return object1.getId() < object2.getId();
+    });
+
     std::vector<Physbuzz::Object> &objects = Game::scene.getObjects();
 
     ImGui::Text("Spawned Objects: %zu", objects.size());
@@ -76,24 +80,22 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                 }
             }
 
-            if (object.hasComponent<AABBComponent>()) {
-                AABBComponent &aabb = object.getComponent<AABBComponent>();
-                float wh[] = {aabb.max.x - aabb.min.x, aabb.max.y - aabb.min.y};
+            if (object.hasComponent<QuadComponent>()) {
+                QuadComponent &quad = object.getComponent<QuadComponent>();
+                float wh[] = {quad.width, quad.height};
 
-                if (ImGui::DragFloat2("AABB", wh, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                if (ImGui::DragFloat2("Quad", wh, 1.0f, MIN_VALUE, MAX_VALUE)) {
                     TransformableComponent &transform = object.getComponent<TransformableComponent>();
-                    glm::vec3 dwh = glm::vec3(wh[0] - (aabb.max.x - aabb.min.x), wh[1] - (aabb.max.y - aabb.min.y), 0);
-
-                    aabb.max += dwh / 2.0f;
-                    aabb.min -= dwh / 2.0f;
+                    quad.width = wh[0];
+                    quad.height = wh[1];
 
                     rebuild = true;
                 }
             }
 
-            if (object.hasComponent<RadiusComponent>()) {
-                RadiusComponent &radius = object.getComponent<RadiusComponent>();
-                if (ImGui::DragFloat("Radius", &radius.radius, 1.0f, MIN_VALUE, MAX_VALUE)) {
+            if (object.hasComponent<CircleComponent>()) {
+                CircleComponent &radius = object.getComponent<CircleComponent>();
+                if (ImGui::DragFloat("Circle", &radius.radius, 1.0f, MIN_VALUE, MAX_VALUE)) {
                     rebuild = true;
                 }
             }
@@ -108,11 +110,11 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                 {
                     switch (identifier.type) {
                     case (ObjectType::Box): {
-                        AABBComponent &aabb = object.getComponent<AABBComponent>();
+                        QuadComponent &quad = object.getComponent<QuadComponent>();
                         TransformableComponent &transform = object.getComponent<TransformableComponent>();
 
-                        float width = aabb.max.x - aabb.min.x;
-                        float height = aabb.max.y - aabb.min.y;
+                        float width = quad.width;
+                        float height = quad.height;
                         glm::vec3 position = transform.position;
 
                         object.eraseComponents();
@@ -121,7 +123,7 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
 
                     case (ObjectType::Circle): {
                         glm::vec3 position = object.getComponent<TransformableComponent>().position;
-                        float radius = object.getComponent<RadiusComponent>().radius;
+                        float radius = object.getComponent<CircleComponent>().radius;
 
                         object.eraseComponents();
                         buildCircle(object, position, radius);

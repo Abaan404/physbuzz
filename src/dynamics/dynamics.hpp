@@ -1,7 +1,7 @@
 #pragma once
 
-#include <physbuzz/scene.hpp>
 #include <glm/glm.hpp>
+#include <physbuzz/scene.hpp>
 
 struct TransformableComponent {
     glm::vec3 position;

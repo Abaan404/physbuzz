@@ -15,13 +15,13 @@ struct IdentifiableComponent {
     std::string_view name;
 };
 
-struct AABBComponent {
-    glm::vec3 min;
-    glm::vec3 max;
+struct CircleComponent {
+    float radius;
 };
 
-struct RadiusComponent {
-    float radius;
+struct QuadComponent {
+    float width;
+    float height;
 };
 
 // An AABB box.

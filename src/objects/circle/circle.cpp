@@ -1,5 +1,6 @@
 #include "../objects.hpp"
 
+#include "../../collision/collision.hpp"
 #include "../../dynamics/dynamics.hpp"
 #include <glm/ext/scalar_constants.hpp>
 #include <physbuzz/mesh.hpp>
@@ -13,48 +14,51 @@
 void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
     // name
     {
-        IdentifiableComponent identifiable = {
+        IdentifiableComponent component = {
             .type = ObjectType::Circle,
             .name = "Circle",
         };
 
-        circle.setComponent(identifiable);
+        circle.setComponent(component);
     }
 
     // circle props
     {
-        RadiusComponent radi = {
+        CircleComponent component = {
             .radius = radius,
         };
 
-        circle.setComponent(radi);
+        circle.setComponent(component);
     }
 
     // transform
     {
-        TransformableComponent transform = {
+        TransformableComponent component = {
             .position = position,
         };
-        circle.setComponent(transform);
+
+        circle.setComponent(component);
     }
 
     // physics
     {
-        RigidBodyComponent physics = {
+        RigidBodyComponent component = {
             .mass = 1.0f,
             .velocity = glm::vec3(0.01f, 0.01f, 0.0f),
             .acceleration = glm::vec3(0.0f, 0.0f, 0.0f),
         };
-        circle.setComponent(physics);
+
+        circle.setComponent(component);
     }
 
     // bounding box
     {
-        AABBComponent aabb = {
-            .min = position - radius / 2.0f,
-            .max = position + radius / 2.0f,
+        AABBComponent component = {
+            .min = position - radius,
+            .max = position + radius,
         };
-        circle.setComponent(aabb);
+
+        circle.setComponent(component);
     }
 
     // mesh

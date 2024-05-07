@@ -59,8 +59,11 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(!scene.hasObject(id2));
     }
 
-    SECTION("getComponents") {
+    SECTION("getComponents()") {
         Physbuzz::Scene scene;
+
+        CHECK(!scene.existsComponents<TestComponent>());
+        CHECK(!scene.existsComponents<TestComponentTheHitSequel>());
 
         for (int i = 0; i < 10; i++) {
             Physbuzz::ObjectID id = scene.createObject();
@@ -85,6 +88,8 @@ TEST_CASE("Physbuzz::Scene") {
         std::vector<TestComponent> &components1 = scene.getComponents<TestComponent>();
         std::vector<TestComponentTheHitSequel> &components2 = scene.getComponents<TestComponentTheHitSequel>();
 
+        CHECK(scene.existsComponents<TestComponent>());
+        CHECK(scene.existsComponents<TestComponentTheHitSequel>());
         CHECK(components1.size() == 10);
         CHECK(components2.size() == 5);
 
@@ -95,6 +100,35 @@ TEST_CASE("Physbuzz::Scene") {
         for (int i = 0; i < 5; i++) {
             CHECK(components2[i].x == i - 10);
         }
+    }
+
+    SECTION("clear()") {
+        Physbuzz::Scene scene;
+
+        for (int i = 0; i < 10; i++) {
+            Physbuzz::ObjectID id = scene.createObject();
+
+            TestComponent component = {
+                .x = i,
+            };
+
+            scene.getObject(id).setComponent(component);
+        }
+
+        scene.clear();
+        CHECK(scene.getObjects().size() == 0);
+
+        for (int i = 0; i < 10; i++) {
+            Physbuzz::ObjectID id = scene.createObject();
+
+            TestComponent component = {
+                .x = i,
+            };
+
+            scene.getObject(id).setComponent(component);
+        }
+
+        CHECK(scene.getObjects().size() == 10);
     }
 }
 

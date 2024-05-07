@@ -100,6 +100,7 @@ class ContiguousMap {
     void clear() {
         m_Array.clear();
         m_IdxMap.clear();
+        m_KeyMap.clear();
     }
 
     bool empty() {

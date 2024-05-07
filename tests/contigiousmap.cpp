@@ -4,21 +4,21 @@
 
 using ID = std::uint32_t;
 
-struct Object {
+struct Box {
     int x;
 };
 
 TEST_CASE("Physbuzz::VectorMap") {
-    Object obj1 = {
+    Box obj1 = {
         .x = 12,
     };
 
-    Object obj2 = {
+    Box obj2 = {
         .x = 10,
     };
 
     SECTION("insert()") {
-        Physbuzz::ContiguousMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Box> map;
 
         ID id1 = map.insert(obj1);
         ID id2 = map.insert(obj2);
@@ -32,7 +32,7 @@ TEST_CASE("Physbuzz::VectorMap") {
     }
 
     SECTION("insert() overwrite") {
-        Physbuzz::ContiguousMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Box> map;
 
         ID id1 = map.insert(obj1);
         ID id2 = map.insert(obj2, 20);
@@ -41,7 +41,7 @@ TEST_CASE("Physbuzz::VectorMap") {
         CHECK(map.contains(id1));
         CHECK(map.contains(id2));
 
-        Object obj = map.get(20);
+        Box obj = map.get(20);
 
         CHECK(obj.x == obj1.x);
 
@@ -49,21 +49,22 @@ TEST_CASE("Physbuzz::VectorMap") {
     }
 
     SECTION("clear()") {
-        Physbuzz::ContiguousMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Box> map;
 
         ID id1 = map.insert(obj1);
         ID id2 = map.insert(obj2);
         ID id3 = map.insert(obj1, 20);
 
-        CHECK(map.size() == 3);
-
         map.clear();
 
         CHECK(map.size() == 0);
+        CHECK(!map.contains(id1));
+        CHECK(!map.contains(id2));
+        CHECK(!map.contains(id3));
     }
 
     SECTION("remove()") {
-        Physbuzz::ContiguousMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Box> map;
 
         ID id1 = map.insert(obj1);
         ID id2 = map.insert(obj2);
@@ -94,39 +95,39 @@ TEST_CASE("Physbuzz::VectorMap") {
     }
 
     SECTION("get()") {
-        Physbuzz::ContiguousMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Box> map;
 
         ID id1 = map.insert(obj1);
         ID id2 = map.insert(obj2);
         ID id3 = map.insert(obj1, 20);
         ID id4 = map.insert(obj1, 40);
 
-        Object &obj1 = map.get(id1);
+        Box &obj1 = map.get(id1);
         CHECK(obj1.x == 12);
 
-        Object &obj2 = map.get(id2);
+        Box &obj2 = map.get(id2);
         CHECK(obj2.x == 10);
 
-        Object &obj3 = map.get(id3);
+        Box &obj3 = map.get(id3);
         CHECK(obj3.x == 12);
 
-        Object &obj4 = map.get(id4);
+        Box &obj4 = map.get(id4);
         CHECK(obj4.x == 12);
     }
 
     SECTION("sort()") {
-        Physbuzz::ContiguousMap<ID, Object> map;
+        Physbuzz::ContiguousMap<ID, Box> map;
 
-        ID id1 = map.insert(Object{.x = 50});
-        ID id2 = map.insert(Object{.x = 30});
-        ID id3 = map.insert(Object{.x = 20});
-        ID id4 = map.insert(Object{.x = 10});
+        ID id1 = map.insert(Box{.x = 50});
+        ID id2 = map.insert(Box{.x = 30});
+        ID id3 = map.insert(Box{.x = 20});
+        ID id4 = map.insert(Box{.x = 10});
 
-        map.sort([](Object &obj1, Object &obj2) {
+        map.sort([](Box &obj1, Box &obj2) {
             return obj1.x < obj2.x;
         });
 
-        std::vector<Object> &array = map.getArray();
+        std::vector<Box> &array = map.getArray();
 
         // check if id is still valid
         CHECK(map.get(id1).x == 50);

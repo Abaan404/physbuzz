@@ -1,5 +1,6 @@
 #include "dynamics.hpp"
 
+#include "../collision/collision.hpp"
 #include <physbuzz/mesh.hpp>
 #include <physbuzz/object.hpp>
 #include <vector>
@@ -20,9 +21,12 @@ void Dynamics::motion(Physbuzz::Object &object) {
 
     RigidBodyComponent &body = object.getComponent<RigidBodyComponent>();
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
+    AABBComponent &bounding = object.getComponent<AABBComponent>();
 
     glm::vec3 delta = body.velocity + 0.5f * body.acceleration;
     transform.position += delta;
+    bounding.min += delta;
+    bounding.max += delta;
     body.velocity += body.acceleration;
 
     if (!object.hasComponent<Physbuzz::MeshComponent>()) {
@@ -48,5 +52,4 @@ void Dynamics::gravity(Physbuzz::Object &object) {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
 
     body.acceleration += m_Gravity;
-
 }

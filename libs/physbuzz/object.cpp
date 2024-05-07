@@ -47,4 +47,13 @@ std::vector<Object> &ObjectManager::getObjects() {
     return m_Map.getArray();
 }
 
+void ObjectManager::clearObjects() {
+    for (auto &object : getObjects()) {
+        object.eraseComponents();
+    }
+
+    m_Map.clear();
+    m_ObjectCounter = 0;
+}
+
 } // namespace Physbuzz

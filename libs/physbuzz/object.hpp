@@ -1,8 +1,8 @@
 #pragma once
 
 #include "component.hpp"
-#include "defines.hpp"
 #include "containers/contigiousmap.hpp"
+#include "defines.hpp"
 
 namespace Physbuzz {
 
@@ -45,8 +45,8 @@ class ObjectManager {
   public:
     ObjectID createObject(ComponentManager &componentManager);
     void deleteObject(ComponentManager &componentManager, ObjectID id);
-
     bool hasObject(ObjectID id);
+    void clearObjects();
 
     template <typename F>
         requires Comparator<F, Physbuzz::Object>

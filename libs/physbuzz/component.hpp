@@ -12,6 +12,7 @@ class IComponentArray {
   public:
     virtual ~IComponentArray() = default;
     virtual void objectDestroyed(ObjectID object) = 0;
+    virtual void clearComponents() = 0;
 };
 
 template <typename T>
@@ -23,6 +24,10 @@ class ComponentArray : public IComponentArray {
 
     bool removeComponent(ObjectID id) {
         return m_Map.remove(id);
+    }
+
+    void clearComponents() override {
+        return m_Map.clear();
     }
 
     bool hasComponent(ObjectID id) {
@@ -83,6 +88,12 @@ class ComponentManager {
 
     template <typename T>
         requires TComponentArray<T>
+    bool existsComponents() {
+        return m_Components.contains(typeid(T).name());
+    }
+
+    template <typename T>
+        requires TComponentArray<T>
     T &getComponent(ObjectID object) {
         return getComponentArray<T>()->getComponent(object);
     }
@@ -100,8 +111,14 @@ class ComponentManager {
     }
 
     void objectDestroyed(ObjectID id) {
-        for (const auto &pair : components) {
+        for (const auto &pair : m_Components) {
             pair.second->objectDestroyed(id);
+        }
+    }
+
+    void clearComponents() {
+        for (const auto &pair : m_Components) {
+            pair.second->clearComponents();
         }
     }
 
@@ -111,14 +128,14 @@ class ComponentManager {
     std::shared_ptr<ComponentArray<T>> getComponentArray() {
         std::string name = typeid(T).name();
 
-        if (!components.contains(name)) {
-            components[name] = std::make_shared<ComponentArray<T>>();
+        if (!m_Components.contains(name)) {
+            m_Components[name] = std::make_shared<ComponentArray<T>>();
         }
 
-        return std::static_pointer_cast<ComponentArray<T>>(components[name]);
+        return std::static_pointer_cast<ComponentArray<T>>(m_Components[name]);
     }
 
-    std::unordered_map<std::string, std::shared_ptr<IComponentArray>> components;
+    std::unordered_map<std::string, std::shared_ptr<IComponentArray>> m_Components;
 };
 
 } // namespace Physbuzz

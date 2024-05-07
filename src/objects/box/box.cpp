@@ -1,5 +1,6 @@
 #include "../objects.hpp"
 
+#include "../../collision/collision.hpp"
 #include "../../dynamics/dynamics.hpp"
 #include <physbuzz/mesh.hpp>
 #include <physbuzz/shaders.hpp>
@@ -10,54 +11,68 @@
 void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float height) {
     // name
     {
-        IdentifiableComponent identifiable = {
+        IdentifiableComponent component = {
             .type = ObjectType::Box,
             .name = "Box",
         };
 
-        box.setComponent(identifiable);
+        box.setComponent(component);
     }
 
     // box props
     {
-        AABBComponent aabb = {
-            .min = glm::vec3(position[0] - (width / 2.0f), position[1] - (height / 2.0f), 0.0f),
-            .max = glm::vec3(position[0] + (width / 2.0f), position[1] + (height / 2.0f), 0.0f),
+        QuadComponent component = {
+            .width = width,
+            .height = height,
         };
 
-        box.setComponent(aabb);
+        box.setComponent(component);
     }
 
     // transform
     {
-        TransformableComponent transform = {
+        TransformableComponent component = {
             .position = position,
         };
-        box.setComponent(transform);
+
+        box.setComponent(component);
     }
 
     // physics
     {
-        RigidBodyComponent physics = {
+        RigidBodyComponent component = {
             .mass = 1.0f,
             .velocity = glm::vec3(0.0f, 0.0f, 0.0f),
             .acceleration = glm::vec3(0.0f, 0.0f, 0.0f),
         };
-        box.setComponent(physics);
+
+        box.setComponent(component);
+    }
+
+    // bounding box
+    {
+        AABBComponent component = {
+            .min = glm::vec3(position[0] - (width / 2.0f), position[1] - (height / 2.0f), 0.0f),
+            .max = glm::vec3(position[0] + (width / 2.0f), position[1] + (height / 2.0f), 0.0f),
+        };
+
+        box.setComponent(component);
     }
 
     // mesh
     {
         Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent();
-        AABBComponent aabb = box.getComponent<AABBComponent>();
         static Physbuzz::ShaderContext shader = Physbuzz::ShaderContext(boxVertex, boxFrag);
         static GLuint program = shader.load();
 
+        TransformableComponent &transform = box.getComponent<TransformableComponent>();
+        glm::vec3 min = position - glm::vec3(width / 2.0f, height / 2.0f, 0.0f);
+        glm::vec3 max = position + glm::vec3(width / 2.0f, height / 2.0f, 0.0f);
         std::vector<glm::vec3> vertices = {
-            glm::vec3(aabb.min.x, aabb.min.y, 0), // top-left
-            glm::vec3(aabb.min.x, aabb.max.y, 0), // top-right
-            glm::vec3(aabb.max.x, aabb.min.y, 0), // bottom-left
-            glm::vec3(aabb.max.x, aabb.max.y, 0), // bottom-right
+            glm::vec3(min.x, min.y, 0), // top-left
+            glm::vec3(min.x, max.y, 0), // top-right
+            glm::vec3(max.x, min.y, 0), // bottom-left
+            glm::vec3(max.x, max.y, 0), // bottom-right
         };
 
         std::vector<glm::uvec3> indices = {

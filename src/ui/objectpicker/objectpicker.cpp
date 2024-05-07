@@ -1,6 +1,5 @@
 #include "objectpicker.hpp"
 
-#include "../../game.hpp"
 #include "../../objects/objects.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>

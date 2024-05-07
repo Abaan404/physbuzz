@@ -14,15 +14,24 @@ void Events::keyEvent(Physbuzz::KeyEvent event) {
     }
 
     switch (event.action) {
-    case (GLFW_PRESS):
+    case (GLFW_PRESS): {
         switch (event.key) {
-        case (GLFW_KEY_F3):
+        case (GLFW_KEY_F3): {
             Game::interface.draw ^= true;
+        } break;
 
-            break;
+        case (GLFW_KEY_C): {
+            if (Game::scene.existsComponents<Physbuzz::MeshComponent>()) {
+                for (auto &mesh : Game::scene.getComponents<Physbuzz::MeshComponent>()) {
+                    mesh.destroy();
+                }
+            }
+
+            Game::scene.clear();
+        } break;
         }
 
-        break;
+    } break;
     }
 }
 

@@ -15,6 +15,16 @@ class Scene {
     Object &getObject(ObjectID id);
     std::vector<Object> &getObjects();
 
+    void clear() {
+        m_ComponentManager.clearComponents();
+        m_ObjectManager.clearObjects();
+    }
+
+    template <typename T>
+    bool existsComponents() {
+        return m_ComponentManager.existsComponents<T>();
+    }
+
     template <typename T>
     std::vector<T> &getComponents() {
         return m_ComponentManager.getComponents<T>();
