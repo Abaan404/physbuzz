@@ -49,6 +49,18 @@ void buildBox(Physbuzz::Object &box, glm::vec3 position, float width, float heig
         box.setComponent(component);
     }
 
+    // gravity
+    {
+        GravityComponent component = {};
+        box.setComponent(component);
+    }
+
+    // drag
+    {
+        DragComponent component = {};
+        box.setComponent(component);
+    }
+
     // bounding box
     {
         AABBComponent component = {

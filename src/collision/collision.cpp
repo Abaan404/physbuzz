@@ -1,6 +1,7 @@
 #include "collision.hpp"
 
 #include "../dynamics/dynamics.hpp"
+#include "../game.hpp"
 #include "../objects/objects.hpp"
 #include <physbuzz/renderer.hpp>
 #include <vector>
@@ -17,7 +18,13 @@ void Collision::tick(Physbuzz::Scene &scene) {
     std::vector<Physbuzz::Object> &objects = scene.getObjects();
     for (auto &object1 : objects) {
         for (auto &object2 : objects) {
+            // skip same objects
             if (&object1 == &object2) {
+                continue;
+            }
+
+            // skip non bounded components
+            if (!(object1.hasComponent<AABBComponent>() && object2.hasComponent<AABBComponent>())) {
                 continue;
             }
 
@@ -35,13 +42,18 @@ void Collision::tick(Physbuzz::Scene &scene) {
     }
 }
 
-// hardcoded collision checks and resolvers
+// hardcoded collision checks
 bool Collision::check(Physbuzz::Object &object1, Physbuzz::Object &object2) {
+    if (!(object1.hasComponent<TransformableComponent>() && object2.hasComponent<TransformableComponent>())) {
+        return false;
+    }
+
+    TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
+    TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
+
     if (object1.hasComponent<CircleComponent>() && object2.hasComponent<CircleComponent>()) {
         CircleComponent &circle1 = object1.getComponent<CircleComponent>();
         CircleComponent &circle2 = object2.getComponent<CircleComponent>();
-        TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
-        TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
 
         const float dist_squared = (transform2.position.x - transform1.position.x) * (transform2.position.x - transform1.position.x) +
                                    (transform2.position.y - transform1.position.y) * (transform2.position.y - transform1.position.y);
@@ -53,9 +65,6 @@ bool Collision::check(Physbuzz::Object &object1, Physbuzz::Object &object2) {
     } else if (object1.hasComponent<QuadComponent>() && object2.hasComponent<QuadComponent>()) {
         QuadComponent &quad1 = object1.getComponent<QuadComponent>();
         QuadComponent &quad2 = object2.getComponent<QuadComponent>();
-
-        TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
-        TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
 
         glm::vec3 min1 = transform1.position - glm::vec3(quad1.width / 2.0f, quad1.height / 2.0f, 0.0f);
         glm::vec3 min2 = transform2.position - glm::vec3(quad2.width / 2.0f, quad2.height / 2.0f, 0.0f);
@@ -72,9 +81,6 @@ bool Collision::check(Physbuzz::Object &object1, Physbuzz::Object &object2) {
         QuadComponent &quad1 = object1.getComponent<QuadComponent>();
         CircleComponent &circle2 = object2.getComponent<CircleComponent>();
 
-        TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
-        TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
-
         glm::vec3 min = transform1.position - glm::vec3(quad1.width / 2.0f, quad1.height / 2.0f, 0.0f);
         glm::vec3 max = transform1.position + glm::vec3(quad1.width / 2.0f, quad1.height / 2.0f, 0.0f);
 
@@ -90,51 +96,50 @@ bool Collision::check(Physbuzz::Object &object1, Physbuzz::Object &object2) {
     return false;
 }
 
-// hardcoded collision resolvers
 void Collision::resolve(Physbuzz::Object &object1, Physbuzz::Object &object2) {
     if (!(object1.hasComponent<RigidBodyComponent>() && object2.hasComponent<RigidBodyComponent>())) {
-        return;
-    }
-
-    if (!(object1.hasComponent<TransformableComponent>() && object2.hasComponent<TransformableComponent>())) {
         return;
     }
 
     RigidBodyComponent &body1 = object1.getComponent<RigidBodyComponent>();
     RigidBodyComponent &body2 = object2.getComponent<RigidBodyComponent>();
 
-    TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
-    TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
+    Contact contact = calcContact(object1, object2);
 
-    AABBComponent &bounding1 = object1.getComponent<AABBComponent>();
-    AABBComponent &bounding2 = object2.getComponent<AABBComponent>();
+    float totalInvMass = 1.0f / body1.mass + 1.0f / body2.mass;
 
-    DisplacementOutput resultDisplacement = calcDisplacement(object1, object2);
-    ImpulseOutput resultImpulse = calcImpulse(object1, object2, resultDisplacement);
+    float sepVelocity = glm::dot(body2.velocity - body1.velocity, contact.normal);
+    float newSepVelocity = -sepVelocity * m_Restitution;
 
-    glm::vec3 deltaPosition = resultDisplacement.normal * resultDisplacement.depth * 0.5f;
-    glm::vec3 deltaVelocity = (resultImpulse.normal + resultImpulse.tangent) / resultImpulse.mass;
+    glm::vec3 accVelocity = body2.acceleration - body1.acceleration;
+    float accSepVelocity = glm::dot(accVelocity, contact.normal) * Game::clock.getDelta();
 
-    transform1.position -= deltaPosition;
-    bounding1.min -= deltaPosition;
-    bounding1.max -= deltaPosition;
-    body1.velocity += deltaVelocity;
+    if (accSepVelocity < 0) {
+        sepVelocity += m_Restitution * accSepVelocity;
 
-    transform2.position += deltaPosition;
-    bounding2.min += deltaPosition;
-    bounding2.max += deltaPosition;
-    body2.velocity -= deltaVelocity;
-
-    if (object1.hasComponent<Physbuzz::MeshComponent>() && object2.hasComponent<Physbuzz::MeshComponent>()) {
-        updateMesh(object1, object2, deltaPosition);
+        if (newSepVelocity < 0) {
+            newSepVelocity = 0;
+        }
     }
+
+    const float dVelocity = -sepVelocity * m_Restitution - sepVelocity;
+    glm::vec3 impulse = contact.normal * dVelocity / totalInvMass;
+
+    body1.velocity -= impulse * 1.0f / body1.mass;
+    body2.velocity += impulse * 1.0f / body2.mass;
+
+    glm::vec3 displacement = contact.normal * (contact.depth / totalInvMass);
+
+    Game::dynamics.displace(object1, -displacement / body1.mass);
+    Game::dynamics.displace(object2, displacement / body2.mass);
 }
 
-DisplacementOutput Collision::calcDisplacement(Physbuzz::Object &object1, Physbuzz::Object &object2) {
+// hardcoded collision contact solvers
+Contact Collision::calcContact(Physbuzz::Object &object1, Physbuzz::Object &object2) {
     TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
     TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
 
-    DisplacementOutput out = {
+    Contact out = {
         .normal = glm::vec3(0.0f, 0.0f, 0.0f),
         .tangent = glm::vec3(0.0f, 0.0f, 0.0f),
         .depth = 0.0f,
@@ -152,9 +157,6 @@ DisplacementOutput Collision::calcDisplacement(Physbuzz::Object &object1, Physbu
     } else if (object1.hasComponent<QuadComponent>() && object2.hasComponent<QuadComponent>()) {
         QuadComponent &quad1 = object1.getComponent<QuadComponent>();
         QuadComponent &quad2 = object2.getComponent<QuadComponent>();
-
-        TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
-        TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
 
         glm::vec3 min1 = transform1.position - glm::vec3(quad1.width / 2.0f, quad1.height / 2.0f, 0.0f);
         glm::vec3 min2 = transform2.position - glm::vec3(quad2.width / 2.0f, quad2.height / 2.0f, 0.0f);
@@ -196,36 +198,4 @@ DisplacementOutput Collision::calcDisplacement(Physbuzz::Object &object1, Physbu
     }
 
     return out;
-}
-
-ImpulseOutput Collision::calcImpulse(Physbuzz::Object &object1, Physbuzz::Object &object2, DisplacementOutput &displacement) {
-    RigidBodyComponent &body1 = object1.getComponent<RigidBodyComponent>();
-    RigidBodyComponent &body2 = object2.getComponent<RigidBodyComponent>();
-
-    glm::vec3 relativeVelocity = body2.velocity - body1.velocity;
-
-    return {
-        .normal = glm::dot(relativeVelocity, displacement.normal) * (body1.mass + body2.mass) * displacement.normal,
-        .tangent = glm::dot(relativeVelocity, displacement.tangent) * (body1.mass + body2.mass) * displacement.tangent,
-        .mass = body1.mass + body2.mass,
-    };
-}
-
-void Collision::updateMesh(Physbuzz::Object &object1, Physbuzz::Object &object2, glm::vec3 &delta) {
-    Physbuzz::MeshComponent &mesh1 = object1.getComponent<Physbuzz::MeshComponent>();
-    Physbuzz::MeshComponent &mesh2 = object2.getComponent<Physbuzz::MeshComponent>();
-
-    std::vector<glm::vec3> vertex1 = mesh1.getVertex();
-    std::vector<glm::vec3> vertex2 = mesh2.getVertex();
-
-    for (auto &vertex : vertex1) {
-        vertex -= delta;
-    }
-
-    for (auto &vertex : vertex2) {
-        vertex += delta;
-    }
-
-    mesh1.setVertex(vertex1);
-    mesh2.setVertex(vertex2);
 }

@@ -51,6 +51,18 @@ void buildCircle(Physbuzz::Object &circle, glm::vec3 position, float radius) {
         circle.setComponent(component);
     }
 
+    // gravity
+    {
+        GravityComponent component = {};
+        circle.setComponent(component);
+    }
+
+    // drag
+    {
+        DragComponent component = {};
+        circle.setComponent(component);
+    }
+
     // bounding box
     {
         AABBComponent component = {
