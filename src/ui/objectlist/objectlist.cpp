@@ -1,6 +1,8 @@
 #include "objectlist.hpp"
 
 #include "../../game.hpp"
+#include "../../objects/quad.hpp"
+#include "../../objects/circle.hpp"
 #include "../../objects/objects.hpp"
 #include <physbuzz/renderer.hpp>
 
@@ -113,20 +115,29 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                         QuadComponent &quad = object.getComponent<QuadComponent>();
                         TransformableComponent &transform = object.getComponent<TransformableComponent>();
 
-                        float width = quad.width;
-                        float height = quad.height;
-                        glm::vec3 position = transform.position;
+                        QuadInfo info = {
+                            .transform = object.getComponent<TransformableComponent>(),
+                            .body = object.getComponent<RigidBodyComponent>(),
+                            .quad = object.getComponent<QuadComponent>(),
+                            .identifier = object.getComponent<IdentifiableComponent>(),
+                            .isCollidable = object.hasComponent<AABBComponent>(),
+                            .isRendered = object.hasComponent<Physbuzz::MeshComponent>(),
+                        };
 
-                        object.eraseComponents();
-                        buildBox(object, position, width, height);
+                        ObjectBuilder<QuadInfo>::build(object, info);
                     } break;
 
                     case (ObjectType::Circle): {
-                        glm::vec3 position = object.getComponent<TransformableComponent>().position;
-                        float radius = object.getComponent<CircleComponent>().radius;
+                        CircleInfo info = {
+                            .transform = object.getComponent<TransformableComponent>(),
+                            .body = object.getComponent<RigidBodyComponent>(),
+                            .circle = object.getComponent<CircleComponent>(),
+                            .identifier = object.getComponent<IdentifiableComponent>(),
+                            .isCollidable = object.hasComponent<AABBComponent>(),
+                            .isRendered = object.hasComponent<Physbuzz::MeshComponent>(),
+                        };
 
-                        object.eraseComponents();
-                        buildCircle(object, position, radius);
+                        ObjectBuilder<CircleInfo>::build(object, info);
                     } break;
 
                     default:

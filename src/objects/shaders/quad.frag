@@ -1,4 +1,4 @@
-static const char *boxFrag = R"(
+static const char *quadFrag = R"(
 #version 460
 
 out vec4 fragColor;

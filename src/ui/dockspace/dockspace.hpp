@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../ui.hpp"
-#include <imgui.h>
 
 class Dockspace : public IUserInterface {
   public:

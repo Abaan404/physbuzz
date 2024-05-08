@@ -28,15 +28,20 @@ Object &ObjectManager::getObject(ObjectID id) {
 }
 
 ObjectID ObjectManager::createObject(ComponentManager &componentManager) {
-    Object object = Object(componentManager, m_ObjectCounter);
-    return m_Map.insert(object, m_ObjectCounter++);
+    return createObject(componentManager, m_ObjectCounter++);
+}
+
+ObjectID ObjectManager::createObject(ComponentManager &componentManager, ObjectID id) {
+    deleteObject(componentManager, id);
+
+    Object object = Object(componentManager, id);
+    return m_Map.insert(object, id);
 }
 
 void ObjectManager::deleteObject(ComponentManager &componentManager, ObjectID id) {
-    m_Map.remove(id);
-
-    // update components
-    componentManager.objectDestroyed(id);
+    // if remove was successful, remove related components
+    if (m_Map.remove(id))
+        componentManager.objectDestroyed(id);
 }
 
 bool ObjectManager::hasObject(ObjectID id) {

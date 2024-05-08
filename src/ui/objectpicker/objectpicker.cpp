@@ -1,5 +1,7 @@
 #include "objectpicker.hpp"
 
+#include "../../objects/quad.hpp"
+#include "../../objects/circle.hpp"
 #include "../../objects/objects.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -7,11 +9,29 @@
 #include <physbuzz/scene.hpp>
 
 ObjectPicker::ObjectPicker() {
-    Physbuzz::ObjectID id1 = m_Scene.createObject();
-    Physbuzz::ObjectID id2 = m_Scene.createObject();
+    QuadInfo quadInfo = {
+        .transform = {
+            .position = {m_PreviewSize.x >> 1, m_PreviewSize.y >> 1, 0.0f},
+        },
+        .quad = {
+            .width = static_cast<float>(m_PreviewSize.x),
+            .height = static_cast<float>(m_PreviewSize.y),
+        },
+        .isRendered = true,
+    };
 
-    buildBox(m_Scene.getObject(id1), glm::vec3(m_PreviewSize.x >> 1, m_PreviewSize.y >> 1, 0.0f), m_PreviewSize.x, m_PreviewSize.y);
-    buildCircle(m_Scene.getObject(id2), glm::vec3(m_PreviewSize.x >> 1, m_PreviewSize.y >> 1, 0.0f), glm::min(m_PreviewSize.x, m_PreviewSize.y) >> 1);
+    CircleInfo circleInfo = {
+        .transform = {
+            .position = {m_PreviewSize.x >> 1, m_PreviewSize.y >> 1, 0.0f},
+        },
+        .circle = {
+            .radius = static_cast<float>(glm::min(m_PreviewSize.x, m_PreviewSize.y) >> 1),
+        },
+        .isRendered = true,
+    };
+
+    ObjectBuilder<CircleInfo>::build(m_Scene, circleInfo);
+    ObjectBuilder<QuadInfo>::build(m_Scene, quadInfo);
 
     for (auto &object : m_Scene.getObjects()) {
         PickableComponent pickable = {

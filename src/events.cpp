@@ -1,7 +1,8 @@
 #include "events.hpp"
 
 #include "game.hpp"
-#include "objects/objects.hpp"
+#include "objects/quad.hpp"
+#include "objects/circle.hpp"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <physbuzz/events.hpp>
@@ -47,17 +48,38 @@ void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
         switch (event.button) {
         case (GLFW_MOUSE_BUTTON_LEFT): {
             glm::dvec2 cursor = Game::window.getCursorPos();
-            Physbuzz::ObjectID id = Game::scene.createObject();
 
-            buildBox(Game::scene.getObject(id), glm::vec3(cursor.x, cursor.y, 0.0f), 10, 10);
+            QuadInfo info = {
+                .transform = {
+                    .position = {cursor.x, cursor.y, 0.0f},
+                },
+                .quad = {
+                    .width = 10.0f,
+                    .height = 10.0f,
+                },
+                .isCollidable = true,
+                .isRendered = true,
+            };
+
+            ObjectBuilder<QuadInfo>::build(Game::scene, info);
 
         } break;
 
         case (GLFW_MOUSE_BUTTON_RIGHT): {
             glm::dvec2 cursor = Game::window.getCursorPos();
-            Physbuzz::ObjectID id = Game::scene.createObject();
 
-            buildCircle(Game::scene.getObject(id), glm::vec3(cursor.x, cursor.y, 0.0f), 20);
+            CircleInfo info = {
+                .transform = {
+                    .position = {cursor.x, cursor.y, 0.0f},
+                },
+                .circle = {
+                    .radius = 20.0f,
+                },
+                .isCollidable = true,
+                .isRendered = true,
+            };
+
+            ObjectBuilder<CircleInfo>::build(Game::scene, info);
 
         } break;
 

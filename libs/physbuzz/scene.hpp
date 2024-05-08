@@ -9,6 +9,7 @@ namespace Physbuzz {
 class Scene {
   public:
     ObjectID createObject();
+    ObjectID createObject(ObjectID id);
     void deleteObject(ObjectID id);
     bool hasObject(ObjectID id);
 

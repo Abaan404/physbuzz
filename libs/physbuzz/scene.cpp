@@ -6,6 +6,10 @@ ObjectID Scene::createObject() {
     return m_ObjectManager.createObject(m_ComponentManager);
 }
 
+ObjectID Scene::createObject(ObjectID id) {
+    return m_ObjectManager.createObject(m_ComponentManager, id);
+}
+
 void Scene::deleteObject(ObjectID id) {
     m_ObjectManager.deleteObject(m_ComponentManager, id);
 }

@@ -5,7 +5,7 @@
 #include <physbuzz/framebuffer.hpp>
 
 struct PickableComponent {
-    bool selected;
+    bool selected = false;
     Physbuzz::Framebuffer framebuffer;
 };
 
@@ -17,6 +17,6 @@ class ObjectPicker : public IUserInterface {
     void draw(Physbuzz::Renderer &renderer) override;
 
   private:
-    Physbuzz::Scene m_Scene{};
-    glm::ivec2 m_PreviewSize{120, 120};
+    Physbuzz::Scene m_Scene;
+    glm::ivec2 m_PreviewSize = {120, 120};
 };

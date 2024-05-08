@@ -2,13 +2,18 @@
 
 #include "../dynamics/dynamics.hpp"
 #include "../game.hpp"
-#include "../objects/objects.hpp"
+#include "../objects/quad.hpp"
+#include "../objects/circle.hpp"
 #include <physbuzz/renderer.hpp>
 #include <vector>
 
 // sweep and prune
 void Collision::tick(Physbuzz::Scene &scene) {
     scene.sortObjects([](Physbuzz::Object &object1, Physbuzz::Object &object2) {
+        if (!(object1.hasComponent<AABBComponent>() && object2.hasComponent<AABBComponent>())) {
+            return false;
+        }
+
         AABBComponent &aabb1 = object1.getComponent<AABBComponent>();
         AABBComponent &aabb2 = object2.getComponent<AABBComponent>();
 
@@ -139,11 +144,7 @@ Contact Collision::calcContact(Physbuzz::Object &object1, Physbuzz::Object &obje
     TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
     TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
 
-    Contact out = {
-        .normal = glm::vec3(0.0f, 0.0f, 0.0f),
-        .tangent = glm::vec3(0.0f, 0.0f, 0.0f),
-        .depth = 0.0f,
-    };
+    Contact out;
 
     if (object1.hasComponent<CircleComponent>() && object2.hasComponent<CircleComponent>()) {
         CircleComponent &radius1 = object1.getComponent<CircleComponent>();
@@ -152,7 +153,6 @@ Contact Collision::calcContact(Physbuzz::Object &object1, Physbuzz::Object &obje
 
         out.depth = overlap;
         out.normal = glm::normalize(transform2.position - transform1.position);
-        out.tangent = glm::cross(out.normal, glm::vec3(0, 0, 1));
 
     } else if (object1.hasComponent<QuadComponent>() && object2.hasComponent<QuadComponent>()) {
         QuadComponent &quad1 = object1.getComponent<QuadComponent>();
@@ -172,7 +172,6 @@ Contact Collision::calcContact(Physbuzz::Object &object1, Physbuzz::Object &obje
 
         out.depth = glm::length(distance);
         out.normal = glm::normalize(distance);
-        out.tangent = glm::cross(out.normal, glm::vec3(0, 0, 1));
 
     } else if (object1.hasComponent<QuadComponent>() && object2.hasComponent<CircleComponent>()) {
         QuadComponent &quad1 = object1.getComponent<QuadComponent>();
@@ -188,13 +187,11 @@ Contact Collision::calcContact(Physbuzz::Object &object1, Physbuzz::Object &obje
 
         out.depth = overlap;
         out.normal = glm::normalize(distance);
-        out.tangent = glm::cross(out.normal, glm::vec3(0, 0, 1));
     }
 
     // this will surely be fine
     if (glm::any(glm::isnan(out.normal))) {
         out.normal = glm::vec3(0.0f, 1.0f, 0.0f);
-        out.tangent = glm::cross(out.normal, glm::vec3(0, 0, 1));
     }
 
     return out;

@@ -50,10 +50,6 @@ class ComponentArray : public IComponentArray {
     }
 
     void objectDestroyed(ObjectID id) override {
-        if (!m_Map.contains(id)) {
-            return;
-        }
-
         removeComponent(id);
     }
 

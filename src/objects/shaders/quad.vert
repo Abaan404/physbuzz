@@ -1,4 +1,4 @@
-static const char *boxVertex = R"(
+static const char *quadVertex = R"(
 #version 460
 
 layout (location = 0) in vec3 position;

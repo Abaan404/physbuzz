@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ui.hpp"
-#include <imgui.h>
 #include <unordered_map>
 
 class InterfaceManager {

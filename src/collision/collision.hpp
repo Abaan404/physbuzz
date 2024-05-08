@@ -5,14 +5,34 @@
 #include <physbuzz/scene.hpp>
 
 struct AABBComponent {
-    glm::vec3 min;
-    glm::vec3 max;
+    glm::vec3 min = {0.0f, 0.0f, 0.0f};
+    glm::vec3 max = {0.0f, 0.0f, 0.0f};
+
+    // build using mesh if available
+    static AABBComponent buildWithVertex(std::vector<glm::vec3> &vertices) {
+        // Initialize min and max with the first vertex
+        AABBComponent aabb = {
+            .min = {0.0f, 0.0f, 0.0f},
+            .max = {0.0f, 0.0f, 0.0f},
+        };
+
+        for (const auto &vertex : vertices) {
+            aabb.min.x = std::min(aabb.min.x, vertex.x);
+            aabb.min.y = std::min(aabb.min.y, vertex.y);
+            aabb.min.z = std::min(aabb.min.z, vertex.z);
+
+            aabb.max.x = std::max(aabb.max.x, vertex.x);
+            aabb.max.y = std::max(aabb.max.y, vertex.y);
+            aabb.max.z = std::max(aabb.max.z, vertex.z);
+        }
+
+        return aabb;
+    }
 };
 
 struct Contact {
-    glm::vec3 normal;
-    glm::vec3 tangent;
-    float depth;
+    glm::vec3 normal = {0.0f, 1.0f, 0.0f};
+    float depth = 0.0f;
 };
 
 class Collision {
