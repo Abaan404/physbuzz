@@ -17,7 +17,7 @@ ObjectPicker::ObjectPicker() {
             .width = static_cast<float>(m_PreviewSize.x),
             .height = static_cast<float>(m_PreviewSize.y),
         },
-        .isRendered = true,
+        .isRenderable = true,
     };
 
     CircleInfo circleInfo = {
@@ -27,7 +27,7 @@ ObjectPicker::ObjectPicker() {
         .circle = {
             .radius = static_cast<float>(glm::min(m_PreviewSize.x, m_PreviewSize.y) >> 1),
         },
-        .isRendered = true,
+        .isRenderable = true,
     };
 
     ObjectBuilder<CircleInfo>::build(m_Scene, circleInfo);

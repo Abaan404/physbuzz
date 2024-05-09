@@ -29,7 +29,7 @@ struct CircleInfo {
     };
 
     bool isCollidable = false;
-    bool isRendered = false;
+    bool isRenderable = false;
 };
 
 template <>
@@ -67,7 +67,7 @@ inline Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &obj
     };
 
     // generate mesh
-    if (info.isRendered) {
+    if (info.isRenderable) {
         Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent();
         static Physbuzz::ShaderContext shader = Physbuzz::ShaderContext(circleVertex, circleFrag);
         static GLuint program = shader.load();
@@ -85,7 +85,7 @@ inline Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &obj
     if (info.isCollidable) {
         std::vector<glm::vec3> vertices;
 
-        if (info.isRendered) {
+        if (info.isRenderable) {
             vertices = object.getComponent<Physbuzz::MeshComponent>().getVertex();
         } else {
             vertices = generateVertices().vertices;

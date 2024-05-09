@@ -20,11 +20,12 @@ struct ObjectBuilder {
 
 enum class ObjectType {
     Circle,
-    Box,
+    Quad,
     Unknown,
 };
 
 struct IdentifiableComponent {
     ObjectType type = ObjectType::Unknown;
     std::string name = "Unknown";
+    bool hidden = false;
 };

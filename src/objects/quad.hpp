@@ -24,12 +24,12 @@ struct QuadInfo {
 
     // naming
     IdentifiableComponent identifier = {
-        .type = ObjectType::Box,
+        .type = ObjectType::Quad,
         .name = "Quad",
     };
 
     bool isCollidable = false;
-    bool isRendered = false;
+    bool isRenderable = false;
 };
 
 template <>
@@ -66,7 +66,7 @@ inline Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &objec
     };
 
     // generate mesh
-    if (info.isRendered) {
+    if (info.isRenderable) {
         Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent();
         static Physbuzz::ShaderContext shader = Physbuzz::ShaderContext(quadVertex, quadFrag);
         static GLuint program = shader.load();
@@ -84,7 +84,7 @@ inline Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &objec
     if (info.isCollidable) {
         std::vector<glm::vec3> vertices;
 
-        if (info.isRendered) {
+        if (info.isRenderable) {
             vertices = object.getComponent<Physbuzz::MeshComponent>().getVertex();
         } else {
             vertices = generateVertices().vertices;

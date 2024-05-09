@@ -109,9 +109,14 @@ void Collision::resolve(Physbuzz::Object &object1, Physbuzz::Object &object2) {
     RigidBodyComponent &body1 = object1.getComponent<RigidBodyComponent>();
     RigidBodyComponent &body2 = object2.getComponent<RigidBodyComponent>();
 
-    Contact contact = calcContact(object1, object2);
-
     float totalInvMass = 1.0f / body1.mass + 1.0f / body2.mass;
+
+    // division by zero check
+    if (totalInvMass == 0.0f) {
+        return;
+    }
+
+    Contact contact = calcContact(object1, object2);
 
     float sepVelocity = glm::dot(body2.velocity - body1.velocity, contact.normal);
     float newSepVelocity = -sepVelocity * m_Restitution;

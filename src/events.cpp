@@ -1,8 +1,8 @@
 #include "events.hpp"
 
 #include "game.hpp"
-#include "objects/quad.hpp"
 #include "objects/circle.hpp"
+#include "objects/quad.hpp"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <physbuzz/events.hpp>
@@ -29,6 +29,7 @@ void Events::keyEvent(Physbuzz::KeyEvent event) {
             }
 
             Game::scene.clear();
+            Game::wall.rebuild();
         } break;
         }
 
@@ -58,7 +59,7 @@ void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
                     .height = 10.0f,
                 },
                 .isCollidable = true,
-                .isRendered = true,
+                .isRenderable = true,
             };
 
             ObjectBuilder<QuadInfo>::build(Game::scene, info);
@@ -76,7 +77,7 @@ void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
                     .radius = 20.0f,
                 },
                 .isCollidable = true,
-                .isRendered = true,
+                .isRenderable = true,
             };
 
             ObjectBuilder<CircleInfo>::build(Game::scene, info);
@@ -95,8 +96,26 @@ void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
 }
 
 void Events::WindowResize(Physbuzz::WindowResizeEvent event) {
-    glm::ivec2 resolution{event.width, event.height};
+    glm::ivec2 resolution = {event.width, event.height};
     Game::renderer.resize(resolution);
+
+    if (Game::wall.isErect()) {
+        Physbuzz::Object &wall = Game::scene.getObject(Game::wall.getId());
+        WallInfo info = {
+            .transform = {
+                .position = glm::vec3(resolution >> 1, 0.0f),
+                .scale = wall.getComponent<TransformableComponent>().scale},
+            .wall = {
+                .width = static_cast<float>(event.width),
+                .height = static_cast<float>(event.height),
+                .thickness = wall.getComponent<WallComponent>().thickness,
+            },
+            .isCollidable = true,
+            .isRenderable = false,
+        };
+
+        Game::wall.build(info);
+    }
 
     std::vector<Physbuzz::MeshComponent> &meshes = Game::scene.getComponents<Physbuzz::MeshComponent>();
     for (auto &mesh : meshes) {

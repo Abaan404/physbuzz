@@ -45,5 +45,5 @@ class Collision {
 
     Contact calcContact(Physbuzz::Object &object1, Physbuzz::Object &object2);
 
-    float m_Restitution{0.5f};
+    float m_Restitution{1.f};
 };

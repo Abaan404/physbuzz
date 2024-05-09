@@ -17,7 +17,7 @@ struct RigidBodyComponent {
     glm::vec3 accumForces = {0.0f, 0.0f, 0.0f};
 
     struct {
-        glm::vec3 acceleration = {0.0f, 9.8f, 0.0f};
+        glm::vec3 acceleration = {0.0f, 1000.0f, 0.0f};
     } gravity;
 
     struct {
