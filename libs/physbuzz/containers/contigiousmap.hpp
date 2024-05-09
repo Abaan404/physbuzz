@@ -30,11 +30,11 @@ class ContiguousMap {
 
     K insert(T object, K key) {
         if (contains(key)) {
-            // otherwise, overwrite existing mapping
+            // overwrite existing mapping if exist
             std::size_t idx = m_IdxMap[key];
             m_Array[idx] = object;
         } else {
-            // if not exists, simply append to the end of the array
+            // otherwise, simply append to the end of the array
             m_IdxMap[key] = m_Array.size();
             m_KeyMap[m_Array.size()] = key;
             m_Array.emplace_back(object);
@@ -71,7 +71,7 @@ class ContiguousMap {
         }
 
         // pop component
-        m_KeyMap.erase(idx);
+        m_KeyMap.erase(idxEnd);
         m_IdxMap.erase(key);
         m_Array.pop_back();
         return true;

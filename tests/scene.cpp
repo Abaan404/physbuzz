@@ -14,14 +14,30 @@ TEST_CASE("Physbuzz::Scene") {
 
     SECTION("createObject()") {
         Physbuzz::Scene scene;
+        TestComponent test1;
 
         Physbuzz::ObjectID id1 = scene.createObject();
         Physbuzz::ObjectID id2 = scene.createObject();
+        scene.getObject(id1).setComponent(test1);
 
         const std::vector<Physbuzz::Object> &objects = scene.getObjects();
 
-        CHECK(objects[0].getId() == id1);
-        CHECK(objects[1].getId() == id2);
+        CHECK(scene.hasObject(id1));
+        CHECK(scene.hasObject(id2));
+
+        Physbuzz::ObjectID id3 = scene.createObject(id1);
+        Physbuzz::ObjectID id4 = scene.createObject(id2);
+        Physbuzz::ObjectID id5 = scene.createObject(200);
+
+        CHECK(scene.hasObject(id3));
+        CHECK(scene.hasObject(id4));
+
+        // check if it overwrote
+        CHECK(!scene.getObject(id1).hasComponent<TestComponent>());
+
+        CHECK(id1 == id3);
+        CHECK(id2 == id4);
+        CHECK(200 == id5);
     }
 
     SECTION("getObjects()") {
@@ -50,13 +66,33 @@ TEST_CASE("Physbuzz::Scene") {
 
         Physbuzz::ObjectID id1 = scene.createObject();
         Physbuzz::ObjectID id2 = scene.createObject();
+        Physbuzz::ObjectID id3 = scene.createObject();
 
-        const std::vector<Physbuzz::Object> &objects = scene.getObjects();
-
-        scene.deleteObject(id2);
-
-        CHECK(scene.hasObject(id1));
+        // delete from middle
+        CHECK(scene.deleteObject(id2));
+        CHECK(scene.getObjects().size() == 2);
+        CHECK(!scene.deleteObject(id2));
         CHECK(!scene.hasObject(id2));
+
+        // delete from end
+        CHECK(scene.deleteObject(id3));
+        CHECK(scene.getObjects().size() == 1);
+        CHECK(!scene.deleteObject(id3));
+        CHECK(!scene.hasObject(id3));
+
+        // delete from start
+        CHECK(scene.deleteObject(id1));
+        CHECK(scene.getObjects().size() == 0);
+        CHECK(!scene.deleteObject(id1));
+        CHECK(!scene.hasObject(id1));
+
+        // adding same id should work
+        scene.createObject(id3);
+        scene.createObject(id2);
+        scene.createObject(id1);
+        CHECK(scene.hasObject(id3));
+        CHECK(scene.hasObject(id2));
+        CHECK(scene.hasObject(id1));
     }
 
     SECTION("getComponents()") {

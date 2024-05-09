@@ -38,10 +38,14 @@ ObjectID ObjectManager::createObject(ComponentManager &componentManager, ObjectI
     return m_Map.insert(object, id);
 }
 
-void ObjectManager::deleteObject(ComponentManager &componentManager, ObjectID id) {
+bool ObjectManager::deleteObject(ComponentManager &componentManager, ObjectID id) {
     // if remove was successful, remove related components
-    if (m_Map.remove(id))
+    if (m_Map.remove(id)) {
         componentManager.objectDestroyed(id);
+        return true;
+    }
+
+    return false;
 }
 
 bool ObjectManager::hasObject(ObjectID id) {

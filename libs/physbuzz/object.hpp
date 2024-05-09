@@ -45,7 +45,7 @@ class ObjectManager {
   public:
     ObjectID createObject(ComponentManager &componentManager);
     ObjectID createObject(ComponentManager &componentManager, ObjectID id);
-    void deleteObject(ComponentManager &componentManager, ObjectID id);
+    bool deleteObject(ComponentManager &componentManager, ObjectID id);
     bool hasObject(ObjectID id);
     void clearObjects();
 
