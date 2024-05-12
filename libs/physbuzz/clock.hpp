@@ -11,7 +11,7 @@ class Clock {
   public:
     Clock();
     Clock(const Clock &other);
-    Clock operator=(const Clock &other);
+    Clock &operator=(const Clock &other);
     ~Clock();
 
     void tick();

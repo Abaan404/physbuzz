@@ -13,7 +13,7 @@ class Object {
     Object &operator=(const Object &other);
 
     template <typename T>
-    void setComponent(T component) {
+    void setComponent(T &component) {
         m_ComponentManager.setComponent<T>(component, m_Id);
     }
 

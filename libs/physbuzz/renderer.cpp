@@ -1,9 +1,16 @@
 #include "renderer.hpp"
 
-#include "debug.hpp"
+#include "physbuzz/debug.hpp"
 #include "window.hpp"
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
+#include <glm/gtc/type_ptr.hpp>
+
+// pointer magic
+template <typename T, glm::length_t N>
+std::pair<T *, std::size_t> getArray(std::vector<glm::vec<N, T>> &vec) {
+    return {static_cast<T *>(glm::value_ptr(vec.front())), vec.size() * (vec.front().length())};
+}
 
 namespace Physbuzz {
 
@@ -17,7 +24,7 @@ Renderer::Renderer(const Renderer &other) : m_Window(other.m_Window) {
     }
 }
 
-Renderer Renderer::operator=(const Renderer &other) {
+Renderer &Renderer::operator=(const Renderer &other) {
     if (this != &other) {
         target(other.m_Framebuffer);
     }
@@ -31,7 +38,7 @@ Window &Renderer::getWindow() const {
     return m_Window;
 }
 
-glm::vec2 Renderer::getResolution() const {
+glm::ivec2 Renderer::getResolution() const {
     return m_Resolution;
 }
 
@@ -66,49 +73,56 @@ void Renderer::resize(glm::ivec2 &resolution) {
 }
 
 void Renderer::normalize(MeshComponent &mesh) {
-    ASSERT(mesh.m_ScreenVertices.size() % 3 == 0, "Invalid Vertex Length");
-
-    int i = 0;
-    mesh.m_Vertices.resize(mesh.m_ScreenVertices.size());
-    while (i != mesh.m_ScreenVertices.size()) {
-        mesh.m_Vertices[i++] = (2.0f * mesh.m_ScreenVertices[i]) / m_Resolution.x - 1.0f; // x
-        mesh.m_Vertices[i++] = 1.0f - (2.0f * mesh.m_ScreenVertices[i]) / m_Resolution.y; // y
-        mesh.m_Vertices[i++] = mesh.m_ScreenVertices[i];                                  // z
+    mesh.actualVertices.clear();
+    mesh.scaled = true;
+    for (auto &vertex : mesh.screenVertices) {
+        mesh.actualVertices.emplace_back((2.0f * vertex.x) / m_Resolution.x - 1.0f, 1.0f - (2.0f * vertex.y) / m_Resolution.y, vertex.z);
     }
 }
 
 void Renderer::render(Scene &scene) {
-    std::vector<MeshComponent> &meshes = scene.getComponents<MeshComponent>();
-    for (auto &mesh : meshes) {
-        render(mesh);
+    for (auto &object : scene.getObjects()) {
+        if (!(object.hasComponent<RenderComponent>())) {
+            continue;
+        }
+
+        ASSERT(object.hasComponent<MeshComponent>(), "RenderComponent object does not have a mesh!")
+        render(object);
     }
 }
 
 // way too many draw calls i know
-void Renderer::render(MeshComponent &mesh) {
+void Renderer::render(Object &object) {
     time = m_Window.getTime();
 
-    if (mesh.m_ScreenVertices.size() != mesh.m_Vertices.size()) {
+    RenderComponent &render = object.getComponent<RenderComponent>();
+    MeshComponent &mesh = object.getComponent<MeshComponent>();
+
+    if (!mesh.scaled) {
         normalize(mesh);
     }
 
-    // send data to the gpu
-    glBindBuffer(GL_ARRAY_BUFFER, mesh.VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mesh.m_Vertices.size(), mesh.m_Vertices.data(), GL_STREAM_DRAW);
+    // auto vertex = getArray<float, 3>(component.m_Mesh.vertices);
+    auto [vertices, verticesSize] = getArray<float, 3>(mesh.actualVertices);
+    auto [indices, indicesSize] = getArray<std::uint32_t, 3>(mesh.indices);
 
-    glBindVertexArray(mesh.VAO);
+    // send data to the gpu
+    glBindBuffer(GL_ARRAY_BUFFER, render.VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verticesSize, vertices, GL_STREAM_DRAW);
+
+    glBindVertexArray(render.VAO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * mesh.m_Indices.size(), mesh.m_Indices.data(), GL_STREAM_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render.EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indicesSize, indices, GL_STREAM_DRAW);
 
-    glUseProgram(mesh.m_Program);
-    glUniform1ui(mesh.gluTime, time);
-    glUniform2f(mesh.gluResolution, m_Resolution.x, m_Resolution.y);
+    glUseProgram(render.m_Program);
+    glUniform1ui(render.gluTime, time);
+    glUniform2f(render.gluResolution, m_Resolution.x, m_Resolution.y);
 
     // draw object on screen
-    glDrawElements(GL_TRIANGLES, mesh.m_Indices.size(), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, indicesSize, GL_UNSIGNED_INT, 0);
 
     // cleanup
     glBindVertexArray(0);

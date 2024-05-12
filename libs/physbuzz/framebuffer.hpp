@@ -8,7 +8,7 @@ class Framebuffer {
   public:
     Framebuffer(glm::ivec2 &resolution);
     Framebuffer(const Framebuffer &other);
-    Framebuffer operator=(const Framebuffer &other);
+    Framebuffer &operator=(const Framebuffer &other);
     ~Framebuffer();
 
     void build();

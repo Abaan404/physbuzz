@@ -37,6 +37,7 @@ Window::Window() {
 }
 
 Window::~Window() {
+    glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
     glfwDestroyWindow(m_Window);
     glfwTerminate();
 }

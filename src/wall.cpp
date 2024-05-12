@@ -1,7 +1,9 @@
 #include "wall.hpp"
 
 #include "objects/quad.hpp"
+#include <physbuzz/mesh.hpp>
 #include <glm/glm.hpp>
+#include <physbuzz/mesh.hpp>
 
 Wall::Wall(Physbuzz::Scene *scene) : m_Scene(scene) {
     m_Id = scene->createObject();
@@ -28,10 +30,10 @@ void Wall::rebuild() {
 
 void Wall::destroyWalls() {
     if (m_Info.isRenderable) {
-        m_Scene->getObject(m_Left).getComponent<Physbuzz::MeshComponent>().destroy();
-        m_Scene->getObject(m_Right).getComponent<Physbuzz::MeshComponent>().destroy();
-        m_Scene->getObject(m_Up).getComponent<Physbuzz::MeshComponent>().destroy();
-        m_Scene->getObject(m_Down).getComponent<Physbuzz::MeshComponent>().destroy();
+        m_Scene->getObject(m_Left).getComponent<Physbuzz::RenderComponent>().destroy();
+        m_Scene->getObject(m_Right).getComponent<Physbuzz::RenderComponent>().destroy();
+        m_Scene->getObject(m_Up).getComponent<Physbuzz::RenderComponent>().destroy();
+        m_Scene->getObject(m_Down).getComponent<Physbuzz::RenderComponent>().destroy();
     }
 
     m_Scene->deleteObject(m_Left);

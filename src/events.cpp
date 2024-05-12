@@ -22,8 +22,8 @@ void Events::keyEvent(Physbuzz::KeyEvent event) {
         } break;
 
         case (GLFW_KEY_C): {
-            if (Game::scene.existsComponents<Physbuzz::MeshComponent>()) {
-                for (auto &mesh : Game::scene.getComponents<Physbuzz::MeshComponent>()) {
+            if (Game::scene.existsComponents<Physbuzz::RenderComponent>()) {
+                for (auto &mesh : Game::scene.getComponents<Physbuzz::RenderComponent>()) {
                     mesh.destroy();
                 }
             }
@@ -74,7 +74,7 @@ void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
                     .position = {cursor.x, cursor.y, 0.0f},
                 },
                 .circle = {
-                    .radius = 20.0f,
+                    .radius = 50.0f,
                 },
                 .isCollidable = true,
                 .isRenderable = true,
@@ -119,7 +119,7 @@ void Events::WindowResize(Physbuzz::WindowResizeEvent event) {
 
     std::vector<Physbuzz::MeshComponent> &meshes = Game::scene.getComponents<Physbuzz::MeshComponent>();
     for (auto &mesh : meshes) {
-        mesh.redraw();
+        mesh.scaled = false;
     }
 }
 

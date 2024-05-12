@@ -69,12 +69,11 @@ void ObjectPicker::draw(Physbuzz::Renderer &renderer) {
     // TODO buttons
     for (auto &object : m_Scene.getObjects()) {
         PickableComponent &pickable = object.getComponent<PickableComponent>();
-        Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
 
         // render to framebuffer
         renderer.target(&pickable.framebuffer);
         renderer.clear(bgColor);
-        renderer.render(mesh);
+        renderer.render(object);
 
         // imgui fuckery
         ImGui::Image((void *)(intptr_t)pickable.framebuffer.getColor(), size);

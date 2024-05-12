@@ -4,6 +4,7 @@
 #include "../../objects/circle.hpp"
 #include "../../objects/objects.hpp"
 #include "../../objects/quad.hpp"
+#include <glm/ext/scalar_constants.hpp>
 #include <physbuzz/renderer.hpp>
 
 #include <format>
@@ -54,19 +55,36 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
 
             if (object.hasComponent<TransformableComponent>()) {
                 TransformableComponent &transform = object.getComponent<TransformableComponent>();
+                glm::vec3 norm = glm::axis(transform.orientation);
+
                 float position[] = {transform.position.x, transform.position.y, transform.position.z};
                 float scale[] = {transform.scale.x, transform.scale.y, transform.scale.z};
+                float rotationAxis[] = {norm.x, norm.y, norm.z};
+                float rotationAngle = glm::angle(transform.orientation);
 
                 if (ImGui::DragFloat3("position", position, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    glm::vec3 dpos = glm::vec3(position[0], position[1], position[2]);
-                    transform.position = dpos;
+                    glm::vec3 tmp = glm::vec3(position[0], position[1], position[2]);
+                    transform.position = tmp;
 
                     rebuild = true;
                 }
 
                 if (ImGui::DragFloat3("scale", scale, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    glm::vec3 dscale = glm::vec3(scale[0], scale[1], scale[2]);
-                    transform.scale = dscale;
+                    glm::vec3 tmp = glm::vec3(scale[0], scale[1], scale[2]);
+                    transform.scale = tmp;
+
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("rotAxis", rotationAxis, 0.01f, 0.0f, 1.0f)) {
+                    glm::vec3 ret = glm::normalize(glm::vec3(rotationAxis[0], rotationAxis[1], rotationAxis[2]));
+                    transform.orientation = glm::angleAxis(rotationAngle, glm::vec3(ret[0], ret[1], ret[2]));
+
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat("rotMag", &rotationAngle, glm::pi<float>() / 50.0f, 0, 2 * glm::pi<float>())) {
+                    transform.orientation = glm::angleAxis(rotationAngle, glm::vec3(rotationAxis[0], rotationAxis[1], rotationAxis[2]));
 
                     rebuild = true;
                 }
@@ -76,15 +94,29 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                 RigidBodyComponent &physics = object.getComponent<RigidBodyComponent>();
                 float velocity[] = {physics.velocity.x, physics.velocity.y, physics.velocity.z};
                 float acceleration[] = {physics.acceleration.x, physics.acceleration.y, physics.acceleration.z};
+                float gravity[] = {physics.gravity.acceleration.x, physics.gravity.acceleration.y, physics.gravity.acceleration.z};
+                float drag[] = {physics.drag.k1, physics.drag.k2};
+
+                ImGui::DragFloat("mass", &physics.mass, 0.01f, -MAX_VALUE, MAX_VALUE);
 
                 if (ImGui::DragFloat3("velocity", velocity, 0.01f, -MAX_VALUE, MAX_VALUE)) {
-                    glm::vec3 dv = glm::vec3(velocity[0], velocity[1], velocity[2]);
-                    physics.velocity = dv;
+                    glm::vec3 tmp = glm::vec3(velocity[0], velocity[1], velocity[2]);
+                    physics.velocity = tmp;
                 }
 
                 if (ImGui::DragFloat3("acceleration", acceleration, 0.01f, -MAX_VALUE, MAX_VALUE)) {
-                    glm::vec3 da = glm::vec3(acceleration[0], acceleration[1], velocity[2]);
-                    physics.acceleration = da;
+                    glm::vec3 tmp = glm::vec3(acceleration[0], acceleration[1], velocity[2]);
+                    physics.acceleration = tmp;
+                }
+
+                if (ImGui::DragFloat3("gravity", gravity, 0.01f, -MAX_VALUE, MAX_VALUE)) {
+                    glm::vec3 tmp = glm::vec3(gravity[0], gravity[1], gravity[2]);
+                    physics.gravity.acceleration = tmp;
+                }
+
+                if (ImGui::DragFloat2("drag", drag, 0.01f, -MAX_VALUE, MAX_VALUE)) {
+                    physics.drag.k1 = drag[0];
+                    physics.drag.k2 = drag[1];
                 }
             }
 
@@ -92,8 +124,7 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                 QuadComponent &quad = object.getComponent<QuadComponent>();
                 float wh[] = {quad.width, quad.height};
 
-                if (ImGui::DragFloat2("Quad", wh, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    TransformableComponent &transform = object.getComponent<TransformableComponent>();
+                if (ImGui::DragFloat2("quad", wh, 1.0f, MIN_VALUE, MAX_VALUE)) {
                     quad.width = wh[0];
                     quad.height = wh[1];
 
@@ -103,53 +134,13 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
 
             if (object.hasComponent<CircleComponent>()) {
                 CircleComponent &radius = object.getComponent<CircleComponent>();
-                if (ImGui::DragFloat("Circle", &radius.radius, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                if (ImGui::DragFloat("circle", &radius.radius, 1.0f, MIN_VALUE, MAX_VALUE)) {
                     rebuild = true;
                 }
             }
 
-            if (rebuild && object.hasComponent<IdentifiableComponent>()) {
-
-                if (object.hasComponent<Physbuzz::MeshComponent>()) {
-                    object.getComponent<Physbuzz::MeshComponent>().destroy();
-                }
-
-                IdentifiableComponent &identifier = object.getComponent<IdentifiableComponent>();
-                {
-                    switch (identifier.type) {
-                    case (ObjectType::Quad): {
-                        QuadComponent &quad = object.getComponent<QuadComponent>();
-                        TransformableComponent &transform = object.getComponent<TransformableComponent>();
-
-                        QuadInfo info = {
-                            .transform = object.getComponent<TransformableComponent>(),
-                            .body = object.getComponent<RigidBodyComponent>(),
-                            .quad = object.getComponent<QuadComponent>(),
-                            .identifier = object.getComponent<IdentifiableComponent>(),
-                            .isCollidable = object.hasComponent<AABBComponent>(),
-                            .isRenderable = object.hasComponent<Physbuzz::MeshComponent>(),
-                        };
-
-                        ObjectBuilder<QuadInfo>::build(object, info);
-                    } break;
-
-                    case (ObjectType::Circle): {
-                        CircleInfo info = {
-                            .transform = object.getComponent<TransformableComponent>(),
-                            .body = object.getComponent<RigidBodyComponent>(),
-                            .circle = object.getComponent<CircleComponent>(),
-                            .identifier = object.getComponent<IdentifiableComponent>(),
-                            .isCollidable = object.hasComponent<AABBComponent>(),
-                            .isRenderable = object.hasComponent<Physbuzz::MeshComponent>(),
-                        };
-
-                        ObjectBuilder<CircleInfo>::build(object, info);
-                    } break;
-
-                    default:
-                        break;
-                    }
-                }
+            if (rebuild && object.hasComponent<RebuildableComponent>()) {
+                object.getComponent<RebuildableComponent>().rebuild(object);
             }
 
             ImGui::PopID();

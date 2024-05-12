@@ -1,33 +1,40 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include <physbuzz/object.hpp>
+#include <physbuzz/mesh.hpp>
 #include <physbuzz/scene.hpp>
 
 struct AABBComponent {
     glm::vec3 min = {0.0f, 0.0f, 0.0f};
     glm::vec3 max = {0.0f, 0.0f, 0.0f};
+};
 
-    // build using mesh if available
-    static AABBComponent buildWithVertex(std::vector<glm::vec3> &vertices) {
-        // Initialize min and max with the first vertex
-        AABBComponent aabb = {
-            .min = {0.0f, 0.0f, 0.0f},
-            .max = {0.0f, 0.0f, 0.0f},
-        };
+class BoundingComponent {
+  public:
+    BoundingComponent(const AABBComponent &quad) {
+        build(quad);
+    }
+    BoundingComponent(const Physbuzz::MeshComponent &mesh) {
+        build(mesh);
+    }
 
-        for (const auto &vertex : vertices) {
-            aabb.min.x = std::min(aabb.min.x, vertex.x);
-            aabb.min.y = std::min(aabb.min.y, vertex.y);
-            aabb.min.z = std::min(aabb.min.z, vertex.z);
+    void build(const AABBComponent &quad) {
+        aabb = quad;
+    }
 
-            aabb.max.x = std::max(aabb.max.x, vertex.x);
-            aabb.max.y = std::max(aabb.max.y, vertex.y);
-            aabb.max.z = std::max(aabb.max.z, vertex.z);
+    void build(const Physbuzz::MeshComponent &mesh) {
+        for (const auto &vertex : mesh.screenVertices) {
+            aabb.min = glm::min(aabb.min, vertex);
+            aabb.max = glm::max(aabb.max, vertex);
         }
+    }
 
+    const AABBComponent &getBox() {
         return aabb;
     }
+
+  private:
+    AABBComponent aabb;
 };
 
 struct Contact {

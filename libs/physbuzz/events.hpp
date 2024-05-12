@@ -48,7 +48,7 @@ class EventManager {
   public:
     EventManager(Window &window);
     EventManager(const EventManager &other);
-    EventManager operator=(const EventManager &other);
+    EventManager &operator=(const EventManager &other);
 
     void poll();
 

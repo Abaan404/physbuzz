@@ -18,7 +18,7 @@ class ContiguousMap {
         copy(other);
     }
 
-    ContiguousMap operator=(const ContiguousMap &other) {
+    ContiguousMap &operator=(const ContiguousMap &other) {
         return copy(other);
     }
 

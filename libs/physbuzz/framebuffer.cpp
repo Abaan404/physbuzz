@@ -14,7 +14,7 @@ Framebuffer::Framebuffer(const Framebuffer &other) : m_Resolution(other.m_Resolu
     }
 }
 
-Framebuffer Framebuffer::operator=(const Framebuffer &other) {
+Framebuffer &Framebuffer::operator=(const Framebuffer &other) {
     if (this != &other) {
         m_Resolution = other.m_Resolution;
 

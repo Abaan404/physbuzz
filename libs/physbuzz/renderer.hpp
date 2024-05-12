@@ -12,20 +12,20 @@ class Renderer {
   public:
     Renderer(Window &window);
     Renderer(const Renderer &other);
-    Renderer operator=(const Renderer &other);
+    Renderer &operator=(const Renderer &other);
     ~Renderer();
 
     std::time_t time = 0;
 
     void render(Scene &scene);
-    void render(MeshComponent &mesh);
+    void render(Object &object);
 
     void target(Framebuffer *framebuffer);
     void clear(glm::vec4 &color);
     void resize(glm::ivec2 &resolution);
 
     Window &getWindow() const;
-    glm::vec2 getResolution() const;
+    glm::ivec2 getResolution() const;
 
   private:
     Framebuffer *m_Framebuffer;

@@ -12,7 +12,7 @@ Game::Game() {
     eventManager.setCallbackWindowResize(Events::WindowResize);
     eventManager.setCallbackWindowClose(Events::WindowClose);
 
-    glm::ivec2 resolution = Game::window.getResolution();
+    glm::ivec2 resolution = window.getResolution();
     WallInfo info = {
         .transform = {
             .position = glm::vec3(resolution >> 1, 0.0f),
@@ -48,9 +48,7 @@ void Game::loop() {
 }
 
 Game::~Game() {
-    std::vector<Physbuzz::MeshComponent> &meshes = scene.getComponents<Physbuzz::MeshComponent>();
-
-    for (auto &mesh : meshes) {
+    for (auto &mesh : scene.getComponents<Physbuzz::RenderComponent>()) {
         mesh.destroy();
     }
 }

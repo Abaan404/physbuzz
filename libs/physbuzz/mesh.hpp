@@ -6,38 +6,37 @@
 
 namespace Physbuzz {
 
-class MeshComponent {
+struct MeshComponent {
+    std::vector<glm::uvec3> indices;
+    std::vector<glm::vec3> actualVertices;
+    std::vector<glm::vec3> screenVertices;
+    std::vector<glm::vec3> orignalVertices;
+
+    bool scaled = false;
+};
+
+class RenderComponent {
   public:
-    MeshComponent();
-    MeshComponent(const MeshComponent &other);
-    MeshComponent &operator=(const MeshComponent &other);
-    ~MeshComponent();
+    RenderComponent();
+    RenderComponent(const RenderComponent &other);
+    RenderComponent &operator=(const RenderComponent &other);
+    ~RenderComponent();
 
     void build();
     void destroy();
-    void redraw();
 
     GLuint getProgram() const;
-    std::vector<glm::vec3> getVertex() const;
-    std::vector<glm::uvec3> getIndex() const;
-
     void setProgram(GLuint program);
-    void setVertex(std::vector<glm::vec3> &vertexBuffer);
-    void setIndex(std::vector<glm::uvec3> &indexBuffer);
 
     // TODO uniforms class abstraction
-    int gluTime;
-    int gluTimedelta;
-    int gluResolution;
+    GLint gluTime;
+    GLint gluTimedelta;
+    GLint gluResolution;
 
   private:
-    void copy(const MeshComponent &other);
+    void copy(const RenderComponent &other);
 
-    std::vector<float> m_ScreenVertices;
-    std::vector<float> m_Vertices;
-    std::vector<unsigned int> m_Indices;
-    unsigned int VBO, VAO, EBO;
-
+    GLuint VBO, VAO, EBO;
     GLuint m_Program;
 
     friend class Renderer;

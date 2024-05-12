@@ -6,7 +6,7 @@ EventManager::EventManager(Window &window) : m_Window(window) {}
 
 EventManager::EventManager(const EventManager &other) : m_Window(other.m_Window) {}
 
-EventManager EventManager::operator=(const EventManager &other) {
+EventManager &EventManager::operator=(const EventManager &other) {
     if (this != &other) {
         m_Window = other.m_Window;
     }

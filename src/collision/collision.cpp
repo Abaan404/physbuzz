@@ -4,18 +4,19 @@
 #include "../game.hpp"
 #include "../objects/quad.hpp"
 #include "../objects/circle.hpp"
+#include "physbuzz/debug.hpp"
 #include <physbuzz/renderer.hpp>
 #include <vector>
 
 // sweep and prune
 void Collision::tick(Physbuzz::Scene &scene) {
     scene.sortObjects([](Physbuzz::Object &object1, Physbuzz::Object &object2) {
-        if (!(object1.hasComponent<AABBComponent>() && object2.hasComponent<AABBComponent>())) {
+        if (!(object1.hasComponent<BoundingComponent>() && object2.hasComponent<BoundingComponent>())) {
             return false;
         }
 
-        AABBComponent &aabb1 = object1.getComponent<AABBComponent>();
-        AABBComponent &aabb2 = object2.getComponent<AABBComponent>();
+        const AABBComponent &aabb1 = object1.getComponent<BoundingComponent>().getBox();
+        const AABBComponent &aabb2 = object2.getComponent<BoundingComponent>().getBox();
 
         return aabb1.min.x < aabb2.min.x;
     });
@@ -29,12 +30,15 @@ void Collision::tick(Physbuzz::Scene &scene) {
             }
 
             // skip non bounded components
-            if (!(object1.hasComponent<AABBComponent>() && object2.hasComponent<AABBComponent>())) {
+            if (!(object1.hasComponent<BoundingComponent>() && object2.hasComponent<BoundingComponent>())) {
                 continue;
             }
 
-            AABBComponent &aabb1 = object1.getComponent<AABBComponent>();
-            AABBComponent &aabb2 = object2.getComponent<AABBComponent>();
+            ASSERT(object1.hasComponent<TransformableComponent>() && object2.hasComponent<TransformableComponent>(), "Attempting Collision on Non-Transformable Object")
+            ASSERT(object1.hasComponent<RigidBodyComponent>() && object2.hasComponent<RigidBodyComponent>(), "Attempting Collision on Non-Physics Object")
+
+            const AABBComponent &aabb1 = object1.getComponent<BoundingComponent>().getBox();
+            const AABBComponent &aabb2 = object2.getComponent<BoundingComponent>().getBox();
 
             if (aabb2.min.x > aabb1.max.x) {
                 continue;
@@ -49,10 +53,6 @@ void Collision::tick(Physbuzz::Scene &scene) {
 
 // hardcoded collision checks
 bool Collision::check(Physbuzz::Object &object1, Physbuzz::Object &object2) {
-    if (!(object1.hasComponent<TransformableComponent>() && object2.hasComponent<TransformableComponent>())) {
-        return false;
-    }
-
     TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
     TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
 
@@ -102,10 +102,6 @@ bool Collision::check(Physbuzz::Object &object1, Physbuzz::Object &object2) {
 }
 
 void Collision::resolve(Physbuzz::Object &object1, Physbuzz::Object &object2) {
-    if (!(object1.hasComponent<RigidBodyComponent>() && object2.hasComponent<RigidBodyComponent>())) {
-        return;
-    }
-
     RigidBodyComponent &body1 = object1.getComponent<RigidBodyComponent>();
     RigidBodyComponent &body2 = object2.getComponent<RigidBodyComponent>();
 
@@ -140,8 +136,8 @@ void Collision::resolve(Physbuzz::Object &object1, Physbuzz::Object &object2) {
 
     glm::vec3 displacement = contact.normal * (contact.depth / totalInvMass);
 
-    Game::dynamics.displace(object1, -displacement / body1.mass);
-    Game::dynamics.displace(object2, displacement / body2.mass);
+    Game::dynamics.translate(object1, -displacement / body1.mass);
+    Game::dynamics.translate(object2, displacement / body2.mass);
 }
 
 // hardcoded collision contact solvers

@@ -12,7 +12,7 @@ Clock::Clock(const Clock &other) {
     }
 }
 
-Clock Clock::operator=(const Clock &other) {
+Clock &Clock::operator=(const Clock &other) {
     if (this != &other) {
         copy(other);
     }
