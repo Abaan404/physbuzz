@@ -13,7 +13,6 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
     // user-defined components
     object.setComponent(info.circle);
     object.setComponent(info.transform);
-    object.setComponent(info.body);
     object.setComponent(info.identifier);
 
     // generate mesh
@@ -39,6 +38,15 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
         }
 
         object.setComponent(mesh);
+    }
+
+    // build inertia
+    {
+        // Mx = (r*sin(theta))**2 * r).integrate((theta, 0, 2*pi)).integrate((r, 0, a)) * rho
+        // My = (r*cos(theta))**2 * r).integrate((theta, 0, 2*pi)).integrate((r, 0, a)) * rho
+        info.body.angular.inertia = info.body.mass * glm::pow(info.circle.radius, 2) / 2.0f;
+
+        object.setComponent(info.body);
     }
 
     // build gl context

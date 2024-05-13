@@ -39,20 +39,23 @@ void Dynamics::tickMotion(Physbuzz::Object &object) {
             glm::vec3 force = -glm::normalize(body.velocity) * (body.drag.k1 * speed + body.drag.k2 * speed * speed);
             body.addForce(force);
         }
+
+        body.angular.velocity *= glm::pow(body.angular.drag, dTime);
     }
 
     // move object wrt S = ut + 1/2 a t**2
     // Note: t**2 is approx 0 for t << 0 (at high framerate)
     {
         translate(object, body.velocity * dTime);
-        rotate(object, dTime / 2.0f * glm::quat(0.0f, body.orientation.velocity) * transform.orientation);
+        rotate(object, dTime / 2.0f * glm::quat(0.0f, body.angular.velocity) * transform.orientation);
     }
 
     // apply accumulated forces to velocity and clear them
     {
-        // body.orientation.velocity += body.orientation.acceleration * dTime;
+        body.angular.velocity += (body.angular.acceleration + body.accumTorques / body.angular.inertia) * dTime;
         body.velocity += (body.acceleration + body.accumForces / body.mass) * dTime;
         body.accumForces = glm::vec3(0.0f, 0.0f, 0.0f);
+        body.accumTorques = glm::vec3(0.0f, 0.0f, 0.0f);
     }
 }
 

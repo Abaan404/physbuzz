@@ -20,14 +20,17 @@ struct RigidBodyComponent {
     float mass = 1.0f;
 
     glm::vec3 accumForces = {0.0f, 0.0f, 0.0f};
+    glm::vec3 accumTorques = {0.0f, 0.0f, 0.0f};
 
     glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
     glm::vec3 acceleration = {0.0f, 0.0f, 0.0f};
 
     struct {
+        float inertia = 1.0f; // technically a Mz moment, Note: use a tensor for 3D
+        float drag = 1.0f;
         glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
         glm::vec3 acceleration = {0.0f, 0.0f, 0.0f};
-    } orientation;
+    } angular;
 
     struct {
         glm::vec3 acceleration = {0.0f, 1000.0f, 0.0f};
@@ -40,6 +43,11 @@ struct RigidBodyComponent {
 
     void addForce(const glm::vec3 &force) {
         accumForces += force;
+    }
+
+    void addForceAtPoint(const glm::vec3 &force, const glm::vec3 &relPosition) {
+        accumForces += force;
+        accumTorques += glm::cross(relPosition, force);
     }
 };
 

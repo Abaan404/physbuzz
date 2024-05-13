@@ -12,7 +12,6 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
     // user-defined components
     object.setComponent(info.quad);
     object.setComponent(info.transform);
-    object.setComponent(info.body);
     object.setComponent(info.identifier);
 
     // generate mesh
@@ -39,6 +38,15 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
         }
 
         object.setComponent(mesh);
+    }
+
+    // build inertia
+    {
+        // Mx = (y**2).integrate((x, -a/2, a/2)).integrate((y, -b/2, b/2)) * rho
+        // My = (x**2).integrate((x, -a/2, a/2)).integrate((y, -b/2, b/2)) * rho
+        info.body.angular.inertia = info.body.mass * (glm::pow(info.quad.width, 2) + glm::pow(info.quad.height, 2)) / 12.0f;
+
+        object.setComponent(info.body);
     }
 
     // build gl context
