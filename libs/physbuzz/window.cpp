@@ -1,6 +1,7 @@
 #include "window.hpp"
 
-#include "debug.hpp"
+#include "debug/callbacks.hpp"
+#include "logging.hpp"
 #include <GLFW/glfw3.h>
 #include <chrono>
 
@@ -12,7 +13,7 @@ Window::Window() {
 
     // init glfw
     int isInit = glfwInit();
-    ASSERT(isInit == GLFW_TRUE, "[GLFW] Could not initialize GLFW.")
+    Logger::ASSERT(isInit == GLFW_TRUE, "[GLFW] Could not initialize GLFW.");
 
     // setup window clock (glfw's time does not have ms precision)
     m_Clock = std::chrono::system_clock::now();
@@ -23,7 +24,7 @@ Window::Window() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     m_Window = glfwCreateWindow(1280, 270, "PhysBuzz Engine", nullptr, nullptr);
-    ASSERT(m_Window != nullptr, "[GLFW] Could not create a window.")
+    Logger::ASSERT(m_Window != nullptr, "[GLFW] Could not create a window.");
 
     // Setup OpenGL
     glfwMakeContextCurrent(m_Window);

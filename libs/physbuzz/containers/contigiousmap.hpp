@@ -1,12 +1,25 @@
 #pragma once
 
-#include "../debug.hpp"
-#include "../defines.hpp"
+#include "../logging.hpp"
 #include <algorithm>
 #include <unordered_map>
 #include <vector>
 
 namespace Physbuzz {
+
+namespace {
+
+template <typename T>
+concept Comparable = requires(T a, T b) {
+    a <=> b;
+};
+
+template <typename F, typename T>
+concept Comparator = requires(F f, T &t1, T &t2) {
+    { f(t1, t2) } -> std::convertible_to<bool>;
+};
+
+} // namespace
 
 template <typename K, typename T>
     requires Comparable<K>
@@ -93,7 +106,7 @@ class ContiguousMap {
     }
 
     T &get(K key) {
-        ASSERT(contains(key), "Map Does Not Contain Key.")
+        Logger::ASSERT(contains(key), "Map Does Not Contain Key.");
         return m_Array[m_IdxMap[key]];
     }
 
@@ -161,7 +174,7 @@ class ContiguousMap {
     }
 
     void swap(int idx1, int idx2) {
-        ASSERT(idx1 >= 0 && idx1 < m_Array.size() && idx2 >= 0 && idx2 < m_Array.size(), "Invalid swap indices");
+        Logger::ASSERT(idx1 >= 0 && idx1 < m_Array.size() && idx2 >= 0 && idx2 < m_Array.size(), "Invalid swap indices");
 
         std::iter_swap(m_Array.begin() + idx1, m_Array.begin() + idx2);
 

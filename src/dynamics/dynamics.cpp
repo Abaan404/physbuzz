@@ -2,7 +2,7 @@
 
 #include "../collision/collision.hpp"
 #include "../game.hpp"
-#include <physbuzz/debug.hpp>
+#include <physbuzz/logging.hpp>
 #include <physbuzz/mesh.hpp>
 #include <physbuzz/object.hpp>
 
@@ -14,7 +14,7 @@ void Dynamics::tick(Physbuzz::Scene &scene) {
             continue;
         }
 
-        ASSERT(object.hasComponent<TransformableComponent>(), "RigidBody object does not have a transform.")
+        Physbuzz::Logger::ASSERT(object.hasComponent<TransformableComponent>(), "RigidBody object does not have a transform.");
         tickMotion(object);
     }
 }

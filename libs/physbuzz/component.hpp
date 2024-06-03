@@ -1,8 +1,8 @@
 #pragma once
 
 #include "containers/contigiousmap.hpp"
-#include "debug.hpp"
 #include "defines.hpp"
+#include "logging.hpp"
 #include <concepts>
 #include <memory>
 
@@ -35,7 +35,7 @@ class ComponentArray : public IComponentArray {
     }
 
     T &getComponent(ObjectID id) {
-        ASSERT(m_Map.contains(id), "Component Does Not Exist.");
+        Logger::ASSERT(m_Map.contains(id), "Component Does Not Exist.");
         return m_Map.get(id);
     }
 

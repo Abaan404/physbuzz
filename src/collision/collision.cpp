@@ -4,7 +4,7 @@
 #include "../game.hpp"
 #include "../objects/quad.hpp"
 #include "../objects/circle.hpp"
-#include "physbuzz/debug.hpp"
+#include <physbuzz/logging.hpp>
 #include <physbuzz/renderer.hpp>
 #include <vector>
 
@@ -34,8 +34,8 @@ void Collision::tick(Physbuzz::Scene &scene) {
                 continue;
             }
 
-            ASSERT(object1.hasComponent<TransformableComponent>() && object2.hasComponent<TransformableComponent>(), "Attempting Collision on Non-Transformable Object")
-            ASSERT(object1.hasComponent<RigidBodyComponent>() && object2.hasComponent<RigidBodyComponent>(), "Attempting Collision on Non-Physics Object")
+            Physbuzz::Logger::ASSERT(object1.hasComponent<TransformableComponent>() && object2.hasComponent<TransformableComponent>(), "Attempting Collision on Non-Transformable Object");
+            Physbuzz::Logger::ASSERT(object1.hasComponent<RigidBodyComponent>() && object2.hasComponent<RigidBodyComponent>(), "Attempting Collision on Non-Physics Object");
 
             const AABBComponent &aabb1 = object1.getComponent<BoundingComponent>().getBox();
             const AABBComponent &aabb2 = object2.getComponent<BoundingComponent>().getBox();

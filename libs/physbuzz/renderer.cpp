@@ -1,6 +1,6 @@
 #include "renderer.hpp"
 
-#include "physbuzz/debug.hpp"
+#include "logging.hpp"
 #include "window.hpp"
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
@@ -86,7 +86,7 @@ void Renderer::render(Scene &scene) {
             continue;
         }
 
-        ASSERT(object.hasComponent<MeshComponent>(), "RenderComponent object does not have a mesh!")
+        Logger::ASSERT(object.hasComponent<MeshComponent>(), "RenderComponent object does not have a mesh!");
         render(object);
     }
 }
