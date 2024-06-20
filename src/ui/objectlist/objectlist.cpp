@@ -2,6 +2,7 @@
 
 #include "../../game.hpp"
 #include "../../objects/circle.hpp"
+#include "../../objects/line.hpp"
 #include "../../objects/objects.hpp"
 #include "../../objects/quad.hpp"
 #include <glm/ext/scalar_constants.hpp>
@@ -117,6 +118,18 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                 if (ImGui::DragFloat2("drag", drag, 0.01f, -MAX_VALUE, MAX_VALUE)) {
                     physics.drag.k1 = drag[0];
                     physics.drag.k2 = drag[1];
+                }
+            }
+
+            if (object.hasComponent<LineComponent>()) {
+                LineComponent &line = object.getComponent<LineComponent>();
+                float lt[] = {line.length, line.thickness};
+
+                if (ImGui::DragFloat2("line", lt, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    line.length = lt[0];
+                    line.thickness = lt[1];
+
+                    rebuild = true;
                 }
             }
 

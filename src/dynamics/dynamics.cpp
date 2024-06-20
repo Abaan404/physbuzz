@@ -67,17 +67,20 @@ void Dynamics::rotate(Physbuzz::Object &object, const glm::quat delta) {
     // update mesh
     if (object.hasComponent<Physbuzz::RenderComponent>()) {
         Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
+        const std::vector<glm::vec3> &originalVertices = mesh.getOriginalVertices();
 
-        for (int i = 0; i < mesh.screenVertices.size(); i++) {
-            glm::quat rotation = transform.orientation * glm::quat(0.0f, mesh.orignalVertices[i]) * glm::inverse(transform.orientation);
-            mesh.screenVertices[i] = glm::vec3(rotation.x, rotation.y, rotation.z) + transform.position;
+        for (int i = 0; i < mesh.vertices.size(); i++) {
+            glm::quat rotation = transform.orientation * glm::quat(0.0f, originalVertices[i]) * glm::inverse(transform.orientation);
+            mesh.vertices[i] = glm::vec3(rotation.x, rotation.y, rotation.z) + transform.position;
         }
 
-        mesh.scaled = false;
+        mesh.renormalize();
 
         // adjust collision bounding box
         if (object.hasComponent<BoundingComponent>()) {
-            BoundingComponent bounding = {object.getComponent<Physbuzz::MeshComponent>()};
+            BoundingComponent bounding = object.getComponent<Physbuzz::MeshComponent>();
+            bounding.build(mesh);
+
             object.setComponent(bounding);
         }
     }
@@ -91,15 +94,21 @@ void Dynamics::translate(Physbuzz::Object &object, const glm::vec3 delta) {
     if (object.hasComponent<Physbuzz::RenderComponent>()) {
         Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
 
-        for (auto &vertex : mesh.screenVertices) {
+        for (auto &vertex : mesh.vertices) {
             vertex += delta;
         }
 
-        mesh.scaled = false;
+        mesh.renormalize();
 
         // adjust collision bounding box
         if (object.hasComponent<BoundingComponent>()) {
-            BoundingComponent bounding = {object.getComponent<Physbuzz::MeshComponent>()};
+            BoundingComponent bounding = object.getComponent<Physbuzz::MeshComponent>();
+            AABBComponent box = bounding.getBox();
+
+            box.max += delta;
+            box.min += delta;
+            bounding.build(box);
+
             object.setComponent(bounding);
         }
     }

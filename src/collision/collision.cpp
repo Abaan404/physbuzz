@@ -1,9 +1,6 @@
 #include "collision.hpp"
 
 #include "../dynamics/dynamics.hpp"
-#include "../game.hpp"
-#include "../objects/quad.hpp"
-#include "../objects/circle.hpp"
 #include <physbuzz/logging.hpp>
 #include <physbuzz/renderer.hpp>
 #include <vector>
@@ -21,9 +18,9 @@ void Collision::tick(Physbuzz::Scene &scene) {
         return aabb1.min.x < aabb2.min.x;
     });
 
-    std::vector<Physbuzz::Object> &objects = scene.getObjects();
-    for (auto &object1 : objects) {
-        for (auto &object2 : objects) {
+    Contact contact;
+    for (auto &object1 : scene.getObjects()) {
+        for (auto &object2 : scene.getObjects()) {
             // skip same objects
             if (&object1 == &object2) {
                 continue;
@@ -34,6 +31,7 @@ void Collision::tick(Physbuzz::Scene &scene) {
                 continue;
             }
 
+            Physbuzz::Logger::ASSERT(object1.hasComponent<Physbuzz::MeshComponent>() && object2.hasComponent<Physbuzz::MeshComponent>(), "Attempting Collision on Non-Mesh Object");
             Physbuzz::Logger::ASSERT(object1.hasComponent<TransformableComponent>() && object2.hasComponent<TransformableComponent>(), "Attempting Collision on Non-Transformable Object");
             Physbuzz::Logger::ASSERT(object1.hasComponent<RigidBodyComponent>() && object2.hasComponent<RigidBodyComponent>(), "Attempting Collision on Non-Physics Object");
 
@@ -44,156 +42,116 @@ void Collision::tick(Physbuzz::Scene &scene) {
                 continue;
             }
 
-            if (check(object1, object2)) {
-                resolve(object1, object2);
+            if (check(object1, object2, contact)) {
+                resolve(object1, object2, contact);
             }
         }
     }
 }
 
-// hardcoded collision checks
-bool Collision::check(Physbuzz::Object &object1, Physbuzz::Object &object2) {
-    TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
-    TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
+// get the depth of overlap
+float Collision::getAxisOverlap(const glm::vec3 &axis, const Physbuzz::MeshComponent &mesh1, const Physbuzz::MeshComponent &mesh2) {
+    auto getMinMax = [](const Physbuzz::MeshComponent &mesh, const glm::vec3 &axis) {
+        struct {
+            float min = std::numeric_limits<float>::max();
+            float max = std::numeric_limits<float>::lowest();
+        } ret;
 
-    if (object1.hasComponent<CircleComponent>() && object2.hasComponent<CircleComponent>()) {
-        CircleComponent &circle1 = object1.getComponent<CircleComponent>();
-        CircleComponent &circle2 = object2.getComponent<CircleComponent>();
+        for (const auto &vertex : mesh.vertices) {
+            float projection = glm::dot(vertex, axis);
 
-        const float dist_squared = (transform2.position.x - transform1.position.x) * (transform2.position.x - transform1.position.x) +
-                                   (transform2.position.y - transform1.position.y) * (transform2.position.y - transform1.position.y);
+            ret.min = glm::min(projection, ret.min);
+            ret.max = glm::max(projection, ret.max);
+        }
 
-        const float r_squared = (circle1.radius + circle2.radius) * (circle1.radius + circle2.radius);
+        return ret;
+    };
 
-        return dist_squared <= r_squared;
+    // auto is truly cpp magic
+    const auto proj1 = getMinMax(mesh1, axis);
+    const auto proj2 = getMinMax(mesh2, axis);
 
-    } else if (object1.hasComponent<QuadComponent>() && object2.hasComponent<QuadComponent>()) {
-        QuadComponent &quad1 = object1.getComponent<QuadComponent>();
-        QuadComponent &quad2 = object2.getComponent<QuadComponent>();
-
-        glm::vec3 min1 = transform1.position - glm::vec3(quad1.width / 2.0f, quad1.height / 2.0f, 0.0f);
-        glm::vec3 min2 = transform2.position - glm::vec3(quad2.width / 2.0f, quad2.height / 2.0f, 0.0f);
-
-        glm::vec3 max1 = min1 + glm::vec3(quad1.width, quad1.height, 0.0f);
-        glm::vec3 max2 = min2 + glm::vec3(quad2.width, quad2.height, 0.0f);
-
-        bool intersectX = max1.x > min2.x && min1.x < max2.x;
-        bool intersectY = max1.y > min2.y && min1.y < max2.y;
-
-        return intersectX && intersectY;
-
-    } else if (object1.hasComponent<QuadComponent>() && object2.hasComponent<CircleComponent>()) {
-        QuadComponent &quad1 = object1.getComponent<QuadComponent>();
-        CircleComponent &circle2 = object2.getComponent<CircleComponent>();
-
-        glm::vec3 min = transform1.position - glm::vec3(quad1.width / 2.0f, quad1.height / 2.0f, 0.0f);
-        glm::vec3 max = transform1.position + glm::vec3(quad1.width / 2.0f, quad1.height / 2.0f, 0.0f);
-
-        glm::vec3 point = glm::clamp(transform2.position, min, max);
-        glm::vec3 dist = transform2.position - point;
-
-        float dist_squared = glm::dot(dist, dist);
-        float r_squared = circle2.radius * circle2.radius;
-
-        return dist_squared <= r_squared;
+    if (proj1.max < proj2.min || proj1.min > proj2.max) {
+        return 0.0f;
     }
 
-    return false;
+    const float overlap1 = proj1.max - proj2.min;
+    const float overlap2 = proj2.max - proj1.min;
+
+    return glm::min(overlap1, overlap2);
 }
 
-void Collision::resolve(Physbuzz::Object &object1, Physbuzz::Object &object2) {
-    RigidBodyComponent &body1 = object1.getComponent<RigidBodyComponent>();
-    RigidBodyComponent &body2 = object2.getComponent<RigidBodyComponent>();
+void Collision::addMeshNormals(const Physbuzz::MeshComponent &mesh, std::vector<glm::vec3> &axes) {
+    static constexpr float PARALLEL_AXIS_THRESHOLD = 1e-3f;
 
-    float totalInvMass = 1.0f / body1.mass + 1.0f / body2.mass;
+    // TODO do a perf test on n^2 normal check or running on every normal based on no. of vertices
+    for (const auto &normal : mesh.normals) {
+        bool parallelFound = false;
+        for (const auto &axis : axes) {
+            if (glm::length(glm::cross(axis, normal)) < PARALLEL_AXIS_THRESHOLD) {
+                parallelFound = true;
+                break;
+            }
+        }
 
-    // division by zero check
-    if (totalInvMass == 0.0f) {
-        return;
+        if (parallelFound) {
+            continue;
+        }
+
+        axes.emplace_back(normal);
     }
+}
 
-    Contact contact = calcContact(object1, object2);
+// Seperating Axis Theorem
+// ref:
+//  - https://code.tutsplus.com/collision-detection-using-the-separating-axis-theorem--gamedev-169t
+//  - https://textbooks.cs.ksu.edu/cis580/04-collisions/04-separating-axis-theorem/
+bool Collision::check(Physbuzz::Object &object1, Physbuzz::Object &object2, Contact &contact) {
+    std::vector<glm::vec3> axes;
+    Physbuzz::MeshComponent &mesh1 = object1.getComponent<Physbuzz::MeshComponent>();
+    Physbuzz::MeshComponent &mesh2 = object2.getComponent<Physbuzz::MeshComponent>();
 
-    float sepVelocity = glm::dot(body2.velocity - body1.velocity, contact.normal);
-    float newSepVelocity = -sepVelocity * m_Restitution;
+    addMeshNormals(mesh1, axes);
+    addMeshNormals(mesh2, axes);
 
-    glm::vec3 accVelocity = body2.acceleration - body1.acceleration;
-    float accSepVelocity = glm::dot(accVelocity, contact.normal) * Game::clock.getDelta();
+    for (const auto &axis : axes) {
+        float axisOverlap = getAxisOverlap(axis, mesh1, mesh2);
 
-    if (accSepVelocity < 0) {
-        sepVelocity += m_Restitution * accSepVelocity;
+        if (axisOverlap <= 0.0f) {
+            return false;
+        }
 
-        if (newSepVelocity < 0) {
-            newSepVelocity = 0;
+        if (axisOverlap < contact.depth) {
+            contact.depth = axisOverlap;
+            contact.normal = axis;
         }
     }
 
-    const float dVelocity = -sepVelocity * m_Restitution - sepVelocity;
-    glm::vec3 impulse = contact.normal * dVelocity / totalInvMass;
-
-    body1.velocity -= impulse * 1.0f / body1.mass;
-    body2.velocity += impulse * 1.0f / body2.mass;
-
-    glm::vec3 displacement = contact.normal * (contact.depth / totalInvMass);
-
-    Game::dynamics.translate(object1, -displacement / body1.mass);
-    Game::dynamics.translate(object2, displacement / body2.mass);
+    return true;
 }
 
-// hardcoded collision contact solvers
-Contact Collision::calcContact(Physbuzz::Object &object1, Physbuzz::Object &object2) {
+void Collision::resolve(Physbuzz::Object &object1, Physbuzz::Object &object2, Contact &contact) {
     TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
     TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
 
-    Contact out;
+    RigidBodyComponent &rigidBody1 = object1.getComponent<RigidBodyComponent>();
+    RigidBodyComponent &rigidBody2 = object2.getComponent<RigidBodyComponent>();
 
-    if (object1.hasComponent<CircleComponent>() && object2.hasComponent<CircleComponent>()) {
-        CircleComponent &radius1 = object1.getComponent<CircleComponent>();
-        CircleComponent &radius2 = object2.getComponent<CircleComponent>();
-        float overlap = (radius1.radius + radius2.radius) - glm::length(transform2.position - transform1.position);
-
-        out.depth = overlap;
-        out.normal = glm::normalize(transform2.position - transform1.position);
-
-    } else if (object1.hasComponent<QuadComponent>() && object2.hasComponent<QuadComponent>()) {
-        QuadComponent &quad1 = object1.getComponent<QuadComponent>();
-        QuadComponent &quad2 = object2.getComponent<QuadComponent>();
-
-        glm::vec3 min1 = transform1.position - glm::vec3(quad1.width / 2.0f, quad1.height / 2.0f, 0.0f);
-        glm::vec3 min2 = transform2.position - glm::vec3(quad2.width / 2.0f, quad2.height / 2.0f, 0.0f);
-
-        glm::vec3 max1 = min1 + glm::vec3(quad1.width, quad1.height, 0.0f);
-        glm::vec3 max2 = min2 + glm::vec3(quad2.width, quad2.height, 0.0f);
-
-        // no rotation for now
-        glm::vec3 closestPoint1 = glm::clamp(transform2.position, min1, max1);
-        glm::vec3 closestPoint2 = glm::clamp(transform1.position, min2, max2);
-
-        glm::vec3 distance = closestPoint1 - closestPoint2;
-
-        out.depth = glm::length(distance);
-        out.normal = glm::normalize(distance);
-
-    } else if (object1.hasComponent<QuadComponent>() && object2.hasComponent<CircleComponent>()) {
-        QuadComponent &quad1 = object1.getComponent<QuadComponent>();
-        CircleComponent &circle2 = object2.getComponent<CircleComponent>();
-
-        glm::vec3 min = transform1.position - glm::vec3(quad1.width / 2.0f, quad1.height / 2.0f, 0.0f);
-        glm::vec3 max = transform1.position + glm::vec3(quad1.width / 2.0f, quad1.height / 2.0f, 0.0f);
-
-        // no rotation for now
-        glm::vec3 closestPoint = glm::clamp(transform2.position, min, max);
-        glm::vec3 distance = transform2.position - closestPoint;
-        float overlap = circle2.radius - glm::length(distance);
-
-        out.depth = overlap;
-        out.normal = glm::normalize(distance);
+    // ensure the normal points from object1 -> object2
+    glm::vec3 direction = transform2.position - transform1.position;
+    if (glm::dot(contact.normal, direction) < 0.0f) {
+        contact.normal = -contact.normal;
     }
 
-    // this will surely be fine
-    if (glm::any(glm::isnan(out.normal))) {
-        out.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+    // dont resolve if velocities are separating
+    const float velocityAlongNormal = glm::dot(rigidBody2.velocity - rigidBody1.velocity, contact.normal);
+    if (velocityAlongNormal > 0) {
+        return;
     }
 
-    return out;
+    const float impulseScalar = (-(1 + m_Restitution) * velocityAlongNormal) / ((1 / rigidBody1.mass) + (1 / rigidBody2.mass));
+    const glm::vec3 impulse = impulseScalar * contact.normal;
+
+    rigidBody1.velocity -= impulse / rigidBody1.mass;
+    rigidBody2.velocity += impulse / rigidBody2.mass;
 }

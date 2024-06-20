@@ -20,7 +20,7 @@ Game::Game() {
         .wall = {
             .width = static_cast<float>(resolution.x),
             .height = static_cast<float>(resolution.y),
-            .thickness = 1.0f,
+            .thickness = 10.0f,
         },
         .isCollidable = true,
         .isRenderable = false,

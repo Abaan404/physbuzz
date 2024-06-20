@@ -9,10 +9,10 @@ struct CircleComponent {
 
 struct CircleInfo {
     // physics info
-    TransformableComponent transform;
     RigidBodyComponent body;
 
     // geometry
+    TransformableComponent transform;
     CircleComponent circle;
 
     // naming

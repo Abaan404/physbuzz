@@ -1,6 +1,5 @@
-#include "quad.hpp"
+#include "line.hpp"
 
-#include "../collision/collision.hpp"
 #include <physbuzz/mesh.hpp>
 #include <physbuzz/shaders.hpp>
 
@@ -8,16 +7,16 @@
 #include "shaders/quad.vert"
 
 template <>
-Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, QuadInfo &info) {
+Physbuzz::ObjectID ObjectBuilder<LineInfo>::build(Physbuzz::Object &object, LineInfo &info) {
     // user-defined components
-    object.setComponent(info.quad);
+    object.setComponent(info.line);
     object.setComponent(info.transform);
     object.setComponent(info.identifier);
 
     // generate mesh
     {
-        glm::vec3 min = glm::vec3(-info.quad.width / 2.0f, -info.quad.height / 2.0f, 0.0f);
-        glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
+        glm::vec3 min = glm::vec3(-info.line.thickness / 2.0f, 0.0f, 0.0f);
+        glm::vec3 max = glm::vec3(info.line.thickness / 2.0f, info.line.length, 0.0f);
 
         std::vector<glm::uvec3> indices = {
             {0, 1, 2},
@@ -45,15 +44,6 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
         object.setComponent(mesh);
     }
 
-    // build inertia
-    {
-        // Mx = (y**2).integrate((x, -a/2, a/2)).integrate((y, -b/2, b/2)) * rho
-        // My = (x**2).integrate((x, -a/2, a/2)).integrate((y, -b/2, b/2)) * rho
-        info.body.angular.inertia = info.body.mass * (glm::pow(info.quad.width, 2) + glm::pow(info.quad.height, 2)) / 12.0f;
-
-        object.setComponent(info.body);
-    }
-
     // build gl context
     if (info.isRenderable) {
         static Physbuzz::ShaderContext shader = Physbuzz::ShaderContext(quadVertex, quadFrag);
@@ -66,14 +56,6 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
         object.setComponent(component);
     }
 
-    // generate bounding box
-    if (info.isCollidable) {
-        Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
-        BoundingComponent component = BoundingComponent(mesh);
-
-        object.setComponent(component);
-    }
-
     // create a rebuild callback
     {
         RebuildableComponent component = {
@@ -82,17 +64,15 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
                     object.getComponent<Physbuzz::RenderComponent>().destroy();
                 }
 
-                QuadInfo info = {
-                    .body = object.getComponent<RigidBodyComponent>(),
+                LineInfo info = {
                     .transform = object.getComponent<TransformableComponent>(),
-                    .quad = object.getComponent<QuadComponent>(),
+                    .line = object.getComponent<LineComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
-                    .isCollidable = object.hasComponent<BoundingComponent>(),
                     .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),
                 };
 
                 object.eraseComponents();
-                ObjectBuilder<QuadInfo>::build(object, info);
+                ObjectBuilder<LineInfo>::build(object, info);
             },
         };
 

@@ -1,70 +1,47 @@
 #include "wall.hpp"
 
 #include "objects/quad.hpp"
-#include <physbuzz/mesh.hpp>
 #include <glm/glm.hpp>
 #include <physbuzz/mesh.hpp>
 
-Wall::Wall(Physbuzz::Scene *scene) : m_Scene(scene) {
-    m_Id = scene->createObject();
-}
+Wall::Wall(Physbuzz::Scene *scene) : m_Scene(scene) {}
 
-Wall::~Wall() {
-    m_Scene->deleteObject(m_Id);
-    if (m_Erected) {
-        destroyWalls();
-    }
-}
+Wall::~Wall() {}
 
 bool Wall::isErect() const {
     return m_Erected;
-}
-
-void Wall::rebuild() {
-    m_Erected = false;
-    if (!m_Scene->hasObject(m_Id)) {
-        m_Id = m_Scene->createObject();
-        build(m_Info);
-    }
-}
-
-void Wall::destroyWalls() {
-    if (m_Info.isRenderable) {
-        m_Scene->getObject(m_Left).getComponent<Physbuzz::RenderComponent>().destroy();
-        m_Scene->getObject(m_Right).getComponent<Physbuzz::RenderComponent>().destroy();
-        m_Scene->getObject(m_Up).getComponent<Physbuzz::RenderComponent>().destroy();
-        m_Scene->getObject(m_Down).getComponent<Physbuzz::RenderComponent>().destroy();
-    }
-
-    m_Scene->deleteObject(m_Left);
-    m_Scene->deleteObject(m_Right);
-    m_Scene->deleteObject(m_Up);
-    m_Scene->deleteObject(m_Down);
-    m_Erected = false;
 }
 
 Physbuzz::ObjectID Wall::getId() const {
     return m_Id;
 }
 
-Physbuzz::ObjectID Wall::build(WallInfo &info) {
-    Physbuzz::Object &object = m_Scene->getObject(m_Id);
+const WallInfo &Wall::getInfo() const {
+    return m_Info;
+}
+
+Physbuzz::ObjectID Wall::build(const WallInfo &info) {
+    if (!m_Scene->hasObject(m_Id)) {
+        m_Id = m_Scene->createObject();
+    }
+
     m_Info = info;
+    Physbuzz::Object &object = m_Scene->getObject(m_Id);
 
     // user-defined components
-    object.setComponent(info.wall);
-    object.setComponent(info.transform);
-    object.setComponent(info.identifier);
+    object.setComponent(m_Info.wall);
+    object.setComponent(m_Info.transform);
+    object.setComponent(m_Info.identifier);
 
     glm::vec3 min = info.transform.position - glm::vec3(info.wall.width / 2.0f, info.wall.height / 2.0f, 0.0f);
     glm::vec3 max = info.transform.position + glm::vec3(info.wall.width / 2.0f, info.wall.height / 2.0f, 0.0f);
 
     QuadInfo wallLeft = {
-        .transform = {
-            .position = {min.x, info.transform.position.y, 0.0f},
-        },
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
+        },
+        .transform = {
+            .position = {min.x - info.wall.thickness / 2.0f, info.transform.position.y, 0.0f},
         },
         .quad = {
             .width = info.wall.thickness,
@@ -78,11 +55,11 @@ Physbuzz::ObjectID Wall::build(WallInfo &info) {
     };
 
     QuadInfo wallRight = {
-        .transform = {
-            .position = {max.x, info.transform.position.y, 0.0f},
-        },
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
+        },
+        .transform = {
+            .position = {max.x + info.wall.thickness / 2.0f, info.transform.position.y, 0.0f},
         },
         .quad = {
             .width = info.wall.thickness,
@@ -96,11 +73,11 @@ Physbuzz::ObjectID Wall::build(WallInfo &info) {
     };
 
     QuadInfo wallUp = {
-        .transform = {
-            .position = {info.transform.position.x, min.y, 0.0f},
-        },
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
+        },
+        .transform = {
+            .position = {info.transform.position.x, min.y - info.wall.thickness / 2.0f, 0.0f},
         },
         .quad = {
             .width = info.wall.width,
@@ -114,11 +91,11 @@ Physbuzz::ObjectID Wall::build(WallInfo &info) {
     };
 
     QuadInfo wallDown = {
-        .transform = {
-            .position = {info.transform.position.x, max.y, 0.0f},
-        },
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
+        },
+        .transform = {
+            .position = {info.transform.position.x, max.y + info.wall.thickness / 2.0f, 0.0f},
         },
         .quad = {
             .width = info.wall.width,
@@ -147,4 +124,20 @@ Physbuzz::ObjectID Wall::build(WallInfo &info) {
     }
 
     return m_Id;
+}
+
+void Wall::destroy() {
+    if (m_Info.isRenderable) {
+        m_Scene->getObject(m_Left).getComponent<Physbuzz::RenderComponent>().destroy();
+        m_Scene->getObject(m_Right).getComponent<Physbuzz::RenderComponent>().destroy();
+        m_Scene->getObject(m_Up).getComponent<Physbuzz::RenderComponent>().destroy();
+        m_Scene->getObject(m_Down).getComponent<Physbuzz::RenderComponent>().destroy();
+    }
+
+    m_Scene->deleteObject(m_Left);
+    m_Scene->deleteObject(m_Right);
+    m_Scene->deleteObject(m_Up);
+    m_Scene->deleteObject(m_Down);
+    m_Scene->deleteObject(m_Id);
+    m_Erected = false;
 }

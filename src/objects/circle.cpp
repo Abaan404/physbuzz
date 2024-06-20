@@ -16,25 +16,33 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
     object.setComponent(info.identifier);
 
     // generate mesh
-    Physbuzz::MeshComponent mesh;
     {
         constexpr float MAX_VERTICES = 50;
         constexpr const float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
 
+        std::vector<glm::uvec3> indices;
+        std::vector<glm::vec3> vertices;
+
         // good ol trig
         for (int i = 0; i < MAX_VERTICES; i++) {
             float angle = i * angleIncrement;
-            mesh.screenVertices.push_back(info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f));
+            vertices.push_back(info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f));
         }
 
         for (int i = 1; i < MAX_VERTICES - 1; i++) {
-            mesh.indices.push_back(glm::uvec3(0, i, i + 1));
+            indices.push_back(glm::uvec3(0, i, i + 1));
         }
-        mesh.indices.push_back(glm::uvec3(0, MAX_VERTICES - 1, 1));
+        indices.push_back(glm::uvec3(0, MAX_VERTICES - 1, 1));
 
-        mesh.orignalVertices = mesh.screenVertices;
-        for (auto &vertex : mesh.screenVertices) {
+        Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent(indices, vertices);
+
+        // apply transformations
+        for (auto &vertex : mesh.vertices) {
             vertex = info.transform.orientation * vertex + info.transform.position;
+        }
+
+        for (auto &normal : mesh.normals) {
+            normal = info.transform.orientation * normal;
         }
 
         object.setComponent(mesh);
@@ -63,7 +71,9 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
 
     // generate bounding box
     if (info.isCollidable) {
+        Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
         BoundingComponent component = BoundingComponent(mesh);
+
         object.setComponent(component);
     }
 
@@ -76,8 +86,8 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
                 }
 
                 CircleInfo info = {
-                    .transform = object.getComponent<TransformableComponent>(),
                     .body = object.getComponent<RigidBodyComponent>(),
+                    .transform = object.getComponent<TransformableComponent>(),
                     .circle = object.getComponent<CircleComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
                     .isCollidable = object.hasComponent<BoundingComponent>(),

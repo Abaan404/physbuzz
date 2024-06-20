@@ -73,10 +73,10 @@ void Renderer::resize(glm::ivec2 &resolution) {
 }
 
 void Renderer::normalize(MeshComponent &mesh) {
-    mesh.actualVertices.clear();
-    mesh.scaled = true;
-    for (auto &vertex : mesh.screenVertices) {
-        mesh.actualVertices.emplace_back((2.0f * vertex.x) / m_Resolution.x - 1.0f, 1.0f - (2.0f * vertex.y) / m_Resolution.y, vertex.z);
+    mesh.m_NormalizedVertices.clear();
+    mesh.m_Scaled = true;
+    for (auto &vertex : mesh.vertices) {
+        mesh.m_NormalizedVertices.emplace_back((2.0f * vertex.x) / m_Resolution.x - 1.0f, 1.0f - (2.0f * vertex.y) / m_Resolution.y, vertex.z);
     }
 }
 
@@ -98,12 +98,12 @@ void Renderer::render(Object &object) {
     RenderComponent &render = object.getComponent<RenderComponent>();
     MeshComponent &mesh = object.getComponent<MeshComponent>();
 
-    if (!mesh.scaled) {
+    if (!mesh.m_Scaled) {
         normalize(mesh);
     }
 
     // auto vertex = getArray<float, 3>(component.m_Mesh.vertices);
-    auto [vertices, verticesSize] = getArray<float, 3>(mesh.actualVertices);
+    auto [vertices, verticesSize] = getArray<float, 3>(mesh.m_NormalizedVertices);
     auto [indices, indicesSize] = getArray<std::uint32_t, 3>(mesh.indices);
 
     // send data to the gpu

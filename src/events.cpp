@@ -28,8 +28,11 @@ void Events::keyEvent(Physbuzz::KeyEvent event) {
                 }
             }
 
+            Game::wall.destroy();
             Game::scene.clear();
-            Game::wall.rebuild();
+
+            const WallInfo &info = Game::wall.getInfo();
+            Game::wall.build(info);
         } break;
         }
 
@@ -100,26 +103,24 @@ void Events::WindowResize(Physbuzz::WindowResizeEvent event) {
     Game::renderer.resize(resolution);
 
     if (Game::wall.isErect()) {
-        Physbuzz::Object &wall = Game::scene.getObject(Game::wall.getId());
-        WallInfo info = {
-            .transform = {
-                .position = glm::vec3(resolution >> 1, 0.0f),
-                .scale = wall.getComponent<TransformableComponent>().scale},
-            .wall = {
-                .width = static_cast<float>(event.width),
-                .height = static_cast<float>(event.height),
-                .thickness = wall.getComponent<WallComponent>().thickness,
-            },
-            .isCollidable = true,
-            .isRenderable = false,
+        WallInfo info = Game::wall.getInfo();
+        info.transform = {
+            .position = glm::vec3(resolution >> 1, 0.0f),
         };
 
+        info.wall = {
+            .width = static_cast<float>(event.width),
+            .height = static_cast<float>(event.height),
+            .thickness = info.wall.thickness,
+        };
+
+        Game::wall.destroy();
         Game::wall.build(info);
     }
 
     std::vector<Physbuzz::MeshComponent> &meshes = Game::scene.getComponents<Physbuzz::MeshComponent>();
     for (auto &mesh : meshes) {
-        mesh.scaled = false;
+        mesh.renormalize();
     }
 }
 

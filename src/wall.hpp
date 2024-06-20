@@ -30,11 +30,12 @@ class Wall {
     Wall(Physbuzz::Scene *scene);
     ~Wall();
 
-    Physbuzz::ObjectID build(WallInfo &info);
-    Physbuzz::ObjectID getId() const;
-    void rebuild();
     bool isErect() const;
-    void destroyWalls();
+    Physbuzz::ObjectID getId() const;
+    const WallInfo &getInfo() const;
+
+    Physbuzz::ObjectID build(const WallInfo &info);
+    void destroy();
 
   private:
     Physbuzz::ObjectID m_Left = 0;
@@ -42,9 +43,9 @@ class Wall {
     Physbuzz::ObjectID m_Up = 0;
     Physbuzz::ObjectID m_Down = 0;
 
-    WallInfo m_Info;
     Physbuzz::ObjectID m_Id = 0;
 
+    WallInfo m_Info;
     Physbuzz::Scene *m_Scene;
     bool m_Erected = false;
 };

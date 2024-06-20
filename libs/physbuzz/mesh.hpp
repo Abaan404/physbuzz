@@ -6,13 +6,27 @@
 
 namespace Physbuzz {
 
-struct MeshComponent {
-    std::vector<glm::uvec3> indices;
-    std::vector<glm::vec3> actualVertices;
-    std::vector<glm::vec3> screenVertices;
-    std::vector<glm::vec3> orignalVertices;
+class RenderComponent;
 
-    bool scaled = false;
+class MeshComponent {
+  public:
+    MeshComponent(std::vector<glm::uvec3> indices, std::vector<glm::vec3> vertices);
+    ~MeshComponent();
+
+    const std::vector<glm::vec3> &getOriginalVertices() const;
+    void renormalize();
+
+    std::vector<glm::uvec3> indices;
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> normals;
+
+  private:
+    std::vector<glm::vec3> m_NormalizedVertices;
+    std::vector<glm::vec3> m_OriginalVertices;
+
+    bool m_Scaled = false;
+
+    friend class Renderer;
 };
 
 class RenderComponent {

@@ -10,10 +10,10 @@ struct QuadComponent {
 
 struct QuadInfo {
     // physics info
-    TransformableComponent transform;
     RigidBodyComponent body;
 
     // geometry
+    TransformableComponent transform;
     QuadComponent quad;
 
     // naming

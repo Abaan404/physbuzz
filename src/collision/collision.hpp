@@ -23,7 +23,7 @@ class BoundingComponent {
     }
 
     void build(const Physbuzz::MeshComponent &mesh) {
-        for (const auto &vertex : mesh.screenVertices) {
+        for (const auto &vertex : mesh.vertices) {
             aabb.min = glm::min(aabb.min, vertex);
             aabb.max = glm::max(aabb.max, vertex);
         }
@@ -38,19 +38,21 @@ class BoundingComponent {
 };
 
 struct Contact {
+    float depth = std::numeric_limits<float>::max();
     glm::vec3 normal = {0.0f, 1.0f, 0.0f};
-    float depth = 0.0f;
+    glm::vec3 point = {0.0f, 0.0f, 0.0f};
 };
 
 class Collision {
   public:
     void tick(Physbuzz::Scene &scene);
 
+    bool check(Physbuzz::Object &object1, Physbuzz::Object &object2, Contact &contact);
+    void resolve(Physbuzz::Object &object1, Physbuzz::Object &object2, Contact &contact);
+
   private:
-    bool check(Physbuzz::Object &object1, Physbuzz::Object &object2);
-    void resolve(Physbuzz::Object &object1, Physbuzz::Object &object2);
+    float getAxisOverlap(const glm::vec3 &axis, const Physbuzz::MeshComponent &mesh1, const Physbuzz::MeshComponent &mesh2);
+    void addMeshNormals(const Physbuzz::MeshComponent &mesh, std::vector<glm::vec3> &axes);
 
-    Contact calcContact(Physbuzz::Object &object1, Physbuzz::Object &object2);
-
-    float m_Restitution{1.f};
+    float m_Restitution = 1.0f;
 };

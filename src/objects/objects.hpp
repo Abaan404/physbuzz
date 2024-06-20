@@ -23,6 +23,7 @@ struct ObjectBuilder {
 enum class ObjectType {
     Circle,
     Quad,
+    Line,
     Unknown,
 };
 
