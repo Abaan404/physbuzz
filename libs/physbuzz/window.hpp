@@ -13,6 +13,8 @@ class Window {
     Window();
     ~Window();
 
+    void build();
+    void destroy();
     void flip();
 
     GLFWwindow *getWindow() const;

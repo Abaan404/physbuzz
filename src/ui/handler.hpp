@@ -10,6 +10,8 @@ class InterfaceManager {
     InterfaceManager operator=(const InterfaceManager &other);
     ~InterfaceManager();
 
+    void build();
+    void destroy();
     void render();
 
     bool draw = false;

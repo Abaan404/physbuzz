@@ -7,7 +7,11 @@
 
 namespace Physbuzz {
 
-Window::Window() {
+Window::Window() {}
+
+Window::~Window() {}
+
+void Window::build() {
     // error callback
     glfwSetErrorCallback(glfwErrorCallback);
 
@@ -37,7 +41,7 @@ Window::Window() {
     glfwSwapInterval(1);
 }
 
-Window::~Window() {
+void Window::destroy() {
     glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
     glfwDestroyWindow(m_Window);
     glfwTerminate();

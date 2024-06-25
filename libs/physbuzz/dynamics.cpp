@@ -1,28 +1,37 @@
 #include "dynamics.hpp"
 
-#include "../collision/collision.hpp"
-#include "../game.hpp"
-#include <physbuzz/logging.hpp>
-#include <physbuzz/mesh.hpp>
-#include <physbuzz/object.hpp>
+#include "collision.hpp"
+#include "mesh.hpp"
 
-void Dynamics::tick(Physbuzz::Scene &scene) {
+namespace Physbuzz {
+
+Dynamics::Dynamics(Clock &clock)
+    : m_Clock(clock) {}
+
+Dynamics::~Dynamics() {}
+
+const Clock &Dynamics::getClock() const {
+    return m_Clock;
+}
+
+void Dynamics::tick(Scene &scene) {
     auto &objects = scene.getObjects();
+    m_Clock.tick();
 
     for (auto &object : objects) {
         if (!(object.hasComponent<RigidBodyComponent>() && object.hasComponent<TransformableComponent>())) {
             continue;
         }
 
-        Physbuzz::Logger::ASSERT(object.hasComponent<TransformableComponent>(), "RigidBody object does not have a transform.");
+        Logger::ASSERT(object.hasComponent<TransformableComponent>(), "RigidBody object does not have a transform.");
         tickMotion(object);
     }
 }
 
-void Dynamics::tickMotion(Physbuzz::Object &object) {
+void Dynamics::tickMotion(Object &object) {
     RigidBodyComponent &body = object.getComponent<RigidBodyComponent>();
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
-    float dTime = Game::clock.getDelta() / 1000.0f;
+    float dTime = m_Clock.getDelta() / 1000.0f;
 
     // apply gravity
     {
@@ -60,13 +69,13 @@ void Dynamics::tickMotion(Physbuzz::Object &object) {
 }
 
 // not exactly "rotate"s but this works for now
-void Dynamics::rotate(Physbuzz::Object &object, const glm::quat delta) {
+void Dynamics::rotate(Object &object, const glm::quat delta) {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
     transform.orientation = glm::normalize(transform.orientation + delta);
 
     // update mesh
-    if (object.hasComponent<Physbuzz::RenderComponent>()) {
-        Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
+    if (object.hasComponent<RenderComponent>()) {
+        MeshComponent &mesh = object.getComponent<MeshComponent>();
         const std::vector<glm::vec3> &originalVertices = mesh.getOriginalVertices();
 
         for (int i = 0; i < mesh.vertices.size(); i++) {
@@ -78,7 +87,7 @@ void Dynamics::rotate(Physbuzz::Object &object, const glm::quat delta) {
 
         // adjust collision bounding box
         if (object.hasComponent<BoundingComponent>()) {
-            BoundingComponent bounding = object.getComponent<Physbuzz::MeshComponent>();
+            BoundingComponent bounding = object.getComponent<MeshComponent>();
             bounding.build(mesh);
 
             object.setComponent(bounding);
@@ -86,13 +95,13 @@ void Dynamics::rotate(Physbuzz::Object &object, const glm::quat delta) {
     }
 }
 
-void Dynamics::translate(Physbuzz::Object &object, const glm::vec3 delta) {
+void Dynamics::translate(Object &object, const glm::vec3 delta) {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
     transform.translate(delta);
 
     // update mesh
-    if (object.hasComponent<Physbuzz::RenderComponent>()) {
-        Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
+    if (object.hasComponent<RenderComponent>()) {
+        MeshComponent &mesh = object.getComponent<MeshComponent>();
 
         for (auto &vertex : mesh.vertices) {
             vertex += delta;
@@ -102,7 +111,7 @@ void Dynamics::translate(Physbuzz::Object &object, const glm::vec3 delta) {
 
         // adjust collision bounding box
         if (object.hasComponent<BoundingComponent>()) {
-            BoundingComponent bounding = object.getComponent<Physbuzz::MeshComponent>();
+            BoundingComponent bounding = object.getComponent<MeshComponent>();
             AABBComponent box = bounding.getBox();
 
             box.max += delta;
@@ -113,3 +122,5 @@ void Dynamics::translate(Physbuzz::Object &object, const glm::vec3 delta) {
         }
     }
 }
+
+} // namespace Physbuzz

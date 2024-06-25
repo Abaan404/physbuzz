@@ -17,6 +17,9 @@ class Renderer {
 
     std::time_t time = 0;
 
+    void build();
+    void destroy();
+
     void render(Scene &scene);
     void render(Object &object);
 

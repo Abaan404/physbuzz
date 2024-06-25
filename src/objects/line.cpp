@@ -65,7 +65,7 @@ Physbuzz::ObjectID ObjectBuilder<LineInfo>::build(Physbuzz::Object &object, Line
                 }
 
                 LineInfo info = {
-                    .transform = object.getComponent<TransformableComponent>(),
+                    .transform = object.getComponent<Physbuzz::TransformableComponent>(),
                     .line = object.getComponent<LineComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
                     .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),

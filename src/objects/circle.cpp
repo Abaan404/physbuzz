@@ -1,7 +1,7 @@
 #include "circle.hpp"
 
-#include "../collision/collision.hpp"
 #include <glm/ext/scalar_constants.hpp>
+#include <physbuzz/collision.hpp>
 #include <physbuzz/mesh.hpp>
 #include <physbuzz/shaders.hpp>
 
@@ -72,7 +72,7 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
     // generate bounding box
     if (info.isCollidable) {
         Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
-        BoundingComponent component = BoundingComponent(mesh);
+        Physbuzz::BoundingComponent component = Physbuzz::BoundingComponent(mesh);
 
         object.setComponent(component);
     }
@@ -86,11 +86,11 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
                 }
 
                 CircleInfo info = {
-                    .body = object.getComponent<RigidBodyComponent>(),
-                    .transform = object.getComponent<TransformableComponent>(),
+                    .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
+                    .transform = object.getComponent<Physbuzz::TransformableComponent>(),
                     .circle = object.getComponent<CircleComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
-                    .isCollidable = object.hasComponent<BoundingComponent>(),
+                    .isCollidable = object.hasComponent<Physbuzz::BoundingComponent>(),
                     .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),
                 };
 

@@ -1,10 +1,12 @@
 #pragma once
 
-#include "glm/ext/quaternion_trigonometric.hpp"
+#include "clock.hpp"
+#include "scene.hpp"
+#include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <physbuzz/clock.hpp>
-#include <physbuzz/scene.hpp>
+
+namespace Physbuzz {
 
 struct TransformableComponent {
     glm::vec3 position = {0.0f, 0.0f, 0.0f};
@@ -33,7 +35,7 @@ struct RigidBodyComponent {
     } angular;
 
     struct {
-        glm::vec3 acceleration = {0.0f, 1000.0f, 0.0f};
+        glm::vec3 acceleration = {0.0f, 0.0f, 0.0f};
     } gravity;
 
     struct {
@@ -53,11 +55,19 @@ struct RigidBodyComponent {
 
 class Dynamics {
   public:
-    void tick(Physbuzz::Scene &scene);
+    Dynamics(Clock &clock);
+    ~Dynamics();
 
-    void translate(Physbuzz::Object &object, const glm::vec3 delta);
-    void rotate(Physbuzz::Object &object, const glm::quat delta);
+    void tick(Scene &scene);
+    const Clock &getClock() const;
+
+    void translate(Object &object, const glm::vec3 delta);
+    void rotate(Object &object, const glm::quat delta);
 
   private:
-    void tickMotion(Physbuzz::Object &object);
+    void tickMotion(Object &object);
+
+    Clock m_Clock;
 };
+
+} // namespace Physbuzz

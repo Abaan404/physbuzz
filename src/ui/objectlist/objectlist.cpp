@@ -6,6 +6,7 @@
 #include "../../objects/objects.hpp"
 #include "../../objects/quad.hpp"
 #include <glm/ext/scalar_constants.hpp>
+#include <physbuzz/context.hpp>
 #include <physbuzz/renderer.hpp>
 
 #include <format>
@@ -20,17 +21,19 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
     ImGui::SetNextWindowPos(ImVec2(Viewport->WorkPos.x, Viewport->WorkPos.y), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(128, 256), ImGuiCond_FirstUseEver);
 
+    Game *game = Physbuzz::Context::get<Game>(renderer.getWindow().getWindow());
+
     ImGuiWindowFlags windowFlags = 0;
     if (!ImGui::Begin("ObjectList", &show, windowFlags)) {
         ImGui::End();
         return;
     }
 
-    Game::scene.sortObjects([](const Physbuzz::Object &object1, const Physbuzz::Object &object2) {
+    game->scene.sortObjects([](const Physbuzz::Object &object1, const Physbuzz::Object &object2) {
         return object1.getId() < object2.getId();
     });
 
-    std::vector<Physbuzz::Object> &objects = Game::scene.getObjects();
+    std::vector<Physbuzz::Object> &objects = game->scene.getObjects();
 
     ImGui::Text("Spawned Objects: %zu", objects.size());
 
@@ -54,8 +57,8 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                 ImGui::SeparatorText(std::format("{}) {}", object.getId(), identifier.name).c_str());
             }
 
-            if (object.hasComponent<TransformableComponent>()) {
-                TransformableComponent &transform = object.getComponent<TransformableComponent>();
+            if (object.hasComponent<Physbuzz::TransformableComponent>()) {
+                Physbuzz::TransformableComponent &transform = object.getComponent<Physbuzz::TransformableComponent>();
                 glm::vec3 norm = glm::axis(transform.orientation);
 
                 float position[] = {transform.position.x, transform.position.y, transform.position.z};
@@ -91,8 +94,8 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
                 }
             }
 
-            if (object.hasComponent<RigidBodyComponent>()) {
-                RigidBodyComponent &physics = object.getComponent<RigidBodyComponent>();
+            if (object.hasComponent<Physbuzz::RigidBodyComponent>()) {
+                Physbuzz::RigidBodyComponent &physics = object.getComponent<Physbuzz::RigidBodyComponent>();
                 float velocity[] = {physics.velocity.x, physics.velocity.y, physics.velocity.z};
                 float acceleration[] = {physics.acceleration.x, physics.acceleration.y, physics.acceleration.z};
                 float gravity[] = {physics.gravity.acceleration.x, physics.gravity.acceleration.y, physics.gravity.acceleration.z};

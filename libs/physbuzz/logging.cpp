@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <format>
 #include <iostream>
 
@@ -13,6 +14,11 @@ void INFO(std::string_view message) {
 
 void WARNING(std::string_view message) {
     std::cerr << std::format("WARNING: {}\n", message);
+}
+
+void ERROR(std::string_view message) {
+    std::cerr << std::format("ERROR: {}\n", message);
+    exit(EXIT_FAILURE);
 }
 
 void DEBUG(std::string_view message) {

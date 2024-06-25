@@ -10,6 +10,8 @@
 namespace Physbuzz {
 
 struct KeyEvent {
+    GLFWwindow *window;
+
     int key;
     int scancode;
     int action;
@@ -17,31 +19,42 @@ struct KeyEvent {
 };
 
 struct MouseButtonEvent {
+    GLFWwindow *window;
+
     int button;
     int action;
     int mods;
 };
 
 struct MousePositionEvent {
+    GLFWwindow *window;
+
     double xpos;
     double ypos;
 };
 
 struct MouseEnteredEvent {
+    GLFWwindow *window;
+
     int entered;
 };
 
 struct MouseScrollEvent {
+    GLFWwindow *window;
+
     double xoffset;
     double yoffset;
 };
 
 struct WindowResizeEvent {
+    GLFWwindow *window;
+
     int width;
     int height;
 };
 
 struct WindowCloseEvent {
+    GLFWwindow *window;
 };
 
 class EventManager {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "dynamics/dynamics.hpp"
 #include "objects/objects.hpp"
+#include <physbuzz/dynamics.hpp>
 
 struct WallComponent {
     float width = 0.0f;
@@ -11,7 +11,7 @@ struct WallComponent {
 
 struct WallInfo {
     // physics info
-    TransformableComponent transform;
+    Physbuzz::TransformableComponent transform;
 
     // geometry
     WallComponent wall;

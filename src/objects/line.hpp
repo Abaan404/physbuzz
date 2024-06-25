@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../dynamics/dynamics.hpp"
+#include <physbuzz/dynamics.hpp>
 #include "objects.hpp"
 
 struct LineComponent {
@@ -10,7 +10,7 @@ struct LineComponent {
 
 struct LineInfo {
     // geometry
-    TransformableComponent transform;
+    Physbuzz::TransformableComponent transform;
     LineComponent line;
 
     // naming

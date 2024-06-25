@@ -10,6 +10,7 @@ namespace Logger {
 
 void INFO(std::string_view message);
 void WARNING(std::string_view message);
+void ERROR(std::string_view message);
 
 void DEBUG(std::string_view message);
 void ASSERT(bool condition, std::string_view reason);

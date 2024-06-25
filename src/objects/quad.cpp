@@ -1,6 +1,6 @@
 #include "quad.hpp"
 
-#include "../collision/collision.hpp"
+#include <physbuzz/collision.hpp>
 #include <physbuzz/mesh.hpp>
 #include <physbuzz/shaders.hpp>
 
@@ -69,7 +69,7 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
     // generate bounding box
     if (info.isCollidable) {
         Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
-        BoundingComponent component = BoundingComponent(mesh);
+        Physbuzz::BoundingComponent component = Physbuzz::BoundingComponent(mesh);
 
         object.setComponent(component);
     }
@@ -83,11 +83,11 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
                 }
 
                 QuadInfo info = {
-                    .body = object.getComponent<RigidBodyComponent>(),
-                    .transform = object.getComponent<TransformableComponent>(),
+                    .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
+                    .transform = object.getComponent<Physbuzz::TransformableComponent>(),
                     .quad = object.getComponent<QuadComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
-                    .isCollidable = object.hasComponent<BoundingComponent>(),
+                    .isCollidable = object.hasComponent<Physbuzz::BoundingComponent>(),
                     .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),
                 };
 

@@ -11,7 +11,12 @@
 #include "objectpicker/objectpicker.hpp"
 #include "overlay/overlay.hpp"
 
-InterfaceManager::InterfaceManager(Physbuzz::Renderer &renderer) : m_Renderer(renderer) {
+InterfaceManager::InterfaceManager(Physbuzz::Renderer &renderer)
+    : m_Renderer(renderer) {}
+
+InterfaceManager::~InterfaceManager() {}
+
+void InterfaceManager::build() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
@@ -23,7 +28,7 @@ InterfaceManager::InterfaceManager(Physbuzz::Renderer &renderer) : m_Renderer(re
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows (buggy on wayland)
     io.IniFilename = nullptr; // disable imgui.ini
 
-    GLFWwindow *window = renderer.getWindow().getWindow();
+    GLFWwindow *window = m_Renderer.getWindow().getWindow();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
@@ -33,6 +38,12 @@ InterfaceManager::InterfaceManager(Physbuzz::Renderer &renderer) : m_Renderer(re
     interfaces["Dockspace"] = std::make_unique<Dockspace>();
 
     interfaces["Demo"]->show = false;
+}
+
+void InterfaceManager::destroy() {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }
 
 InterfaceManager::InterfaceManager(const InterfaceManager &other) : m_Renderer(other.m_Renderer) {
@@ -51,12 +62,6 @@ InterfaceManager InterfaceManager::operator=(const InterfaceManager &other) {
     }
 
     return *this;
-}
-
-InterfaceManager::~InterfaceManager() {
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
 }
 
 void InterfaceManager::render() {

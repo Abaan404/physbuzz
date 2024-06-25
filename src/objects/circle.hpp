@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../dynamics/dynamics.hpp"
+#include <physbuzz/dynamics.hpp>
 #include "objects.hpp"
 
 struct CircleComponent {
@@ -9,10 +9,10 @@ struct CircleComponent {
 
 struct CircleInfo {
     // physics info
-    RigidBodyComponent body;
+    Physbuzz::RigidBodyComponent body;
 
     // geometry
-    TransformableComponent transform;
+    Physbuzz::TransformableComponent transform;
     CircleComponent circle;
 
     // naming

@@ -2,8 +2,11 @@
 
 #include "../../game.hpp"
 #include <imgui.h>
+#include <physbuzz/context.hpp>
 
 void FrametimeOverlay::draw(Physbuzz::Renderer &renderer) {
+    Game *game = Physbuzz::Context::get<Game>(renderer.getWindow().getWindow());
+
     ImGuiIO &io = ImGui::GetIO();
     ImGuiWindowFlags window_flags =
         ImGuiWindowFlags_NoDecoration |
@@ -21,7 +24,7 @@ void FrametimeOverlay::draw(Physbuzz::Renderer &renderer) {
         ImGui::Text("Frametime");
         ImGui::Separator();
 
-        double mspt = Game::clock.getDelta();
+        double mspt = game->clock.getDelta();
         ImGui::Text("FPS: %.2f (%.2f ms)", 1000.0f / mspt, mspt);
 
         if (ImGui::BeginPopupContextWindow()) {

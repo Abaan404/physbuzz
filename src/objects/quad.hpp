@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../dynamics/dynamics.hpp"
+#include <physbuzz/dynamics.hpp>
 #include "objects.hpp"
 
 struct QuadComponent {
@@ -10,10 +10,10 @@ struct QuadComponent {
 
 struct QuadInfo {
     // physics info
-    RigidBodyComponent body;
+    Physbuzz::RigidBodyComponent body;
 
     // geometry
-    TransformableComponent transform;
+    Physbuzz::TransformableComponent transform;
     QuadComponent quad;
 
     // naming

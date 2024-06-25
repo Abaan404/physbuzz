@@ -14,9 +14,7 @@ std::pair<T *, std::size_t> getArray(std::vector<glm::vec<N, T>> &vec) {
 
 namespace Physbuzz {
 
-Renderer::Renderer(Window &window) : m_Window(window) {
-    target(nullptr);
-}
+Renderer::Renderer(Window &window) : m_Window(window) {}
 
 Renderer::Renderer(const Renderer &other) : m_Window(other.m_Window) {
     if (this != &other) {
@@ -33,6 +31,12 @@ Renderer &Renderer::operator=(const Renderer &other) {
 }
 
 Renderer::~Renderer() {}
+
+void Renderer::build() {
+    target(nullptr);
+}
+
+void Renderer::destroy() {}
 
 Window &Renderer::getWindow() const {
     return m_Window;
