@@ -1,28 +1,37 @@
 #pragma once
 
+#include <glad/gl.h>
+
 namespace Physbuzz {
 
 class Shader {
   public:
-    Shader(const char* source, unsigned int type);
+    Shader(const GLchar *source, GLuint type);
     ~Shader();
 
-    unsigned int shader;
+    void build();
+    void destroy();
 
-    unsigned int compile();
+    GLuint shader;
+
+    GLuint compile();
 
   private:
-    const char* m_Source;
+    const GLchar *m_Source;
+    GLuint m_Type;
 };
 
 class ShaderContext {
   public:
-    ShaderContext(const char* vertex, const char* fragment);
+    ShaderContext(const GLchar *vertex, const GLchar *fragment);
     ~ShaderContext();
 
-    unsigned int program;
+    void build();
+    void destroy();
 
-    unsigned int load();
+    GLuint program;
+
+    GLuint load();
 
   private:
     Shader m_Vertex;

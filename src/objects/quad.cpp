@@ -56,8 +56,9 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
 
     // build gl context
     if (info.isRenderable) {
-        static Physbuzz::ShaderContext shader = Physbuzz::ShaderContext(quadVertex, quadFrag);
-        static GLuint program = shader.load();
+        Physbuzz::ShaderContext shader = Physbuzz::ShaderContext(quadVertex, quadFrag);
+        shader.build();
+        GLuint program = shader.load();
 
         Physbuzz::RenderComponent component = Physbuzz::RenderComponent();
         component.build();

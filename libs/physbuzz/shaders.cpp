@@ -1,22 +1,32 @@
 #include "shaders.hpp"
 
-#include <glad/gl.h>
 #include <iostream>
 #include <vector>
 
 namespace Physbuzz {
 
-ShaderContext::ShaderContext(const char* vertex, const char* fragment) : m_Vertex(Shader(vertex, GL_VERTEX_SHADER)),
-                                                                         m_Fragment(Shader(fragment, GL_FRAGMENT_SHADER)) {
+ShaderContext::ShaderContext(const GLchar *vertex, const GLchar *fragment)
+    : m_Vertex(Shader(vertex, GL_VERTEX_SHADER)),
+      m_Fragment(Shader(fragment, GL_FRAGMENT_SHADER)) {}
+
+ShaderContext::~ShaderContext() {}
+
+void ShaderContext::build() {
+    m_Vertex.build();
+    m_Fragment.build();
+
     program = glCreateProgram();
 }
 
-ShaderContext::~ShaderContext() {
+void ShaderContext::destroy() {
+    m_Vertex.destroy();
+    m_Fragment.destroy();
+
     glDeleteProgram(program);
 }
 
-unsigned int ShaderContext::load() {
-    int result;
+GLuint ShaderContext::load() {
+    GLint result;
 
     m_Vertex.compile();
     m_Fragment.compile();
@@ -30,7 +40,7 @@ unsigned int ShaderContext::load() {
     // checks
     glGetProgramiv(program, GL_LINK_STATUS, &result);
     if (result == GL_FALSE) {
-        int logLength;
+        GLint logLength;
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
 
         std::vector<char> errorMessage(logLength + 1);
@@ -53,26 +63,30 @@ unsigned int ShaderContext::load() {
     return program;
 }
 
-Shader::Shader(const char* source, unsigned int type) : m_Source(source) {
-    shader = glCreateShader(type);
+Shader::Shader(const GLchar *source, GLuint type) : m_Source(source), m_Type(type) {}
+
+Shader::~Shader() {}
+
+void Shader::build() {
+    shader = glCreateShader(m_Type);
 }
 
-Shader::~Shader() {
+void Shader::destroy() {
     glDeleteShader(shader);
 }
 
-unsigned int Shader::compile() {
-    int result;
+GLuint Shader::compile() {
+    GLint result;
 
     // compile (maybe use spir-v in the future?)
-    const char *p_Source = m_Source;
+    const GLchar *p_Source = m_Source;
     glShaderSource(shader, 1, &p_Source, NULL);
     glCompileShader(shader);
 
     // checks
     glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
     if (result == GL_FALSE) {
-        int logLength;
+        GLint logLength;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
 
         std::vector<char> errorMessage(logLength + 1);

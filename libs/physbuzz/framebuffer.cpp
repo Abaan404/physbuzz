@@ -1,30 +1,9 @@
 #include "framebuffer.hpp"
 
-#include <glad/gl.h>
-
 namespace Physbuzz {
 
-Framebuffer::Framebuffer(glm::ivec2 &resolution) : m_Resolution(resolution) {}
-
-Framebuffer::Framebuffer(const Framebuffer &other) : m_Resolution(other.m_Resolution) {
-    if (this != &other) {
-        m_Framebuffer = other.m_Framebuffer;
-        m_Depth = other.m_Depth;
-        m_Color = other.m_Color;
-    }
-}
-
-Framebuffer &Framebuffer::operator=(const Framebuffer &other) {
-    if (this != &other) {
-        m_Resolution = other.m_Resolution;
-
-        m_Framebuffer = other.m_Framebuffer;
-        m_Depth = other.m_Depth;
-        m_Color = other.m_Color;
-    }
-
-    return *this;
-}
+Framebuffer::Framebuffer(glm::ivec2 &resolution)
+    : m_Resolution(resolution) {}
 
 Framebuffer::~Framebuffer() {}
 
@@ -79,19 +58,19 @@ void Framebuffer::unbind() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-unsigned int Framebuffer::getColor() const {
+const GLuint Framebuffer::getColor() const {
     return m_Color;
 };
 
-unsigned int Framebuffer::getDepth() const {
+const GLuint Framebuffer::getDepth() const {
     return m_Depth;
 };
 
-unsigned int Framebuffer::getFramebuffer() const {
+const GLuint Framebuffer::getFramebuffer() const {
     return m_Framebuffer;
 }
 
-glm::ivec2 Framebuffer::getResolution() const {
+const glm::ivec2 Framebuffer::getResolution() const {
     return m_Resolution;
 };
 
