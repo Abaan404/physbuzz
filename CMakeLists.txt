@@ -17,7 +17,7 @@ add_subdirectory(${GLM_PATH})
 # glad
 set(GLAD_PATH "submodules/glad")
 add_subdirectory("${GLAD_PATH}/cmake")
-glad_add_library(glad STATIC API gl:core=4.6)
+glad_add_library(glad SHARED API gl:core=4.6)
 
 # glfw
 set(GLFW_PATH "submodules/glfw")
@@ -27,15 +27,9 @@ add_subdirectory(${GLFW_PATH})
 set(ENGINE_PATH "libs")
 file(GLOB_RECURSE ENGINE_SRCS "${ENGINE_PATH}/*.cpp")
 
-add_library(libphysbuzz STATIC ${ENGINE_SRCS})
-target_include_directories(libphysbuzz PUBLIC 
-    ${ENGINE_PATH})
-
-target_link_libraries(libphysbuzz PUBLIC
-    glfw
-    glad
-    glm
-)
+# Catch2
+set(CATCH2_PATH "submodules/Catch2")
+add_subdirectory(${CATCH2_PATH})
 
 # ImGui
 set(IMGUI_PATH "submodules/imgui")
@@ -50,24 +44,36 @@ target_include_directories(imgui PUBLIC
     ${IMGUI_PATH}/backends
     ${GLFW_PATH}/include) # for glfw backend
 
+# physbuzz
+add_library(physbuzz SHARED ${ENGINE_SRCS})
+add_compile_definitions(physbuzz
+    GLFW_INCLUDE_NONE)
+
+target_include_directories(physbuzz PUBLIC 
+    ${ENGINE_PATH})
+
+target_link_libraries(physbuzz PUBLIC
+    glfw
+    glad
+    glm)
+
 # driver code
 file(GLOB_RECURSE SRCS "src/*.cpp")
-add_executable(physbuzz ${SRCS})
+add_executable(game ${SRCS})
 
-target_link_libraries(physbuzz PRIVATE
-    libphysbuzz
-    imgui
-)
+target_link_libraries(game PRIVATE
+    physbuzz
+    imgui)
 
 # tests
-set(CATCH2_PATH "submodules/Catch2")
 set(TEST_PATH "tests")
-add_subdirectory(${CATCH2_PATH})
-
 file(GLOB_RECURSE TESTS_SRCS "${TEST_PATH}/*.cpp")
 add_executable(tests ${TESTS_SRCS})
+add_compile_definitions(tests
+    CATCH_CONFIG_PREFIX_MESSAGES)
+
 target_link_libraries(tests PRIVATE
-    libphysbuzz
+    physbuzz
     Catch2::Catch2WithMain)
 
 include(CTest)

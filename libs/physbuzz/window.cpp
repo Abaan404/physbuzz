@@ -10,7 +10,7 @@ Window::Window() {}
 
 Window::~Window() {}
 
-void Window::build()  {
+void Window::build() {
     // error callback
     glfwSetErrorCallback(glfwErrorCallback);
 
