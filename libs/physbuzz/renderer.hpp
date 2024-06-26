@@ -1,5 +1,6 @@
 #pragma once
 
+#include "clock.hpp"
 #include "framebuffer.hpp"
 #include "mesh.hpp"
 #include "scene.hpp"
@@ -14,8 +15,6 @@ class Renderer {
     Renderer(const Renderer &other);
     Renderer &operator=(const Renderer &other);
     ~Renderer();
-
-    std::time_t time = 0;
 
     void build();
     void destroy();
@@ -35,6 +34,7 @@ class Renderer {
 
     Framebuffer *m_Framebuffer;
     Window &m_Window;
+    Clock m_Clock;
     glm::ivec2 m_Resolution;
 
     void normalize(MeshComponent &mesh);

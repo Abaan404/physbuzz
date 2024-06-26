@@ -8,14 +8,13 @@
 #include <physbuzz/renderer.hpp>
 #include <physbuzz/window.hpp>
 
-
 class Game {
   public:
     Game();
     ~Game();
 
     void loop();
-    bool isRunning = false;
+    bool isRunning();
 
     // displaying and rendering
     Physbuzz::Window window;
@@ -37,4 +36,7 @@ class Game {
 
     // game elements
     Wall wall;
+
+  private:
+    bool m_IsRunning = false;
 };

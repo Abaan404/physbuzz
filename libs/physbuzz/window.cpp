@@ -18,9 +18,6 @@ void Window::build()  {
     int isInit = glfwInit();
     Logger::ASSERT(isInit == GLFW_TRUE, "[GLFW] Could not initialize GLFW.");
 
-    // setup window clock (glfw's time does not have ms precision)
-    m_Clock = std::chrono::system_clock::now();
-
     // create a window.
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -41,12 +38,16 @@ void Window::build()  {
 }
 
 void Window::destroy() {
-    glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
+    close();
     glfwDestroyWindow(m_Window);
     glfwTerminate();
 }
 
-GLFWwindow *Window::getWindow() const {
+void Window::close() const {
+    glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
+}
+
+GLFWwindow *Window::getGLFWwindow() const {
     return m_Window;
 }
 
@@ -65,10 +66,8 @@ const glm::dvec2 Window::getCursorPos() const {
     return glm::dvec2(xpos, ypos);
 };
 
-std::time_t Window::getTime() const {
-    std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-
-    return std::chrono::duration_cast<std::chrono::milliseconds>(now - m_Clock).count();
+bool Window::shouldClose() const {
+    return glfwWindowShouldClose(m_Window);
 }
 
 void Window::setResolution(glm::ivec2 resolution) {

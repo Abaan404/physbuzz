@@ -28,7 +28,7 @@ void InterfaceManager::build() {
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows (buggy on wayland)
     io.IniFilename = nullptr; // disable imgui.ini
 
-    GLFWwindow *window = m_Renderer.getWindow().getWindow();
+    GLFWwindow *window = m_Renderer.getWindow().getGLFWwindow();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 460");
 

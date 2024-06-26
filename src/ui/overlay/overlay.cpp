@@ -5,7 +5,7 @@
 #include <physbuzz/context.hpp>
 
 void FrametimeOverlay::draw(Physbuzz::Renderer &renderer) {
-    Game *game = Physbuzz::Context::get<Game>(renderer.getWindow().getWindow());
+    Game *game = Physbuzz::Context::get<Game>(renderer.getWindow().getGLFWwindow());
 
     ImGuiIO &io = ImGui::GetIO();
     ImGuiWindowFlags window_flags =

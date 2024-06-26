@@ -21,7 +21,7 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
     ImGui::SetNextWindowPos(ImVec2(Viewport->WorkPos.x, Viewport->WorkPos.y), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(128, 256), ImGuiCond_FirstUseEver);
 
-    Game *game = Physbuzz::Context::get<Game>(renderer.getWindow().getWindow());
+    Game *game = Physbuzz::Context::get<Game>(renderer.getWindow().getGLFWwindow());
 
     ImGuiWindowFlags windowFlags = 0;
     if (!ImGui::Begin("ObjectList", &show, windowFlags)) {

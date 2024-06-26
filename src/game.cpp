@@ -18,9 +18,10 @@ Game::Game()
       interface(renderer),
       dynamics(clock),
       wall(&scene) {
+    m_IsRunning = true;
 
     window.build();
-    Physbuzz::Context::set(window.getWindow(), this);
+    Physbuzz::Context::set(window.getGLFWwindow(), this);
 
     renderer.build();
     interface.build();
@@ -45,13 +46,12 @@ Game::Game()
     };
 
     wall.build(info);
-    isRunning = true;
 }
 
 void Game::loop() {
     glm::vec4 clear = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
-    while (isRunning) {
+    while (m_IsRunning && !window.shouldClose()) {
         eventManager.poll();
 
         collision.tick(scene);
@@ -67,9 +67,15 @@ void Game::loop() {
 }
 
 Game::~Game() {
+    m_IsRunning = false;
+
     for (auto &mesh : scene.getComponents<Physbuzz::RenderComponent>()) {
         mesh.destroy();
     }
+
+    scene.clear();
+    renderer.destroy();
+    window.destroy();
 }
 
 int main(int argc, char *argv[]) {

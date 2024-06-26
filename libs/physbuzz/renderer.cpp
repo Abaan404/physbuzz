@@ -106,7 +106,7 @@ void Renderer::render(Scene &scene) {
 
 // way too many draw calls i know
 void Renderer::render(Object &object) {
-    time = m_Window.getTime();
+    std::time_t time = m_Clock.getTime();
 
     RenderComponent &render = object.getComponent<RenderComponent>();
     MeshComponent &mesh = object.getComponent<MeshComponent>();

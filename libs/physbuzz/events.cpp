@@ -23,7 +23,7 @@ void EventManager::poll() {
 void EventManager::setCallbackKeyEvent(std::function<void(KeyEvent)> callback) const {
     CallbackKeyEvent = callback;
 
-    glfwSetKeyCallback(m_Window.m_Window, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
+    glfwSetKeyCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int key, int scancode, int action, int mods) {
         CallbackKeyEvent({
             .window = window,
             .key = key,
@@ -37,7 +37,7 @@ void EventManager::setCallbackKeyEvent(std::function<void(KeyEvent)> callback) c
 void EventManager::setCallbackMouseEnteredEvent(std::function<void(MouseEnteredEvent)> callback) const {
     CallbackMouseEnteredEvent = callback;
 
-    glfwSetCursorEnterCallback(m_Window.m_Window, [](GLFWwindow *window, int entered) {
+    glfwSetCursorEnterCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int entered) {
         CallbackMouseEnteredEvent({
             .window = window,
             .entered = entered,
@@ -48,7 +48,7 @@ void EventManager::setCallbackMouseEnteredEvent(std::function<void(MouseEnteredE
 void EventManager::setCallbackMouseScrollEvent(std::function<void(MouseScrollEvent)> callback) const {
     CallbackMouseScrollEvent = callback;
 
-    glfwSetScrollCallback(m_Window.m_Window, [](GLFWwindow *window, double xoffset, double yoffset) {
+    glfwSetScrollCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, double xoffset, double yoffset) {
         CallbackMouseScrollEvent({
             .window = window,
             .xoffset = xoffset,
@@ -60,7 +60,7 @@ void EventManager::setCallbackMouseScrollEvent(std::function<void(MouseScrollEve
 void EventManager::setCallbackMouseMotionEvent(std::function<void(MousePositionEvent)> callback) const {
     CallbackMousePositionEvent = callback;
 
-    glfwSetCursorPosCallback(m_Window.m_Window, [](GLFWwindow *window, double xpos, double ypos) {
+    glfwSetCursorPosCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, double xpos, double ypos) {
         CallbackMousePositionEvent({
             .window = window,
             .xpos = xpos,
@@ -72,7 +72,7 @@ void EventManager::setCallbackMouseMotionEvent(std::function<void(MousePositionE
 void EventManager::setCallbackMouseButtonEvent(std::function<void(MouseButtonEvent)> callback) const {
     CallbackMouseButtonEvent = callback;
 
-    glfwSetMouseButtonCallback(m_Window.m_Window, [](GLFWwindow *window, int button, int action, int mods) {
+    glfwSetMouseButtonCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int button, int action, int mods) {
         CallbackMouseButtonEvent({
             .window = window,
             .button = button,
@@ -85,7 +85,7 @@ void EventManager::setCallbackMouseButtonEvent(std::function<void(MouseButtonEve
 void EventManager::setCallbackWindowResize(std::function<void(WindowResizeEvent)> callback) const {
     CallbackWindowResizeEvent = callback;
 
-    glfwSetFramebufferSizeCallback(m_Window.m_Window, [](GLFWwindow *window, int width, int height) {
+    glfwSetFramebufferSizeCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int width, int height) {
         CallbackWindowResizeEvent({
             .window = window,
             .width = width,
@@ -97,7 +97,7 @@ void EventManager::setCallbackWindowResize(std::function<void(WindowResizeEvent)
 void EventManager::setCallbackWindowClose(std::function<void(WindowCloseEvent)> callback) const {
     CallbackWindowCloseEvent = callback;
 
-    glfwSetWindowCloseCallback(m_Window.m_Window, [](GLFWwindow *window) {
+    glfwSetWindowCloseCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window) {
         CallbackWindowResizeEvent({
             .window = window,
         });

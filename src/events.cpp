@@ -145,6 +145,5 @@ void Events::WindowResize(Physbuzz::WindowResizeEvent event) {
 
 void Events::WindowClose(Physbuzz::WindowCloseEvent event) {
     Game *game = Physbuzz::Context::get<Game>(event.window);
-
-    game->isRunning = false;
+    game->window.close();
 }
