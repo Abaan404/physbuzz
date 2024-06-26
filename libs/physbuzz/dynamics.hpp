@@ -2,7 +2,6 @@
 
 #include "clock.hpp"
 #include "scene.hpp"
-#include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -61,11 +60,11 @@ class Dynamics {
     void tick(Scene &scene);
     const Clock &getClock() const;
 
-    void translate(Object &object, const glm::vec3 delta);
-    void rotate(Object &object, const glm::quat delta);
+    void translate(Object &object, const glm::vec3 delta) const;
+    void rotate(Object &object, const glm::quat delta) const;
 
   private:
-    void tickMotion(Object &object);
+    void tickMotion(Object &object) const;
 
     Clock m_Clock;
 };

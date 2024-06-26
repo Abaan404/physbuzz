@@ -14,7 +14,7 @@ bool Scene::deleteObject(ObjectID id) {
     return m_ObjectManager.deleteObject(m_ComponentManager, id);
 }
 
-bool Scene::hasObject(ObjectID id) {
+bool Scene::hasObject(ObjectID id) const {
     return m_ObjectManager.hasObject(id);
 }
 

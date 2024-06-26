@@ -14,7 +14,7 @@ class Context {
 
     template <typename T>
     static T *get(GLFWwindow *window) {
-        return (T *)glfwGetWindowUserPointer(window);
+        return static_cast<T *>(glfwGetWindowUserPointer(window));
     }
 
   private:

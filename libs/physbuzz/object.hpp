@@ -46,7 +46,7 @@ class ObjectManager {
     ObjectID createObject(ComponentManager &componentManager);
     ObjectID createObject(ComponentManager &componentManager, ObjectID id);
     bool deleteObject(ComponentManager &componentManager, ObjectID id);
-    bool hasObject(ObjectID id);
+    bool hasObject(ObjectID id) const;
     void clearObjects();
 
     template <typename F>

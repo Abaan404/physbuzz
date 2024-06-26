@@ -11,7 +11,7 @@ class Scene {
     ObjectID createObject();
     ObjectID createObject(ObjectID id);
     bool deleteObject(ObjectID id);
-    bool hasObject(ObjectID id);
+    bool hasObject(ObjectID id) const;
 
     Object &getObject(ObjectID id);
     std::vector<Object> &getObjects();

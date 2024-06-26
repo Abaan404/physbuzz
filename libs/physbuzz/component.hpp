@@ -3,7 +3,6 @@
 #include "containers/contigiousmap.hpp"
 #include "defines.hpp"
 #include "logging.hpp"
-#include <concepts>
 #include <memory>
 
 namespace Physbuzz {
@@ -30,7 +29,7 @@ class ComponentArray : public IComponentArray {
         return m_Map.clear();
     }
 
-    bool hasComponent(ObjectID id) {
+    bool hasComponent(ObjectID id) const {
         return m_Map.contains(id);
     }
 
@@ -61,9 +60,7 @@ template <typename T>
 concept TComponentArray = std::derived_from<ComponentArray<T>, IComponentArray>;
 
 class ComponentManager {
-
   public:
-    // how any of these symbols are resolved is beyond me.
     template <typename T>
         requires TComponentArray<T>
     void setComponent(T &component, ObjectID object) {

@@ -1,3 +1,5 @@
+#include "logging.hpp"
+
 #include <cstdlib>
 #include <format>
 #include <iostream>

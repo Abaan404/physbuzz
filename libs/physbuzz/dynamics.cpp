@@ -28,7 +28,7 @@ void Dynamics::tick(Scene &scene) {
     }
 }
 
-void Dynamics::tickMotion(Object &object) {
+void Dynamics::tickMotion(Object &object) const {
     RigidBodyComponent &body = object.getComponent<RigidBodyComponent>();
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
     float dTime = m_Clock.getDelta() / 1000.0f;
@@ -69,7 +69,7 @@ void Dynamics::tickMotion(Object &object) {
 }
 
 // not exactly "rotate"s but this works for now
-void Dynamics::rotate(Object &object, const glm::quat delta) {
+void Dynamics::rotate(Object &object, const glm::quat delta) const {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
     transform.orientation = glm::normalize(transform.orientation + delta);
 
@@ -95,7 +95,7 @@ void Dynamics::rotate(Object &object, const glm::quat delta) {
     }
 }
 
-void Dynamics::translate(Object &object, const glm::vec3 delta) {
+void Dynamics::translate(Object &object, const glm::vec3 delta) const {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
     transform.translate(delta);
 

@@ -48,7 +48,7 @@ bool ObjectManager::deleteObject(ComponentManager &componentManager, ObjectID id
     return false;
 }
 
-bool ObjectManager::hasObject(ObjectID id) {
+bool ObjectManager::hasObject(ObjectID id) const {
     return m_Map.contains(id);
 }
 
