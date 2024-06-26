@@ -14,23 +14,32 @@ std::pair<T *, std::size_t> getArray(std::vector<glm::vec<N, T>> &vec) {
 
 namespace Physbuzz {
 
-Renderer::Renderer(Window &window) : m_Window(window) {}
+Renderer::Renderer(Window &window)
+    : m_Window(window) {}
 
 Renderer::Renderer(const Renderer &other) : m_Window(other.m_Window) {
     if (this != &other) {
-        target(other.m_Framebuffer);
+        copy(other);
     }
 }
 
 Renderer &Renderer::operator=(const Renderer &other) {
     if (this != &other) {
-        target(other.m_Framebuffer);
+        copy(other);
     }
 
     return *this;
 }
 
 Renderer::~Renderer() {}
+
+void Renderer::copy(const Renderer &other) {
+    target(other.m_Framebuffer);
+
+    m_Window = other.m_Window;
+    m_Resolution = other.m_Resolution;
+    m_Clock = other.m_Clock;
+}
 
 void Renderer::build() {
     target(nullptr);
@@ -42,7 +51,7 @@ Window &Renderer::getWindow() const {
     return m_Window;
 }
 
-glm::ivec2 Renderer::getResolution() const {
+const glm::ivec2 Renderer::getResolution() const {
     return m_Resolution;
 }
 

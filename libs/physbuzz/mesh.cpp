@@ -27,29 +27,6 @@ void MeshComponent::renormalize() {
 
 RenderComponent::RenderComponent() {}
 
-RenderComponent::RenderComponent(const RenderComponent &other) {
-    copy(other);
-}
-
-RenderComponent &RenderComponent::operator=(const RenderComponent &other) {
-    if (this != &other) {
-        copy(other);
-    }
-    return *this;
-}
-
-void RenderComponent::copy(const RenderComponent &other) {
-    VBO = other.VBO;
-    EBO = other.EBO;
-    VAO = other.VAO;
-
-    m_Program = other.m_Program;
-
-    gluTime = other.gluTime;
-    gluTimedelta = other.gluTimedelta;
-    gluResolution = other.gluResolution;
-}
-
 RenderComponent::~RenderComponent() {}
 
 void RenderComponent::build() {

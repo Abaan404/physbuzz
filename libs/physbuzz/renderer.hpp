@@ -28,9 +28,11 @@ class Renderer {
     void resize(glm::ivec2 &resolution);
 
     Window &getWindow() const;
-    glm::ivec2 getResolution() const;
+    const glm::ivec2 getResolution() const;
 
   private:
+    void copy(const Renderer &other);
+
     Framebuffer *m_Framebuffer;
     Window &m_Window;
     glm::ivec2 m_Resolution;

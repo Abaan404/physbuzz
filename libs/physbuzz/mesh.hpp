@@ -32,8 +32,6 @@ class MeshComponent {
 class RenderComponent {
   public:
     RenderComponent();
-    RenderComponent(const RenderComponent &other);
-    RenderComponent &operator=(const RenderComponent &other);
     ~RenderComponent();
 
     void build();
@@ -48,8 +46,6 @@ class RenderComponent {
     GLint gluResolution;
 
   private:
-    void copy(const RenderComponent &other);
-
     GLuint VBO, VAO, EBO;
     GLuint m_Program;
 

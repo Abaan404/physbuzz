@@ -3,7 +3,6 @@
 #include "debug/callbacks.hpp"
 #include "logging.hpp"
 #include <GLFW/glfw3.h>
-#include <chrono>
 
 namespace Physbuzz {
 
@@ -11,7 +10,7 @@ Window::Window() {}
 
 Window::~Window() {}
 
-void Window::build() {
+void Window::build()  {
     // error callback
     glfwSetErrorCallback(glfwErrorCallback);
 
@@ -51,7 +50,7 @@ GLFWwindow *Window::getWindow() const {
     return m_Window;
 }
 
-glm::ivec2 Window::getResolution() const {
+const glm::ivec2 Window::getResolution() const {
     int width;
     int height;
 
@@ -59,7 +58,7 @@ glm::ivec2 Window::getResolution() const {
     return glm::ivec2(width, height);
 }
 
-glm::dvec2 Window::getCursorPos() const {
+const glm::dvec2 Window::getCursorPos() const {
     double xpos, ypos;
 
     glfwGetCursorPos(m_Window, &xpos, &ypos);
@@ -76,7 +75,7 @@ void Window::setResolution(glm::ivec2 resolution) {
     glfwSetWindowSize(m_Window, resolution.x, resolution.y);
 }
 
-void Window::flip() {
+void Window::flip() const {
     glfwSwapBuffers(m_Window);
 }
 

@@ -25,18 +25,6 @@ template <typename K, typename T>
     requires Comparable<K>
 class ContiguousMap {
   public:
-    ContiguousMap() {}
-
-    ContiguousMap(const ContiguousMap &other) {
-        copy(other);
-    }
-
-    ContiguousMap &operator=(const ContiguousMap &other) {
-        return copy(other);
-    }
-
-    ~ContiguousMap() {}
-
     T &operator[](K key) {
         return get(key);
     }
@@ -101,7 +89,7 @@ class ContiguousMap {
         quickSort(0, m_Array.size() - 1, comparator);
     }
 
-    bool contains(K key) {
+    bool contains(K key) const {
         return m_IdxMap.contains(key);
     }
 
@@ -116,11 +104,11 @@ class ContiguousMap {
         m_KeyMap.clear();
     }
 
-    bool empty() {
+    bool empty() const {
         return m_Array.empty();
     }
 
-    std::size_t size() {
+    std::size_t size() const {
         return m_Array.size();
     }
 
@@ -132,15 +120,6 @@ class ContiguousMap {
     std::unordered_map<K, std::size_t> m_IdxMap;
     std::unordered_map<std::size_t, K> m_KeyMap;
     std::vector<T> m_Array;
-
-    ContiguousMap copy(const ContiguousMap &other) {
-        if (this != &other) {
-            m_Array = other.m_Array;
-            m_IdxMap = other.m_IdxMap;
-        }
-
-        return *this;
-    }
 
   private:
     template <typename F>
