@@ -6,7 +6,9 @@ namespace Physbuzz {
 
 class SeperatingAxis2D : public ICollisionDetector {
   public:
-    bool check(Scene &scene, Contact &contact) override;
+    SeperatingAxis2D(Scene &scene);
+
+    bool check(Contact &contact) override;
 
   protected:
     float getAxisOverlap(const glm::vec3 &axis, const MeshComponent &mesh1, const MeshComponent &mesh2);

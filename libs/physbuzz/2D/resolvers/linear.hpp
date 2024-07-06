@@ -6,9 +6,9 @@ namespace Physbuzz {
 
 class LinearResolver : public ICollisionResolver {
   public:
-    LinearResolver(float restitution);
+    LinearResolver(Scene &scene, float restitution);
 
-    void solve(Scene &scene, const Contact &contact) override;
+    void solve(const Contact &contact) override;
 
   private:
     float m_Restitution;

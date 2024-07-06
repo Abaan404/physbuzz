@@ -1,22 +1,19 @@
 #include "collision.hpp"
 
+#include "events/collision.hpp"
 #include <physbuzz/logging.hpp>
 #include <physbuzz/renderer.hpp>
 
 namespace Physbuzz {
 
-Collision::Collision(std::shared_ptr<ICollisionDetector> narrow, std::shared_ptr<ICollisionDetector> broad, std::shared_ptr<ICollisionResolver> resolver)
-    : narrowDetector(narrow),
-      broadDetector(broad),
-      resolver(resolver) {}
+ICollisionDetector::ICollisionDetector(Scene &scene)
+    : m_Scene(scene) {}
 
-Collision::~Collision() {}
-
-std::list<Contact> ICollisionDetector::find(Scene &scene) {
+std::list<Contact> ICollisionDetector::find() {
     std::list<Contact> contacts;
 
-    for (const auto &object1 : scene.getObjects()) {
-        for (const auto &object2 : scene.getObjects()) {
+    for (const auto &object1 : m_Scene.getObjects()) {
+        for (const auto &object2 : m_Scene.getObjects()) {
             if (object1.getId() == object2.getId()) {
                 continue;
             }
@@ -26,7 +23,12 @@ std::list<Contact> ICollisionDetector::find(Scene &scene) {
                 .object2 = object2.getId(),
             };
 
-            if (check(scene, contact)) {
+            if (check(contact)) {
+                notifyCallbacks<OnCollisionDetectEvent>({
+                    .scene = m_Scene,
+                    .contact = contact,
+                });
+
                 contacts.emplace_back(std::move(contact));
             }
         }
@@ -35,41 +37,64 @@ std::list<Contact> ICollisionDetector::find(Scene &scene) {
     return contacts;
 }
 
-void ICollisionDetector::find(Scene &scene, std::list<Contact> &contacts) {
-    auto iterator = contacts.begin();
-
-    for (std::size_t i = 0; i < contacts.size(); i++) {
-        Contact &contact = *iterator;
-        iterator = std::next(iterator);
-
-        // break the link chain behind the iterator
-        if (check(scene, contact)) {
-            contacts.erase(std::prev(iterator));
+void ICollisionDetector::find(std::list<Contact> &contacts) {
+    for (auto it = contacts.begin(); it != contacts.end();) {
+        if (check(*it)) {
+            notifyCallbacks<OnCollisionDetectEvent>({
+                .scene = m_Scene,
+                .contact = *it,
+            });
+            ++it;
+        } else {
+            it = contacts.erase(it);
         }
     }
 }
 
-void ICollisionDetector::reset() {
-    return;
-}
+void ICollisionDetector::build() { return; }
+void ICollisionDetector::destroy() { return; }
 
-void ICollisionResolver::solve(Scene &scene, std::list<Contact> &contacts) {
+ICollisionResolver::ICollisionResolver(Scene &scene)
+    : m_Scene(scene) {}
+
+void ICollisionResolver::solve(std::list<Contact> &contacts) {
     for (const auto &contact : contacts) {
-        solve(scene, contact);
+        notifyCallbacks<OnCollisionResolveEvent>({
+            .scene = m_Scene,
+            .contact = contact,
+        });
+
+        solve(contact);
     }
 }
 
-void ICollisionResolver::reset() {
-    return;
-}
+void ICollisionResolver::build() { return; }
+void ICollisionResolver::destroy() { return; }
+
+Collision::Collision(std::shared_ptr<ICollisionDetector> narrow, std::shared_ptr<ICollisionDetector> broad, std::shared_ptr<ICollisionResolver> resolver)
+    : narrowDetector(narrow),
+      broadDetector(broad),
+      resolver(resolver) {}
+
+Collision::~Collision() {}
 
 void Collision::tick(Scene &scene) {
-    std::list<Contact> contacts = broadDetector->find(scene);
-    narrowDetector->find(scene, contacts);
+    std::list<Contact> contacts = broadDetector->find();
+    narrowDetector->find(contacts);
 
     for (auto &contact : contacts) {
-        resolver->solve(scene, contact);
+        resolver->solve(contact);
     }
+}
+
+void Collision::build() {
+    narrowDetector->build();
+    broadDetector->build();
+}
+
+void Collision::destroy() {
+    narrowDetector->destroy();
+    broadDetector->destroy();
 }
 
 } // namespace Physbuzz

@@ -2,9 +2,12 @@
 
 namespace Physbuzz {
 
-bool SeperatingAxis2D::check(Scene &scene, Contact &contact) {
-    Object &object1 = scene.getObject(contact.object1);
-    Object &object2 = scene.getObject(contact.object2);
+SeperatingAxis2D::SeperatingAxis2D(Scene &scene)
+    : ICollisionDetector(scene) {}
+
+bool SeperatingAxis2D::check(Contact &contact) {
+    Object &object1 = m_Scene.getObject(contact.object1);
+    Object &object2 = m_Scene.getObject(contact.object2);
 
     if (!object1.hasComponent<MeshComponent>() || !object2.hasComponent<MeshComponent>()) {
         return false;

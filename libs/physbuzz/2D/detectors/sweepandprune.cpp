@@ -1,69 +1,160 @@
 #include "sweepandprune.hpp"
 
+#include "physbuzz/events/object.hpp"
+#include "physbuzz/events/scene.hpp"
+#include "physbuzz/scene.hpp"
+#include <algorithm>
+
 namespace Physbuzz {
 
-// TODO use the correct sweepandprune algorithm
-std::list<Contact> SweepAndPrune2D::find(Scene &scene) {
-    sortObjects(scene);
+SweepAndPrune2D::SweepAndPrune2D(Scene &scene)
+    : ICollisionDetector(scene) {}
 
+void SweepAndPrune2D::build() {
+    std::vector<Object> objects = m_Scene.getObjects();
+
+    if (!objects.empty()) {
+        for (Object &object : objects) {
+            if (object.hasComponent<BoundingComponent>()) {
+                m_CollisionObjects.insert(object.getId());
+            }
+        }
+    }
+
+    m_ObjectAddEventId = m_Scene.addCallback<OnObjectCreateEvent>([&](const OnObjectCreateEvent &event) {
+        if (&m_Scene != event.scene) {
+            return;
+        }
+
+        Object &object = event.scene->getObject(event.id);
+
+        m_ComponentEventIds[event.id][0] = object.addCallback<OnComponentSetEvent<BoundingComponent>>([&](const OnComponentSetEvent<BoundingComponent> &event) {
+            m_CollisionObjects.insert(event.object->getId());
+        });
+
+        m_ComponentEventIds[event.id][1] = object.addCallback<OnComponentRemoveEvent<BoundingComponent>>([&](const OnComponentRemoveEvent<BoundingComponent> &event) {
+            m_ComponentEventIds.erase(event.object->getId());
+            const auto &it = std::find(m_CollisionObjects.begin(), m_CollisionObjects.end(), event.object->getId());
+            if (it != m_CollisionObjects.end()) {
+                m_CollisionObjects.erase(it);
+            }
+        });
+
+        m_ComponentEventIds[event.id][2] = object.addCallback<OnComponentEraseEvent>([&](const OnComponentEraseEvent &event) {
+            m_ComponentEventIds.erase(event.object->getId());
+            const auto &it = std::find(m_CollisionObjects.begin(), m_CollisionObjects.end(), event.object->getId());
+            if (it != m_CollisionObjects.end()) {
+                m_CollisionObjects.erase(it);
+            }
+        });
+    });
+
+    m_ObjectRemoveEventId = m_Scene.addCallback<OnObjectDeleteEvent>([&](const OnObjectDeleteEvent &event) {
+        if (&m_Scene != event.scene) {
+            return;
+        }
+
+        m_ComponentEventIds.erase(event.id);
+        const auto &it1 = std::find(m_CollisionObjects.begin(), m_CollisionObjects.end(), event.id);
+        if (it1 != m_CollisionObjects.end()) {
+            m_CollisionObjects.erase(it1);
+        }
+    });
+}
+
+void SweepAndPrune2D::destroy() {
+    for (const auto &[objectId, eventIds] : m_ComponentEventIds) {
+        Object &object = m_Scene.getObject(objectId);
+
+        object.removeCallback<OnComponentSetEvent<BoundingComponent>>(eventIds[0]);
+        object.removeCallback<OnComponentRemoveEvent<BoundingComponent>>(eventIds[1]);
+        object.removeCallback<OnComponentEraseEvent>(eventIds[2]);
+    }
+
+    m_Scene.removeCallback<OnObjectCreateEvent>(m_ObjectAddEventId);
+    m_Scene.removeCallback<OnObjectDeleteEvent>(m_ObjectRemoveEventId);
+    m_ComponentEventIds.clear();
+}
+
+std::list<Contact> SweepAndPrune2D::find() {
     std::list<Contact> contacts;
-    for (const auto &[id1, aabb1] : m_SortedObjects) {
-        for (const auto &[id2, aabb2] : m_SortedObjects) {
-            if (id1 == id2) {
-                continue;
+
+    std::list<SweepEdge> edges = getEdges();
+    std::list<SweepEdge> inSweep;
+
+    for (const auto &edge1 : edges) {
+        if (edge1.isLeft) {
+            for (const auto &edge2 : inSweep) {
+                if (edge1.id == edge2.id) {
+                    continue;
+                }
+
+                Contact contact = {
+                    .object1 = edge1.id,
+                    .object2 = edge2.id,
+                };
+
+                if (check(contact)) {
+                    contacts.push_back(std::move(contact));
+                }
             }
 
-            if (aabb1.min.x > aabb2.max.x) {
-                continue;
+            inSweep.emplace_back(edge1);
+        } else {
+            const auto &it = std::find_if(inSweep.begin(), inSweep.end(), [&edge1](const SweepEdge &edge) {
+                return edge.id == edge1.id;
+            });
+            if (it != inSweep.end()) {
+                inSweep.erase(it);
             }
-
-            Contact contact = {
-                .object1 = id1,
-                .object2 = id2,
-            };
-
-            contacts.emplace_back(std::move(contact));
         }
     }
 
     return contacts;
 }
 
-void SweepAndPrune2D::reset() {
-    m_SortedObjects.clear();
-}
+std::list<SweepEdge> SweepAndPrune2D::getEdges() {
+    // figure out a better way to store edges instead of allocating new edges everytime
+    std::list<SweepEdge> edges;
 
-void SweepAndPrune2D::sortObjects(Scene &scene) {
-    // TODO create eventhandlers to avoid recreating sorted array on adding new objects
-    {
-        m_SortedObjects.clear();
+    auto comparator = [](const SweepEdge &a, const SweepEdge &b) {
+        return a.edge < b.edge;
+    };
 
-        for (auto &object : scene.getObjects()) {
-            if (!object.hasComponent<BoundingComponent>()) {
-                continue;
-            }
+    for (const ObjectID &id : m_CollisionObjects) {
+        Object &object = m_Scene.getObject(id);
+        const AABBComponent &aabb = object.getComponent<BoundingComponent>().getBox();
 
-            const BoundingComponent &aabb = object.getComponent<BoundingComponent>();
-            m_SortedObjects.emplace_back(object.getId(), aabb.getBox());
-        }
+        const SweepEdge edgeLeft = {
+            .id = object.getId(),
+            .edge = aabb.min.x,
+            .isLeft = true,
+        };
+
+        const SweepEdge edgeRight = {
+            .id = object.getId(),
+            .edge = aabb.max.x,
+            .isLeft = false,
+        };
+
+        auto idxLeft = std::lower_bound(edges.begin(), edges.end(), edgeLeft, comparator);
+        auto idxRight = std::lower_bound(edges.begin(), edges.end(), edgeRight, comparator);
+
+        edges.insert(idxLeft, edgeLeft);
+        edges.insert(idxRight, edgeRight);
     }
 
-    // TODO perf test
-    std::sort(m_SortedObjects.begin(), m_SortedObjects.end(), [](const std::pair<ObjectID, AABBComponent> &obj1, const std::pair<ObjectID, AABBComponent> &obj2) {
-        const AABBComponent &aabb1 = obj1.second;
-        const AABBComponent &aabb2 = obj2.second;
-
-        return aabb1.min.x < aabb2.min.x;
-    });
+    return edges;
 }
 
-bool SweepAndPrune2D::check(Scene &scene, Contact &contact) {
-    Logger::ERROR("SweepAndPrune2D::check NotImplementedError");
-    return false;
-}
+bool SweepAndPrune2D::check(Contact &contact) {
+    Object &object1 = m_Scene.getObject(contact.object1);
+    Object &object2 = m_Scene.getObject(contact.object2);
 
-void SweepAndPrune2D::find(Scene &scene, std::list<Contact> &contacts) {
-    Logger::ERROR("SweepAndPrune2D::find NotImplementedError");
+    const AABBComponent &aabb1 = object1.getComponent<BoundingComponent>().getBox();
+    const AABBComponent &aabb2 = object2.getComponent<BoundingComponent>().getBox();
+
+    return aabb1.max.x > aabb2.min.x && aabb2.max.x > aabb1.min.x && aabb1.max.y > aabb2.min.y && aabb2.max.y > aabb1.min.y;
 }
 
 } // namespace Physbuzz

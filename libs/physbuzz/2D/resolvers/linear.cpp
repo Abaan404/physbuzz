@@ -6,15 +6,17 @@
 
 namespace Physbuzz {
 
-LinearResolver::LinearResolver(float restitution) : m_Restitution(restitution) {
+LinearResolver::LinearResolver(Scene &scene, float restitution)
+    : m_Restitution(restitution),
+      ICollisionResolver(scene) {
     if (m_Restitution > 1.0f) {
         Logger::WARNING("Linear restitution is greater than 1.0f");
     }
 }
 
-void LinearResolver::solve(Scene &scene, const Contact &contact) {
-    Object &object1 = scene.getObject(contact.object1);
-    Object &object2 = scene.getObject(contact.object2);
+void LinearResolver::solve(const Contact &contact) {
+    Object &object1 = m_Scene.getObject(contact.object1);
+    Object &object2 = m_Scene.getObject(contact.object2);
 
     const TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
     const TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();

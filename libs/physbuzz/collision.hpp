@@ -1,5 +1,7 @@
 #pragma once
 
+#include "events.hpp"
+#include "glm/common.hpp"
 #include <glm/glm.hpp>
 #include <list>
 #include <memory>
@@ -9,8 +11,16 @@
 namespace Physbuzz {
 
 struct AABBComponent {
-    glm::vec3 min = {0.0f, 0.0f, 0.0f};
-    glm::vec3 max = {0.0f, 0.0f, 0.0f};
+    glm::vec3 min = {
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+    };
+    glm::vec3 max = {
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest(),
+    };
 };
 
 class BoundingComponent {
@@ -50,29 +60,44 @@ struct Contact {
     glm::vec3 point = {0.0f, 0.0f, 0.0f};
 };
 
-class ICollisionDetector {
+class ICollisionDetector : public IEventSubject {
   public:
+    ICollisionDetector(Scene &scene);
     virtual ~ICollisionDetector() = default;
-    virtual bool check(Scene &scene, Contact &contact) = 0;
 
-    virtual std::list<Contact> find(Scene &scene);
-    virtual void find(Scene &scene, std::list<Contact> &contacts);
-    virtual void reset();
+    virtual void build();
+    virtual void destroy();
+
+    virtual bool check(Contact &contact) = 0;
+    virtual std::list<Contact> find();
+    virtual void find(std::list<Contact> &contacts);
+
+  protected:
+    Scene &m_Scene;
 };
 
-class ICollisionResolver {
+class ICollisionResolver : public IEventSubject {
   public:
-    virtual ~ICollisionResolver() = default;
-    virtual void solve(Scene &scene, std::list<Contact> &contacts);
-    virtual void solve(Scene &scene, const Contact &contact) = 0;
+    ICollisionResolver(Scene &scene);
 
-    virtual void reset();
+    virtual void build();
+    virtual void destroy();
+
+    virtual ~ICollisionResolver() = default;
+    virtual void solve(std::list<Contact> &contacts);
+    virtual void solve(const Contact &contact) = 0;
+
+  protected:
+    Scene &m_Scene;
 };
 
 class Collision {
   public:
     Collision(std::shared_ptr<ICollisionDetector> narrow, std::shared_ptr<ICollisionDetector> broad, std::shared_ptr<ICollisionResolver> resolver);
     ~Collision();
+
+    void build();
+    void destroy();
 
     void tick(Scene &scene);
 

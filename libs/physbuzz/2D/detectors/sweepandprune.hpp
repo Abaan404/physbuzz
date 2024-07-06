@@ -1,21 +1,35 @@
 #pragma once
 
 #include "../../collision.hpp"
+#include "physbuzz/defines.hpp"
+#include <set>
 
 namespace Physbuzz {
 
+struct SweepEdge {
+    ObjectID id;
+    float edge;
+    bool isLeft;
+};
+
 class SweepAndPrune2D : public ICollisionDetector {
   public:
-    bool check(Scene &scene, Contact &contact) override;
+    SweepAndPrune2D(Scene &scene);
 
-    std::list<Contact> find(Scene &scene) override;
-    void find(Scene &scene, std::list<Contact> &contacts) override;
-    void reset() override;
+    void build() override;
+    void destroy() override;
+
+    bool check(Contact &contact) override;
+    std::list<Contact> find() override;
 
   protected:
-    void sortObjects(Scene &scene);
+    std::list<SweepEdge> getEdges();
 
-    std::vector<std::pair<ObjectID, AABBComponent>> m_SortedObjects;
+    std::set<ObjectID> m_CollisionObjects;
+
+    EventID m_ObjectAddEventId;
+    EventID m_ObjectRemoveEventId;
+    std::unordered_map<ObjectID, std::array<EventID, 3>> m_ComponentEventIds;
 };
 
 } // namespace Physbuzz

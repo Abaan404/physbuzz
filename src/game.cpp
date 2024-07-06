@@ -12,7 +12,10 @@
 
 Game::Game()
     // TODO event management
-    : collision(std::make_shared<Physbuzz::SeperatingAxis2D>(), std::make_shared<Physbuzz::SeperatingAxis2D>(), std::make_shared<Physbuzz::LinearResolver>(0.9f)),
+    : collision(
+          std::make_shared<Physbuzz::SeperatingAxis2D>(scene),
+          std::make_shared<Physbuzz::SweepAndPrune2D>(scene),
+          std::make_shared<Physbuzz::LinearResolver>(scene, 0.9f)),
       renderer(window),
       events(window),
       interface(renderer),
