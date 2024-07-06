@@ -1,6 +1,6 @@
 #pragma once
 
-#include <physbuzz/events.hpp>
+#include <physbuzz/events/window.hpp>
 
 class Events {
   public:

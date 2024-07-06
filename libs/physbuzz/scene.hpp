@@ -2,11 +2,12 @@
 
 #include "component.hpp"
 #include "defines.hpp"
+#include "events.hpp"
 #include "object.hpp"
 
 namespace Physbuzz {
 
-class Scene {
+class Scene : public IEventSubject {
   public:
     ObjectID createObject();
     ObjectID createObject(ObjectID id);
@@ -16,10 +17,7 @@ class Scene {
     Object &getObject(ObjectID id);
     std::vector<Object> &getObjects();
 
-    void clear() {
-        m_ComponentManager.clearComponents();
-        m_ObjectManager.clearObjects();
-    }
+    void clear();
 
     template <typename T>
     bool existsComponents() {

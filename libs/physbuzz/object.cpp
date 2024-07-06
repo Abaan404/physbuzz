@@ -6,16 +6,23 @@ Object::Object(ComponentManager &component_manager, ObjectID id) : m_ComponentMa
                                                                    m_Id(id) {}
 
 Object::Object(const Object &other) : m_ComponentManager(other.m_ComponentManager),
-                                      m_Id(other.m_Id) {}
+                                      m_Id(other.m_Id) {
+    m_EventMap = other.m_EventMap;
+}
 
 Object &Object::operator=(const Object &other) {
     m_ComponentManager = other.m_ComponentManager;
     m_Id = other.m_Id;
+    m_EventMap = other.m_EventMap;
 
     return *this;
 }
 
 void Object::eraseComponents() {
+    notifyCallbacks<OnComponentEraseEvent>({
+        .object = this,
+    });
+
     m_ComponentManager.objectDestroyed(m_Id);
 }
 

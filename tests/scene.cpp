@@ -1,5 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
+#include <physbuzz/events/scene.hpp>
 #include <physbuzz/scene.hpp>
 
 struct TestComponent {
@@ -166,6 +168,57 @@ TEST_CASE("Physbuzz::Scene") {
 
         CHECK(scene.getObjects().size() == 10);
     }
+
+    SECTION("addCallback()") {
+        Physbuzz::Scene scene;
+
+        std::vector<int> ids = {1, 2, 3, 4, 10};
+        std::vector<int> calledIds = {};
+
+        Physbuzz::EventID idCreate = scene.addCallback<Physbuzz::OnObjectCreateEvent>([&](const Physbuzz::OnObjectCreateEvent &event) {
+            REQUIRE(event.scene == &scene);
+            calledIds.push_back(event.id);
+        });
+
+        Physbuzz::EventID idRemove = scene.addCallback<Physbuzz::OnObjectDeleteEvent>([&](const Physbuzz::OnObjectDeleteEvent &event) {
+            REQUIRE(event.scene == &scene);
+            calledIds.erase(std::find(calledIds.begin(), calledIds.end(), event.id));
+        });
+
+        for (const auto &id : ids) {
+            scene.createObject(id);
+        }
+
+        for (int i = 0; i < ids.size(); i++) {
+            CHECK(ids[i] == calledIds[i]);
+        }
+
+        for (const auto &id : ids) {
+            scene.deleteObject(id);
+        }
+
+        CHECK(calledIds.size() == 0);
+    }
+
+    SECTION("removeCallback()") {
+        Physbuzz::Scene scene;
+
+        std::vector<int> ids = {1, 2, 3, 4, 10};
+        std::vector<int> calledIds = {};
+
+        Physbuzz::EventID idCreate = scene.addCallback<Physbuzz::OnObjectCreateEvent>([&](const Physbuzz::OnObjectCreateEvent &event) {
+            CHECK(false);
+            calledIds.push_back(event.id);
+        });
+
+        scene.removeCallback<Physbuzz::OnObjectCreateEvent>(idCreate);
+
+        for (const auto &id : ids) {
+            scene.createObject(id);
+        }
+
+        CHECK(calledIds.size() == 0);
+    }
 }
 
 TEST_CASE("Physbuzz::Object") {
@@ -286,5 +339,76 @@ TEST_CASE("Physbuzz::Object") {
         // and the scene no longer retains the components
         CHECK(scene.getComponents<TestComponent>().size() == 0);
         CHECK(scene.getComponents<TestComponentTheHitSequel>().size() == 0);
+    }
+
+    SECTION("addCallback()") {
+        Physbuzz::Scene scene;
+
+        Physbuzz::ObjectID id1 = scene.createObject();
+        Physbuzz::Object object = scene.getObject(id1);
+
+        TestComponent component1 = {
+            .x = -12,
+        };
+
+        TestComponentTheHitSequel component2 = {
+            .x = 10,
+        };
+
+        Physbuzz::EventID idCreate1 = object.addCallback<Physbuzz::OnComponentSetEvent<TestComponent>>([&](const Physbuzz::OnComponentSetEvent<TestComponent> &event) {
+            REQUIRE(event.object == &object);
+            CHECK(event.component.x == -12);
+        });
+
+        Physbuzz::EventID idCreate2 = object.addCallback<Physbuzz::OnComponentSetEvent<TestComponentTheHitSequel>>([&](const Physbuzz::OnComponentSetEvent<TestComponentTheHitSequel> &event) {
+            REQUIRE(event.object == &object);
+            CHECK(event.component.x == 10);
+        });
+
+        Physbuzz::EventID idRemove1 = object.addCallback<Physbuzz::OnComponentRemoveEvent<TestComponent>>([&](const Physbuzz::OnComponentRemoveEvent<TestComponent> &event) {
+            REQUIRE(event.object == &object);
+            CHECK(event.component.x == -12);
+        });
+
+        Physbuzz::EventID idRemove2 = object.addCallback<Physbuzz::OnComponentRemoveEvent<TestComponentTheHitSequel>>([&](const Physbuzz::OnComponentRemoveEvent<TestComponentTheHitSequel> &event) {
+            REQUIRE(event.object == &object);
+            CHECK(event.component.x == 10);
+        });
+
+        Physbuzz::EventID idErase = object.addCallback<Physbuzz::OnComponentEraseEvent>([&](const Physbuzz::OnComponentEraseEvent &event) {
+            REQUIRE(event.object == &object);
+        });
+
+        object.setComponent(component1);
+        object.setComponent(component2);
+
+        object.removeComponent<TestComponent>();
+        object.removeComponent<TestComponentTheHitSequel>();
+
+        object.eraseComponents();
+    }
+
+    SECTION("removeCallback()") {
+        Physbuzz::Scene scene;
+
+        Physbuzz::ObjectID id1 = scene.createObject();
+        Physbuzz::Object object = scene.getObject(id1);
+
+        TestComponent component1 = {
+            .x = -12,
+        };
+
+        Physbuzz::EventID idCreate = object.addCallback<Physbuzz::OnComponentSetEvent<TestComponent>>([&](const Physbuzz::OnComponentSetEvent<TestComponent> &event) {
+            CHECK(false);
+        });
+        object.removeCallback<Physbuzz::OnComponentSetEvent<TestComponent>>(idCreate);
+
+        Physbuzz::EventID idRemove = object.addCallback<Physbuzz::OnComponentRemoveEvent<TestComponent>>([&](const Physbuzz::OnComponentRemoveEvent<TestComponent> &event) {
+            CHECK(false);
+        });
+        object.removeCallback<Physbuzz::OnComponentRemoveEvent<TestComponent>>(idRemove);
+
+        object.setComponent(component1);
+        object.removeComponent<TestComponent>();
     }
 }

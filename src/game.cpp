@@ -14,24 +14,27 @@ Game::Game()
     // TODO event management
     : collision(std::make_shared<Physbuzz::SeperatingAxis2D>(), std::make_shared<Physbuzz::SeperatingAxis2D>(), std::make_shared<Physbuzz::LinearResolver>(0.9f)),
       renderer(window),
-      eventManager(window),
+      events(window),
       interface(renderer),
       dynamics(clock),
       wall(&scene) {
     m_IsRunning = true;
+    glm::ivec2 resolution = glm::ivec2(1920, 1080);
 
-    window.build();
-    Physbuzz::Context::set(window.getGLFWwindow(), this);
-
+    window.build(resolution);
     renderer.build();
+
+    // set context before initializing imgui
+    Physbuzz::Context::set(window.getGLFWwindow(), this);
     interface.build();
 
-    eventManager.setCallbackKeyEvent(Events::keyEvent);
-    eventManager.setCallbackMouseButtonEvent(Events::mouseButton);
-    eventManager.setCallbackWindowResize(Events::WindowResize);
-    eventManager.setCallbackWindowClose(Events::WindowClose);
+    events.setCallbackKeyEvent(Events::keyEvent);
+    events.setCallbackMouseButtonEvent(Events::mouseButton);
+    events.setCallbackWindowResizeEvent(Events::WindowResize);
+    events.setCallbackWindowCloseEvent(Events::WindowClose);
 
-    glm::ivec2 resolution = window.getResolution();
+    collision.build();
+
     WallInfo info = {
         .transform = {
             .position = glm::vec3(resolution >> 1, 0.0f),
@@ -52,7 +55,7 @@ void Game::loop() {
     glm::vec4 clear = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
     while (m_IsRunning && !window.shouldClose()) {
-        eventManager.poll();
+        events.poll();
 
         collision.tick(scene);
         dynamics.tick(scene);

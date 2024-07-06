@@ -18,19 +18,17 @@ class Game {
 
     // displaying and rendering
     Physbuzz::Window window;
+    Physbuzz::WindowEvents events;
     Physbuzz::Renderer renderer;
-    Physbuzz::Clock clock;
 
     // ecs object tracking
     Physbuzz::Scene scene;
-
-    // input handlers
-    Physbuzz::EventManager eventManager;
 
     // ImGui UI builder
     InterfaceManager interface;
 
     // game physics
+    Physbuzz::Clock clock;
     Physbuzz::Dynamics dynamics;
     Physbuzz::Collision collision;
 

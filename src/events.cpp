@@ -34,9 +34,11 @@ void Events::keyEvent(Physbuzz::KeyEvent event) {
 
             game->wall.destroy();
             game->scene.clear();
+            game->collision.destroy();
 
             const WallInfo &info = game->wall.getInfo();
             game->wall.build(info);
+            game->collision.build();
         } break;
         }
 

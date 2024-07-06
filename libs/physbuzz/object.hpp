@@ -3,10 +3,12 @@
 #include "component.hpp"
 #include "containers/contigiousmap.hpp"
 #include "defines.hpp"
+#include "events.hpp"
+#include "events/object.hpp"
 
 namespace Physbuzz {
 
-class Object {
+class Object : public IEventSubject {
   public:
     Object(ComponentManager &component_manager, ObjectID id);
     Object(const Object &other);
@@ -15,10 +17,22 @@ class Object {
     template <typename T>
     void setComponent(T &component) {
         m_ComponentManager.setComponent<T>(component, m_Id);
+
+        notifyCallbacks<OnComponentSetEvent<T>>({
+            .object = this,
+            .component = component,
+        });
     }
 
     template <typename T>
     bool removeComponent() {
+        if (hasComponent<T>()) {
+            notifyCallbacks<OnComponentRemoveEvent<T>>({
+                .object = this,
+                .component = getComponent<T>(),
+            });
+        }
+
         return m_ComponentManager.removeComponent<T>(m_Id);
     }
 

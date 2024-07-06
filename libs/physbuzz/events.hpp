@@ -1,97 +1,73 @@
 #pragma once
 
-#include "window.hpp"
-#include <functional>
+#include "defines.hpp"
 
-// TODO:
-//  - Map all glfw events
-//  - Template to make this managable?
+#include <functional>
+#include <memory>
+#include <unordered_map>
 
 namespace Physbuzz {
 
-struct KeyEvent {
-    GLFWwindow *window;
-
-    int key;
-    int scancode;
-    int action;
-    int mods;
-};
-
-struct MouseButtonEvent {
-    GLFWwindow *window;
-
-    int button;
-    int action;
-    int mods;
-};
-
-struct MousePositionEvent {
-    GLFWwindow *window;
-
-    double xpos;
-    double ypos;
-};
-
-struct MouseEnteredEvent {
-    GLFWwindow *window;
-
-    int entered;
-};
-
-struct MouseScrollEvent {
-    GLFWwindow *window;
-
-    double xoffset;
-    double yoffset;
-};
-
-struct WindowResizeEvent {
-    GLFWwindow *window;
-
-    int width;
-    int height;
-};
-
-struct WindowCloseEvent {
-    GLFWwindow *window;
-};
-
-class EventManager {
+class IEvent {
   public:
-    EventManager(Window &window);
-    EventManager(const EventManager &other);
-    EventManager &operator=(const EventManager &other);
+    virtual ~IEvent() = default;
+};
 
-    void poll();
+template <typename T>
+class Event : public IEvent {
+  public:
+    EventID add(std::function<void(const T &)> &callback) {
+        m_Callbacks[m_IdCount] = callback;
+        return m_IdCount++;
+    }
 
-    void setCallbackKeyEvent(std::function<void(KeyEvent)> callback) const;
+    void remove(const EventID &id) {
+        m_Callbacks.erase(id);
+    }
 
-    void setCallbackMouseButtonEvent(std::function<void(MouseButtonEvent)> callback) const;
-    void setCallbackMouseMotionEvent(std::function<void(MousePositionEvent)> callback) const;
-    void setCallbackMouseScrollEvent(std::function<void(MouseScrollEvent)> callback) const;
-    void setCallbackMouseEnteredEvent(std::function<void(MouseEnteredEvent)> callback) const;
-
-    void setCallbackWindowResize(std::function<void(WindowResizeEvent)> callback) const;
-    void setCallbackWindowClose(std::function<void(WindowCloseEvent)> callback) const;
+    void notify(const T &param) const {
+        for (const auto &[id, callback] : m_Callbacks) {
+            callback(param);
+        }
+    }
 
   private:
-    Window &m_Window;
+    EventID m_IdCount = 0;
+    std::unordered_map<EventID, std::function<void(const T &)>> m_Callbacks;
 };
 
-namespace {
+class IEventSubject {
+  public:
+    template <typename T>
+    EventID addCallback(std::function<void(const T &)> callback) {
+        std::shared_ptr<Event<T>> event = getEvent<T>();
+        return event->add(callback);
+    }
 
-auto defaultCallback = [](auto param) {};
+    template <typename T>
+    void removeCallback(EventID id) {
+        std::shared_ptr<Event<T>> event = getEvent<T>();
+        event->remove(id);
+    }
 
-// these simply exist as temporary callback variables that exist in a defined
-// memory to avoid using scoped lambdas and let glfw use the function pointer
-static std::function<void(KeyEvent)> CallbackKeyEvent = defaultCallback;
-static std::function<void(MouseEnteredEvent)> CallbackMouseEnteredEvent = defaultCallback;
-static std::function<void(MouseScrollEvent)> CallbackMouseScrollEvent = defaultCallback;
-static std::function<void(MousePositionEvent)> CallbackMousePositionEvent = defaultCallback;
-static std::function<void(MouseButtonEvent)> CallbackMouseButtonEvent = defaultCallback;
-static std::function<void(WindowResizeEvent)> CallbackWindowResizeEvent = defaultCallback;
-static std::function<void(WindowCloseEvent)> CallbackWindowCloseEvent = defaultCallback;
-} // namespace
+  protected:
+    template <typename T>
+    void notifyCallbacks(const T &params) {
+        std::shared_ptr<Event<T>> event = getEvent<T>();
+        event->notify(params);
+    }
+
+    template <typename T>
+    std::shared_ptr<Event<T>> getEvent() {
+        std::string name = typeid(T).name();
+
+        if (!m_EventMap.contains(name)) {
+            m_EventMap[name] = std::make_shared<Event<T>>();
+        }
+        return std::static_pointer_cast<Event<T>>(m_EventMap[name]);
+    }
+
+    std::unordered_map<std::string, std::shared_ptr<IEvent>> m_EventMap;
+};
 
 } // namespace Physbuzz
