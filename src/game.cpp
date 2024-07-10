@@ -1,19 +1,18 @@
 #include "game.hpp"
 
 #include "events.hpp"
-#include "physbuzz/dynamics.hpp"
 #include "ui/handler.hpp"
-#include <physbuzz/2D/detectors/sepaxis.hpp>
+#include <physbuzz/2D/detectors/gjk.hpp>
 #include <physbuzz/2D/detectors/sweepandprune.hpp>
 #include <physbuzz/2D/resolvers/linear.hpp>
 #include <physbuzz/context.hpp>
+#include <physbuzz/dynamics.hpp>
 #include <physbuzz/events.hpp>
 #include <physbuzz/renderer.hpp>
 
 Game::Game()
-    // TODO event management
     : collision(
-          std::make_shared<Physbuzz::SeperatingAxis2D>(scene),
+          std::make_shared<Physbuzz::Gjk2D>(scene),
           std::make_shared<Physbuzz::SweepAndPrune2D>(scene),
           std::make_shared<Physbuzz::LinearResolver>(scene, 0.9f)),
       renderer(window),
