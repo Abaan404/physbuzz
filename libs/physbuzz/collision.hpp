@@ -60,7 +60,7 @@ struct Contact {
     glm::vec3 point = {0.0f, 0.0f, 0.0f};
 };
 
-class ICollisionDetector : public IEventSubject {
+class ICollisionDetector {
   public:
     ICollisionDetector(Scene &scene);
     virtual ~ICollisionDetector() = default;

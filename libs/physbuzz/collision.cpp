@@ -24,11 +24,6 @@ std::list<Contact> ICollisionDetector::find() {
             };
 
             if (check(contact)) {
-                notifyCallbacks<OnCollisionDetectEvent>({
-                    .scene = m_Scene,
-                    .contact = contact,
-                });
-
                 contacts.emplace_back(std::move(contact));
             }
         }
@@ -40,7 +35,7 @@ std::list<Contact> ICollisionDetector::find() {
 void ICollisionDetector::find(std::list<Contact> &contacts) {
     for (auto it = contacts.begin(); it != contacts.end();) {
         if (check(*it)) {
-            notifyCallbacks<OnCollisionDetectEvent>({
+            m_Scene.notifyCallbacks<OnCollisionDetectEvent>({
                 .scene = m_Scene,
                 .contact = *it,
             });
@@ -59,7 +54,7 @@ ICollisionResolver::ICollisionResolver(Scene &scene)
 
 void ICollisionResolver::solve(std::list<Contact> &contacts) {
     for (const auto &contact : contacts) {
-        notifyCallbacks<OnCollisionResolveEvent>({
+        m_Scene.notifyCallbacks<OnCollisionResolveEvent>({
             .scene = m_Scene,
             .contact = contact,
         });

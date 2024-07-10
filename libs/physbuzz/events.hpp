@@ -50,13 +50,13 @@ class IEventSubject {
         event->remove(id);
     }
 
-  protected:
     template <typename T>
     void notifyCallbacks(const T &params) {
         std::shared_ptr<Event<T>> event = getEvent<T>();
         event->notify(params);
     }
 
+  protected:
     template <typename T>
     std::shared_ptr<Event<T>> getEvent() {
         std::string name = typeid(T).name();
