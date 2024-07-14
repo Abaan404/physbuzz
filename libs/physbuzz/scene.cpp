@@ -45,6 +45,10 @@ std::vector<Object> &Scene::getObjects() {
 }
 
 void Scene::clear() {
+    notifyCallbacks<OnSceneClear>({
+        .scene = this,
+    });
+
     m_ObjectManager.clearObjects();
     m_ComponentManager.clearComponents();
     m_EventMap.clear();

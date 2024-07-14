@@ -6,6 +6,10 @@ namespace Physbuzz {
 
 class Scene;
 
+struct OnSceneClear {
+    Scene *scene;
+};
+
 struct OnObjectCreateEvent {
     Scene *scene;
 
