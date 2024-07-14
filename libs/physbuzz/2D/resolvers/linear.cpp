@@ -6,7 +6,7 @@
 
 namespace Physbuzz {
 
-LinearResolver::LinearResolver(Scene &scene, float restitution)
+LinearResolver2D::LinearResolver2D(Scene &scene, float restitution)
     : m_Restitution(restitution),
       ICollisionResolver(scene) {
     if (m_Restitution > 1.0f) {
@@ -14,32 +14,27 @@ LinearResolver::LinearResolver(Scene &scene, float restitution)
     }
 }
 
-void LinearResolver::solve(const Contact &contact) {
+void LinearResolver2D::solve(const Contact &contact) {
     Object &object1 = m_Scene.getObject(contact.object1);
     Object &object2 = m_Scene.getObject(contact.object2);
 
-    const TransformableComponent &transform1 = object1.getComponent<TransformableComponent>();
-    const TransformableComponent &transform2 = object2.getComponent<TransformableComponent>();
+    RigidBodyComponent &body1 = object1.getComponent<RigidBodyComponent>();
+    RigidBodyComponent &body2 = object2.getComponent<RigidBodyComponent>();
 
-    // ensure the normal points from object1 -> object2
-    const glm::vec3 direction = transform2.position - transform1.position;
-    const glm::vec3 normal = glm::dot(contact.normal, direction) < 0.0f ? -contact.normal : contact.normal;
+    const glm::vec3 impulse = calcImpulse(body1, body2, contact);
 
-    RigidBodyComponent &rigidBody1 = object1.getComponent<RigidBodyComponent>();
-    RigidBodyComponent &rigidBody2 = object2.getComponent<RigidBodyComponent>();
+    body1.velocity -= impulse / body1.mass;
+    body2.velocity += impulse / body2.mass;
+}
 
+const glm::vec3 LinearResolver2D::calcImpulse(const RigidBodyComponent &body1, const RigidBodyComponent &body2, const Contact &contact) {
     // dont resolve if velocities are separating
-    const float velocityAlongNormal = glm::dot(rigidBody2.velocity - rigidBody1.velocity, normal);
+    const float velocityAlongNormal = glm::dot(body2.velocity - body1.velocity, contact.normal);
     if (velocityAlongNormal > 0) {
-        return;
+        return glm::vec3(0.0f, 0.0f, 0.0f);
     }
 
-    // calculate and apply impulses
-    const float impulseScalar = (-(1 + m_Restitution) * velocityAlongNormal) / ((1 / rigidBody1.mass) + (1 / rigidBody2.mass));
-    const glm::vec3 impulse = impulseScalar * normal;
-
-    rigidBody1.velocity -= impulse / rigidBody1.mass;
-    rigidBody2.velocity += impulse / rigidBody2.mass;
+    return ((-(1.0f + m_Restitution) * velocityAlongNormal) / ((1.0f / body1.mass) + (1.0f / body2.mass))) * contact.normal;
 }
 
 } // namespace Physbuzz

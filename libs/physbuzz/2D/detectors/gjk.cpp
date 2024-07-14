@@ -160,7 +160,8 @@ void Gjk2D::Epa(Simplex &simplex, Contact &contact, const MeshComponent &mesh1, 
             polytope.insert(polytope.begin() + minIndex, support);
         }
 
-        contact.point = (support1 + support2) / 2.0f;
+        contact.point1 = support1;
+        contact.point2 = support2;
     }
 
     contact.depth += 1e-4f;

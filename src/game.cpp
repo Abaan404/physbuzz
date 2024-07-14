@@ -14,7 +14,7 @@ Game::Game()
     : collision(
           std::make_shared<Physbuzz::Gjk2D>(scene),
           std::make_shared<Physbuzz::SweepAndPrune2D>(scene),
-          std::make_shared<Physbuzz::LinearResolver>(scene, 0.9f)),
+          std::make_shared<Physbuzz::AngularResolver2D>(scene, 0.9f)),
       renderer(window),
       events(window),
       interface(renderer),
