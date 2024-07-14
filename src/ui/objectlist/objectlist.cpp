@@ -35,6 +35,12 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
 
     std::vector<Physbuzz::Object> &objects = game->scene.getObjects();
 
+    ImGui::Text("Simulate Physics: %s", game->dynamics.isRunning() ? "true" : "false");
+
+    if (ImGui::Button("Toggle")) {
+        game->dynamics.toggle();
+    }
+
     ImGui::Text("Spawned Objects: %zu", objects.size());
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);

@@ -63,9 +63,15 @@ class Dynamics {
     void translate(Object &object, const glm::vec3 delta) const;
     void rotate(Object &object, const glm::quat delta) const;
 
+    const bool &isRunning();
+    void start();
+    void stop();
+    const bool &toggle();
+
   private:
     void tickMotion(Object &object) const;
 
+    bool m_IsRunning = true;
     Clock m_Clock;
 };
 

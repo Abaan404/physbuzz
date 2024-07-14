@@ -15,6 +15,10 @@ const Clock &Dynamics::getClock() const {
 }
 
 void Dynamics::tick(Scene &scene) {
+    if (!m_IsRunning) {
+        return;
+    }
+
     auto &objects = scene.getObjects();
     m_Clock.tick();
 
@@ -121,6 +125,24 @@ void Dynamics::translate(Object &object, const glm::vec3 delta) const {
             object.setComponent(bounding);
         }
     }
+}
+
+void Dynamics::start() {
+    m_Clock.tick();
+    m_IsRunning = true;
+}
+
+void Dynamics::stop() {
+    m_IsRunning = false;
+}
+
+const bool &Dynamics::toggle() {
+    m_Clock.tick();
+    return m_IsRunning ^= true;
+}
+
+const bool &Dynamics::isRunning() {
+    return m_IsRunning;
 }
 
 } // namespace Physbuzz
