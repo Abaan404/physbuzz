@@ -1,5 +1,6 @@
 #pragma once
 
+#include "events.hpp"
 #include "ui/handler.hpp"
 #include "wall.hpp"
 #include <physbuzz/clock.hpp>
@@ -13,26 +14,29 @@ class Game {
     Game();
     ~Game();
 
+    void build();
+    void destroy();
+
     void loop();
-    bool isRunning();
+    const bool &isRunning();
 
     // displaying and rendering
     Physbuzz::Window window;
-    Physbuzz::WindowEvents events;
     Physbuzz::Renderer renderer;
 
     // ecs object tracking
     Physbuzz::Scene scene;
-
-    // ImGui UI builder
-    InterfaceManager interface;
 
     // game physics
     Physbuzz::Clock clock;
     Physbuzz::Dynamics dynamics;
     Physbuzz::Collision collision;
 
+    // ImGui
+    InterfaceManager interface;
+
     // game elements
+    Events events;
     Wall wall;
 
   private:

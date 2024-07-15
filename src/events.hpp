@@ -2,10 +2,21 @@
 
 #include <physbuzz/events/window.hpp>
 
+class Game;
+
 class Events {
   public:
-    static void keyEvent(Physbuzz::KeyEvent event);
-    static void mouseButton(Physbuzz::MouseButtonEvent event);
-    static void WindowResize(Physbuzz::WindowResizeEvent event);
-    static void WindowClose(Physbuzz::WindowCloseEvent event);
+    Events(Game &game);
+    ~Events();
+
+    void build();
+    void destroy();
+
+    void keyEvent(const Physbuzz::KeyEvent &event);
+    void mouseButton(const Physbuzz::MouseButtonEvent &event);
+    void WindowResize(const Physbuzz::WindowResizeEvent &event);
+    void WindowClose(const Physbuzz::WindowCloseEvent &event);
+
+  private:
+    Game &m_Game;
 };

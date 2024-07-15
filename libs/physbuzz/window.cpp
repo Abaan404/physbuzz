@@ -34,12 +34,83 @@ void Window::build(const glm::ivec2 &resolution) {
     // debug context setup
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(OpenGLDebugCallback, 0);
+
+    glfwSetKeyCallback(m_Window, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
+        getCallback<KeyEvent>(window)({.window = window, .key = key, .scancode = scancode, .action = action, .mods = mods});
+    });
+
+    glfwSetCursorEnterCallback(m_Window, [](GLFWwindow *window, int entered) {
+        getCallback<MouseEnteredEvent>(window)({.window = window, .entered = entered});
+    });
+
+    glfwSetScrollCallback(m_Window, [](GLFWwindow *window, double xoffset, double yoffset) {
+        getCallback<MouseScrollEvent>(window)({.window = window, .xoffset = xoffset, .yoffset = yoffset});
+    });
+
+    glfwSetCursorPosCallback(m_Window, [](GLFWwindow *window, double xpos, double ypos) {
+        getCallback<MousePositionEvent>(window)({.window = window, .xpos = xpos, .ypos = ypos});
+    });
+
+    glfwSetMouseButtonCallback(m_Window, [](GLFWwindow *window, int button, int action, int mods) {
+        getCallback<MouseButtonEvent>(window)({.window = window, .button = button, .action = action, .mods = mods});
+    });
+
+    glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow *window, int width, int height) {
+        getCallback<WindowResizeEvent>(window)({.window = window, .width = width, .height = height});
+    });
+
+    glfwSetWindowCloseCallback(m_Window, [](GLFWwindow *window) {
+        getCallback<WindowCloseEvent>(window)({.window = window});
+    });
+
+    glfwSetCharCallback(m_Window, [](GLFWwindow *window, unsigned int codepoint) {
+        getCallback<CharEvent>(window)({.window = window, .codepoint = codepoint});
+    });
+
+    glfwSetWindowMaximizeCallback(m_Window, [](GLFWwindow *window, int maximized) {
+        getCallback<WindowMaximizeEvent>(window)({.window = window, .maximized = static_cast<bool>(maximized & GLFW_MAXIMIZED)});
+    });
+
+    glfwSetDropCallback(m_Window, [](GLFWwindow *window, int path_count, const char *paths[]) {
+        getCallback<MouseDropEvent>(window)({.window = window, .paths = std::vector<std::string>(paths, paths + path_count)});
+    });
+
+    glfwSetWindowPosCallback(m_Window, [](GLFWwindow *window, int xpos, int ypos) {
+        getCallback<WindowPositionEvent>(window)({.window = window, .xpos = xpos, .ypos = ypos});
+    });
+
+    glfwSetWindowRefreshCallback(m_Window, [](GLFWwindow *window) {
+        getCallback<WindowRefreshEvent>(window)({.window = window});
+    });
+
+    glfwSetWindowFocusCallback(m_Window, [](GLFWwindow *window, int focused) {
+        getCallback<WindowFocusEvent>(window)({.window = window, .focused = static_cast<bool>(focused & GLFW_FOCUSED)});
+    });
+
+    glfwSetWindowIconifyCallback(m_Window, [](GLFWwindow *window, int iconified) {
+        getCallback<WindowIconifyEvent>(window)({.window = window, .iconified = static_cast<bool>(iconified & GLFW_ICONIFIED)});
+    });
 }
 
 void Window::destroy() {
     close();
     glfwDestroyWindow(m_Window);
     glfwTerminate();
+
+    getCallbacks<KeyEvent>().erase(m_Window);
+    getCallbacks<WindowIconifyEvent>().erase(m_Window);
+    getCallbacks<WindowFocusEvent>().erase(m_Window);
+    getCallbacks<WindowRefreshEvent>().erase(m_Window);
+    getCallbacks<WindowPositionEvent>().erase(m_Window);
+    getCallbacks<MouseDropEvent>().erase(m_Window);
+    getCallbacks<WindowMaximizeEvent>().erase(m_Window);
+    getCallbacks<CharEvent>().erase(m_Window);
+    getCallbacks<WindowCloseEvent>().erase(m_Window);
+    getCallbacks<WindowResizeEvent>().erase(m_Window);
+    getCallbacks<MouseButtonEvent>().erase(m_Window);
+    getCallbacks<MousePositionEvent>().erase(m_Window);
+    getCallbacks<MouseScrollEvent>().erase(m_Window);
+    getCallbacks<MouseEnteredEvent>().erase(m_Window);
 }
 
 void Window::close() const {
@@ -105,210 +176,8 @@ void Window::flip() const {
     glfwSwapBuffers(m_Window);
 }
 
-WindowEvents::WindowEvents(Window &window)
-    : m_Window(window) {}
-
-WindowEvents::WindowEvents(const WindowEvents &other)
-    : m_Window(other.m_Window) {}
-
-WindowEvents &WindowEvents::operator=(const WindowEvents &other) {
-    if (this != &other) {
-        m_Window = other.m_Window;
-    }
-
-    return *this;
-}
-
-void WindowEvents::poll() {
+void Window::poll() {
     glfwPollEvents();
-}
-
-void WindowEvents::setCallbackKeyEvent(std::function<void(KeyEvent)> callback) const {
-    static std::function<void(KeyEvent)> tempCallback = callback;
-
-    glfwSetKeyCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int key, int scancode, int action, int mods) {
-        std::function<void(KeyEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .key = key,
-            .scancode = scancode,
-            .action = action,
-            .mods = mods,
-        });
-    });
-}
-
-void WindowEvents::setCallbackMouseEnteredEvent(std::function<void(MouseEnteredEvent)> callback) const {
-    static std::function<void(MouseEnteredEvent)> tempCallback = callback;
-
-    glfwSetCursorEnterCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int entered) {
-        std::function<void(MouseEnteredEvent)> callback = tempCallback;
-        callback({
-            .window = window,
-            .entered = entered,
-        });
-    });
-}
-
-void WindowEvents::setCallbackMouseScrollEvent(std::function<void(MouseScrollEvent)> callback) const {
-    static std::function<void(MouseScrollEvent)> tempCallback = callback;
-
-    glfwSetScrollCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, double xoffset, double yoffset) {
-        std::function<void(MouseScrollEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .xoffset = xoffset,
-            .yoffset = yoffset,
-        });
-    });
-}
-
-void WindowEvents::setCallbackMousePositionEvent(std::function<void(MousePositionEvent)> callback) const {
-    static std::function<void(MousePositionEvent)> tempCallback = callback;
-
-    glfwSetCursorPosCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, double xpos, double ypos) {
-        std::function<void(MousePositionEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .xpos = xpos,
-            .ypos = ypos,
-        });
-    });
-}
-
-void WindowEvents::setCallbackMouseButtonEvent(std::function<void(MouseButtonEvent)> callback) const {
-    static std::function<void(MouseButtonEvent)> tempCallback = callback;
-
-    glfwSetMouseButtonCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int button, int action, int mods) {
-        std::function<void(MouseButtonEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .button = button,
-            .action = action,
-            .mods = mods,
-        });
-    });
-}
-
-void WindowEvents::setCallbackWindowResizeEvent(std::function<void(WindowResizeEvent)> callback) const {
-    static std::function<void(WindowResizeEvent)> tempCallback = callback;
-
-    glfwSetFramebufferSizeCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int width, int height) {
-        std::function<void(WindowResizeEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .width = width,
-            .height = height,
-        });
-    });
-}
-
-void WindowEvents::setCallbackWindowCloseEvent(std::function<void(WindowCloseEvent)> callback) const {
-    static std::function<void(WindowCloseEvent)> tempCallback = callback;
-
-    glfwSetWindowCloseCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window) {
-        std::function<void(WindowCloseEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-        });
-    });
-}
-
-void WindowEvents::setCallbackCharEvent(std::function<void(CharEvent)> callback) const {
-    static std::function<void(CharEvent)> tempCallback = callback;
-
-    glfwSetCharCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, unsigned int codepoint) {
-        std::function<void(CharEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .codepoint = codepoint,
-        });
-    });
-}
-
-void WindowEvents::setCallbackMouseDropEvent(std::function<void(MouseDropEvent)> callback) const {
-    static std::function<void(MouseDropEvent)> tempCallback = callback;
-
-    glfwSetDropCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int path_count, const char *paths[]) {
-        std::function<void(MouseDropEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .paths = std::vector<std::string>(paths, paths + path_count),
-        });
-    });
-}
-
-void WindowEvents::setCallbackWindowPositionEvent(std::function<void(WindowPositionEvent)> callback) const {
-    static std::function<void(WindowPositionEvent)> tempCallback = callback;
-
-    glfwSetWindowPosCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int xpos, int ypos) {
-        std::function<void(WindowPositionEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .xpos = xpos,
-            .ypos = ypos,
-        });
-    });
-}
-
-void WindowEvents::setCallbackWindowRefreshEvent(std::function<void(WindowRefreshEvent)> callback) const {
-    static std::function<void(WindowRefreshEvent)> tempCallback = callback;
-
-    glfwSetWindowRefreshCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window) {
-        std::function<void(WindowRefreshEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-        });
-    });
-}
-
-void WindowEvents::setCallbackWindowFocusEvent(std::function<void(WindowFocusEvent)> callback) const {
-    static std::function<void(WindowFocusEvent)> tempCallback = callback;
-
-    glfwSetWindowFocusCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int focused) {
-        std::function<void(WindowFocusEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .focused = static_cast<bool>(focused & GLFW_FOCUSED),
-        });
-    });
-}
-
-void WindowEvents::setCallbackWindowIconifyEvent(std::function<void(WindowIconifyEvent)> callback) const {
-    static std::function<void(WindowIconifyEvent)> tempCallback = callback;
-
-    glfwSetWindowIconifyCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int iconified) {
-        std::function<void(WindowIconifyEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .iconified = static_cast<bool>(iconified & GLFW_ICONIFIED),
-        });
-    });
-}
-
-void WindowEvents::setCallbackWindowMaximizeEvent(std::function<void(WindowMaximizeEvent)> callback) const {
-    static std::function<void(WindowMaximizeEvent)> tempCallback = callback;
-
-    glfwSetWindowMaximizeCallback(m_Window.getGLFWwindow(), [](GLFWwindow *window, int maximized) {
-        std::function<void(WindowMaximizeEvent)> callback = tempCallback;
-
-        callback({
-            .window = window,
-            .maximized = static_cast<bool>(maximized & GLFW_MAXIMIZED),
-        });
-    });
 }
 
 } // namespace Physbuzz

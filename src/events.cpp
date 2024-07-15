@@ -9,11 +9,21 @@
 #include "objects/circle.hpp"
 #include "objects/quad.hpp"
 
-void Events::keyEvent(Physbuzz::KeyEvent event) {
-    Game *game = Physbuzz::Context::get<Game>(event.window);
+Events::Events(Game &game)
+    : m_Game(game) {}
 
-    ImGui_ImplGlfw_KeyCallback(event.window, event.key, event.scancode, event.action, event.mods);
+Events::~Events() {}
 
+void Events::build() {
+    m_Game.window.setCallback<Physbuzz::KeyEvent>([&](const Physbuzz::KeyEvent &event) { keyEvent(event); });
+    m_Game.window.setCallback<Physbuzz::MouseButtonEvent>([&](const Physbuzz::MouseButtonEvent &event) { mouseButton(event); });
+    m_Game.window.setCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) { WindowResize(event); });
+    m_Game.window.setCallback<Physbuzz::WindowCloseEvent>([&](const Physbuzz::WindowCloseEvent &event) { WindowClose(event); });
+}
+
+void Events::destroy() {}
+
+void Events::keyEvent(const Physbuzz::KeyEvent &event) {
     if (ImGui::GetIO().WantCaptureKeyboard && event.key != GLFW_KEY_F3) {
         return;
     }
@@ -22,23 +32,23 @@ void Events::keyEvent(Physbuzz::KeyEvent event) {
     case (GLFW_PRESS): {
         switch (event.key) {
         case (GLFW_KEY_F3): {
-            game->interface.draw ^= true;
+            m_Game.interface.draw ^= true;
         } break;
 
         case (GLFW_KEY_C): {
-            if (game->scene.existsComponents<Physbuzz::RenderComponent>()) {
-                for (auto &mesh : game->scene.getComponents<Physbuzz::RenderComponent>()) {
+            if (m_Game.scene.existsComponents<Physbuzz::RenderComponent>()) {
+                for (auto &mesh : m_Game.scene.getComponents<Physbuzz::RenderComponent>()) {
                     mesh.destroy();
                 }
             }
 
-            game->wall.destroy();
-            game->scene.clear();
-            game->collision.destroy();
+            m_Game.wall.destroy();
+            m_Game.scene.clear();
+            m_Game.collision.destroy();
 
-            const WallInfo &info = game->wall.getInfo();
-            game->wall.build(info);
-            game->collision.build();
+            const WallInfo &info = m_Game.wall.getInfo();
+            m_Game.wall.build(info);
+            m_Game.collision.build();
         } break;
         }
 
@@ -46,11 +56,7 @@ void Events::keyEvent(Physbuzz::KeyEvent event) {
     }
 }
 
-void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
-    Game *game = Physbuzz::Context::get<Game>(event.window);
-
-    ImGui_ImplGlfw_MouseButtonCallback(event.window, event.button, event.action, event.mods);
-
+void Events::mouseButton(const Physbuzz::MouseButtonEvent &event) {
     if (ImGui::GetIO().WantCaptureMouse) {
         return;
     }
@@ -59,7 +65,7 @@ void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
     case (GLFW_PRESS): {
         switch (event.button) {
         case (GLFW_MOUSE_BUTTON_LEFT): {
-            glm::dvec2 cursor = game->window.getCursorPos();
+            glm::dvec2 cursor = m_Game.window.getCursorPos();
 
             QuadInfo info = {
                 .body = {
@@ -78,12 +84,12 @@ void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
                 .isRenderable = true,
             };
 
-            ObjectBuilder<QuadInfo>::build(game->scene, info);
+            ObjectBuilder<QuadInfo>::build(m_Game.scene, info);
 
         } break;
 
         case (GLFW_MOUSE_BUTTON_RIGHT): {
-            glm::dvec2 cursor = game->window.getCursorPos();
+            glm::dvec2 cursor = m_Game.window.getCursorPos();
 
             CircleInfo info = {
                 .body = {
@@ -102,7 +108,7 @@ void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
                 .isRenderable = true,
             };
 
-            ObjectBuilder<CircleInfo>::build(game->scene, info);
+            ObjectBuilder<CircleInfo>::build(m_Game.scene, info);
 
         } break;
 
@@ -117,14 +123,14 @@ void Events::mouseButton(Physbuzz::MouseButtonEvent event) {
     }
 }
 
-void Events::WindowResize(Physbuzz::WindowResizeEvent event) {
+void Events::WindowResize(const Physbuzz::WindowResizeEvent &event) {
     Game *game = Physbuzz::Context::get<Game>(event.window);
 
     glm::ivec2 resolution = {event.width, event.height};
-    game->renderer.resize(resolution);
+    m_Game.renderer.resize(resolution);
 
-    if (game->wall.isErect()) {
-        WallInfo info = game->wall.getInfo();
+    if (m_Game.wall.isErect()) {
+        WallInfo info = m_Game.wall.getInfo();
         info.transform = {
             .position = glm::vec3(resolution >> 1, 0.0f),
         };
@@ -135,17 +141,17 @@ void Events::WindowResize(Physbuzz::WindowResizeEvent event) {
             .thickness = info.wall.thickness,
         };
 
-        game->wall.destroy();
-        game->wall.build(info);
+        m_Game.wall.destroy();
+        m_Game.wall.build(info);
     }
 
-    std::vector<Physbuzz::MeshComponent> &meshes = game->scene.getComponents<Physbuzz::MeshComponent>();
+    std::vector<Physbuzz::MeshComponent> &meshes = m_Game.scene.getComponents<Physbuzz::MeshComponent>();
     for (auto &mesh : meshes) {
         mesh.renormalize();
     }
 }
 
-void Events::WindowClose(Physbuzz::WindowCloseEvent event) {
+void Events::WindowClose(const Physbuzz::WindowCloseEvent &event) {
     Game *game = Physbuzz::Context::get<Game>(event.window);
-    game->window.close();
+    m_Game.window.close();
 }

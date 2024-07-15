@@ -7,6 +7,23 @@
 
 namespace Physbuzz {
 
+template <typename T>
+concept IsWindowEventType =
+    std::is_same_v<T, KeyEvent> ||
+    std::is_same_v<T, WindowIconifyEvent> ||
+    std::is_same_v<T, WindowFocusEvent> ||
+    std::is_same_v<T, WindowRefreshEvent> ||
+    std::is_same_v<T, WindowPositionEvent> ||
+    std::is_same_v<T, MouseDropEvent> ||
+    std::is_same_v<T, WindowMaximizeEvent> ||
+    std::is_same_v<T, CharEvent> ||
+    std::is_same_v<T, WindowCloseEvent> ||
+    std::is_same_v<T, WindowResizeEvent> ||
+    std::is_same_v<T, MouseButtonEvent> ||
+    std::is_same_v<T, MousePositionEvent> ||
+    std::is_same_v<T, MouseScrollEvent> ||
+    std::is_same_v<T, MouseEnteredEvent>;
+
 class Window {
   public:
     Window();
@@ -35,37 +52,37 @@ class Window {
     const glm::ivec2 getResolution() const;
     void setResolution(const glm::ivec2 &resolution);
 
-  private:
-    GLFWwindow *m_Window;
-};
-
-class WindowEvents {
-  public:
-    WindowEvents(Window &window);
-    WindowEvents(const WindowEvents &other);
-    WindowEvents &operator=(const WindowEvents &other);
-
     void poll();
 
-    void setCallbackKeyEvent(std::function<void(KeyEvent)> callback) const;
-    void setCallbackCharEvent(std::function<void(CharEvent)> callback) const;
-
-    void setCallbackMouseButtonEvent(std::function<void(MouseButtonEvent)> callback) const;
-    void setCallbackMousePositionEvent(std::function<void(MousePositionEvent)> callback) const;
-    void setCallbackMouseEnteredEvent(std::function<void(MouseEnteredEvent)> callback) const;
-    void setCallbackMouseScrollEvent(std::function<void(MouseScrollEvent)> callback) const;
-    void setCallbackMouseDropEvent(std::function<void(MouseDropEvent)> callback) const;
-
-    void setCallbackWindowPositionEvent(std::function<void(WindowPositionEvent)> callback) const;
-    void setCallbackWindowResizeEvent(std::function<void(WindowResizeEvent)> callback) const;
-    void setCallbackWindowCloseEvent(std::function<void(WindowCloseEvent)> callback) const;
-    void setCallbackWindowRefreshEvent(std::function<void(WindowRefreshEvent)> callback) const;
-    void setCallbackWindowFocusEvent(std::function<void(WindowFocusEvent)> callback) const;
-    void setCallbackWindowIconifyEvent(std::function<void(WindowIconifyEvent)> callback) const;
-    void setCallbackWindowMaximizeEvent(std::function<void(WindowMaximizeEvent)> callback) const;
+    template <typename T>
+        requires IsWindowEventType<T>
+    void setCallback(const std::function<void(const T &)> &callback) {
+        std::unordered_map<GLFWwindow *, std::function<void(const T &)>> &callbacks = getCallbacks<T>();
+        callbacks[m_Window] = callback;
+    }
 
   private:
-    Window &m_Window;
+    template <typename T>
+        requires IsWindowEventType<T>
+    static std::unordered_map<GLFWwindow *, std::function<void(const T &)>> &getCallbacks() {
+        static std::unordered_map<GLFWwindow *, std::function<void(const T &)>> callbacks;
+        return callbacks;
+    }
+
+    template <typename T>
+        requires IsWindowEventType<T>
+    static std::function<void(const T &)> &getCallback(GLFWwindow *window) {
+        std::unordered_map<GLFWwindow *, std::function<void(const T &)>> &callbacks = getCallbacks<T>();
+
+        if (callbacks.contains(window)) {
+            return callbacks[window];
+        } else {
+            static std::function<void(const T &)> emptyCallback = [](const T &) {};
+            return emptyCallback;
+        }
+    }
+
+    GLFWwindow *m_Window;
 };
 
 } // namespace Physbuzz
