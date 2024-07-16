@@ -24,8 +24,8 @@ void FrametimeOverlay::draw(Physbuzz::Renderer &renderer) {
         ImGui::Text("Frametime");
         ImGui::Separator();
 
-        double mspt = game->clock.getDelta();
-        ImGui::Text("FPS: %.2f (%.2f ms)", 1000.0f / mspt, mspt);
+        float duration = game->frameClock.getDelta().count();
+        ImGui::Text("FPS: %.2f (%.2f ms)", 1000.0f / duration, duration);
 
         if (ImGui::BeginPopupContextWindow()) {
             if (show && ImGui::MenuItem("Close")) {

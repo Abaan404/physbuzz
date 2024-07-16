@@ -18,7 +18,7 @@ Game::Game()
       renderer(window),
       events(*this),
       interface(renderer),
-      dynamics(clock),
+      dynamics(0.005),
       wall(&scene) {}
 
 Game::~Game() {}
@@ -59,7 +59,7 @@ void Game::loop() {
 
         collision.tick(scene);
         dynamics.tick(scene);
-        clock.tick();
+        frameClock.tick();
 
         renderer.clear(clear);
         renderer.render(scene);

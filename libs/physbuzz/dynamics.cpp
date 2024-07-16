@@ -5,8 +5,8 @@
 
 namespace Physbuzz {
 
-Dynamics::Dynamics(Clock &clock)
-    : m_Clock(clock) {}
+Dynamics::Dynamics(float dtime)
+    : m_DeltaTime(dtime) {}
 
 Dynamics::~Dynamics() {}
 
@@ -19,23 +19,34 @@ void Dynamics::tick(Scene &scene) {
         return;
     }
 
-    auto &objects = scene.getObjects();
     m_Clock.tick();
+    static float time = 0.0f;
+    const float &delta = m_Clock.getDelta().count();
 
-    for (auto &object : objects) {
-        if (!(object.hasComponent<RigidBodyComponent>() && object.hasComponent<TransformableComponent>())) {
-            continue;
+    if (delta > 10.0f) {
+        Logger::WARNING(std::format("[Dynamics] Max Timeout exceeded, skipping frame ({}ms since last tick)", delta));
+        return;
+    }
+
+    time += delta / 1000.0f;
+    auto &objects = scene.getObjects();
+    while (m_DeltaTime - time <= 0.0f) {
+        for (auto &object : objects) {
+            if (!(object.hasComponent<RigidBodyComponent>() && object.hasComponent<TransformableComponent>())) {
+                continue;
+            }
+
+            Logger::ASSERT(object.hasComponent<TransformableComponent>(), "RigidBody object does not have a transform.");
+            tickMotion(object);
         }
 
-        Logger::ASSERT(object.hasComponent<TransformableComponent>(), "RigidBody object does not have a transform.");
-        tickMotion(object);
+        time -= m_DeltaTime;
     }
 }
 
 void Dynamics::tickMotion(Object &object) const {
     RigidBodyComponent &body = object.getComponent<RigidBodyComponent>();
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
-    float dTime = m_Clock.getDelta() / 1000.0f;
 
     // apply gravity
     {
@@ -53,27 +64,27 @@ void Dynamics::tickMotion(Object &object) const {
             body.addForce(force);
         }
 
-        body.angular.velocity *= glm::pow(body.angular.drag, dTime);
+        body.angular.velocity *= glm::pow(body.angular.drag, m_DeltaTime);
     }
 
     // move object wrt S = ut + 1/2 a t**2
     // Note: t**2 is approx 0 for t << 0 (at high framerate)
     {
-        translate(object, body.velocity * dTime);
-        rotate(object, dTime / 2.0f * glm::quat(0.0f, body.angular.velocity) * transform.orientation);
+        translate(object, body.velocity * m_DeltaTime);
+        rotate(object, m_DeltaTime / 2.0f * glm::quat(0.0f, body.angular.velocity) * transform.orientation);
     }
 
     // apply accumulated forces to velocity and clear them
     {
-        body.angular.velocity += (body.angular.acceleration + body.accumTorques / body.angular.inertia) * dTime;
-        body.velocity += (body.acceleration + body.accumForces / body.mass) * dTime;
+        body.angular.velocity += (body.angular.acceleration + body.accumTorques / body.angular.inertia) * m_DeltaTime;
+        body.velocity += (body.acceleration + body.accumForces / body.mass) * m_DeltaTime;
         body.accumForces = glm::vec3(0.0f, 0.0f, 0.0f);
         body.accumTorques = glm::vec3(0.0f, 0.0f, 0.0f);
     }
 }
 
 // not exactly "rotate"s but this works for now
-void Dynamics::rotate(Object &object, const glm::quat delta) const {
+void Dynamics::rotate(Object &object, const glm::quat &delta) const {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
     transform.orientation = glm::normalize(transform.orientation + delta);
 
@@ -99,7 +110,7 @@ void Dynamics::rotate(Object &object, const glm::quat delta) const {
     }
 }
 
-void Dynamics::translate(Object &object, const glm::vec3 delta) const {
+void Dynamics::translate(Object &object, const glm::vec3 &delta) const {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
     transform.translate(delta);
 
@@ -141,7 +152,7 @@ const bool &Dynamics::toggle() {
     return m_IsRunning ^= true;
 }
 
-const bool &Dynamics::isRunning() {
+const bool &Dynamics::isRunning() const {
     return m_IsRunning;
 }
 

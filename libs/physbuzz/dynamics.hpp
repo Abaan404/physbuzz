@@ -54,16 +54,16 @@ struct RigidBodyComponent {
 
 class Dynamics {
   public:
-    Dynamics(Clock &clock);
+    Dynamics(float dtime);
     ~Dynamics();
 
     void tick(Scene &scene);
     const Clock &getClock() const;
 
-    void translate(Object &object, const glm::vec3 delta) const;
-    void rotate(Object &object, const glm::quat delta) const;
+    void translate(Object &object, const glm::vec3 &delta) const;
+    void rotate(Object &object, const glm::quat &delta) const;
 
-    const bool &isRunning();
+    const bool &isRunning() const;
     void start();
     void stop();
     const bool &toggle();
@@ -71,6 +71,7 @@ class Dynamics {
   private:
     void tickMotion(Object &object) const;
 
+    float m_DeltaTime = 0.0f;
     bool m_IsRunning = true;
     Clock m_Clock;
 };

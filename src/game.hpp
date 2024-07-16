@@ -28,7 +28,7 @@ class Game {
     Physbuzz::Scene scene;
 
     // game physics
-    Physbuzz::Clock clock;
+    Physbuzz::Clock frameClock;
     Physbuzz::Dynamics dynamics;
     Physbuzz::Collision collision;
 
