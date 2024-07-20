@@ -45,7 +45,7 @@ void Game::build() {
             .thickness = 10.0f,
         },
         .isCollidable = true,
-        .isRenderable = false,
+        .isRenderable = true,
     };
 
     wall.build(info);

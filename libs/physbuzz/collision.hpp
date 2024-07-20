@@ -1,7 +1,6 @@
 #pragma once
 
 #include "events.hpp"
-#include "glm/common.hpp"
 #include <glm/glm.hpp>
 #include <list>
 #include <memory>
@@ -11,43 +10,14 @@
 namespace Physbuzz {
 
 struct AABBComponent {
-    glm::vec3 min = {
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::max(),
-    };
-    glm::vec3 max = {
-        std::numeric_limits<float>::lowest(),
-        std::numeric_limits<float>::lowest(),
-        std::numeric_limits<float>::lowest(),
-    };
+    glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
+    glm::vec3 max = glm::vec3(std::numeric_limits<float>::lowest());
 };
 
-class BoundingComponent {
-  public:
-    BoundingComponent(const AABBComponent &quad) {
-        build(quad);
-    }
-    BoundingComponent(const MeshComponent &mesh) {
-        build(mesh);
-    }
+struct BoundingComponent {
+    BoundingComponent(const AABBComponent &quad);
+    BoundingComponent(const Mesh &mesh);
 
-    void build(const AABBComponent &quad) {
-        aabb = quad;
-    }
-
-    void build(const MeshComponent &mesh) {
-        for (const auto &vertex : mesh.vertices) {
-            aabb.min = glm::min(aabb.min, vertex);
-            aabb.max = glm::max(aabb.max, vertex);
-        }
-    }
-
-    const AABBComponent &getBox() const {
-        return aabb;
-    }
-
-  private:
     AABBComponent aabb;
 };
 

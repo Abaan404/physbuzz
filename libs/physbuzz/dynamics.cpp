@@ -1,7 +1,7 @@
 #include "dynamics.hpp"
 
 #include "collision.hpp"
-#include "mesh.hpp"
+#include "renderer.hpp"
 
 namespace Physbuzz {
 
@@ -71,7 +71,9 @@ void Dynamics::tickMotion(Object &object) const {
     // Note: t**2 is approx 0 for t << 0 (at high framerate)
     {
         translate(object, body.velocity * m_DeltaTime);
-        rotate(object, m_DeltaTime / 2.0f * glm::quat(0.0f, body.angular.velocity) * transform.orientation);
+        if (glm::length(body.angular.velocity) > 0.0f) {
+            rotate(object, glm::angleAxis(glm::length(body.angular.velocity) * m_DeltaTime, glm::normalize(body.angular.velocity)));
+        }
     }
 
     // apply accumulated forces to velocity and clear them
@@ -86,25 +88,21 @@ void Dynamics::tickMotion(Object &object) const {
 // not exactly "rotate"s but this works for now
 void Dynamics::rotate(Object &object, const glm::quat &delta) const {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
-    transform.orientation = glm::normalize(transform.orientation + delta);
+    transform.orientation = glm::normalize(delta * transform.orientation);
 
     // update mesh
     if (object.hasComponent<RenderComponent>()) {
-        MeshComponent &mesh = object.getComponent<MeshComponent>();
-        const std::vector<glm::vec3> &originalVertices = mesh.getOriginalVertices();
+        RenderComponent &render = object.getComponent<RenderComponent>();
+        render.mesh.isScaled = false;
 
-        for (int i = 0; i < mesh.vertices.size(); i++) {
-            glm::quat rotation = transform.orientation * glm::quat(0.0f, originalVertices[i]) * glm::inverse(transform.orientation);
-            mesh.vertices[i] = glm::vec3(rotation.x, rotation.y, rotation.z) + transform.position;
+        for (int i = 0; i < render.mesh.positions.size(); i++) {
+            glm::vec3 &position = render.mesh.positions[i];
+            position = delta * (position - transform.position) + transform.position;
         }
-
-        mesh.renormalize();
 
         // adjust collision bounding box
         if (object.hasComponent<BoundingComponent>()) {
-            BoundingComponent bounding = object.getComponent<MeshComponent>();
-            bounding.build(mesh);
-
+            BoundingComponent bounding = BoundingComponent(render.mesh);
             object.setComponent(bounding);
         }
     }
@@ -116,24 +114,18 @@ void Dynamics::translate(Object &object, const glm::vec3 &delta) const {
 
     // update mesh
     if (object.hasComponent<RenderComponent>()) {
-        MeshComponent &mesh = object.getComponent<MeshComponent>();
+        RenderComponent &render = object.getComponent<RenderComponent>();
+        render.mesh.isScaled = false;
 
-        for (auto &vertex : mesh.vertices) {
-            vertex += delta;
+        for (auto &position : render.mesh.positions) {
+            position += delta;
         }
-
-        mesh.renormalize();
 
         // adjust collision bounding box
         if (object.hasComponent<BoundingComponent>()) {
-            BoundingComponent bounding = object.getComponent<MeshComponent>();
-            AABBComponent box = bounding.getBox();
-
-            box.max += delta;
-            box.min += delta;
-            bounding.build(box);
-
-            object.setComponent(bounding);
+            BoundingComponent &bounding = object.getComponent<BoundingComponent>();
+            bounding.aabb.max += delta;
+            bounding.aabb.min += delta;
         }
     }
 }

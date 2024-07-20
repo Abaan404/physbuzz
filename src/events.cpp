@@ -37,12 +37,11 @@ void Events::keyEvent(const Physbuzz::KeyEvent &event) {
 
         case (GLFW_KEY_C): {
             if (m_Game.scene.existsComponents<Physbuzz::RenderComponent>()) {
-                for (auto &mesh : m_Game.scene.getComponents<Physbuzz::RenderComponent>()) {
-                    mesh.destroy();
+                for (auto &render : m_Game.scene.getComponents<Physbuzz::RenderComponent>()) {
+                    render.destroy();
                 }
             }
 
-            m_Game.wall.destroy();
             m_Game.scene.clear();
             m_Game.collision.destroy();
 
@@ -124,8 +123,6 @@ void Events::mouseButton(const Physbuzz::MouseButtonEvent &event) {
 }
 
 void Events::WindowResize(const Physbuzz::WindowResizeEvent &event) {
-    Game *game = Physbuzz::Context::get<Game>(event.window);
-
     glm::ivec2 resolution = {event.width, event.height};
     m_Game.renderer.resize(resolution);
 
@@ -145,13 +142,12 @@ void Events::WindowResize(const Physbuzz::WindowResizeEvent &event) {
         m_Game.wall.build(info);
     }
 
-    std::vector<Physbuzz::MeshComponent> &meshes = m_Game.scene.getComponents<Physbuzz::MeshComponent>();
-    for (auto &mesh : meshes) {
-        mesh.renormalize();
+    std::vector<Physbuzz::RenderComponent> &renders = m_Game.scene.getComponents<Physbuzz::RenderComponent>();
+    for (auto &render : renders) {
+        render.mesh.isScaled = false;
     }
 }
 
 void Events::WindowClose(const Physbuzz::WindowCloseEvent &event) {
-    Game *game = Physbuzz::Context::get<Game>(event.window);
     m_Game.window.close();
 }

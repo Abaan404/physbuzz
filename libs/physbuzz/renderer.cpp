@@ -1,18 +1,43 @@
 #include "renderer.hpp"
 
-#include "logging.hpp"
 #include "window.hpp"
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
-#include <glm/gtc/type_ptr.hpp>
-
-// pointer magic
-template <typename T, glm::length_t N>
-std::pair<T *, std::size_t> getArray(std::vector<glm::vec<N, T>> &vec) {
-    return {static_cast<T *>(glm::value_ptr(vec.front())), vec.size() * (vec.front().length())};
-}
 
 namespace Physbuzz {
+
+RenderComponent::RenderComponent(const Mesh &mesh, const ShaderPipeline &pipeline)
+    : mesh(mesh),
+      pipeline(pipeline) {}
+
+RenderComponent::~RenderComponent() {}
+
+void RenderComponent::build() {
+    mesh.build();
+    pipeline.build();
+
+    gluTime = glGetUniformLocation(pipeline.getProgram(), "u_time");
+    gluResolution = glGetUniformLocation(pipeline.getProgram(), "u_resolution");
+}
+
+void RenderComponent::destroy() {
+    pipeline.destroy();
+    mesh.destroy();
+}
+
+void RenderComponent::bind() const {
+    mesh.bind();
+    pipeline.bind();
+}
+
+void RenderComponent::draw() const {
+    mesh.draw();
+}
+
+void RenderComponent::unbind() const {
+    pipeline.unbind();
+    mesh.unbind();
+}
 
 Renderer::Renderer(Window &window)
     : m_Window(window) {}
@@ -47,34 +72,31 @@ void Renderer::build() {
 
 void Renderer::destroy() {}
 
-Window &Renderer::getWindow() const {
+const Window &Renderer::getWindow() const {
     return m_Window;
 }
 
-const glm::ivec2 Renderer::getResolution() const {
+const glm::ivec2 &Renderer::getResolution() const {
     return m_Resolution;
 }
 
 void Renderer::target(Framebuffer *framebuffer) {
     m_Framebuffer = framebuffer;
 
-    glm::ivec2 resolution;
-    if (framebuffer == nullptr) {
-        framebuffer->unbind();
-        resolution = m_Window.getResolution();
-    } else {
+    if (framebuffer) {
         framebuffer->bind();
-        resolution = framebuffer->getResolution();
+        resize(framebuffer->getResolution());
+    } else {
+        framebuffer->unbind();
+        resize(m_Window.getResolution());
     }
-
-    resize(resolution);
 }
 
-void Renderer::clear(glm::vec4 &color) {
+void Renderer::clear(const glm::vec4 &color) {
     m_Framebuffer->clear(color);
 }
 
-void Renderer::resize(glm::ivec2 &resolution) {
+void Renderer::resize(const glm::ivec2 &resolution) {
     if (m_Framebuffer == nullptr) {
         m_Window.setResolution(resolution);
     } else {
@@ -85,62 +107,36 @@ void Renderer::resize(glm::ivec2 &resolution) {
     glViewport(0, 0, resolution.x, resolution.y);
 }
 
-void Renderer::normalize(MeshComponent &mesh) {
-    mesh.m_NormalizedVertices.clear();
-    mesh.m_Scaled = true;
-    for (auto &vertex : mesh.vertices) {
-        mesh.m_NormalizedVertices.emplace_back((2.0f * vertex.x) / m_Resolution.x - 1.0f, 1.0f - (2.0f * vertex.y) / m_Resolution.y, vertex.z);
+void Renderer::normalize(Mesh &mesh) {
+    mesh.isScaled = true;
+    for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
+        mesh.vertices[i].position.x = (2.0f * mesh.positions[i].x) / m_Resolution.x - 1.0f;
+        mesh.vertices[i].position.y = 1.0f - (2.0f * mesh.positions[i].y) / m_Resolution.y;
     }
 }
 
 void Renderer::render(Scene &scene) {
-    for (auto &object : scene.getObjects()) {
-        if (!(object.hasComponent<RenderComponent>())) {
-            continue;
-        }
-
-        Logger::ASSERT(object.hasComponent<MeshComponent>(), "RenderComponent object does not have a mesh!");
-        render(object);
+    for (auto &component : scene.getComponents<RenderComponent>()) {
+        render(component);
     }
 }
 
 // way too many draw calls i know
-void Renderer::render(Object &object) {
+void Renderer::render(RenderComponent &render) {
     std::time_t time = m_Clock.getTime();
 
-    RenderComponent &render = object.getComponent<RenderComponent>();
-    MeshComponent &mesh = object.getComponent<MeshComponent>();
-
-    if (!mesh.m_Scaled) {
-        normalize(mesh);
+    // TODO skip requiring a normalize step using a projection
+    if (!render.mesh.isScaled) {
+        normalize(render.mesh);
     }
 
-    // auto vertex = getArray<float, 3>(component.m_Mesh.vertices);
-    auto [vertices, verticesSize] = getArray<float, 3>(mesh.m_NormalizedVertices);
-    auto [indices, indicesSize] = getArray<std::uint32_t, 3>(mesh.indices);
+    render.bind();
 
-    // send data to the gpu
-    glBindBuffer(GL_ARRAY_BUFFER, render.VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verticesSize, vertices, GL_STREAM_DRAW);
-
-    glBindVertexArray(render.VAO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render.EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indicesSize, indices, GL_STREAM_DRAW);
-
-    glUseProgram(render.m_Program);
     glUniform1ui(render.gluTime, time);
     glUniform2f(render.gluResolution, m_Resolution.x, m_Resolution.y);
 
-    // draw object on screen
-    glDrawElements(GL_TRIANGLES, indicesSize, GL_UNSIGNED_INT, 0);
-
-    // cleanup
-    glBindVertexArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    render.draw();
+    render.unbind();
 }
 
 } // namespace Physbuzz

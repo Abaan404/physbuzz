@@ -4,10 +4,33 @@
 #include "framebuffer.hpp"
 #include "mesh.hpp"
 #include "scene.hpp"
+#include "shaders.hpp"
 #include "window.hpp"
 #include <glad/gl.h>
 
 namespace Physbuzz {
+
+class RenderComponent {
+  public:
+    RenderComponent(const Mesh &mesh, const ShaderPipeline &shader);
+    ~RenderComponent();
+
+    void build();
+    void destroy();
+
+    void bind() const;
+    void unbind() const;
+
+    void draw() const;
+
+    // TODO uniforms class abstraction
+    GLint gluTime;
+    GLint gluTimedelta;
+    GLint gluResolution;
+
+    Mesh mesh;
+    ShaderPipeline pipeline;
+};
 
 class Renderer {
   public:
@@ -20,14 +43,16 @@ class Renderer {
     void destroy();
 
     void render(Scene &scene);
-    void render(Object &object);
+    void render(RenderComponent &render);
 
     void target(Framebuffer *framebuffer);
-    void clear(glm::vec4 &color);
-    void resize(glm::ivec2 &resolution);
+    void clear(const glm::vec4 &color);
+    void resize(const glm::ivec2 &resolution);
 
-    Window &getWindow() const;
-    const glm::ivec2 getResolution() const;
+    const Window &getWindow() const;
+    const glm::ivec2 &getResolution() const;
+
+    void normalize(Mesh &mesh);
 
   private:
     void copy(const Renderer &other);
@@ -36,8 +61,6 @@ class Renderer {
     Window &m_Window;
     Clock m_Clock;
     glm::ivec2 m_Resolution;
-
-    void normalize(MeshComponent &mesh);
 };
 
 } // namespace Physbuzz

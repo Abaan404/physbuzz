@@ -6,6 +6,16 @@
 
 namespace Physbuzz {
 
+BoundingComponent::BoundingComponent(const AABBComponent &quad)
+    : aabb(quad) {}
+
+BoundingComponent::BoundingComponent(const Mesh &mesh) {
+    for (const auto &position : mesh.positions) {
+        aabb.min = glm::min(aabb.min, position);
+        aabb.max = glm::max(aabb.max, position);
+    }
+}
+
 ICollisionDetector::ICollisionDetector(Scene &scene)
     : m_Scene(scene) {}
 

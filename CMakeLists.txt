@@ -23,6 +23,11 @@ glad_add_library(glad SHARED API gl:core=4.6)
 set(GLFW_PATH "submodules/glfw")
 add_subdirectory(${GLFW_PATH})
 
+set(STB_PATH "submodules/stb")
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE
+    ${STB_PATH})
+
 # engine
 set(ENGINE_PATH "libs")
 file(GLOB_RECURSE ENGINE_SRCS "${ENGINE_PATH}/*.cpp")
@@ -38,7 +43,7 @@ file(GLOB IMGUI_SOURCES
     ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
     ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp)
 
-add_library(imgui STATIC ${IMGUI_SOURCES})
+add_library(imgui SHARED ${IMGUI_SOURCES})
 target_include_directories(imgui PUBLIC
     ${IMGUI_PATH}
     ${IMGUI_PATH}/backends
@@ -53,6 +58,7 @@ target_include_directories(physbuzz PUBLIC
     ${ENGINE_PATH})
 
 target_link_libraries(physbuzz PUBLIC
+    stb
     glfw
     glad
     glm)

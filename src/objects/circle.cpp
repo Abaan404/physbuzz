@@ -2,7 +2,7 @@
 
 #include <glm/ext/scalar_constants.hpp>
 #include <physbuzz/collision.hpp>
-#include <physbuzz/mesh.hpp>
+#include <physbuzz/renderer.hpp>
 #include <physbuzz/shaders.hpp>
 
 #include "shaders/circle.frag"
@@ -16,36 +16,55 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
     object.setComponent(info.identifier);
 
     // generate mesh
-    {
+    if (info.isRenderable) {
         constexpr float MAX_VERTICES = 50;
         constexpr const float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
 
-        std::vector<glm::uvec3> indices;
-        std::vector<glm::vec3> vertices;
+        Physbuzz::Mesh mesh;
 
-        // good ol trig
+        // calc positions
         for (int i = 0; i < MAX_VERTICES; i++) {
             float angle = i * angleIncrement;
-            vertices.push_back(info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f));
+            mesh.positions.emplace_back(info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f));
         }
 
+        // calc indices
         for (int i = 1; i < MAX_VERTICES - 1; i++) {
-            indices.push_back(glm::uvec3(0, i, i + 1));
+            mesh.indices.push_back(glm::uvec3(0, i, i + 1));
         }
-        indices.push_back(glm::uvec3(0, MAX_VERTICES - 1, 1));
+        mesh.indices.push_back(glm::uvec3(0, MAX_VERTICES - 1, 1));
 
-        Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent(indices, vertices);
+        // calc normals
+        mesh.vertices.resize(mesh.positions.size());
+        for (std::size_t i = 0; i < mesh.positions.size(); ++i) {
+            const std::size_t next = (i + 1) % mesh.positions.size();                  // cycle next vertex
+            const glm::vec3 tangent = mesh.positions[next] - mesh.positions[i];        // get the tangent
+            const glm::vec3 normal = glm::cross(tangent, glm::vec3(0.0f, 0.0f, 1.0f)); // cross prod for normal
+
+            mesh.vertices[i].normal = glm::normalize(normal);
+        }
 
         // apply transformations
-        for (auto &vertex : mesh.vertices) {
+        for (auto &vertex : mesh.positions) {
             vertex = info.transform.orientation * vertex + info.transform.position;
         }
 
-        for (auto &normal : mesh.normals) {
-            normal = info.transform.orientation * normal;
+        for (auto &vertex : mesh.vertices) {
+            vertex.normal = info.transform.orientation * vertex.normal;
         }
 
-        object.setComponent(mesh);
+        // setup rendering
+        Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(circleVertex, circleFrag);
+        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader);
+        render.build();
+
+        object.setComponent(render);
+
+        // generate bounding box
+        if (info.isCollidable) {
+            Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);
+            object.setComponent(bounding);
+        }
     }
 
     // build inertia
@@ -57,29 +76,9 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
         object.setComponent(info.body);
     }
 
-    // build gl context
-    if (info.isRenderable) {
-        Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(circleVertex, circleFrag);
-        shader.build();
-
-        Physbuzz::RenderComponent component = Physbuzz::RenderComponent();
-        component.build();
-        component.setProgram(shader.getProgram());
-
-        object.setComponent(component);
-    }
-
-    // generate bounding box
-    if (info.isCollidable) {
-        Physbuzz::MeshComponent &mesh = object.getComponent<Physbuzz::MeshComponent>();
-        Physbuzz::BoundingComponent component = Physbuzz::BoundingComponent(mesh);
-
-        object.setComponent(component);
-    }
-
     // create a rebuild callback
     {
-        RebuildableComponent component = {
+        RebuildableComponent rebuilder = {
             .rebuild = [](Physbuzz::Object &object) {
                 if (object.hasComponent<Physbuzz::RenderComponent>()) {
                     object.getComponent<Physbuzz::RenderComponent>().destroy();
@@ -99,7 +98,7 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
             },
         };
 
-        object.setComponent(component);
+        object.setComponent(rebuilder);
     }
 
     return object.getId();

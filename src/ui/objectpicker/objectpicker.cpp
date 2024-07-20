@@ -1,8 +1,8 @@
 #include "objectpicker.hpp"
 
-#include "../../objects/quad.hpp"
 #include "../../objects/circle.hpp"
 #include "../../objects/objects.hpp"
+#include "../../objects/quad.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -73,7 +73,7 @@ void ObjectPicker::draw(Physbuzz::Renderer &renderer) {
         // render to framebuffer
         renderer.target(&pickable.framebuffer);
         renderer.clear(bgColor);
-        renderer.render(object);
+        renderer.render(object.getComponent<Physbuzz::RenderComponent>());
 
         // imgui fuckery
         ImGui::Image((void *)(intptr_t)pickable.framebuffer.getColor(), size);

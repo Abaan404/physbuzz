@@ -1,6 +1,6 @@
 #include "line.hpp"
 
-#include <physbuzz/mesh.hpp>
+#include <physbuzz/renderer.hpp>
 #include <physbuzz/shaders.hpp>
 
 #include "shaders/quad.frag"
@@ -14,51 +14,56 @@ Physbuzz::ObjectID ObjectBuilder<LineInfo>::build(Physbuzz::Object &object, Line
     object.setComponent(info.identifier);
 
     // generate mesh
-    {
+    if (info.isRenderable) {
         glm::vec3 min = glm::vec3(-info.line.thickness / 2.0f, 0.0f, 0.0f);
         glm::vec3 max = glm::vec3(info.line.thickness / 2.0f, info.line.length, 0.0f);
 
-        std::vector<glm::uvec3> indices = {
-            {0, 1, 2},
-            {0, 3, 2},
-        };
+        Physbuzz::Mesh mesh;
 
-        std::vector<glm::vec3> vertices = {
+        // calc positions
+        mesh.positions = {
             {min.x, min.y, 0.0f}, // top-left
             {min.x, max.y, 0.0f}, // top-right
             {max.x, max.y, 0.0f}, // bottom-right
             {max.x, min.y, 0.0f}, // bottom-left
         };
 
-        Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent(indices, vertices);
+        // calc indices
+        mesh.indices = {
+            {0, 1, 2},
+            {0, 3, 2},
+        };
+
+        // calc normals
+        mesh.vertices.resize(mesh.positions.size());
+        for (std::size_t i = 0; i < mesh.positions.size(); ++i) {
+            const std::size_t next = (i + 1) % mesh.positions.size();                  // cycle next vertex
+            const glm::vec3 tangent = mesh.positions[next] - mesh.positions[i];        // get the tangent
+            const glm::vec3 normal = glm::cross(tangent, glm::vec3(0.0f, 0.0f, 1.0f)); // cross prod for normal
+
+            mesh.vertices[i].normal = glm::normalize(normal);
+        }
 
         // apply transformations
-        for (auto &vertex : mesh.vertices) {
+        for (auto &vertex : mesh.positions) {
             vertex = info.transform.orientation * vertex + info.transform.position;
         }
 
-        for (auto &normal : mesh.normals) {
-            normal = info.transform.orientation * normal;
+        for (auto &vertex : mesh.vertices) {
+            vertex.normal = info.transform.orientation * vertex.normal;
         }
 
-        object.setComponent(mesh);
-    }
-
-    // build gl context
-    if (info.isRenderable) {
+        // setup rendering
         Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(quadVertex, quadFrag);
-        shader.build();
+        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader);
+        render.build();
 
-        Physbuzz::RenderComponent component = Physbuzz::RenderComponent();
-        component.build();
-        component.setProgram(shader.getProgram());
-
-        object.setComponent(component);
+        object.setComponent(render);
     }
 
     // create a rebuild callback
     {
-        RebuildableComponent component = {
+        RebuildableComponent rebuilder = {
             .rebuild = [](Physbuzz::Object &object) {
                 if (object.hasComponent<Physbuzz::RenderComponent>()) {
                     object.getComponent<Physbuzz::RenderComponent>().destroy();
@@ -76,7 +81,7 @@ Physbuzz::ObjectID ObjectBuilder<LineInfo>::build(Physbuzz::Object &object, Line
             },
         };
 
-        object.setComponent(component);
+        object.setComponent(rebuilder);
     }
 
     return object.getId();

@@ -7,17 +7,17 @@ namespace Physbuzz {
 
 class Framebuffer {
   public:
-    Framebuffer(glm::ivec2 &resolution);
+    Framebuffer(const glm::ivec2 &resolution);
     ~Framebuffer();
 
     void build();
     void destroy();
 
     void bind() const;
-    void unbind();
+    void unbind() const;
 
-    void resize(glm::ivec2 &resolution);
-    void clear(glm::vec4 &color);
+    void resize(const glm::ivec2 &resolution);
+    void clear(const glm::vec4 &color);
 
     const GLuint getColor() const;
     const GLuint getDepth() const;

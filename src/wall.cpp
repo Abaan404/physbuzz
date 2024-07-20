@@ -2,7 +2,7 @@
 
 #include "objects/quad.hpp"
 #include <glm/glm.hpp>
-#include <physbuzz/mesh.hpp>
+#include <physbuzz/renderer.hpp>
 
 Wall::Wall(Physbuzz::Scene *scene) : m_Scene(scene) {}
 

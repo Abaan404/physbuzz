@@ -2,7 +2,7 @@
 
 namespace Physbuzz {
 
-Framebuffer::Framebuffer(glm::ivec2 &resolution)
+Framebuffer::Framebuffer(const glm::ivec2 &resolution)
     : m_Resolution(resolution) {}
 
 Framebuffer::~Framebuffer() {}
@@ -32,7 +32,7 @@ void Framebuffer::destroy() {
     glDeleteRenderbuffers(1, &m_Color);
 }
 
-void Framebuffer::resize(glm::ivec2 &resolution) {
+void Framebuffer::resize(const glm::ivec2 &resolution) {
     m_Resolution = resolution;
 
     glBindTexture(GL_TEXTURE_2D, m_Color);
@@ -44,7 +44,7 @@ void Framebuffer::resize(glm::ivec2 &resolution) {
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-void Framebuffer::clear(glm::vec4 &color) {
+void Framebuffer::clear(const glm::vec4 &color) {
     glClearColor(color.r, color.g, color.b, color.a);
     glClear(GL_COLOR_BUFFER_BIT);
 }
@@ -54,7 +54,7 @@ void Framebuffer::bind() const {
     glViewport(0, 0, m_Resolution.x, m_Resolution.y);
 }
 
-void Framebuffer::unbind() {
+void Framebuffer::unbind() const {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 

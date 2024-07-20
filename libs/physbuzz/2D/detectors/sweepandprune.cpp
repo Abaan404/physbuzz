@@ -123,7 +123,7 @@ std::list<SweepEdge> SweepAndPrune2D::getEdges() {
 
     for (const ObjectID &id : m_CollisionObjects) {
         Object &object = m_Scene.getObject(id);
-        const AABBComponent &aabb = object.getComponent<BoundingComponent>().getBox();
+        const AABBComponent &aabb = object.getComponent<BoundingComponent>().aabb;
 
         const SweepEdge edgeLeft = {
             .id = object.getId(),
@@ -151,8 +151,8 @@ bool SweepAndPrune2D::check(Contact &contact) {
     Object &object1 = m_Scene.getObject(contact.object1);
     Object &object2 = m_Scene.getObject(contact.object2);
 
-    const AABBComponent &aabb1 = object1.getComponent<BoundingComponent>().getBox();
-    const AABBComponent &aabb2 = object2.getComponent<BoundingComponent>().getBox();
+    const AABBComponent &aabb1 = object1.getComponent<BoundingComponent>().aabb;
+    const AABBComponent &aabb2 = object2.getComponent<BoundingComponent>().aabb;
 
     return aabb1.max.x > aabb2.min.x && aabb2.max.x > aabb1.min.x && aabb1.max.y > aabb2.min.y && aabb2.max.y > aabb1.min.y;
 }
