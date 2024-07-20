@@ -59,13 +59,12 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
 
     // build gl context
     if (info.isRenderable) {
-        Physbuzz::ShaderContext shader = Physbuzz::ShaderContext(circleVertex, circleFrag);
+        Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(circleVertex, circleFrag);
         shader.build();
-        GLuint program = shader.load();
 
         Physbuzz::RenderComponent component = Physbuzz::RenderComponent();
         component.build();
-        component.setProgram(program);
+        component.setProgram(shader.getProgram());
 
         object.setComponent(component);
     }

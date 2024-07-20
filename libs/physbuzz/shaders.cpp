@@ -5,100 +5,106 @@
 
 namespace Physbuzz {
 
-ShaderContext::ShaderContext(const GLchar *vertex, const GLchar *fragment)
+ShaderPipeline::ShaderPipeline(const GLchar *vertex, const GLchar *fragment)
     : m_Vertex(Shader(vertex, GL_VERTEX_SHADER)),
       m_Fragment(Shader(fragment, GL_FRAGMENT_SHADER)) {}
 
-ShaderContext::~ShaderContext() {}
+ShaderPipeline::~ShaderPipeline() {}
 
-void ShaderContext::build() {
+void ShaderPipeline::build() {
+    m_Program = glCreateProgram();
+
     m_Vertex.build();
     m_Fragment.build();
 
-    program = glCreateProgram();
-}
-
-void ShaderContext::destroy() {
-    m_Vertex.destroy();
-    m_Fragment.destroy();
-
-    glDeleteProgram(program);
-}
-
-GLuint ShaderContext::load() {
-    GLint result;
-
-    m_Vertex.compile();
-    m_Fragment.compile();
+    m_Vertex.bind(m_Program);
+    m_Fragment.bind(m_Program);
 
     // linking
-    glAttachShader(program, m_Vertex.shader);
-    glAttachShader(program, m_Fragment.shader);
-    glLinkProgram(program);
-    glValidateProgram(program);
+    glLinkProgram(m_Program);
+    glValidateProgram(m_Program);
 
     // checks
-    glGetProgramiv(program, GL_LINK_STATUS, &result);
+    GLint result;
+    glGetProgramiv(m_Program, GL_LINK_STATUS, &result);
     if (result == GL_FALSE) {
         GLint logLength;
-        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+        glGetProgramiv(m_Program, GL_INFO_LOG_LENGTH, &logLength);
 
         std::vector<char> errorMessage(logLength + 1);
-        glGetProgramInfoLog(program, logLength, NULL, errorMessage.data());
+        glGetProgramInfoLog(m_Program, logLength, NULL, errorMessage.data());
 
-        std::cerr << "Shader Linking failed!\n"
-                  << std::string(errorMessage.data())
-                  << std::endl;
-
-        return 0;
+        std::cerr
+            << "Shader Linking failed!\n"
+            << std::string(errorMessage.data()) << std::endl;
     }
 
     // cleanup
-    glDetachShader(program, m_Vertex.shader);
-    glDetachShader(program, m_Fragment.shader);
+    m_Vertex.unbind(m_Program);
+    m_Fragment.unbind(m_Program);
 
-    glDeleteShader(m_Vertex.shader);
-    glDeleteShader(m_Fragment.shader);
-
-    return program;
+    m_Vertex.destroy();
+    m_Fragment.destroy();
 }
 
-Shader::Shader(const GLchar *source, GLuint type) : m_Source(source), m_Type(type) {}
+void ShaderPipeline::destroy() {
+    glDeleteProgram(m_Program);
+}
+
+void ShaderPipeline::bind() const {
+    glUseProgram(m_Program);
+}
+
+void ShaderPipeline::unbind() const {
+    // glUseProgram(0); // Undefined Behaviour, upto the user to use the right shader
+}
+
+GLuint ShaderPipeline::getProgram() const {
+    return m_Program;
+}
+
+Shader::Shader(const GLchar *source, GLuint type)
+    : m_Source(source), m_Type(type) {}
 
 Shader::~Shader() {}
 
 void Shader::build() {
-    shader = glCreateShader(m_Type);
-}
-
-void Shader::destroy() {
-    glDeleteShader(shader);
-}
-
-GLuint Shader::compile() {
+    m_Shader = glCreateShader(m_Type);
     GLint result;
 
     // compile (maybe use spir-v in the future?)
     const GLchar *p_Source = m_Source;
-    glShaderSource(shader, 1, &p_Source, NULL);
-    glCompileShader(shader);
+    glShaderSource(m_Shader, 1, &p_Source, NULL);
+    glCompileShader(m_Shader);
 
     // checks
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+    glGetShaderiv(m_Shader, GL_COMPILE_STATUS, &result);
     if (result == GL_FALSE) {
         GLint logLength;
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+        glGetShaderiv(m_Shader, GL_INFO_LOG_LENGTH, &logLength);
 
         std::vector<char> errorMessage(logLength + 1);
-        glGetShaderInfoLog(shader, logLength, NULL, errorMessage.data());
-        std::cerr << "Shader compilation failed!\n"
-                  << std::string(errorMessage.data())
-                  << std::endl;
-
-        return 0;
+        glGetShaderInfoLog(m_Shader, logLength, NULL, errorMessage.data());
+        std::cerr
+            << "Shader compilation failed!\n"
+            << std::string(errorMessage.data()) << std::endl;
     }
+}
 
-    return shader;
+void Shader::destroy() {
+    glDeleteShader(m_Shader);
+}
+
+void Shader::bind(GLuint program) const {
+    glAttachShader(program, m_Shader);
+}
+
+void Shader::unbind(GLuint program) const {
+    glDetachShader(program, m_Shader);
+}
+
+GLuint Shader::getShader() const {
+    return m_Shader;
 }
 
 } // namespace Physbuzz

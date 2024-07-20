@@ -12,30 +12,35 @@ class Shader {
     void build();
     void destroy();
 
-    GLuint shader;
+    void bind(GLuint program) const;
+    void unbind(GLuint program) const;
 
-    GLuint compile();
+    GLuint getShader() const;
 
   private:
     const GLchar *m_Source;
     GLuint m_Type;
+    GLuint m_Shader;
 };
 
-class ShaderContext {
+// TODO support more graphics pipelines
+class ShaderPipeline {
   public:
-    ShaderContext(const GLchar *vertex, const GLchar *fragment);
-    ~ShaderContext();
+    ShaderPipeline(const GLchar *vertex, const GLchar *fragment);
+    ~ShaderPipeline();
 
     void build();
     void destroy();
 
-    GLuint program;
+    void bind() const;
+    void unbind() const;
 
-    GLuint load();
+    GLuint getProgram() const;
 
   private:
     Shader m_Vertex;
     Shader m_Fragment;
+    GLuint m_Program;
 };
 
 } // namespace Physbuzz
