@@ -3,6 +3,7 @@
 #include "../ui.hpp"
 #include <glm/glm.hpp>
 #include <physbuzz/framebuffer.hpp>
+#include <physbuzz/scene.hpp>
 
 struct PickableComponent {
     bool selected = false;
@@ -14,7 +15,7 @@ class ObjectPicker : public IUserInterface {
     ObjectPicker();
     ~ObjectPicker();
 
-    void draw(Physbuzz::Renderer &renderer) override;
+    void draw() override;
 
   private:
     Physbuzz::Scene m_Scene;

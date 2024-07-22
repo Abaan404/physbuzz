@@ -21,7 +21,7 @@ void Dynamics::tick(Scene &scene) {
 
     m_Clock.tick();
     static float time = 0.0f;
-    const float &delta = m_Clock.getDelta().count();
+    const float &delta = m_Clock.getDelta();
 
     if (delta > 10.0f) {
         Logger::WARNING(std::format("[Dynamics] Max Timeout exceeded, skipping frame ({}ms since last tick)", delta));

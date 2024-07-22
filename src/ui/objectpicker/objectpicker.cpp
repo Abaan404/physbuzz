@@ -1,12 +1,13 @@
 #include "objectpicker.hpp"
 
+#include "../../game.hpp"
 #include "../../objects/circle.hpp"
 #include "../../objects/objects.hpp"
 #include "../../objects/quad.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
-#include <physbuzz/scene.hpp>
+#include <physbuzz/context.hpp>
 
 ObjectPicker::ObjectPicker() {
     QuadInfo quadInfo = {
@@ -51,7 +52,7 @@ ObjectPicker::~ObjectPicker() {
     }
 }
 
-void ObjectPicker::draw(Physbuzz::Renderer &renderer) {
+void ObjectPicker::draw() {
     const ImGuiViewport *main_viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x, main_viewport->WorkPos.y), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(128, 256), ImGuiCond_FirstUseEver);
@@ -65,6 +66,9 @@ void ObjectPicker::draw(Physbuzz::Renderer &renderer) {
     static glm::vec4 bgColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
     ImVec2 size = {(float)m_PreviewSize.x, (float)m_PreviewSize.y};
+
+    Game *game = Physbuzz::Context::get<Game>();
+    Physbuzz::Renderer &renderer = game->renderer.getRenderer();
 
     // TODO buttons
     for (auto &object : m_Scene.getObjects()) {

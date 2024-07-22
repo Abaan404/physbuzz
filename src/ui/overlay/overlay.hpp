@@ -4,5 +4,5 @@
 
 class FrametimeOverlay : public IUserInterface {
   public:
-    void draw(Physbuzz::Renderer &renderer) override;
+    void draw() override;
 };

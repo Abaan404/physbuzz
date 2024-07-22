@@ -1,6 +1,7 @@
 #include "shaders.hpp"
 
-#include <iostream>
+#include "logging.hpp"
+#include <format>
 #include <vector>
 
 namespace Physbuzz {
@@ -34,9 +35,7 @@ void ShaderPipeline::build() {
         std::vector<char> errorMessage(logLength + 1);
         glGetProgramInfoLog(m_Program, logLength, NULL, errorMessage.data());
 
-        std::cerr
-            << "Shader Linking failed!\n"
-            << std::string(errorMessage.data()) << std::endl;
+        Logger::ERROR(std::format("Shader Linking failed!\n{}", errorMessage.data()));
     }
 
     // cleanup
@@ -63,6 +62,34 @@ GLuint ShaderPipeline::getProgram() const {
     return m_Program;
 }
 
+void ShaderPipeline::setUniformInternal(const GLint location, const float &data) const { glUniform1fv(location, 1, &data); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec2 &data) const { glUniform2fv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec3 &data) const { glUniform3fv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec4 &data) const { glUniform4fv(location, 1, &data[0]); }
+
+void ShaderPipeline::setUniformInternal(const GLint location, const int &data) const { glUniform1iv(location, 1, &data); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec2 &data) const { glUniform2iv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec3 &data) const { glUniform3iv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec4 &data) const { glUniform4iv(location, 1, &data[0]); }
+
+void ShaderPipeline::setUniformInternal(const GLint location, const unsigned int &data) const { glUniform1uiv(location, 1, &data); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec2 &data) const { glUniform2uiv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec3 &data) const { glUniform3uiv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec4 &data) const { glUniform4uiv(location, 1, &data[0]); }
+
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2 &data) const { glUniformMatrix2fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3 &data) const { glUniformMatrix3fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4 &data) const { glUniformMatrix4fv(location, 1, GL_FALSE, &data[0][0]); }
+
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2x3 &data) const { glUniformMatrix2x3fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3x2 &data) const { glUniformMatrix3x2fv(location, 1, GL_FALSE, &data[0][0]); }
+
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2x4 &data) const { glUniformMatrix2x4fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4x2 &data) const { glUniformMatrix4x2fv(location, 1, GL_FALSE, &data[0][0]); }
+
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3x4 &data) const { glUniformMatrix3x4fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4x3 &data) const { glUniformMatrix4x3fv(location, 1, GL_FALSE, &data[0][0]); }
+
 Shader::Shader(const GLchar *source, GLuint type)
     : m_Source(source), m_Type(type) {}
 
@@ -85,9 +112,8 @@ void Shader::build() {
 
         std::vector<char> errorMessage(logLength + 1);
         glGetShaderInfoLog(m_Shader, logLength, NULL, errorMessage.data());
-        std::cerr
-            << "Shader compilation failed!\n"
-            << std::string(errorMessage.data()) << std::endl;
+
+        Logger::ERROR(std::format("Shader compilation failed!\n{}", errorMessage.data()));
     }
 }
 

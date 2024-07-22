@@ -15,8 +15,8 @@ float Clock::getTime() const {
     return duration.count() / 1000.0f;
 }
 
-std::chrono::duration<float, std::milli> Clock::getDelta() const {
-    return std::chrono::duration<float, std::milli>(m_Delta);
+float Clock::getDelta() const {
+    return std::chrono::duration<float, std::milli>(m_Delta).count();
 }
 
 void Clock::tick() {

@@ -124,7 +124,7 @@ void Events::mouseButton(const Physbuzz::MouseButtonEvent &event) {
 
 void Events::WindowResize(const Physbuzz::WindowResizeEvent &event) {
     glm::ivec2 resolution = {event.width, event.height};
-    m_Game.renderer.resize(resolution);
+    m_Game.renderer.getRenderer().resize(resolution);
 
     if (m_Game.wall.isErect()) {
         WallInfo info = m_Game.wall.getInfo();

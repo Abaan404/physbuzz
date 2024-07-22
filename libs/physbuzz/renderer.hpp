@@ -1,12 +1,9 @@
 #pragma once
 
-#include "clock.hpp"
 #include "framebuffer.hpp"
 #include "mesh.hpp"
-#include "scene.hpp"
 #include "shaders.hpp"
 #include "window.hpp"
-#include <glad/gl.h>
 
 namespace Physbuzz {
 
@@ -23,11 +20,6 @@ class RenderComponent {
 
     void draw() const;
 
-    // TODO uniforms class abstraction
-    GLint gluTime;
-    GLint gluTimedelta;
-    GLint gluResolution;
-
     Mesh mesh;
     ShaderPipeline pipeline;
 };
@@ -42,7 +34,6 @@ class Renderer {
     void build();
     void destroy();
 
-    void render(Scene &scene);
     void render(RenderComponent &render);
 
     void target(Framebuffer *framebuffer);
@@ -59,7 +50,6 @@ class Renderer {
 
     Framebuffer *m_Framebuffer;
     Window &m_Window;
-    Clock m_Clock;
     glm::ivec2 m_Resolution;
 };
 

@@ -16,12 +16,12 @@
 constexpr float MAX_VALUE = 1000.0f;
 constexpr float MIN_VALUE = 0.0f;
 
-void ObjectList::draw(Physbuzz::Renderer &renderer) {
+void ObjectList::draw() {
     const ImGuiViewport *Viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(ImVec2(Viewport->WorkPos.x, Viewport->WorkPos.y), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(128, 256), ImGuiCond_FirstUseEver);
 
-    Game *game = Physbuzz::Context::get<Game>(renderer.getWindow().getGLFWwindow());
+    Game *game = Physbuzz::Context::get<Game>();
 
     ImGuiWindowFlags windowFlags = 0;
     if (!ImGui::Begin("ObjectList", &show, windowFlags)) {
@@ -50,7 +50,6 @@ void ObjectList::draw(Physbuzz::Renderer &renderer) {
         for (auto &object : objects) {
             ImGui::PushID(i++);
             bool rebuild = false;
-            glm::ivec2 resolution = renderer.getResolution();
 
             if (object.hasComponent<IdentifiableComponent>()) {
                 IdentifiableComponent &identifier = object.getComponent<IdentifiableComponent>();

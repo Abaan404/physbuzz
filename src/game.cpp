@@ -17,23 +17,21 @@ Game::Game()
           std::make_shared<Physbuzz::AngularResolver2D>(scene, 0.9f)),
       renderer(window),
       events(*this),
-      interface(renderer),
       dynamics(0.005),
       wall(&scene) {}
 
 Game::~Game() {}
 
 void Game::build() {
+    Physbuzz::Context::set(this);
+
     glm::ivec2 resolution = glm::ivec2(1920, 1080);
-    m_IsRunning = true;
 
     window.build(resolution);
     renderer.build();
     events.build();
-    interface.build();
+    interface.build(window);
     collision.build();
-
-    Physbuzz::Context::set(window.getGLFWwindow(), this);
 
     WallInfo info = {
         .transform = {
@@ -52,16 +50,14 @@ void Game::build() {
 }
 
 void Game::loop() {
-    glm::vec4 clear = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    m_IsRunning = true;
 
     while (m_IsRunning && !window.shouldClose()) {
         window.poll();
 
         collision.tick(scene);
         dynamics.tick(scene);
-        frameClock.tick();
 
-        renderer.clear(clear);
         renderer.render(scene);
         interface.render();
 

@@ -11,12 +11,11 @@
 #include "objectpicker/objectpicker.hpp"
 #include "overlay/overlay.hpp"
 
-InterfaceManager::InterfaceManager(Physbuzz::Renderer &renderer)
-    : m_Renderer(renderer) {}
+InterfaceManager::InterfaceManager() {}
 
 InterfaceManager::~InterfaceManager() {}
 
-void InterfaceManager::build() {
+void InterfaceManager::build(const Physbuzz::Window &window) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
@@ -28,40 +27,21 @@ void InterfaceManager::build() {
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows (buggy on wayland)
     io.IniFilename = nullptr; // disable imgui.ini
 
-    GLFWwindow *window = m_Renderer.getWindow().getGLFWwindow();
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(window.getGLFWwindow(), true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    interfaces["Demo"] = std::make_shared<Demo>();
-    interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
-    interfaces["ObjectList"] = std::make_unique<ObjectList>();
-    interfaces["Dockspace"] = std::make_unique<Dockspace>();
+    m_Interfaces["Demo"] = std::make_shared<Demo>();
+    m_Interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
+    m_Interfaces["ObjectList"] = std::make_unique<ObjectList>();
+    m_Interfaces["Dockspace"] = std::make_unique<Dockspace>();
 
-    interfaces["Demo"]->show = false;
+    m_Interfaces["Demo"]->show = false;
 }
 
 void InterfaceManager::destroy() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
-}
-
-InterfaceManager::InterfaceManager(const InterfaceManager &other) : m_Renderer(other.m_Renderer) {
-    if (this != &other) {
-        interfaces = other.interfaces;
-        draw = other.draw;
-    }
-}
-
-InterfaceManager InterfaceManager::operator=(const InterfaceManager &other) {
-    if (this != &other) {
-        interfaces = other.interfaces;
-        draw = other.draw;
-
-        m_Renderer = other.m_Renderer;
-    }
-
-    return *this;
 }
 
 void InterfaceManager::render() {
@@ -71,12 +51,12 @@ void InterfaceManager::render() {
     ImGui::NewFrame();
 
     static FrametimeOverlay frametimeOverlay;
-    frametimeOverlay.draw(m_Renderer);
+    frametimeOverlay.draw();
 
     if (draw) {
-        for (const auto &interface : interfaces) {
+        for (const auto &interface : m_Interfaces) {
             if (interface.second->show) {
-                interface.second->draw(m_Renderer);
+                interface.second->draw();
             }
         }
     }

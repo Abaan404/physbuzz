@@ -1,12 +1,12 @@
 #pragma once
 
 #include "events.hpp"
+#include "renderer.hpp"
 #include "ui/handler.hpp"
 #include "wall.hpp"
 #include <physbuzz/clock.hpp>
 #include <physbuzz/collision.hpp>
 #include <physbuzz/events.hpp>
-#include <physbuzz/renderer.hpp>
 #include <physbuzz/window.hpp>
 
 class Game {
@@ -22,13 +22,12 @@ class Game {
 
     // displaying and rendering
     Physbuzz::Window window;
-    Physbuzz::Renderer renderer;
+    Renderer renderer;
 
     // ecs object tracking
     Physbuzz::Scene scene;
 
     // game physics
-    Physbuzz::Clock frameClock;
     Physbuzz::Dynamics dynamics;
     Physbuzz::Collision collision;
 

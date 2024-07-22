@@ -1,22 +1,21 @@
 #pragma once
 
+#include <physbuzz/window.hpp>
 #include "ui.hpp"
+#include <memory>
 #include <unordered_map>
 
 class InterfaceManager {
   public:
-    InterfaceManager(Physbuzz::Renderer &renderer);
-    InterfaceManager(const InterfaceManager &other);
-    InterfaceManager operator=(const InterfaceManager &other);
+    InterfaceManager();
     ~InterfaceManager();
 
-    void build();
+    void build(const Physbuzz::Window &window);
     void destroy();
     void render();
 
     bool draw = false;
-    std::unordered_map<std::string, std::shared_ptr<IUserInterface>> interfaces;
 
   private:
-    Physbuzz::Renderer &m_Renderer;
+    std::unordered_map<std::string, std::shared_ptr<IUserInterface>> m_Interfaces;
 };

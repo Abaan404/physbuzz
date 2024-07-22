@@ -10,7 +10,7 @@ class Clock {
     ~Clock();
 
     void tick();
-    std::chrono::duration<float, std::milli> getDelta() const;
+    float getDelta() const;
     float getTime() const;
 
   private:

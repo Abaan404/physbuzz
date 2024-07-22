@@ -15,9 +15,6 @@ RenderComponent::~RenderComponent() {}
 void RenderComponent::build() {
     mesh.build();
     pipeline.build();
-
-    gluTime = glGetUniformLocation(pipeline.getProgram(), "u_time");
-    gluResolution = glGetUniformLocation(pipeline.getProgram(), "u_resolution");
 }
 
 void RenderComponent::destroy() {
@@ -63,7 +60,6 @@ void Renderer::copy(const Renderer &other) {
 
     m_Window = other.m_Window;
     m_Resolution = other.m_Resolution;
-    m_Clock = other.m_Clock;
 }
 
 void Renderer::build() {
@@ -115,26 +111,14 @@ void Renderer::normalize(Mesh &mesh) {
     }
 }
 
-void Renderer::render(Scene &scene) {
-    for (auto &component : scene.getComponents<RenderComponent>()) {
-        render(component);
-    }
-}
-
 // way too many draw calls i know
 void Renderer::render(RenderComponent &render) {
-    std::time_t time = m_Clock.getTime();
-
     // TODO skip requiring a normalize step using a projection
     if (!render.mesh.isScaled) {
         normalize(render.mesh);
     }
 
     render.bind();
-
-    glUniform1ui(render.gluTime, time);
-    glUniform2f(render.gluResolution, m_Resolution.x, m_Resolution.y);
-
     render.draw();
     render.unbind();
 }

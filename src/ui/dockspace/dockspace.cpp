@@ -3,7 +3,7 @@
 #include <imgui.h>
 #include <imgui_internal.h> // for DockBuilder API
 
-void Dockspace::draw(Physbuzz::Renderer &renderer) {
+void Dockspace::draw() {
     // setup dockspace
     ImGuiDockNodeFlags dockspaceFlags = 0;
     ImGuiWindowFlags windowFlags = (ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
