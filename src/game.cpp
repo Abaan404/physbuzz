@@ -1,6 +1,7 @@
 #include "game.hpp"
 
 #include "events.hpp"
+#include "objects/wall.hpp"
 #include "ui/handler.hpp"
 #include <physbuzz/2D/detectors/gjk.hpp>
 #include <physbuzz/2D/detectors/sweepandprune.hpp>
@@ -18,7 +19,7 @@ Game::Game()
       renderer(window),
       events(*this),
       dynamics(0.005),
-      wall(&scene) {}
+      builder(scene) {}
 
 Game::~Game() {}
 
@@ -29,11 +30,12 @@ void Game::build() {
 
     window.build(resolution);
     renderer.build();
+    builder.build();
     events.build();
     interface.build(window);
     collision.build();
 
-    WallInfo info = {
+    Wall wall = {
         .transform = {
             .position = glm::vec3(resolution >> 1, 0.0f),
         },
@@ -46,7 +48,7 @@ void Game::build() {
         .isRenderable = true,
     };
 
-    wall.build(info);
+    builder.create(wall);
 }
 
 void Game::loop() {
@@ -76,6 +78,7 @@ void Game::destroy() {
     interface.destroy();
     scene.clear();
     events.destroy();
+    builder.destroy();
     renderer.destroy();
     window.destroy();
 }

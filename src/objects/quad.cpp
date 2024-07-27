@@ -8,7 +8,7 @@
 #include "shaders/quad.vert"
 
 template <>
-Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, QuadInfo &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
     // user-defined components
     object.setComponent(info.quad);
     object.setComponent(info.transform);
@@ -35,35 +35,29 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
             {0, 3, 2},
         };
 
-        // calc normals
         mesh.vertices.resize(mesh.positions.size());
-        for (std::size_t i = 0; i < mesh.positions.size(); ++i) {
-            const std::size_t next = (i + 1) % mesh.positions.size();                  // cycle next vertex
-            const glm::vec3 tangent = mesh.positions[next] - mesh.positions[i];        // get the tangent
-            const glm::vec3 normal = glm::cross(tangent, glm::vec3(0.0f, 0.0f, 1.0f)); // cross prod for normal
 
-            mesh.vertices[i].normal = glm::normalize(normal);
-        }
+        // calc vertices
+        Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);
+        generate2DTexCoords(bounding, mesh);
+        generate2DNormals(mesh);
 
         // apply transformations
-        for (auto &vertex : mesh.positions) {
-            vertex = info.transform.orientation * vertex + info.transform.position;
-        }
-
-        for (auto &vertex : mesh.vertices) {
-            vertex.normal = info.transform.orientation * vertex.normal;
-        }
+        applyTransformsToMesh(info.transform, mesh);
 
         // setup rendering
+        Physbuzz::Texture texture = m_Textures.getTexture("quad");
         Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(quadVertex, quadFrag);
-        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader);
+        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader, texture);
         render.build();
 
         object.setComponent(render);
 
         // generate bounding box
         if (info.isCollidable) {
-            Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);
+            bounding.aabb.max += info.transform.position;
+            bounding.aabb.min += info.transform.position;
+
             object.setComponent(bounding);
         }
     }
@@ -80,12 +74,12 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
     // create a rebuild callback
     {
         RebuildableComponent rebuilder = {
-            .rebuild = [](Physbuzz::Object &object) {
+            .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
                 if (object.hasComponent<Physbuzz::RenderComponent>()) {
                     object.getComponent<Physbuzz::RenderComponent>().destroy();
                 }
 
-                QuadInfo info = {
+                Quad info = {
                     .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
                     .transform = object.getComponent<Physbuzz::TransformableComponent>(),
                     .quad = object.getComponent<QuadComponent>(),
@@ -95,7 +89,7 @@ Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, Quad
                 };
 
                 object.eraseComponents();
-                ObjectBuilder<QuadInfo>::build(object, info);
+                builder.create(object, info);
             },
         };
 

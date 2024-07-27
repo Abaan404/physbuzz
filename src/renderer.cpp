@@ -28,6 +28,8 @@ void Renderer::render(Physbuzz::RenderComponent &render) {
     render.pipeline.setUniform("u_Time", static_cast<unsigned int>(m_Clock.getTime()));
     render.pipeline.setUniform("u_TimeDelta", static_cast<unsigned int>(m_Clock.getDelta()));
     render.pipeline.setUniform("u_Resolution", m_Renderer.getResolution());
+    render.pipeline.setUniform("u_Texture", render.texture.getUnit());
+    render.pipeline.unbind();
 
     m_Renderer.render(render);
 }

@@ -6,7 +6,7 @@ project(physbuzz
     LANGUAGES C CXX
 )
 
-set(CMAKE_BUILD_PARALLEL_LEVEL 3)
+set(CMAKE_BUILD_PARALLEL_LEVEL 12)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -70,6 +70,12 @@ add_executable(game ${SRCS})
 target_link_libraries(game PRIVATE
     physbuzz
     imgui)
+
+# probably not cross-platform?
+add_custom_command(TARGET game POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+    ${CMAKE_SOURCE_DIR}/resources $<TARGET_FILE_DIR:game>/resources
+)
 
 # tests
 set(TEST_PATH "tests")

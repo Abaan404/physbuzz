@@ -8,6 +8,7 @@
 
 #include "objects/circle.hpp"
 #include "objects/quad.hpp"
+#include "objects/wall.hpp"
 
 Events::Events(Game &game)
     : m_Game(game) {}
@@ -44,9 +45,21 @@ void Events::keyEvent(const Physbuzz::KeyEvent &event) {
 
             m_Game.scene.clear();
             m_Game.collision.destroy();
+            glm::ivec2 resolution = m_Game.window.getResolution();
+            Wall wall = {
+                .transform = {
+                    .position = glm::vec3(resolution >> 1, 0.0f),
+                },
+                .wall = {
+                    .width = static_cast<float>(resolution.x),
+                    .height = static_cast<float>(resolution.y),
+                    .thickness = 10.0f,
+                },
+                .isCollidable = true,
+                .isRenderable = true,
+            };
 
-            const WallInfo &info = m_Game.wall.getInfo();
-            m_Game.wall.build(info);
+            m_Game.builder.create(wall);
             m_Game.collision.build();
         } break;
         }
@@ -66,7 +79,7 @@ void Events::mouseButton(const Physbuzz::MouseButtonEvent &event) {
         case (GLFW_MOUSE_BUTTON_LEFT): {
             glm::dvec2 cursor = m_Game.window.getCursorPos();
 
-            QuadInfo info = {
+            Quad info = {
                 .body = {
                     .gravity = {
                         .acceleration = {0.0f, 1000.0f, 0.0f},
@@ -83,14 +96,14 @@ void Events::mouseButton(const Physbuzz::MouseButtonEvent &event) {
                 .isRenderable = true,
             };
 
-            ObjectBuilder<QuadInfo>::build(m_Game.scene, info);
+            m_Game.builder.create(info);
 
         } break;
 
         case (GLFW_MOUSE_BUTTON_RIGHT): {
             glm::dvec2 cursor = m_Game.window.getCursorPos();
 
-            CircleInfo info = {
+            Circle info = {
                 .body = {
                     // .velocity = {0.0f, 0.01f, 0.0f},
                     .gravity = {
@@ -107,7 +120,7 @@ void Events::mouseButton(const Physbuzz::MouseButtonEvent &event) {
                 .isRenderable = true,
             };
 
-            ObjectBuilder<CircleInfo>::build(m_Game.scene, info);
+            m_Game.builder.create(info);
 
         } break;
 
@@ -126,20 +139,17 @@ void Events::WindowResize(const Physbuzz::WindowResizeEvent &event) {
     glm::ivec2 resolution = {event.width, event.height};
     m_Game.renderer.getRenderer().resize(resolution);
 
-    if (m_Game.wall.isErect()) {
-        WallInfo info = m_Game.wall.getInfo();
-        info.transform = {
-            .position = glm::vec3(resolution >> 1, 0.0f),
-        };
+    for (auto &object : m_Game.scene.getObjects()) {
+        if (object.hasComponent<WallComponent>()) {
+            Physbuzz::TransformableComponent &transform = object.getComponent<Physbuzz::TransformableComponent>();
+            transform.position = glm::vec3(resolution >> 1, 0.0f);
 
-        info.wall = {
-            .width = static_cast<float>(event.width),
-            .height = static_cast<float>(event.height),
-            .thickness = info.wall.thickness,
-        };
+            WallComponent &wall = object.getComponent<WallComponent>();
+            wall.width = static_cast<float>(event.width),
+            wall.height = static_cast<float>(event.height),
 
-        m_Game.wall.destroy();
-        m_Game.wall.build(info);
+            object.getComponent<RebuildableComponent>().rebuild(m_Game.builder, object);
+        }
     }
 
     std::vector<Physbuzz::RenderComponent> &renders = m_Game.scene.getComponents<Physbuzz::RenderComponent>();

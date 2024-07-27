@@ -2,7 +2,7 @@
 
 #include "../../game.hpp"
 #include "../../objects/circle.hpp"
-#include "../../objects/objects.hpp"
+#include "../../objects/builder.hpp"
 #include "../../objects/quad.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -10,7 +10,7 @@
 #include <physbuzz/context.hpp>
 
 ObjectPicker::ObjectPicker() {
-    QuadInfo quadInfo = {
+    Quad quad = {
         .transform = {
             .position = {m_PreviewSize.x >> 1, m_PreviewSize.y >> 1, 0.0f},
         },
@@ -21,7 +21,7 @@ ObjectPicker::ObjectPicker() {
         .isRenderable = true,
     };
 
-    CircleInfo circleInfo = {
+    Circle circle = {
         .transform = {
             .position = {m_PreviewSize.x >> 1, m_PreviewSize.y >> 1, 0.0f},
         },
@@ -31,8 +31,12 @@ ObjectPicker::ObjectPicker() {
         .isRenderable = true,
     };
 
-    ObjectBuilder<CircleInfo>::build(m_Scene, circleInfo);
-    ObjectBuilder<QuadInfo>::build(m_Scene, quadInfo);
+    // skip building and destroying since we assume Game::build() has already built it statically
+    // a ResourceManager in the future will not require such odd details
+    ObjectBuilder builder = ObjectBuilder(m_Scene);
+
+    builder.create(circle);
+    builder.create(quad);
 
     for (auto &object : m_Scene.getObjects()) {
         PickableComponent pickable = {
@@ -77,7 +81,7 @@ void ObjectPicker::draw() {
         // render to framebuffer
         renderer.target(&pickable.framebuffer);
         renderer.clear(bgColor);
-        renderer.render(object.getComponent<Physbuzz::RenderComponent>());
+        game->renderer.render(object.getComponent<Physbuzz::RenderComponent>());
 
         // imgui fuckery
         ImGui::Image((void *)(intptr_t)pickable.framebuffer.getColor(), size);

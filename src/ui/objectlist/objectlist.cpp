@@ -3,7 +3,6 @@
 #include "../../game.hpp"
 #include "../../objects/circle.hpp"
 #include "../../objects/line.hpp"
-#include "../../objects/objects.hpp"
 #include "../../objects/quad.hpp"
 #include <glm/ext/scalar_constants.hpp>
 #include <physbuzz/context.hpp>
@@ -161,7 +160,7 @@ void ObjectList::draw() {
             }
 
             if (rebuild && object.hasComponent<RebuildableComponent>()) {
-                object.getComponent<RebuildableComponent>().rebuild(object);
+                object.getComponent<RebuildableComponent>().rebuild(game->builder, object);
             }
 
             ImGui::PopID();

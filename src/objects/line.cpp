@@ -7,7 +7,7 @@
 #include "shaders/quad.vert"
 
 template <>
-Physbuzz::ObjectID ObjectBuilder<LineInfo>::build(Physbuzz::Object &object, LineInfo &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Line &info) {
     // user-defined components
     object.setComponent(info.line);
     object.setComponent(info.transform);
@@ -34,28 +34,20 @@ Physbuzz::ObjectID ObjectBuilder<LineInfo>::build(Physbuzz::Object &object, Line
             {0, 3, 2},
         };
 
-        // calc normals
         mesh.vertices.resize(mesh.positions.size());
-        for (std::size_t i = 0; i < mesh.positions.size(); ++i) {
-            const std::size_t next = (i + 1) % mesh.positions.size();                  // cycle next vertex
-            const glm::vec3 tangent = mesh.positions[next] - mesh.positions[i];        // get the tangent
-            const glm::vec3 normal = glm::cross(tangent, glm::vec3(0.0f, 0.0f, 1.0f)); // cross prod for normal
 
-            mesh.vertices[i].normal = glm::normalize(normal);
-        }
+        // calc vertices
+        Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);
+        generate2DTexCoords(bounding, mesh);
+        generate2DNormals(mesh);
 
         // apply transformations
-        for (auto &vertex : mesh.positions) {
-            vertex = info.transform.orientation * vertex + info.transform.position;
-        }
-
-        for (auto &vertex : mesh.vertices) {
-            vertex.normal = info.transform.orientation * vertex.normal;
-        }
+        applyTransformsToMesh(info.transform, mesh);
 
         // setup rendering
+        Physbuzz::Texture texture = m_Textures.getTexture("quad");
         Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(quadVertex, quadFrag);
-        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader);
+        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader, texture);
         render.build();
 
         object.setComponent(render);
@@ -64,12 +56,12 @@ Physbuzz::ObjectID ObjectBuilder<LineInfo>::build(Physbuzz::Object &object, Line
     // create a rebuild callback
     {
         RebuildableComponent rebuilder = {
-            .rebuild = [](Physbuzz::Object &object) {
+            .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
                 if (object.hasComponent<Physbuzz::RenderComponent>()) {
                     object.getComponent<Physbuzz::RenderComponent>().destroy();
                 }
 
-                LineInfo info = {
+                Line info = {
                     .transform = object.getComponent<Physbuzz::TransformableComponent>(),
                     .line = object.getComponent<LineComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
@@ -77,7 +69,7 @@ Physbuzz::ObjectID ObjectBuilder<LineInfo>::build(Physbuzz::Object &object, Line
                 };
 
                 object.eraseComponents();
-                ObjectBuilder<LineInfo>::build(object, info);
+                builder.create(object, info);
             },
         };
 

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "events.hpp"
+#include "objects/builder.hpp"
 #include "renderer.hpp"
 #include "ui/handler.hpp"
-#include "wall.hpp"
 #include <physbuzz/clock.hpp>
 #include <physbuzz/collision.hpp>
+#include <physbuzz/dynamics.hpp>
 #include <physbuzz/events.hpp>
 #include <physbuzz/window.hpp>
 
@@ -36,7 +37,7 @@ class Game {
 
     // game elements
     Events events;
-    Wall wall;
+    ObjectBuilder builder;
 
   private:
     bool m_IsRunning = false;

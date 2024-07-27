@@ -3,13 +3,14 @@
 #include "framebuffer.hpp"
 #include "mesh.hpp"
 #include "shaders.hpp"
+#include "texture.hpp"
 #include "window.hpp"
 
 namespace Physbuzz {
 
 class RenderComponent {
   public:
-    RenderComponent(const Mesh &mesh, const ShaderPipeline &shader);
+    RenderComponent(const Mesh &mesh, const ShaderPipeline &pipeline, const Texture &texture);
     ~RenderComponent();
 
     void build();
@@ -22,6 +23,7 @@ class RenderComponent {
 
     Mesh mesh;
     ShaderPipeline pipeline;
+    Texture texture;
 };
 
 class Renderer {

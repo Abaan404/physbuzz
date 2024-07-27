@@ -6,11 +6,16 @@
 
 namespace Physbuzz {
 
-RenderComponent::RenderComponent(const Mesh &mesh, const ShaderPipeline &pipeline)
+RenderComponent::RenderComponent(const Mesh &mesh, const ShaderPipeline &pipeline, const Texture &texture)
     : mesh(mesh),
-      pipeline(pipeline) {}
+      pipeline(pipeline),
+      texture(texture) {}
 
 RenderComponent::~RenderComponent() {}
+
+// NOTE: how should each member be bound to a render component if its shared
+// across multiple RenderComponents? A tight coupling between a ResourceManager
+// may be required. Or an ID setup
 
 void RenderComponent::build() {
     mesh.build();
@@ -23,8 +28,9 @@ void RenderComponent::destroy() {
 }
 
 void RenderComponent::bind() const {
-    mesh.bind();
     pipeline.bind();
+    texture.bind();
+    mesh.bind();
 }
 
 void RenderComponent::draw() const {
@@ -32,8 +38,9 @@ void RenderComponent::draw() const {
 }
 
 void RenderComponent::unbind() const {
-    pipeline.unbind();
     mesh.unbind();
+    texture.unbind();
+    pipeline.unbind();
 }
 
 Renderer::Renderer(Window &window)

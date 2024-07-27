@@ -1,14 +1,15 @@
 #pragma once
 
 #include <physbuzz/dynamics.hpp>
-#include "objects.hpp"
+#include "builder.hpp"
+#include "common.hpp"
 
 struct QuadComponent {
     float width = 0.0f;
     float height = 0.0f;
 };
 
-struct QuadInfo {
+struct Quad {
     // physics info
     Physbuzz::RigidBodyComponent body;
 
@@ -27,4 +28,4 @@ struct QuadInfo {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder<QuadInfo>::build(Physbuzz::Object &object, QuadInfo &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info);

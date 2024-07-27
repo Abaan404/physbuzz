@@ -9,7 +9,7 @@
 #include "shaders/circle.vert"
 
 template <>
-Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, CircleInfo &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info) {
     // user-defined components
     object.setComponent(info.circle);
     object.setComponent(info.transform);
@@ -34,35 +34,29 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
         }
         mesh.indices.push_back(glm::uvec3(0, MAX_VERTICES - 1, 1));
 
-        // calc normals
         mesh.vertices.resize(mesh.positions.size());
-        for (std::size_t i = 0; i < mesh.positions.size(); ++i) {
-            const std::size_t next = (i + 1) % mesh.positions.size();                  // cycle next vertex
-            const glm::vec3 tangent = mesh.positions[next] - mesh.positions[i];        // get the tangent
-            const glm::vec3 normal = glm::cross(tangent, glm::vec3(0.0f, 0.0f, 1.0f)); // cross prod for normal
 
-            mesh.vertices[i].normal = glm::normalize(normal);
-        }
+        // calc vertices
+        Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);
+        generate2DTexCoords(bounding, mesh);
+        generate2DNormals(mesh);
 
         // apply transformations
-        for (auto &vertex : mesh.positions) {
-            vertex = info.transform.orientation * vertex + info.transform.position;
-        }
-
-        for (auto &vertex : mesh.vertices) {
-            vertex.normal = info.transform.orientation * vertex.normal;
-        }
+        applyTransformsToMesh(info.transform, mesh);
 
         // setup rendering
+        Physbuzz::Texture texture = m_Textures.getTexture("circle");
         Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(circleVertex, circleFrag);
-        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader);
+        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader, texture);
         render.build();
 
         object.setComponent(render);
 
         // generate bounding box
         if (info.isCollidable) {
-            Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);
+            bounding.aabb.max += info.transform.position;
+            bounding.aabb.min += info.transform.position;
+
             object.setComponent(bounding);
         }
     }
@@ -79,12 +73,12 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
     // create a rebuild callback
     {
         RebuildableComponent rebuilder = {
-            .rebuild = [](Physbuzz::Object &object) {
+            .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
                 if (object.hasComponent<Physbuzz::RenderComponent>()) {
                     object.getComponent<Physbuzz::RenderComponent>().destroy();
                 }
 
-                CircleInfo info = {
+                Circle info = {
                     .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
                     .transform = object.getComponent<Physbuzz::TransformableComponent>(),
                     .circle = object.getComponent<CircleComponent>(),
@@ -94,7 +88,7 @@ Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, Ci
                 };
 
                 object.eraseComponents();
-                ObjectBuilder<CircleInfo>::build(object, info);
+                builder.create(object, info);
             },
         };
 

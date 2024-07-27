@@ -1,13 +1,13 @@
 #pragma once
 
 #include <physbuzz/dynamics.hpp>
-#include "objects.hpp"
+#include "common.hpp"
 
 struct CircleComponent {
     float radius = 0.0f;
 };
 
-struct CircleInfo {
+struct Circle {
     // physics info
     Physbuzz::RigidBodyComponent body;
 
@@ -26,4 +26,4 @@ struct CircleInfo {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder<CircleInfo>::build(Physbuzz::Object &object, CircleInfo &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info);
