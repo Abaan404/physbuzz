@@ -1,6 +1,7 @@
 #include "window.hpp"
 
 #include "debug/callbacks.hpp"
+#include "events/window.hpp"
 #include "logging.hpp"
 #include <GLFW/glfw3.h>
 #include <string>
@@ -10,6 +11,8 @@ namespace Physbuzz {
 Window::Window() {}
 
 Window::~Window() {}
+
+std::unordered_map<GLFWwindow *, Window *> Window::m_CallbackContexts = {};
 
 void Window::build(const glm::ivec2 &resolution) {
     // error callback
@@ -35,60 +38,63 @@ void Window::build(const glm::ivec2 &resolution) {
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(OpenGLDebugCallback, 0);
 
+    // static context for callbacks
+    m_CallbackContexts[m_Window] = this;
+
     glfwSetKeyCallback(m_Window, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
-        getCallback<KeyEvent>(window)({.window = window, .key = key, .scancode = scancode, .action = action, .mods = mods});
+        m_CallbackContexts[window]->notifyCallbacks<KeyEvent>({.window = window, .key = key, .scancode = scancode, .action = action, .mods = mods});
     });
 
     glfwSetCursorEnterCallback(m_Window, [](GLFWwindow *window, int entered) {
-        getCallback<MouseEnteredEvent>(window)({.window = window, .entered = entered});
+        m_CallbackContexts[window]->notifyCallbacks<MouseEnteredEvent>({.window = window, .entered = entered});
     });
 
     glfwSetScrollCallback(m_Window, [](GLFWwindow *window, double xoffset, double yoffset) {
-        getCallback<MouseScrollEvent>(window)({.window = window, .xoffset = xoffset, .yoffset = yoffset});
+        m_CallbackContexts[window]->notifyCallbacks<MouseScrollEvent>({.window = window, .xoffset = xoffset, .yoffset = yoffset});
     });
 
     glfwSetCursorPosCallback(m_Window, [](GLFWwindow *window, double xpos, double ypos) {
-        getCallback<MousePositionEvent>(window)({.window = window, .xpos = xpos, .ypos = ypos});
+        m_CallbackContexts[window]->notifyCallbacks<MousePositionEvent>({.window = window, .xpos = xpos, .ypos = ypos});
     });
 
     glfwSetMouseButtonCallback(m_Window, [](GLFWwindow *window, int button, int action, int mods) {
-        getCallback<MouseButtonEvent>(window)({.window = window, .button = button, .action = action, .mods = mods});
+        m_CallbackContexts[window]->notifyCallbacks<MouseButtonEvent>({.window = window, .button = button, .action = action, .mods = mods});
     });
 
     glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow *window, int width, int height) {
-        getCallback<WindowResizeEvent>(window)({.window = window, .width = width, .height = height});
+        m_CallbackContexts[window]->notifyCallbacks<WindowResizeEvent>({.window = window, .width = width, .height = height});
     });
 
     glfwSetWindowCloseCallback(m_Window, [](GLFWwindow *window) {
-        getCallback<WindowCloseEvent>(window)({.window = window});
+        m_CallbackContexts[window]->notifyCallbacks<WindowCloseEvent>({.window = window});
     });
 
     glfwSetCharCallback(m_Window, [](GLFWwindow *window, unsigned int codepoint) {
-        getCallback<CharEvent>(window)({.window = window, .codepoint = codepoint});
+        m_CallbackContexts[window]->notifyCallbacks<CharEvent>({.window = window, .codepoint = codepoint});
     });
 
     glfwSetWindowMaximizeCallback(m_Window, [](GLFWwindow *window, int maximized) {
-        getCallback<WindowMaximizeEvent>(window)({.window = window, .maximized = static_cast<bool>(maximized & GLFW_MAXIMIZED)});
+        m_CallbackContexts[window]->notifyCallbacks<WindowMaximizeEvent>({.window = window, .maximized = static_cast<bool>(maximized & GLFW_MAXIMIZED)});
     });
 
     glfwSetDropCallback(m_Window, [](GLFWwindow *window, int path_count, const char *paths[]) {
-        getCallback<MouseDropEvent>(window)({.window = window, .paths = std::vector<std::string>(paths, paths + path_count)});
+        m_CallbackContexts[window]->notifyCallbacks<MouseDropEvent>({.window = window, .paths = std::vector<std::string>(paths, paths + path_count)});
     });
 
     glfwSetWindowPosCallback(m_Window, [](GLFWwindow *window, int xpos, int ypos) {
-        getCallback<WindowPositionEvent>(window)({.window = window, .xpos = xpos, .ypos = ypos});
+        m_CallbackContexts[window]->notifyCallbacks<WindowPositionEvent>({.window = window, .xpos = xpos, .ypos = ypos});
     });
 
     glfwSetWindowRefreshCallback(m_Window, [](GLFWwindow *window) {
-        getCallback<WindowRefreshEvent>(window)({.window = window});
+        m_CallbackContexts[window]->notifyCallbacks<WindowRefreshEvent>({.window = window});
     });
 
     glfwSetWindowFocusCallback(m_Window, [](GLFWwindow *window, int focused) {
-        getCallback<WindowFocusEvent>(window)({.window = window, .focused = static_cast<bool>(focused & GLFW_FOCUSED)});
+        m_CallbackContexts[window]->notifyCallbacks<WindowFocusEvent>({.window = window, .focused = static_cast<bool>(focused & GLFW_FOCUSED)});
     });
 
     glfwSetWindowIconifyCallback(m_Window, [](GLFWwindow *window, int iconified) {
-        getCallback<WindowIconifyEvent>(window)({.window = window, .iconified = static_cast<bool>(iconified & GLFW_ICONIFIED)});
+        m_CallbackContexts[window]->notifyCallbacks<WindowIconifyEvent>({.window = window, .iconified = static_cast<bool>(iconified & GLFW_ICONIFIED)});
     });
 }
 
@@ -97,20 +103,7 @@ void Window::destroy() {
     glfwDestroyWindow(m_Window);
     glfwTerminate();
 
-    getCallbacks<KeyEvent>().erase(m_Window);
-    getCallbacks<WindowIconifyEvent>().erase(m_Window);
-    getCallbacks<WindowFocusEvent>().erase(m_Window);
-    getCallbacks<WindowRefreshEvent>().erase(m_Window);
-    getCallbacks<WindowPositionEvent>().erase(m_Window);
-    getCallbacks<MouseDropEvent>().erase(m_Window);
-    getCallbacks<WindowMaximizeEvent>().erase(m_Window);
-    getCallbacks<CharEvent>().erase(m_Window);
-    getCallbacks<WindowCloseEvent>().erase(m_Window);
-    getCallbacks<WindowResizeEvent>().erase(m_Window);
-    getCallbacks<MouseButtonEvent>().erase(m_Window);
-    getCallbacks<MousePositionEvent>().erase(m_Window);
-    getCallbacks<MouseScrollEvent>().erase(m_Window);
-    getCallbacks<MouseEnteredEvent>().erase(m_Window);
+    m_CallbackContexts.erase(m_Window);
 }
 
 void Window::close() const {

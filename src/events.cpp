@@ -16,10 +16,10 @@ Events::Events(Game &game)
 Events::~Events() {}
 
 void Events::build() {
-    m_Game.window.setCallback<Physbuzz::KeyEvent>([&](const Physbuzz::KeyEvent &event) { keyEvent(event); });
-    m_Game.window.setCallback<Physbuzz::MouseButtonEvent>([&](const Physbuzz::MouseButtonEvent &event) { mouseButton(event); });
-    m_Game.window.setCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) { WindowResize(event); });
-    m_Game.window.setCallback<Physbuzz::WindowCloseEvent>([&](const Physbuzz::WindowCloseEvent &event) { WindowClose(event); });
+    m_Game.window.addCallback<Physbuzz::KeyEvent>([&](const Physbuzz::KeyEvent &event) { keyEvent(event); });
+    m_Game.window.addCallback<Physbuzz::MouseButtonEvent>([&](const Physbuzz::MouseButtonEvent &event) { mouseButton(event); });
+    m_Game.window.addCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) { WindowResize(event); });
+    m_Game.window.addCallback<Physbuzz::WindowCloseEvent>([&](const Physbuzz::WindowCloseEvent &event) { WindowClose(event); });
 }
 
 void Events::destroy() {}

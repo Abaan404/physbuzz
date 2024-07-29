@@ -38,6 +38,10 @@ class Event : public IEvent {
 
 class IEventSubject {
   public:
+    ~IEventSubject() {
+        m_EventMap.clear();
+    }
+
     template <typename T>
     EventID addCallback(std::function<void(const T &)> callback) {
         std::shared_ptr<Event<T>> event = getEvent<T>();
@@ -59,11 +63,11 @@ class IEventSubject {
   protected:
     template <typename T>
     std::shared_ptr<Event<T>> getEvent() {
-        std::string name = typeid(T).name();
-
+        static std::string name = typeid(T).name();
         if (!m_EventMap.contains(name)) {
             m_EventMap[name] = std::make_shared<Event<T>>();
         }
+
         return std::static_pointer_cast<Event<T>>(m_EventMap[name]);
     }
 

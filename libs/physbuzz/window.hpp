@@ -1,30 +1,12 @@
 #pragma once
 
-#include "events/window.hpp"
+#include "events.hpp"
 #include <GLFW/glfw3.h>
-#include <functional>
 #include <glm/glm.hpp>
 
 namespace Physbuzz {
 
-template <typename T>
-concept IsWindowEventType =
-    std::is_same_v<T, KeyEvent> ||
-    std::is_same_v<T, WindowIconifyEvent> ||
-    std::is_same_v<T, WindowFocusEvent> ||
-    std::is_same_v<T, WindowRefreshEvent> ||
-    std::is_same_v<T, WindowPositionEvent> ||
-    std::is_same_v<T, MouseDropEvent> ||
-    std::is_same_v<T, WindowMaximizeEvent> ||
-    std::is_same_v<T, CharEvent> ||
-    std::is_same_v<T, WindowCloseEvent> ||
-    std::is_same_v<T, WindowResizeEvent> ||
-    std::is_same_v<T, MouseButtonEvent> ||
-    std::is_same_v<T, MousePositionEvent> ||
-    std::is_same_v<T, MouseScrollEvent> ||
-    std::is_same_v<T, MouseEnteredEvent>;
-
-class Window {
+class Window : public IEventSubject {
   public:
     Window();
     ~Window();
@@ -54,34 +36,8 @@ class Window {
 
     void poll();
 
-    template <typename T>
-        requires IsWindowEventType<T>
-    void setCallback(const std::function<void(const T &)> &callback) {
-        std::unordered_map<GLFWwindow *, std::function<void(const T &)>> &callbacks = getCallbacks<T>();
-        callbacks[m_Window] = callback;
-    }
-
   private:
-    template <typename T>
-        requires IsWindowEventType<T>
-    static std::unordered_map<GLFWwindow *, std::function<void(const T &)>> &getCallbacks() {
-        static std::unordered_map<GLFWwindow *, std::function<void(const T &)>> callbacks;
-        return callbacks;
-    }
-
-    template <typename T>
-        requires IsWindowEventType<T>
-    static std::function<void(const T &)> &getCallback(GLFWwindow *window) {
-        std::unordered_map<GLFWwindow *, std::function<void(const T &)>> &callbacks = getCallbacks<T>();
-
-        if (callbacks.contains(window)) {
-            return callbacks[window];
-        } else {
-            static std::function<void(const T &)> emptyCallback = [](const T &) {};
-            return emptyCallback;
-        }
-    }
-
+    static std::unordered_map<GLFWwindow *, Window *> m_CallbackContexts;
     GLFWwindow *m_Window;
 };
 
