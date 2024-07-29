@@ -110,21 +110,8 @@ void Renderer::resize(const glm::ivec2 &resolution) {
     glViewport(0, 0, resolution.x, resolution.y);
 }
 
-void Renderer::normalize(Mesh &mesh) {
-    mesh.isScaled = true;
-    for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
-        mesh.vertices[i].position.x = (2.0f * mesh.positions[i].x) / m_Resolution.x - 1.0f;
-        mesh.vertices[i].position.y = 1.0f - (2.0f * mesh.positions[i].y) / m_Resolution.y;
-    }
-}
-
 // way too many draw calls i know
-void Renderer::render(RenderComponent &render) {
-    // TODO skip requiring a normalize step using a projection
-    if (!render.mesh.isScaled) {
-        normalize(render.mesh);
-    }
-
+void Renderer::render(RenderComponent &render) const {
     render.bind();
     render.draw();
     render.unbind();

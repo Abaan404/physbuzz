@@ -23,6 +23,7 @@ class Game {
 
     // displaying and rendering
     Physbuzz::Window window;
+    Physbuzz::Camera camera;
     Renderer renderer;
 
     // ecs object tracking

@@ -172,10 +172,10 @@ glm::vec3 Gjk2D::supportPoint(const Mesh &mesh, const glm::vec3 &direction) {
     glm::vec3 point;
     float proj = std::numeric_limits<float>::lowest();
 
-    for (const auto &position : mesh.positions) {
-        const float newProj = glm::dot(position, direction);
+    for (const auto &vertex : mesh.vertices) {
+        const float newProj = glm::dot(vertex.position, direction);
         if (newProj > proj) {
-            point = position;
+            point = vertex.position;
             proj = newProj;
         }
     }

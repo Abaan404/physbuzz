@@ -29,9 +29,6 @@ class Mesh {
     std::vector<Vertex> vertices;
     std::vector<Index> indices;
 
-    std::vector<glm::vec3> positions;
-    bool isScaled = false;
-
   private:
     GLuint VBO, VAO, EBO;
 };

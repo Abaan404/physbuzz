@@ -1,7 +1,8 @@
 #pragma once
 
 #include "../ui.hpp"
-#include <glm/glm.hpp>
+#include <imgui.h>
+#include <physbuzz/camera.hpp>
 #include <physbuzz/framebuffer.hpp>
 #include <physbuzz/scene.hpp>
 
@@ -19,5 +20,6 @@ class ObjectPicker : public IUserInterface {
 
   private:
     Physbuzz::Scene m_Scene;
-    glm::ivec2 m_PreviewSize = {120, 120};
+    Physbuzz::Camera m_Camera;
+    ImVec2 m_PreviewSize = {120, 120};
 };

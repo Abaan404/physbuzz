@@ -93,10 +93,9 @@ void Dynamics::rotate(Object &object, const glm::quat &delta) const {
     // update mesh
     if (object.hasComponent<RenderComponent>()) {
         RenderComponent &render = object.getComponent<RenderComponent>();
-        render.mesh.isScaled = false;
 
-        for (int i = 0; i < render.mesh.positions.size(); i++) {
-            glm::vec3 &position = render.mesh.positions[i];
+        for (auto &vertex : render.mesh.vertices) {
+            glm::vec3 &position = vertex.position;
             position = delta * (position - transform.position) + transform.position;
         }
 
@@ -115,10 +114,9 @@ void Dynamics::translate(Object &object, const glm::vec3 &delta) const {
     // update mesh
     if (object.hasComponent<RenderComponent>()) {
         RenderComponent &render = object.getComponent<RenderComponent>();
-        render.mesh.isScaled = false;
 
-        for (auto &position : render.mesh.positions) {
-            position += delta;
+        for (auto &vertex : render.mesh.vertices) {
+            vertex.position += delta;
         }
 
         // adjust collision bounding box

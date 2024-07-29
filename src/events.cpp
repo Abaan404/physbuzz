@@ -137,7 +137,8 @@ void Events::mouseButton(const Physbuzz::MouseButtonEvent &event) {
 
 void Events::WindowResize(const Physbuzz::WindowResizeEvent &event) {
     glm::ivec2 resolution = {event.width, event.height};
-    m_Game.renderer.getRenderer().resize(resolution);
+    m_Game.camera.projection = glm::ortho(0.0f, static_cast<float>(resolution.x), static_cast<float>(resolution.y), 0.0f, -1.0f, 1.0f);
+    m_Game.renderer.renderer.resize(resolution);
 
     for (auto &object : m_Game.scene.getObjects()) {
         if (object.hasComponent<WallComponent>()) {
@@ -145,16 +146,11 @@ void Events::WindowResize(const Physbuzz::WindowResizeEvent &event) {
             transform.position = glm::vec3(resolution >> 1, 0.0f);
 
             WallComponent &wall = object.getComponent<WallComponent>();
-            wall.width = static_cast<float>(event.width),
-            wall.height = static_cast<float>(event.height),
+            wall.width = static_cast<float>(event.width);
+            wall.height = static_cast<float>(event.height);
 
             object.getComponent<RebuildableComponent>().rebuild(m_Game.builder, object);
         }
-    }
-
-    std::vector<Physbuzz::RenderComponent> &renders = m_Game.scene.getComponents<Physbuzz::RenderComponent>();
-    for (auto &render : renders) {
-        render.mesh.isScaled = false;
     }
 }
 

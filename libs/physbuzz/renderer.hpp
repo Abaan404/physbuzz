@@ -36,7 +36,7 @@ class Renderer {
     void build();
     void destroy();
 
-    void render(RenderComponent &render);
+    void render(RenderComponent &render) const;
 
     void target(Framebuffer *framebuffer);
     void clear(const glm::vec4 &color);
@@ -44,8 +44,6 @@ class Renderer {
 
     const Window &getWindow() const;
     const glm::ivec2 &getResolution() const;
-
-    void normalize(Mesh &mesh);
 
   private:
     void copy(const Renderer &other);

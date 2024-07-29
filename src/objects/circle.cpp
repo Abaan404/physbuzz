@@ -21,11 +21,12 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info)
         constexpr const float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
 
         Physbuzz::Mesh mesh;
+        mesh.vertices.resize(MAX_VERTICES);
 
         // calc positions
         for (int i = 0; i < MAX_VERTICES; i++) {
             float angle = i * angleIncrement;
-            mesh.positions.emplace_back(info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f));
+            mesh.vertices[i].position = info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f);
         }
 
         // calc indices
@@ -33,8 +34,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info)
             mesh.indices.push_back(glm::uvec3(0, i, i + 1));
         }
         mesh.indices.push_back(glm::uvec3(0, MAX_VERTICES - 1, 1));
-
-        mesh.vertices.resize(mesh.positions.size());
 
         // calc vertices
         Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);

@@ -20,9 +20,10 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
         glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
 
         Physbuzz::Mesh mesh;
+        mesh.vertices.resize(4);
 
         // calc positions
-        mesh.positions = {
+        std::vector<glm::vec3> positions = {
             {min.x, min.y, 0.0f}, // top-left
             {min.x, max.y, 0.0f}, // top-right
             {max.x, max.y, 0.0f}, // bottom-right
@@ -35,7 +36,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
             {0, 3, 2},
         };
 
-        mesh.vertices.resize(mesh.positions.size());
+        for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
+            mesh.vertices[i].position = positions[i];
+        }
 
         // calc vertices
         Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);

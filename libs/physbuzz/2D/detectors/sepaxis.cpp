@@ -47,8 +47,8 @@ float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const Mesh &mesh1,
             float max = std::numeric_limits<float>::lowest();
         } ret;
 
-        for (const auto &position : mesh.positions) {
-            float projection = glm::dot(position, axis);
+        for (const auto &vertex : mesh.vertices) {
+            float projection = glm::dot(vertex.position, axis);
 
             ret.min = glm::min(projection, ret.min);
             ret.max = glm::max(projection, ret.max);

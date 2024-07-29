@@ -20,26 +20,23 @@ void ObjectBuilder::destroy() {
 }
 
 void ObjectBuilder::applyTransformsToMesh(const Physbuzz::TransformableComponent &transform, Physbuzz::Mesh &mesh) {
-    for (auto &vertex : mesh.positions) {
-        vertex = transform.orientation * vertex + transform.position;
-    }
-
     for (auto &vertex : mesh.vertices) {
+        vertex.position = transform.orientation * vertex.position + transform.position;
         vertex.normal = transform.orientation * vertex.normal;
     }
 }
 
 void ObjectBuilder::generate2DTexCoords(const Physbuzz::BoundingComponent &bounding, Physbuzz::Mesh &mesh) {
-    for (std::size_t i = 0; i < mesh.positions.size(); ++i) {
-        mesh.vertices[i].texCoords = (mesh.positions[i] - bounding.aabb.min) / (bounding.aabb.max - bounding.aabb.min);
+    for (auto &vertex : mesh.vertices) {
+        vertex.texCoords = (vertex.position - bounding.aabb.min) / (bounding.aabb.max - bounding.aabb.min);
     }
 }
 
 void ObjectBuilder::generate2DNormals(Physbuzz::Mesh &mesh) {
-    for (std::size_t i = 0; i < mesh.positions.size(); ++i) {
-        const std::size_t next = (i + 1) % mesh.positions.size();                  // cycle next vertex
-        const glm::vec3 tangent = mesh.positions[next] - mesh.positions[i];        // get the tangent
-        const glm::vec3 normal = glm::cross(tangent, glm::vec3(0.0f, 0.0f, 1.0f)); // cross prod for normal
+    for (std::size_t i = 0; i < mesh.vertices.size(); ++i) {
+        const std::size_t next = (i + 1) % mesh.vertices.size();                            // cycle next vertex
+        const glm::vec3 tangent = mesh.vertices[next].position - mesh.vertices[i].position; // get the tangent
+        const glm::vec3 normal = glm::cross(tangent, glm::vec3(0.0f, 0.0f, 1.0f));          // cross prod for normal
 
         mesh.vertices[i].normal = glm::normalize(normal);
     }

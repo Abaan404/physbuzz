@@ -16,7 +16,7 @@ Game::Game()
           std::make_shared<Physbuzz::Gjk2D>(scene),
           std::make_shared<Physbuzz::SweepAndPrune2D>(scene),
           std::make_shared<Physbuzz::AngularResolver2D>(scene, 0.9f)),
-      renderer(window),
+      renderer(window, camera),
       events(*this),
       dynamics(0.005),
       builder(scene) {}
@@ -27,6 +27,7 @@ void Game::build() {
     Physbuzz::Context::set(this);
 
     glm::ivec2 resolution = glm::ivec2(1920, 1080);
+    camera.projection = glm::ortho(0.0f, static_cast<float>(resolution.x), static_cast<float>(resolution.y), 0.0f, -1.0f, 1.0f);
 
     window.build(resolution);
     renderer.build();

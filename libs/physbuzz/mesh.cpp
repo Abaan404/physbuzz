@@ -1,7 +1,5 @@
 #include "mesh.hpp"
 
-#include "logging.hpp"
-
 namespace Physbuzz {
 
 Mesh::Mesh() {}
@@ -9,8 +7,6 @@ Mesh::Mesh() {}
 Mesh::~Mesh() {}
 
 void Mesh::build() {
-    Logger::ASSERT(vertices.size() == positions.size() && !indices.empty(), "Malformed Mesh Data");
-
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
     glGenVertexArrays(1, &VAO);
