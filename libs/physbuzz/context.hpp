@@ -1,5 +1,7 @@
 #pragma once
 
+#include "physbuzz/logging.hpp"
+
 namespace Physbuzz {
 
 class Context {
@@ -11,7 +13,9 @@ class Context {
 
     template <typename T>
     static T *get() {
-        return static_cast<T *>(storage);
+        T* object = static_cast<T *>(storage);
+        Logger::ASSERT(object != nullptr, "Context does not exist");
+        return object;
     }
 
   private:

@@ -7,6 +7,7 @@
 enum class ObjectType {
     Circle,
     Quad,
+    Cube,
     Line,
     Wall,
     Unknown,

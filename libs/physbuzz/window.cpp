@@ -42,27 +42,27 @@ void Window::build(const glm::ivec2 &resolution) {
     m_CallbackContexts[m_Window] = this;
 
     glfwSetKeyCallback(m_Window, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
-        m_CallbackContexts[window]->notifyCallbacks<KeyEvent>({.window = window, .key = key, .scancode = scancode, .action = action, .mods = mods});
+        m_CallbackContexts[window]->notifyCallbacks<KeyEvent>({.window = window, .key = static_cast<Key>(key), .scancode = scancode, .action = static_cast<Action>(action), .mods = static_cast<Modifier>(mods)});
     });
 
     glfwSetCursorEnterCallback(m_Window, [](GLFWwindow *window, int entered) {
-        m_CallbackContexts[window]->notifyCallbacks<MouseEnteredEvent>({.window = window, .entered = entered});
+        m_CallbackContexts[window]->notifyCallbacks<MouseEnteredEvent>({.window = window, .entered = (entered == GLFW_TRUE)});
     });
 
     glfwSetScrollCallback(m_Window, [](GLFWwindow *window, double xoffset, double yoffset) {
-        m_CallbackContexts[window]->notifyCallbacks<MouseScrollEvent>({.window = window, .xoffset = xoffset, .yoffset = yoffset});
+        m_CallbackContexts[window]->notifyCallbacks<MouseScrollEvent>({.window = window, .offset = {xoffset, yoffset}});
     });
 
     glfwSetCursorPosCallback(m_Window, [](GLFWwindow *window, double xpos, double ypos) {
-        m_CallbackContexts[window]->notifyCallbacks<MousePositionEvent>({.window = window, .xpos = xpos, .ypos = ypos});
+        m_CallbackContexts[window]->notifyCallbacks<MousePositionEvent>({.window = window, .position = {xpos, ypos}});
     });
 
     glfwSetMouseButtonCallback(m_Window, [](GLFWwindow *window, int button, int action, int mods) {
-        m_CallbackContexts[window]->notifyCallbacks<MouseButtonEvent>({.window = window, .button = button, .action = action, .mods = mods});
+        m_CallbackContexts[window]->notifyCallbacks<MouseButtonEvent>({.window = window, .button = static_cast<Mouse>(button), .action = static_cast<Action>(action), .mods = static_cast<Modifier>(mods)});
     });
 
     glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow *window, int width, int height) {
-        m_CallbackContexts[window]->notifyCallbacks<WindowResizeEvent>({.window = window, .width = width, .height = height});
+        m_CallbackContexts[window]->notifyCallbacks<WindowResizeEvent>({.window = window, .resolution = {width, height}});
     });
 
     glfwSetWindowCloseCallback(m_Window, [](GLFWwindow *window) {
@@ -82,7 +82,7 @@ void Window::build(const glm::ivec2 &resolution) {
     });
 
     glfwSetWindowPosCallback(m_Window, [](GLFWwindow *window, int xpos, int ypos) {
-        m_CallbackContexts[window]->notifyCallbacks<WindowPositionEvent>({.window = window, .xpos = xpos, .ypos = ypos});
+        m_CallbackContexts[window]->notifyCallbacks<WindowPositionEvent>({.window = window, .position = {xpos, ypos}});
     });
 
     glfwSetWindowRefreshCallback(m_Window, [](GLFWwindow *window) {

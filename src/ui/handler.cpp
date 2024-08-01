@@ -5,6 +5,7 @@
 #include <imgui_impl_opengl3.h>
 #include <memory>
 
+#include "camera/camera.hpp"
 #include "demo/demo.hpp"
 #include "dockspace/dockspace.hpp"
 #include "objectlist/objectlist.hpp"
@@ -34,6 +35,7 @@ void InterfaceManager::build(const Physbuzz::Window &window) {
     m_Interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
     m_Interfaces["ObjectList"] = std::make_unique<ObjectList>();
     m_Interfaces["Dockspace"] = std::make_unique<Dockspace>();
+    m_Interfaces["Camera"] = std::make_unique<Camera>();
 
     m_Interfaces["Demo"]->show = false;
 }

@@ -34,7 +34,6 @@ class ObjectBuilder {
 
   private:
     // Common Util Functions
-    static void applyTransformsToMesh(const Physbuzz::TransformableComponent &transform, Physbuzz::Mesh &mesh);
     static void generate2DTexCoords(const Physbuzz::BoundingComponent &bounding, Physbuzz::Mesh &mesh);
     static void generate2DNormals(Physbuzz::Mesh &mesh);
 

@@ -43,7 +43,7 @@ void RenderComponent::unbind() const {
     pipeline.unbind();
 }
 
-Renderer::Renderer(Window &window)
+Renderer::Renderer(Window *window)
     : m_Window(window) {}
 
 Renderer::Renderer(const Renderer &other) : m_Window(other.m_Window) {
@@ -70,12 +70,13 @@ void Renderer::copy(const Renderer &other) {
 }
 
 void Renderer::build() {
+    glEnable(GL_DEPTH_TEST);
     target(nullptr);
 }
 
 void Renderer::destroy() {}
 
-const Window &Renderer::getWindow() const {
+const Window *Renderer::getWindow() const {
     return m_Window;
 }
 
@@ -91,7 +92,7 @@ void Renderer::target(Framebuffer *framebuffer) {
         resize(framebuffer->getResolution());
     } else {
         framebuffer->unbind();
-        resize(m_Window.getResolution());
+        resize(m_Window->getResolution());
     }
 }
 
@@ -101,7 +102,7 @@ void Renderer::clear(const glm::vec4 &color) {
 
 void Renderer::resize(const glm::ivec2 &resolution) {
     if (m_Framebuffer == nullptr) {
-        m_Window.setResolution(resolution);
+        m_Window->setResolution(resolution);
     } else {
         m_Framebuffer->resize(resolution);
     }
@@ -111,7 +112,7 @@ void Renderer::resize(const glm::ivec2 &resolution) {
 }
 
 // way too many draw calls i know
-void Renderer::render(RenderComponent &render) const {
+void Renderer::render(const RenderComponent &render) const {
     render.bind();
     render.draw();
     render.unbind();

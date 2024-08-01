@@ -1,7 +1,8 @@
 #pragma once
 
-#include "events.hpp"
+#include "bindings.hpp"
 #include "objects/builder.hpp"
+#include "player.hpp"
 #include "renderer.hpp"
 #include "ui/handler.hpp"
 #include <physbuzz/clock.hpp>
@@ -23,7 +24,6 @@ class Game {
 
     // displaying and rendering
     Physbuzz::Window window;
-    Physbuzz::Camera camera;
     Renderer renderer;
 
     // ecs object tracking
@@ -37,8 +37,9 @@ class Game {
     InterfaceManager interface;
 
     // game elements
-    Events events;
+    Bindings bindings;
     ObjectBuilder builder;
+    Player player;
 
   private:
     bool m_IsRunning = false;

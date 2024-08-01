@@ -28,7 +28,7 @@ class RenderComponent {
 
 class Renderer {
   public:
-    Renderer(Window &window);
+    Renderer(Window *window);
     Renderer(const Renderer &other);
     Renderer &operator=(const Renderer &other);
     ~Renderer();
@@ -36,20 +36,21 @@ class Renderer {
     void build();
     void destroy();
 
-    void render(RenderComponent &render) const;
+    void render(const RenderComponent &render) const;
 
     void target(Framebuffer *framebuffer);
     void clear(const glm::vec4 &color);
     void resize(const glm::ivec2 &resolution);
 
-    const Window &getWindow() const;
+    const Window *getWindow() const;
     const glm::ivec2 &getResolution() const;
 
   private:
     void copy(const Renderer &other);
 
-    Framebuffer *m_Framebuffer;
-    Window &m_Window;
+    Framebuffer *m_Framebuffer = nullptr;
+    Window *m_Window = nullptr;
+
     glm::ivec2 m_Resolution;
 };
 

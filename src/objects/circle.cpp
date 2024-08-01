@@ -40,9 +40,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info)
         generate2DTexCoords(bounding, mesh);
         generate2DNormals(mesh);
 
-        // apply transformations
-        applyTransformsToMesh(info.transform, mesh);
-
         // setup rendering
         Physbuzz::Texture texture = m_Textures.getTexture("circle");
         Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(circleVertex, circleFrag);

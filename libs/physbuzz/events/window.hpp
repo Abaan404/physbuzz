@@ -1,6 +1,8 @@
 #pragma once
 
+#include "../input.hpp"
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 #include <string>
 #include <vector>
 
@@ -9,10 +11,10 @@ namespace Physbuzz {
 struct KeyEvent {
     GLFWwindow *window;
 
-    int key;
+    Key key;
     int scancode;
-    int action;
-    int mods;
+    Action action;
+    Modifier mods;
 };
 
 struct CharEvent {
@@ -24,51 +26,45 @@ struct CharEvent {
 struct MouseButtonEvent {
     GLFWwindow *window;
 
-    int button;
-    int action;
-    int mods;
+    Mouse button;
+    Action action;
+    Modifier mods;
 };
 
 struct MousePositionEvent {
     GLFWwindow *window;
 
-    double xpos;
-    double ypos;
+    glm::dvec2 position;
 };
 
 struct MouseEnteredEvent {
     GLFWwindow *window;
 
-    int entered;
+    bool entered;
 };
 
 struct MouseScrollEvent {
     GLFWwindow *window;
 
-    double xoffset;
-    double yoffset;
+    glm::dvec2 offset;
 };
 
 struct MouseDropEvent {
     GLFWwindow *window;
 
     std::vector<std::string> paths;
-    // int path_count;
-    // const char *paths[];
 };
 
 struct WindowPositionEvent {
     GLFWwindow *window;
 
-    int xpos;
-    int ypos;
+    glm::ivec2 position;
 };
 
 struct WindowResizeEvent {
     GLFWwindow *window;
 
-    int width;
-    int height;
+    glm::ivec2 resolution;
 };
 
 struct WindowCloseEvent {
@@ -83,21 +79,18 @@ struct WindowFocusEvent {
     GLFWwindow *window;
 
     bool focused;
-    // int focused;
 };
 
 struct WindowIconifyEvent {
     GLFWwindow *window;
 
     bool iconified;
-    // int iconified;
 };
 
 struct WindowMaximizeEvent {
     GLFWwindow *window;
 
     bool maximized;
-    // int maximized;
 };
 
 }; // namespace Physbuzz

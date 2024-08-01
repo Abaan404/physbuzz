@@ -109,7 +109,7 @@ void Dynamics::rotate(Object &object, const glm::quat &delta) const {
 
 void Dynamics::translate(Object &object, const glm::vec3 &delta) const {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
-    transform.translate(delta);
+    transform.position += delta;
 
     // update mesh
     if (object.hasComponent<RenderComponent>()) {

@@ -49,7 +49,7 @@ ObjectPicker::ObjectPicker() {
     }
 
     // set orthographic projection for preview
-    m_Camera.projection = glm::ortho(0.0f, m_PreviewSize.x, m_PreviewSize.y, 0.0f, -1.0f, 1.0f);
+    m_Camera.setOrthographic({m_PreviewSize.x, m_PreviewSize.y});
 }
 
 ObjectPicker::~ObjectPicker() {
@@ -73,7 +73,7 @@ void ObjectPicker::draw() {
     static glm::vec4 bgColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
     Game *game = Physbuzz::Context::get<Game>();
-    game->renderer.setCamera(m_Camera);
+    game->renderer.activeCamera = &m_Camera;
 
     // TODO buttons
     for (auto &object : m_Scene.getObjects()) {
@@ -82,7 +82,7 @@ void ObjectPicker::draw() {
         // render to framebuffer
         game->renderer.renderer.target(&pickable.framebuffer);
         game->renderer.renderer.clear(bgColor);
-        game->renderer.render(object.getComponent<Physbuzz::RenderComponent>());
+        game->renderer.render(object);
 
         // imgui fuckery
         ImGui::Image((void *)(intptr_t)pickable.framebuffer.getColor(), m_PreviewSize);
@@ -90,7 +90,7 @@ void ObjectPicker::draw() {
 
     // release target
     game->renderer.renderer.target(nullptr);
-    game->renderer.setCamera(game->camera);
+    game->renderer.activeCamera = &game->player.camera;
 
     ImGui::End();
 }

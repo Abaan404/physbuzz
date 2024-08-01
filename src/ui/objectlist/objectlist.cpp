@@ -13,7 +13,7 @@
 #include <vector>
 
 constexpr float MAX_VALUE = 1000.0f;
-constexpr float MIN_VALUE = 0.0f;
+constexpr float MIN_VALUE = -1000.0f;
 
 void ObjectList::draw() {
     const ImGuiViewport *Viewport = ImGui::GetMainViewport();
@@ -77,7 +77,7 @@ void ObjectList::draw() {
                     rebuild = true;
                 }
 
-                if (ImGui::DragFloat3("scale", scale, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                if (ImGui::DragFloat3("scale", scale, 0.1f, MIN_VALUE, MAX_VALUE)) {
                     glm::vec3 tmp = glm::vec3(scale[0], scale[1], scale[2]);
                     transform.scale = tmp;
 

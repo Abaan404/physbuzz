@@ -1,9 +1,11 @@
 #include "renderer.hpp"
+#include "physbuzz/dynamics.hpp"
+#include "physbuzz/logging.hpp"
 
 #include <glm/ext/matrix_clip_space.hpp>
 
-Renderer::Renderer(Physbuzz::Window &window, Physbuzz::Camera &camera)
-    : renderer(window), m_ActiveCamera(&camera) {}
+Renderer::Renderer(Physbuzz::Window *window)
+    : renderer(window) {}
 
 Renderer::~Renderer() {}
 
@@ -19,13 +21,21 @@ void Renderer::render(Physbuzz::Scene &scene) {
     m_Clock.tick();
     renderer.clear(m_ClearColor);
 
-    for (auto &component : scene.getComponents<Physbuzz::RenderComponent>()) {
-        render(component);
+    for (auto &object : scene.getObjects()) {
+
+        if (!object.hasComponent<Physbuzz::RenderComponent>() || !object.hasComponent<Physbuzz::TransformableComponent>()) {
+            continue;
+        }
+
+        render(object);
     }
 }
 
-void Renderer::render(Physbuzz::RenderComponent &render) const {
+void Renderer::render(Physbuzz::Object &object) const {
+    Physbuzz::Logger::ASSERT(activeCamera != nullptr, "No camera bound to renderer");
+
     // bind will be called twice, needs to be fixed in library code
+    const Physbuzz::RenderComponent render = object.getComponent<Physbuzz::RenderComponent>();
     render.pipeline.bind();
 
     // Time functions
@@ -38,20 +48,14 @@ void Renderer::render(Physbuzz::RenderComponent &render) const {
     // bound texture
     render.pipeline.setUniform("u_Texture", render.texture.getUnit());
 
-    // m_ActiveCamera.projection = glm::ortho(0.0f, static_cast<float>(1890), static_cast<float>(1007), 0.0f, -1.0f, 1.0f);
-
     // MVP camera info
-    render.pipeline.setUniform("u_Model", m_ActiveCamera->model);
-    render.pipeline.setUniform("u_View", m_ActiveCamera->view);
-    render.pipeline.setUniform("u_Projection", m_ActiveCamera->projection);
+    render.pipeline.setUniform("u_Model", object.getComponent<Physbuzz::TransformableComponent>().generateModel());
+    render.pipeline.setUniform("u_View", activeCamera->getView());
+    render.pipeline.setUniform("u_Projection", activeCamera->getProjection());
 
     render.pipeline.unbind();
 
     renderer.render(render);
-}
-
-void Renderer::setCamera(const Physbuzz::Camera &camera) {
-    m_ActiveCamera = &camera;
 }
 
 const Physbuzz::Clock &Renderer::getClock() const {

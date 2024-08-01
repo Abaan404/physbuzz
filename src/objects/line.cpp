@@ -44,9 +44,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Line &info) {
         generate2DTexCoords(bounding, mesh);
         generate2DNormals(mesh);
 
-        // apply transformations
-        applyTransformsToMesh(info.transform, mesh);
-
         // setup rendering
         Physbuzz::Texture texture = m_Textures.getTexture("quad");
         Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(quadVertex, quadFrag);
