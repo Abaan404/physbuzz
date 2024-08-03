@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstdio>
-#include <glad/gl.h>
 #include "../logging.hpp"
+#include <format>
+#include <glad/gl.h>
 
 namespace Physbuzz {
 
@@ -108,9 +108,7 @@ static void OpenGLDebugCallback(GLenum source, GLenum type, unsigned int id, GLe
 }
 
 static void glfwErrorCallback(int error, const char *description) {
-    char *formattedError;
-    sprintf(formattedError, "[GLFW ERROR] (%d) %s", error, description);
-    Logger::ASSERT(true, formattedError);
+    Logger::WARNING(std::format("[GLFW ERROR] ({}) {}", error, description));
 }
 
 } // namespace
