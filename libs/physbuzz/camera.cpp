@@ -1,7 +1,11 @@
 #include "camera.hpp"
 
+#include "logging.hpp"
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
 
 namespace Physbuzz {
 
@@ -9,47 +13,43 @@ Camera::Camera() {}
 
 Camera::~Camera() {}
 
-void Camera::build() {
-    updateView();
-}
+void Camera::build() {}
 
 void Camera::destroy() {}
 
-void Camera::resize(const glm::ivec2 &resolution) {
-    switch (m_Mode) {
-    case Mode::Prespective: {
+void Camera::resize(const glm::ivec2 &resolution, const Depth &depth) {
+    switch (m_ProjectionType) {
+    case ProjectionType::Prespective: {
         m_Prespective.aspect = static_cast<float>(resolution.x) / static_cast<float>(resolution.y);
-        setPrespective(m_Prespective, m_Depth);
+        setPrespective(m_Prespective, depth);
     } break;
 
-    case Mode::Orthographic2D: {
-        m_Orthographic.right = static_cast<float>(resolution.x);
-        m_Orthographic.bottom = static_cast<float>(resolution.y);
-        setOrthographic(m_Orthographic, m_Depth);
+    case ProjectionType::Orthographic2D: {
+        setOrthographic(resolution);
     } break;
 
-    case Mode::Orthographic:
-    case Mode::Unknown:
+    case ProjectionType::Orthographic:
+    case ProjectionType::Unknown:
         break;
     }
 }
 
 void Camera::setPrespective(const Prespective &prespective, const Depth &depth) {
-    m_Mode = Mode::Prespective;
+    m_ProjectionType = ProjectionType::Prespective;
     m_Projection = glm::perspective(prespective.fovy, prespective.aspect, depth.near, depth.far);
     m_Prespective = prespective;
     m_Depth = depth;
 }
 
 void Camera::setOrthographic(const Orthographic &orthographic, const Depth &depth) {
-    m_Mode = Mode::Orthographic;
+    m_ProjectionType = ProjectionType::Orthographic;
     m_Projection = glm::ortho(orthographic.left, orthographic.right, orthographic.bottom, orthographic.top, depth.near, depth.far);
     m_Orthographic = orthographic;
     m_Depth = depth;
 }
 
 void Camera::setOrthographic(const glm::ivec2 &resolution) {
-    m_Mode = Mode::Orthographic2D;
+    m_ProjectionType = ProjectionType::Orthographic2D;
     m_Orthographic = {
         .left = 0.0f,
         .right = static_cast<float>(resolution.x),
@@ -65,16 +65,44 @@ void Camera::setOrthographic(const glm::ivec2 &resolution) {
     m_Projection = glm::ortho(m_Orthographic.left, m_Orthographic.right, m_Orthographic.bottom, m_Orthographic.top, m_Depth.near, m_Depth.far);
 }
 
+void Camera::resetView() {
+    m_Position = {0.0f, 0.0f, 0.0f};
+    m_Orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    updateView();
+}
+
 void Camera::updateView() {
-    m_View = glm::lookAt(m_Position, m_Position + m_Facing, m_Up);
+    const glm::mat4 rotation = glm::mat4(glm::conjugate(glm::quatLookAt(getFacing(), getUp())));
+    const glm::mat4 translation = glm::translate(glm::mat4(1.0f), -m_Position);
+
+    m_View = rotation * translation;
+}
+
+void Camera::rotate(const glm::quat &delta) {
+    if (m_ProjectionType == ProjectionType::Orthographic2D) {
+        return;
+    }
+
+    m_Orientation = delta * m_Orientation;
+    updateView();
+}
+
+void Camera::translate(const glm::vec3 &delta) {
+    if (m_ProjectionType == ProjectionType::Orthographic2D) {
+        return;
+    }
+
+    m_Position += delta;
+    updateView();
 }
 
 void Camera::setView(const glm::mat4 &view) {
     m_View = view;
 }
 
-void Camera::setProjection(const glm::mat4 &transform) {
-    m_Projection = transform;
+void Camera::setProjection(const glm::mat4 &projection) {
+    m_Projection = projection;
+    m_ProjectionType = ProjectionType::Unknown;
 }
 
 const glm::mat4 &Camera::getView() const {
@@ -85,8 +113,16 @@ const glm::mat4 &Camera::getProjection() const {
     return m_Projection;
 }
 
-const Camera::Mode &Camera::getMode() const {
-    return m_Mode;
+void Camera::setDepth(const Depth &depth) {
+    m_Depth = depth;
+}
+
+const Camera::Depth &Camera::getDepth() const {
+    return m_Depth;
+}
+
+const Camera::ProjectionType &Camera::getProjectionType() const {
+    return m_ProjectionType;
 }
 
 void Camera::setPosition(const glm::vec3 &position) {
@@ -99,21 +135,55 @@ const glm::vec3 &Camera::getPosition() const {
 }
 
 void Camera::setFacing(const glm::vec3 &facing) {
-    m_Facing = facing;
-    updateView();
+    glm::quat rotation = glm::rotation(getFacing(), glm::normalize(facing));
+    rotate(rotation);
 }
 
-const glm::vec3 &Camera::getFacing() const {
-    return m_Facing;
+const glm::vec3 Camera::getFacing() const {
+    return m_Orientation * glm::vec3(0.0f, 0.0f, -1.0f);
 }
 
 void Camera::setUp(const glm::vec3 &up) {
-    m_Up = up;
+    glm::quat rotation = glm::rotation(getUp(), glm::normalize(up));
+    rotate(rotation);
+}
+
+const glm::vec3 Camera::getUp() const {
+    return m_Orientation * glm::vec3(0.0f, 1.0f, 0.0f);
+}
+
+void Camera::setRight(const glm::vec3 &right) {
+    glm::quat rotation = glm::rotation(getRight(), glm::normalize(right));
+    rotate(rotation);
+}
+
+const glm::vec3 Camera::getRight() const {
+    return glm::cross(getFacing(), getUp());
+}
+
+void Camera::setOrientation(const glm::quat &orientaton) {
+    m_Orientation = orientaton;
     updateView();
 }
 
-const glm::vec3 &Camera::getUp() const {
-    return m_Up;
+const glm::quat &Camera::getOrientation() const {
+    return m_Orientation;
+}
+
+const Camera::Prespective &Camera::getPrespective() const {
+    if (m_ProjectionType != ProjectionType::Prespective) {
+        Logger::WARNING("[Camera] Trying to fetch a non-prespective camera");
+    }
+
+    return m_Prespective;
+}
+
+const Camera::Orthographic &Camera::getOrthographic() const {
+    if (m_ProjectionType != ProjectionType::Orthographic || m_ProjectionType != ProjectionType::Orthographic2D) {
+        Logger::WARNING("[Camera] Trying to fetch a non-orthographic camera");
+    }
+
+    return m_Orthographic;
 }
 
 } // namespace Physbuzz

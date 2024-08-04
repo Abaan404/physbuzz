@@ -173,4 +173,12 @@ void Window::poll() {
     glfwPollEvents();
 }
 
+void Window::setCursorCapture(bool capture) const {
+    if (capture) {
+        glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    } else {
+        glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+}
+
 } // namespace Physbuzz

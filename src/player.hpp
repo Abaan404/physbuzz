@@ -16,8 +16,9 @@ class Player {
 
     Physbuzz::Camera camera;
 
+    float speed = 0.5f;
+    float sensitivity = 0.1f;
+
   private:
     Game *m_Game = nullptr;
-    float m_Speed = 0.5f;
-    float m_Sensitivity = 0.1f;
 };

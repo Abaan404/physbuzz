@@ -26,6 +26,8 @@ class Window : public IEventSubject {
     void flip() const;
     bool shouldClose() const;
 
+    void setCursorCapture(bool capture) const;
+
     GLFWwindow *getGLFWwindow() const;
 
     const glm::dvec2 getCursorPos() const;

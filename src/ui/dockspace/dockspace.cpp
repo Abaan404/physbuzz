@@ -7,8 +7,8 @@ void Dockspace::draw() {
     // setup dockspace
     ImGuiDockNodeFlags dockspaceFlags = 0;
     ImGuiWindowFlags windowFlags = (ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                                     ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground |
-                                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
+                                    ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground |
+                                    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
 
     ImGuiViewport *viewport = ImGui::GetMainViewport();
 
@@ -27,30 +27,45 @@ void Dockspace::draw() {
     ImGuiID dockspace = viewport->ID;
     ImGui::DockSpace(dockspace, ImVec2(0.0f, 0.0f), dockspaceFlags | ImGuiDockNodeFlags_PassthruCentralNode);
 
-    static bool firstTime = true;
-    if (firstTime) {
-        firstTime = false;
-
+    static auto runOnce = [&]() {
         // DockBuilder is experimental
         // see: https://github.com/ocornut/imgui/wiki/Docking
         ImGui::DockBuilderAddNode(dockspace, dockspaceFlags | ImGuiDockNodeFlags_DockSpace);
         ImGui::DockBuilderSetNodeSize(dockspace, viewport->Size);
 
         // split dockspace
-        ImGuiID dockspaceObjects = ImGui::GetID("DockspaceRight");
-        ImGui::DockBuilderSplitNode(dockspace, ImGuiDir_Right, 0.25f, &dockspaceObjects, nullptr);
+        ImGuiID dockspaceRight = ImGui::GetID("DockspaceRight");
+        ImGuiID dockspaceLeftMiddle = ImGui::GetID("DockspaceLeftMiddle");
+        ImGui::DockBuilderSplitNode(dockspace, ImGuiDir_Right, 0.2f, &dockspaceRight, &dockspaceLeftMiddle);
 
         // setup right hand side
         {
-            ImGuiID dockspaceObjectsList = ImGui::GetID("DockspaceRightUp");
-            ImGuiID dockspaceObjectsPicker = ImGui::GetID("DockspaceRightDown");
-            ImGui::DockBuilderSplitNode(dockspaceObjects, ImGuiDir_Up, 0.5f, &dockspaceObjectsList, &dockspaceObjectsPicker);
+            ImGuiID dockspaceObjectsList = ImGui::GetID("DockspaceObjectsList");
+            ImGuiID dockspaceObjectsPicker = ImGui::GetID("DockspaceObjectsPicker");
+            ImGui::DockBuilderSplitNode(dockspaceRight, ImGuiDir_Up, 0.5f, &dockspaceObjectsList, &dockspaceObjectsPicker);
             ImGui::DockBuilderDockWindow("ObjectList", dockspaceObjectsList);
             ImGui::DockBuilderDockWindow("ShapePicker", dockspaceObjectsPicker);
         }
 
+        ImGuiID dockspaceLeft = ImGui::GetID("DockspaceLeft");
+        ImGuiID dockspaceMiddle = ImGui::GetID("DockspaceMiddle");
+        ImGui::DockBuilderSplitNode(dockspaceLeftMiddle, ImGuiDir_Left, 0.25f, &dockspaceLeft, &dockspaceMiddle);
+
+        // setup middle
+        {
+            // TODO viewport framebuffer?
+        }
+
+        // setup left hand side
+        {
+            ImGuiID dockspaceCamera = ImGui::GetID("DockspaceLeft");
+            ImGui::DockBuilderDockWindow("Camera", dockspaceLeft);
+        }
+
         ImGui::DockBuilderFinish(dockspace);
-    }
+
+        return 0;
+    }();
 
     ImGui::End();
 }

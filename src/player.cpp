@@ -2,6 +2,7 @@
 
 #include "bindings.hpp"
 #include "game.hpp"
+#include "objects/circle.hpp"
 #include "objects/cube.hpp"
 #include <imgui.h>
 
@@ -11,14 +12,14 @@ Player::Player(Game *game)
 Player::~Player() {}
 
 void Player::resize(const glm::ivec2 &resolution) {
-    camera.setPrespective(
-        {.fovy = glm::radians(45.0f), .aspect = static_cast<float>(resolution.x) / static_cast<float>(resolution.y)},
-        {.near = 1.0f, .far = 1000.0f});
+    camera.resize(resolution, camera.getDepth());
 }
 
 void Player::build() {
     camera.build();
-    resize(m_Game->window.getResolution());
+    camera.setPrespective(
+        {.fovy = glm::radians(45.0f), .aspect = static_cast<float>(m_Game->window.getResolution().x) / static_cast<float>(m_Game->window.getResolution().y)},
+        {.near = 1.0f, .far = 1000.0f});
 
     m_Game->bindings.mouseButtonCallbacks[Physbuzz::Mouse::Left] = {
         .callback = [&]() {
@@ -44,9 +45,35 @@ void Player::build() {
         .type = BindingType::OneShot,
     };
 
+    m_Game->bindings.mouseButtonCallbacks[Physbuzz::Mouse::Right] = {
+        .callback = [&]() {
+            if (ImGui::GetIO().WantCaptureMouse) {
+                return;
+            }
+
+            glm::ivec2 cursor = m_Game->window.getCursorPos();
+            Circle info = {
+                .transform = {
+                    .position = {cursor.x, cursor.y, 0.0f},
+                },
+                .circle = {
+                    .radius = 100.0f,
+                },
+                .isCollidable = true,
+                .isRenderable = true,
+            };
+            m_Game->builder.create(info);
+        },
+        .type = BindingType::OneShot,
+    };
+
+
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::F3] = {
         .callback = [&]() {
             m_Game->interface.draw ^= true;
+            if (m_Game->interface.draw) {
+                m_Game->window.setCursorCapture(false);
+            }
         },
         .type = BindingType::OneShot,
     };
@@ -69,39 +96,67 @@ void Player::build() {
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::W] = {
         .callback = [&]() {
-            camera.setPosition(camera.getPosition() + m_Speed * camera.getFacing());
+            camera.translate(camera.getFacing() * speed);
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::A] = {
         .callback = [&]() {
-            camera.setPosition(camera.getPosition() - m_Speed * glm::normalize(glm::cross(camera.getFacing(), camera.getUp())));
+            camera.translate(-camera.getRight() * speed);
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::S] = {
         .callback = [&]() {
-            camera.setPosition(camera.getPosition() - m_Speed * camera.getFacing());
+            camera.translate(-camera.getFacing() * speed);
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::D] = {
         .callback = [&]() {
-            camera.setPosition(camera.getPosition() + m_Speed * glm::normalize(glm::cross(camera.getFacing(), camera.getUp())));
+            camera.translate(camera.getRight() * speed);
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::Space] = {
         .callback = [&]() {
-            camera.setPosition(camera.getPosition() + m_Speed * camera.getUp());
+            camera.translate(camera.getUp() * speed);
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::LeftShift] = {
         .callback = [&]() {
-            camera.setPosition(camera.getPosition() - m_Speed * camera.getUp());
+            camera.translate(-camera.getUp() * speed);
         },
     };
+
+    m_Game->window.addCallback<Physbuzz::MousePositionEvent>([&](const Physbuzz::MousePositionEvent &event) {
+        if (ImGui::GetIO().WantCaptureMouse || m_Game->interface.draw || camera.getProjectionType() == Physbuzz::Camera::ProjectionType::Orthographic2D) {
+            return;
+        }
+
+        m_Game->window.setCursorCapture(true);
+
+        static glm::vec2 lastPosition = m_Game->window.getResolution() >> 1;
+        glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * sensitivity;
+        lastPosition = event.position;
+
+        glm::quat pitch = glm::angleAxis(glm::radians(offset.x), glm::vec3(0.0f, -1.0f, 0.0f));
+        glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.getUp(), camera.getFacing()));
+
+        camera.rotate(pitch * yaw);
+    });
+
+    m_Game->window.addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
+        if (ImGui::GetIO().WantCaptureMouse || camera.getProjectionType() != Physbuzz::Camera::ProjectionType::Prespective) {
+            return;
+        }
+
+        Physbuzz::Camera::Prespective prespective = camera.getPrespective();
+        prespective.fovy = glm::clamp(prespective.fovy + glm::radians<float>(event.offset.y), glm::radians(30.0f), glm::radians(135.0f));
+
+        camera.setPrespective(prespective, camera.getDepth());
+    });
 }
 
 void Player::destroy() {
