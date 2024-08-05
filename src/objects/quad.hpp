@@ -19,7 +19,6 @@ struct Quad {
 
     // naming
     IdentifiableComponent identifier = {
-        .type = ObjectType::Quad,
         .name = "Quad",
     };
 

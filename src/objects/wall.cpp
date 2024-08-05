@@ -92,7 +92,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Wall &info) {
                     side.getComponent<Physbuzz::RenderComponent>().destroy();
                 }
 
-                isCollidable = side.hasComponent<Physbuzz::BoundingComponent>();
+                isCollidable = side.hasComponent<Physbuzz::AABBComponent>();
                 isRenderable = side.hasComponent<Physbuzz::RenderComponent>();
 
                 builder.scene.deleteObject(id);

@@ -36,8 +36,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info)
         mesh.indices.push_back(glm::uvec3(0, MAX_VERTICES - 1, 1));
 
         // calc vertices
-        Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);
-        generate2DTexCoords(bounding, mesh);
+        Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(mesh, info.transform);
+        generate2DTexCoords(aabb, mesh);
         generate2DNormals(mesh);
 
         // setup rendering
@@ -50,10 +50,10 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info)
 
         // generate bounding box
         if (info.isCollidable) {
-            bounding.aabb.max += info.transform.position;
-            bounding.aabb.min += info.transform.position;
+            aabb.max += info.transform.position;
+            aabb.min += info.transform.position;
 
-            object.setComponent(bounding);
+            object.setComponent(aabb);
         }
     }
 
@@ -79,7 +79,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info)
                     .transform = object.getComponent<Physbuzz::TransformableComponent>(),
                     .circle = object.getComponent<CircleComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
-                    .isCollidable = object.hasComponent<Physbuzz::BoundingComponent>(),
+                    .isCollidable = object.hasComponent<Physbuzz::AABBComponent>(),
                     .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),
                 };
 

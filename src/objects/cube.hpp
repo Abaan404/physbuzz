@@ -20,7 +20,6 @@ struct Cube {
 
     // naming
     IdentifiableComponent identifier = {
-        .type = ObjectType::Cube,
         .name = "Cube",
     };
 

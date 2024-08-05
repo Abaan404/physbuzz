@@ -24,7 +24,6 @@ struct Wall {
 
     // naming
     IdentifiableComponent identifier = {
-        .type = ObjectType::Wall,
         .name = "Wall",
         .hidden = false,
     };

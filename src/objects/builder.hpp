@@ -34,7 +34,7 @@ class ObjectBuilder {
 
   private:
     // Common Util Functions
-    static void generate2DTexCoords(const Physbuzz::BoundingComponent &bounding, Physbuzz::Mesh &mesh);
+    static void generate2DTexCoords(const Physbuzz::AABBComponent &aabb, Physbuzz::Mesh &mesh);
     static void generate2DNormals(Physbuzz::Mesh &mesh);
 
     Physbuzz::TextureArray m_Textures;

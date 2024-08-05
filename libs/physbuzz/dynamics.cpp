@@ -5,6 +5,22 @@
 
 namespace Physbuzz {
 
+const glm::mat4 TransformableComponent::generateModel() const {
+    const glm::mat4 translation = glm::translate(glm::mat4(1.0f), position);
+    const glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::angle(orientation), glm::axis(orientation)); // conjugate?
+    const glm::mat4 transformation = glm::scale(glm::mat4(1.0f), scale);
+
+    return translation * rotation * transformation;
+}
+
+void TransformableComponent::rotate(const glm::quat &delta) {
+    orientation = delta * orientation;
+}
+
+void TransformableComponent::translate(const glm::vec3 &delta) {
+    position += delta;
+}
+
 Dynamics::Dynamics(float dtime)
     : m_DeltaTime(dtime) {}
 
@@ -46,7 +62,6 @@ void Dynamics::tick(Scene &scene) {
 
 void Dynamics::tickMotion(Object &object) const {
     RigidBodyComponent &body = object.getComponent<RigidBodyComponent>();
-    TransformableComponent &transform = object.getComponent<TransformableComponent>();
 
     // apply gravity
     {
@@ -88,43 +103,24 @@ void Dynamics::tickMotion(Object &object) const {
 // not exactly "rotate"s but this works for now
 void Dynamics::rotate(Object &object, const glm::quat &delta) const {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
-    transform.orientation = glm::normalize(delta * transform.orientation);
+    transform.rotate(delta);
 
-    // update mesh
-    if (object.hasComponent<RenderComponent>()) {
-        RenderComponent &render = object.getComponent<RenderComponent>();
-
-        for (auto &vertex : render.mesh.vertices) {
-            glm::vec3 &position = vertex.position;
-            position = delta * (position - transform.position) + transform.position;
-        }
-
-        // adjust collision bounding box
-        if (object.hasComponent<BoundingComponent>()) {
-            BoundingComponent bounding = BoundingComponent(render.mesh);
-            object.setComponent(bounding);
-        }
+    // adjust collision bounding box
+    if (object.hasComponent<AABBComponent>() && object.hasComponent<RenderComponent>()) {
+        AABBComponent aabb = AABBComponent(object.getComponent<RenderComponent>().mesh, transform);
+        object.setComponent(aabb);
     }
 }
 
 void Dynamics::translate(Object &object, const glm::vec3 &delta) const {
     TransformableComponent &transform = object.getComponent<TransformableComponent>();
-    transform.position += delta;
+    transform.translate(delta);
 
-    // update mesh
-    if (object.hasComponent<RenderComponent>()) {
-        RenderComponent &render = object.getComponent<RenderComponent>();
-
-        for (auto &vertex : render.mesh.vertices) {
-            vertex.position += delta;
-        }
-
-        // adjust collision bounding box
-        if (object.hasComponent<BoundingComponent>()) {
-            BoundingComponent &bounding = object.getComponent<BoundingComponent>();
-            bounding.aabb.max += delta;
-            bounding.aabb.min += delta;
-        }
+    // adjust collision bounding box
+    if (object.hasComponent<AABBComponent>()) {
+        AABBComponent &aabb = object.getComponent<AABBComponent>();
+        aabb.max += delta;
+        aabb.min += delta;
     }
 }
 

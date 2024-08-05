@@ -19,9 +19,9 @@ void ObjectBuilder::destroy() {
     m_Textures.destroy();
 }
 
-void ObjectBuilder::generate2DTexCoords(const Physbuzz::BoundingComponent &bounding, Physbuzz::Mesh &mesh) {
+void ObjectBuilder::generate2DTexCoords(const Physbuzz::AABBComponent &aabb, Physbuzz::Mesh &mesh) {
     for (auto &vertex : mesh.vertices) {
-        vertex.texCoords = (vertex.position - bounding.aabb.min) / (bounding.aabb.max - bounding.aabb.min);
+        vertex.texCoords = (vertex.position - aabb.min) / (aabb.max - aabb.min);
     }
 }
 

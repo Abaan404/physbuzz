@@ -1,4 +1,5 @@
 #include "game.hpp"
+#include "objects/wall.hpp"
 
 #include <physbuzz/2D/detectors/gjk.hpp>
 #include <physbuzz/2D/detectors/sweepandprune.hpp>
@@ -31,6 +32,21 @@ void Game::build() {
     interface.build(window);
     collision.build();
 
+    Wall wall = {
+        .transform = {
+            .position = {resolution >> 1, 0.0f},
+        },
+        .wall = {
+            .width = static_cast<float>(resolution.x),
+            .height = static_cast<float>(resolution.y),
+            .thickness = 10.0f,
+        },
+        .isCollidable = true,
+        .isRenderable = true,
+    };
+
+    builder.create(wall);
+
     window.addCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) {
         player.resize(event.resolution);
         renderer.renderer.resize(event.resolution);
@@ -48,8 +64,8 @@ void Game::loop() {
     while (m_IsRunning && !window.shouldClose()) {
         window.poll();
 
-        // collision.tick(scene);
-        // dynamics.tick(scene);
+        collision.tick(scene);
+        dynamics.tick(scene);
         bindings.tick();
 
         renderer.render(scene);

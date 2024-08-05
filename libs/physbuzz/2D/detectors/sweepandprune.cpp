@@ -15,7 +15,7 @@ void SweepAndPrune2D::build() {
 
     if (!objects.empty()) {
         for (Object &object : objects) {
-            if (object.hasComponent<BoundingComponent>()) {
+            if (object.hasComponent<AABBComponent>()) {
                 m_CollisionObjects.insert(object.getId());
             }
         }
@@ -28,11 +28,11 @@ void SweepAndPrune2D::build() {
 
         Object &object = event.scene->getObject(event.id);
 
-        m_ComponentEventIds[event.id][0] = object.addCallback<OnComponentSetEvent<BoundingComponent>>([&](const OnComponentSetEvent<BoundingComponent> &event) {
+        m_ComponentEventIds[event.id][0] = object.addCallback<OnComponentSetEvent<AABBComponent>>([&](const OnComponentSetEvent<AABBComponent> &event) {
             m_CollisionObjects.insert(event.object->getId());
         });
 
-        m_ComponentEventIds[event.id][1] = object.addCallback<OnComponentRemoveEvent<BoundingComponent>>([&](const OnComponentRemoveEvent<BoundingComponent> &event) {
+        m_ComponentEventIds[event.id][1] = object.addCallback<OnComponentRemoveEvent<AABBComponent>>([&](const OnComponentRemoveEvent<AABBComponent> &event) {
             m_ComponentEventIds.erase(event.object->getId());
             const auto &it = std::find(m_CollisionObjects.begin(), m_CollisionObjects.end(), event.object->getId());
             if (it != m_CollisionObjects.end()) {
@@ -66,8 +66,8 @@ void SweepAndPrune2D::destroy() {
     for (const auto &[objectId, eventIds] : m_ComponentEventIds) {
         Object &object = m_Scene.getObject(objectId);
 
-        object.removeCallback<OnComponentSetEvent<BoundingComponent>>(eventIds[0]);
-        object.removeCallback<OnComponentRemoveEvent<BoundingComponent>>(eventIds[1]);
+        object.removeCallback<OnComponentSetEvent<AABBComponent>>(eventIds[0]);
+        object.removeCallback<OnComponentRemoveEvent<AABBComponent>>(eventIds[1]);
         object.removeCallback<OnComponentEraseEvent>(eventIds[2]);
     }
 
@@ -123,7 +123,7 @@ std::list<SweepEdge> SweepAndPrune2D::getEdges() {
 
     for (const ObjectID &id : m_CollisionObjects) {
         Object &object = m_Scene.getObject(id);
-        const AABBComponent &aabb = object.getComponent<BoundingComponent>().aabb;
+        const AABBComponent &aabb = object.getComponent<AABBComponent>();
 
         const SweepEdge edgeLeft = {
             .id = object.getId(),
@@ -151,8 +151,8 @@ bool SweepAndPrune2D::check(Contact &contact) {
     Object &object1 = m_Scene.getObject(contact.object1);
     Object &object2 = m_Scene.getObject(contact.object2);
 
-    const AABBComponent &aabb1 = object1.getComponent<BoundingComponent>().aabb;
-    const AABBComponent &aabb2 = object2.getComponent<BoundingComponent>().aabb;
+    const AABBComponent &aabb1 = object1.getComponent<AABBComponent>();
+    const AABBComponent &aabb2 = object2.getComponent<AABBComponent>();
 
     return aabb1.max.x > aabb2.min.x && aabb2.max.x > aabb1.min.x && aabb1.max.y > aabb2.min.y && aabb2.max.y > aabb1.min.y;
 }

@@ -41,8 +41,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
         }
 
         // calc vertices
-        Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);
-        generate2DTexCoords(bounding, mesh);
+        Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(mesh, info.transform);
+        generate2DTexCoords(aabb, mesh);
         generate2DNormals(mesh);
 
         // setup rendering
@@ -55,10 +55,10 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
 
         // generate bounding box
         if (info.isCollidable) {
-            bounding.aabb.max += info.transform.position;
-            bounding.aabb.min += info.transform.position;
+            aabb.max += info.transform.position;
+            aabb.min += info.transform.position;
 
-            object.setComponent(bounding);
+            object.setComponent(aabb);
         }
     }
 
@@ -84,7 +84,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
                     .transform = object.getComponent<Physbuzz::TransformableComponent>(),
                     .quad = object.getComponent<QuadComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
-                    .isCollidable = object.hasComponent<Physbuzz::BoundingComponent>(),
+                    .isCollidable = object.hasComponent<Physbuzz::AABBComponent>(),
                     .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),
                 };
 

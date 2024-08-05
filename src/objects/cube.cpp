@@ -81,11 +81,11 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info) {
 
         // generate bounding box
         if (info.isCollidable) {
-            Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);
-            bounding.aabb.max += info.transform.position;
-            bounding.aabb.min += info.transform.position;
+            Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(mesh, info.transform);
+            aabb.max += info.transform.position;
+            aabb.min += info.transform.position;
 
-            object.setComponent(bounding);
+            object.setComponent(aabb);
         }
     }
 
@@ -102,7 +102,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info) {
                     .transform = object.getComponent<Physbuzz::TransformableComponent>(),
                     .cube = object.getComponent<CubeComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
-                    .isCollidable = object.hasComponent<Physbuzz::BoundingComponent>(),
+                    .isCollidable = object.hasComponent<Physbuzz::AABBComponent>(),
                     .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),
                 };
 

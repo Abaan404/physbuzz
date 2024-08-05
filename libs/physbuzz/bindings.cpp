@@ -1,5 +1,8 @@
 #include "bindings.hpp"
-#include "physbuzz/logging.hpp"
+
+#include "logging.hpp"
+
+namespace Physbuzz {
 
 Bindings::Bindings(Physbuzz::Window *window)
     : m_Window(window) {}
@@ -7,13 +10,11 @@ Bindings::Bindings(Physbuzz::Window *window)
 Bindings::~Bindings() {}
 
 void Bindings::build() {
-    if (m_Window == nullptr) {
-        return;
-    }
+    Physbuzz::Logger::ASSERT(m_Window != nullptr, "[Binding] Building to a missing window");
 
     m_Events.key = m_Window->addCallback<Physbuzz::KeyEvent>([&](const Physbuzz::KeyEvent &event) {
         if (event.action == Physbuzz::Action::Press) {
-            m_HeldKeys.insert(event.key);
+            m_HeldKeys[event.key] = event;
         } else if (event.action == Physbuzz::Action::Release) {
             m_HeldKeys.erase(event.key);
         }
@@ -21,7 +22,7 @@ void Bindings::build() {
 
     m_Events.mouse = m_Window->addCallback<Physbuzz::MouseButtonEvent>([&](const Physbuzz::MouseButtonEvent &event) {
         if (event.action == Physbuzz::Action::Press) {
-            m_HeldMouseButtons.insert(event.button);
+            m_HeldMouseButtons[event.button] = event;
         } else if (event.action == Physbuzz::Action::Release) {
             m_HeldMouseButtons.erase(event.button);
         }
@@ -30,6 +31,7 @@ void Bindings::build() {
 
 void Bindings::destory() {
     if (m_Window == nullptr) {
+        Physbuzz::Logger::WARNING("[Binding] Destroying to a missing window");
         return;
     }
 
@@ -43,29 +45,27 @@ void Bindings::destory() {
 }
 
 void Bindings::tick() {
-    Physbuzz::Logger::ASSERT(m_Window != nullptr, "[BINDING] Window does not exist");
-
-    if (m_Window == nullptr) {
-        return;
-    }
+    Physbuzz::Logger::ASSERT(m_Window != nullptr, "[Binding] Ticking to a missing window");
 
     for (const auto &[key, info] : keyboardCallbacks) {
         if (m_HeldKeys.contains(key)) {
-            info.callback();
+            info.callback(m_HeldKeys[key]);
 
-            if (info.type == BindingType::OneShot) {
+            if (info.type == CallbackType::OneShot) {
                 m_HeldKeys.erase(key);
             }
         }
     }
 
-    for (const auto &[key, info] : mouseButtonCallbacks) {
-        if (m_HeldMouseButtons.contains(key)) {
-            info.callback();
+    for (const auto &[button, info] : mouseButtonCallbacks) {
+        if (m_HeldMouseButtons.contains(button)) {
+            info.callback(m_HeldMouseButtons[button]);
 
-            if (info.type == BindingType::OneShot) {
-                m_HeldMouseButtons.erase(key);
+            if (info.type == CallbackType::OneShot) {
+                m_HeldMouseButtons.erase(button);
             }
         }
     }
 }
+
+} // namespace Physbuzz

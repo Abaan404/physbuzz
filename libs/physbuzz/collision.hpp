@@ -1,6 +1,7 @@
 #pragma once
 
 #include "events.hpp"
+#include "dynamics.hpp"
 #include <glm/glm.hpp>
 #include <list>
 #include <memory>
@@ -10,15 +11,10 @@
 namespace Physbuzz {
 
 struct AABBComponent {
+    AABBComponent(const Mesh &mesh, const TransformableComponent &transform);
+
     glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 max = glm::vec3(std::numeric_limits<float>::lowest());
-};
-
-struct BoundingComponent {
-    BoundingComponent(const AABBComponent &quad);
-    BoundingComponent(const Mesh &mesh);
-
-    AABBComponent aabb;
 };
 
 struct Contact {

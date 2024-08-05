@@ -6,13 +6,12 @@
 
 namespace Physbuzz {
 
-BoundingComponent::BoundingComponent(const AABBComponent &quad)
-    : aabb(quad) {}
-
-BoundingComponent::BoundingComponent(const Mesh &mesh) {
+AABBComponent::AABBComponent(const Mesh &mesh, const TransformableComponent &transform) {
     for (const auto &vertex : mesh.vertices) {
-        aabb.min = glm::min(aabb.min, vertex.position);
-        aabb.max = glm::max(aabb.max, vertex.position);
+        glm::vec3 transformedVertex = transform.generateModel() * glm::vec4(vertex.position, 1.0f);
+
+        min = glm::min(min, transformedVertex);
+        max = glm::max(max, transformedVertex);
     }
 }
 

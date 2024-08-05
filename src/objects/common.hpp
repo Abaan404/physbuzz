@@ -4,17 +4,7 @@
 #include <functional>
 #include <physbuzz/object.hpp>
 
-enum class ObjectType {
-    Circle,
-    Quad,
-    Cube,
-    Line,
-    Wall,
-    Unknown,
-};
-
 struct IdentifiableComponent {
-    ObjectType type = ObjectType::Unknown;
     std::string name = "Unknown";
     bool hidden = false;
 };

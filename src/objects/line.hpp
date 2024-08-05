@@ -16,7 +16,6 @@ struct Line {
 
     // naming
     IdentifiableComponent identifier = {
-        .type = ObjectType::Line,
         .name = "Line",
     };
 

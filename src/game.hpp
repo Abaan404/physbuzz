@@ -1,10 +1,10 @@
 #pragma once
 
-#include "bindings.hpp"
 #include "objects/builder.hpp"
 #include "player.hpp"
 #include "renderer.hpp"
 #include "ui/handler.hpp"
+#include <physbuzz/bindings.hpp>
 #include <physbuzz/clock.hpp>
 #include <physbuzz/collision.hpp>
 #include <physbuzz/dynamics.hpp>
@@ -37,7 +37,7 @@ class Game {
     InterfaceManager interface;
 
     // game elements
-    Bindings bindings;
+    Physbuzz::Bindings bindings;
     ObjectBuilder builder;
     Player player;
 

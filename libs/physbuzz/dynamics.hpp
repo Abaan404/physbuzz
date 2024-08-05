@@ -13,14 +13,10 @@ struct TransformableComponent {
     glm::vec3 scale = {1.0f, 1.0f, 1.0f};
     glm::quat orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 
-    const glm::mat4 generateModel() const {
-        constexpr glm::mat4 I = glm::mat4(1.0f);
-        const glm::mat4 T = glm::translate(I, position);
-        const glm::mat4 R = glm::rotate(I, glm::angle(orientation), glm::axis(orientation));
-        const glm::mat4 S = glm::scale(I, scale);
+    void rotate(const glm::quat &delta);
+    void translate(const glm::vec3 &delta);
 
-        return T * R * S;
-    }
+    const glm::mat4 generateModel() const;
 };
 
 struct RigidBodyComponent {

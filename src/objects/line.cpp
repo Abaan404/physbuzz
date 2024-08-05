@@ -40,8 +40,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Line &info) {
         }
 
         // calc vertices
-        Physbuzz::BoundingComponent bounding = Physbuzz::BoundingComponent(mesh);
-        generate2DTexCoords(bounding, mesh);
+        Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(mesh, info.transform);
+        generate2DTexCoords(aabb, mesh);
         generate2DNormals(mesh);
 
         // setup rendering

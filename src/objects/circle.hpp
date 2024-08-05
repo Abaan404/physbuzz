@@ -17,7 +17,6 @@ struct Circle {
 
     // naming
     IdentifiableComponent identifier = {
-        .type = ObjectType::Circle,
         .name = "Circle",
     };
 
