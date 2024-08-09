@@ -31,8 +31,7 @@ ObjectPicker::ObjectPicker() {
         .isRenderable = true,
     };
 
-    // skip building and destroying since we assume Game::build() has already built it statically
-    // a ResourceManager in the future will not require such odd details
+    Game *game = Physbuzz::Context::get<Game>();
     ObjectBuilder builder = ObjectBuilder(m_Scene);
 
     builder.create(circle);
@@ -80,16 +79,16 @@ void ObjectPicker::draw() {
         PickableComponent &pickable = object.getComponent<PickableComponent>();
 
         // render to framebuffer
-        game->renderer.renderer.target(&pickable.framebuffer);
-        game->renderer.renderer.clear(bgColor);
-        game->renderer.render(object);
+        game->renderer.target(&pickable.framebuffer);
+        game->renderer.clear(bgColor);
+        game->renderer.render(object, game->resources);
 
         // imgui fuckery
         ImGui::Image((void *)(intptr_t)pickable.framebuffer.getColor(), m_PreviewSize);
     }
 
     // release target
-    game->renderer.renderer.target(nullptr);
+    game->renderer.target(nullptr);
     game->renderer.activeCamera = &game->player.camera;
 
     ImGui::End();

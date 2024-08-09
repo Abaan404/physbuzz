@@ -5,20 +5,6 @@ ObjectBuilder::ObjectBuilder(Physbuzz::Scene &scene)
 
 ObjectBuilder::~ObjectBuilder() {}
 
-void ObjectBuilder::build() {
-    m_Textures.build();
-
-    m_Textures.allocate("circle", "resources/missing.png");
-    m_Textures.allocate("quad", "resources/wall.jpg");
-}
-
-void ObjectBuilder::destroy() {
-    m_Textures.deallocate("quad");
-    m_Textures.deallocate("circle");
-
-    m_Textures.destroy();
-}
-
 void ObjectBuilder::generate2DTexCoords(const Physbuzz::AABBComponent &aabb, Physbuzz::Mesh &mesh) {
     for (auto &vertex : mesh.vertices) {
         vertex.texCoords = (vertex.position - aabb.min) / (aabb.max - aabb.min);

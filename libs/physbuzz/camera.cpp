@@ -1,6 +1,7 @@
 #include "camera.hpp"
 
 #include "logging.hpp"
+#include <glad/gl.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
@@ -13,7 +14,9 @@ Camera::Camera() {}
 
 Camera::~Camera() {}
 
-void Camera::build() {}
+void Camera::build() {
+    glEnable(GL_DEPTH_TEST);
+}
 
 void Camera::destroy() {}
 

@@ -1,57 +1,46 @@
 #pragma once
 
+#include "file.hpp"
+#include "resources.hpp"
 #include <glad/gl.h>
-#include <glm/glm.hpp>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 namespace Physbuzz {
 
-class Texture {
-  public:
-    Texture(const GLint &unit = 0);
-    ~Texture();
+struct Texture2DInfo {
+    ImageInfo image;
+};
 
-    void build(const std::string &path);
+class Texture2DResource {
+  public:
+    Texture2DResource(const Texture2DInfo &texture2D);
+    ~Texture2DResource();
+
+    void build();
     void destroy();
 
     void bind() const;
     void unbind() const;
 
-    const GLuint &getTexture() const;
     const GLint &getUnit() const;
 
-    static GLint maxUnits();
-
   private:
+    Texture2DInfo m_Info;
     GLuint m_Texture;
-    GLint m_Unit;
+    GLint m_Unit = 0;
 
-    std::string m_Path;
+    // to access m_Unit in container
+    template <ResourceType T>
+    friend class ResourceContainer;
 };
 
-// TODO rewrite me
-// this isnt the commonly used "texture arrays" but rather a temp class to handle many textures until i figure out
-// the actual implementation. Also multiple instances WILL cause undefined behaviours (thanks opengl)
-class TextureArray {
-  public:
-    TextureArray();
-    ~TextureArray();
+// specialize texture containers
+template <>
+void ResourceContainer<Texture2DResource>::destroy();
 
-    void build();
-    void destroy();
+template <>
+void ResourceContainer<Texture2DResource>::insert(const std::string &identifier, const Texture2DResource &resource);
 
-    Texture &allocate(const std::string &identifier, const std::string &path);
-    void deallocate(const std::string &identifier);
-
-    Texture &getTexture(const std::string &identifier) ;
-
-  private:
-    GLint fetchEmptyUnit();
-
-    static std::unordered_map<std::string, Texture> m_Map;
-    static std::vector<bool> m_ClaimedUnits; // A virtual mirror lookup of claimed units in the GPU
-};
+template <>
+bool ResourceContainer<Texture2DResource>::remove(const std::string &identifier);
 
 } // namespace Physbuzz

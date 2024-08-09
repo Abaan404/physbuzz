@@ -1,8 +1,6 @@
 #include "collision.hpp"
 
 #include "events/collision.hpp"
-#include <physbuzz/logging.hpp>
-#include <physbuzz/renderer.hpp>
 
 namespace Physbuzz {
 

@@ -1,7 +1,6 @@
 #include "dynamics.hpp"
 
 #include "collision.hpp"
-#include "renderer.hpp"
 
 namespace Physbuzz {
 
@@ -106,8 +105,8 @@ void Dynamics::rotate(Object &object, const glm::quat &delta) const {
     transform.rotate(delta);
 
     // adjust collision bounding box
-    if (object.hasComponent<AABBComponent>() && object.hasComponent<RenderComponent>()) {
-        AABBComponent aabb = AABBComponent(object.getComponent<RenderComponent>().mesh, transform);
+    if (object.hasComponent<AABBComponent>() && object.hasComponent<Mesh>()) {
+        AABBComponent aabb = AABBComponent(object.getComponent<Mesh>(), transform);
         object.setComponent(aabb);
     }
 }

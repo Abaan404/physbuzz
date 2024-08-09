@@ -1,63 +1,110 @@
 #include "renderer.hpp"
-#include "physbuzz/dynamics.hpp"
+
+#include "objects/common.hpp"
 #include "physbuzz/logging.hpp"
+#include <format>
+#include <physbuzz/shaders.hpp>
 
 #include <glm/ext/matrix_clip_space.hpp>
 
 Renderer::Renderer(Physbuzz::Window *window)
-    : renderer(window) {}
+    : m_Window(window) {}
 
 Renderer::~Renderer() {}
 
 void Renderer::build() {
-    renderer.build();
+    target(nullptr);
 }
 
-void Renderer::destroy() {
-    renderer.destroy();
-}
+void Renderer::destroy() {}
 
-void Renderer::render(Physbuzz::Scene &scene) {
+void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ResourceManager &resources) {
     m_Clock.tick();
-    renderer.clear(m_ClearColor);
+    clear(m_ClearColor);
 
     for (auto &object : scene.getObjects()) {
 
-        if (!object.hasComponent<Physbuzz::RenderComponent>() || !object.hasComponent<Physbuzz::TransformableComponent>()) {
+        if (!object.hasComponent<Physbuzz::Mesh>() || !object.hasComponent<Physbuzz::TransformableComponent>()) {
             continue;
         }
 
-        render(object);
+        render(object, resources);
     }
 }
 
-void Renderer::render(Physbuzz::Object &object) const {
+void Renderer::render(Physbuzz::Object &object, Physbuzz::ResourceManager &resources) const {
     Physbuzz::Logger::ASSERT(activeCamera != nullptr, "No camera bound to renderer");
 
-    // bind will be called twice, needs to be fixed in library code
-    const Physbuzz::RenderComponent render = object.getComponent<Physbuzz::RenderComponent>();
-    render.pipeline.bind();
+    const ResourceIdentifierComponent &identifiers = object.getComponent<ResourceIdentifierComponent>();
+    const Physbuzz::ShaderPipelineResource *pipeline = resources.get<Physbuzz::ShaderPipelineResource>(identifiers.pipeline);
+    const Physbuzz::Texture2DResource *texture = resources.get<Physbuzz::Texture2DResource>(identifiers.texture2D);
 
-    // Time functions
-    render.pipeline.setUniform<unsigned int>("u_Time", m_Clock.getTime());
-    render.pipeline.setUniform<unsigned int>("u_TimeDelta", m_Clock.getDelta());
+    if (!pipeline) {
+        Physbuzz::Logger::WARNING(std::format("[Renderer] ShaderPipelineResource '{}' unknown.", identifiers.pipeline));
+        return;
+    }
+
+    if (!texture) {
+        Physbuzz::Logger::WARNING(std::format("[Renderer] Texture2DResource '{}' unknown.", identifiers.texture2D));
+        return;
+    }
+
+    const Physbuzz::Mesh &mesh = object.getComponent<Physbuzz::Mesh>();
+
+    pipeline->bind();
+    texture->bind();
+    mesh.bind();
+
+    // texture sampler
+    pipeline->setUniform("u_Texture", texture->getUnit());
+
+    // time info
+    pipeline->setUniform<unsigned int>("u_Time", m_Clock.getTime());
+    pipeline->setUniform<unsigned int>("u_TimeDelta", m_Clock.getDelta());
 
     // render info
-    render.pipeline.setUniform("u_Resolution", renderer.getResolution());
-
-    // bound texture
-    render.pipeline.setUniform("u_Texture", render.texture.getUnit());
+    pipeline->setUniform("u_Resolution", m_Window->getResolution());
 
     // MVP camera info
-    render.pipeline.setUniform("u_Model", object.getComponent<Physbuzz::TransformableComponent>().generateModel());
-    render.pipeline.setUniform("u_View", activeCamera->getView());
-    render.pipeline.setUniform("u_Projection", activeCamera->getProjection());
+    pipeline->setUniform("u_Model", object.getComponent<Physbuzz::TransformableComponent>().generateModel());
+    pipeline->setUniform("u_View", activeCamera->getView());
+    pipeline->setUniform("u_Projection", activeCamera->getProjection());
 
-    render.pipeline.unbind();
+    // send draw call
+    mesh.draw();
 
-    renderer.render(render);
+    mesh.unbind();
+    pipeline->unbind();
+    texture->unbind();
 }
 
 const Physbuzz::Clock &Renderer::getClock() const {
     return m_Clock;
+}
+
+void Renderer::target(Physbuzz::Framebuffer *framebuffer) {
+    m_Framebuffer = framebuffer;
+
+    if (framebuffer) {
+        framebuffer->bind();
+        resize(framebuffer->getResolution());
+    } else {
+        framebuffer->unbind();
+        resize(m_Window->getResolution());
+    }
+}
+
+void Renderer::clear(const glm::vec4 &color) {
+    m_Framebuffer->clear(color);
+}
+
+void Renderer::resize(const glm::ivec2 &resolution) {
+    if (m_Framebuffer == nullptr) {
+        m_Window->setResolution(resolution);
+    } else {
+        m_Framebuffer->resize(resolution);
+    }
+
+    m_Resolution = resolution;
+    glViewport(0, 0, resolution.x, resolution.y);
 }

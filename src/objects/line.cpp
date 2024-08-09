@@ -1,10 +1,6 @@
 #include "line.hpp"
 
-#include <physbuzz/renderer.hpp>
 #include <physbuzz/shaders.hpp>
-
-#include "shaders/quad.frag"
-#include "shaders/quad.vert"
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Line &info) {
@@ -44,28 +40,23 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Line &info) {
         generate2DTexCoords(aabb, mesh);
         generate2DNormals(mesh);
 
-        // setup rendering
-        Physbuzz::Texture texture = m_Textures.getTexture("quad");
-        Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(quadVertex, quadFrag);
-        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader, texture);
-        render.build();
-
-        object.setComponent(render);
+        mesh.build();
+        object.setComponent(mesh);
     }
 
     // create a rebuild callback
     {
         RebuildableComponent rebuilder = {
             .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
-                if (object.hasComponent<Physbuzz::RenderComponent>()) {
-                    object.getComponent<Physbuzz::RenderComponent>().destroy();
+                if (object.hasComponent<Physbuzz::Mesh>()) {
+                    object.getComponent<Physbuzz::Mesh>().destroy();
                 }
 
                 Line info = {
                     .transform = object.getComponent<Physbuzz::TransformableComponent>(),
                     .line = object.getComponent<LineComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
-                    .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),
+                    .isRenderable = object.hasComponent<Physbuzz::Mesh>(),
                 };
 
                 object.eraseComponents();

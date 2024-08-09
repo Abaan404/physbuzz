@@ -1,11 +1,7 @@
 #include "cube.hpp"
 
 #include <physbuzz/collision.hpp>
-#include <physbuzz/renderer.hpp>
 #include <physbuzz/shaders.hpp>
-
-#include "shaders/cube.frag"
-#include "shaders/cube.vert"
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info) {
@@ -13,6 +9,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info) {
     object.setComponent(info.cube);
     object.setComponent(info.transform);
     object.setComponent(info.identifier);
+    object.setComponent(info.resources);
 
     // generate mesh
     if (info.isRenderable) {
@@ -20,7 +17,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info) {
         glm::vec3 max = glm::vec3(info.cube.width / 2.0f, info.cube.height / 2.0f, info.cube.length / 2.0f);
 
         Physbuzz::Mesh mesh;
-        mesh.vertices.resize(8);
+        mesh.vertices.resize(24);
 
         // this hurts to look at but probably the best solution
         mesh.vertices = {
@@ -71,20 +68,12 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info) {
             {22, 23, 20},
         };
 
-        // setup rendering
-        Physbuzz::Texture texture = m_Textures.getTexture("quad");
-        Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(cubeVertex, cubeFrag);
-        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader, texture);
-        render.build();
-
-        object.setComponent(render);
+        mesh.build();
+        object.setComponent(mesh);
 
         // generate bounding box
         if (info.isCollidable) {
             Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(mesh, info.transform);
-            aabb.max += info.transform.position;
-            aabb.min += info.transform.position;
-
             object.setComponent(aabb);
         }
     }
@@ -93,8 +82,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info) {
     {
         RebuildableComponent rebuilder = {
             .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
-                if (object.hasComponent<Physbuzz::RenderComponent>()) {
-                    object.getComponent<Physbuzz::RenderComponent>().destroy();
+                if (object.hasComponent<Physbuzz::Mesh>()) {
+                    object.getComponent<Physbuzz::Mesh>().destroy();
                 }
 
                 Cube info = {
@@ -103,7 +92,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info) {
                     .cube = object.getComponent<CubeComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
                     .isCollidable = object.hasComponent<Physbuzz::AABBComponent>(),
-                    .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),
+                    .isRenderable = object.hasComponent<Physbuzz::Mesh>(),
                 };
 
                 object.eraseComponents();

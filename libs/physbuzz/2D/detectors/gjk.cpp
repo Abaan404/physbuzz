@@ -1,7 +1,6 @@
 #include "gjk.hpp"
 
 #include "../../logging.hpp"
-#include "../../renderer.hpp"
 #include <limits>
 #include <vector>
 
@@ -50,8 +49,8 @@ bool Gjk2D::check(Contact &contact) {
     Object &object1 = m_Scene.getObject(contact.object1);
     Object &object2 = m_Scene.getObject(contact.object2);
 
-    const Mesh &mesh1 = object1.getComponent<RenderComponent>().mesh;
-    const Mesh &mesh2 = object2.getComponent<RenderComponent>().mesh;
+    const Mesh &mesh1 = object1.getComponent<Mesh>();
+    const Mesh &mesh2 = object2.getComponent<Mesh>();
 
     glm::vec3 support = minkowskiSupportPoint(mesh1, mesh2, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 direction = -support;

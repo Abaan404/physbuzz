@@ -6,7 +6,6 @@
 #include "../../objects/quad.hpp"
 #include <glm/ext/scalar_constants.hpp>
 #include <physbuzz/context.hpp>
-#include <physbuzz/renderer.hpp>
 
 #include <format>
 #include <imgui.h>

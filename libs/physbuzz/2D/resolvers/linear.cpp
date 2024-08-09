@@ -1,8 +1,6 @@
 #include "linear.hpp"
 
 #include "../../dynamics.hpp"
-#include <physbuzz/logging.hpp>
-#include <physbuzz/renderer.hpp>
 
 namespace Physbuzz {
 

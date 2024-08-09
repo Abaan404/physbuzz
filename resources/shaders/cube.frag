@@ -1,4 +1,3 @@
-static const char *quadFrag = R"(
 #version 460
 
 uniform vec4 u_Color = vec4(1.0, 1.0, 0.0, 0.0);
@@ -12,4 +11,3 @@ out vec4 fragColor;
 void main() {
     fragColor = texture(u_Texture, texCoord);
 }
-)";

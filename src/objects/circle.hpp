@@ -1,7 +1,7 @@
 #pragma once
 
-#include <physbuzz/dynamics.hpp>
 #include "common.hpp"
+#include <physbuzz/dynamics.hpp>
 
 struct CircleComponent {
     float radius = 0.0f;
@@ -18,6 +18,11 @@ struct Circle {
     // naming
     IdentifiableComponent identifier = {
         .name = "Circle",
+    };
+
+    ResourceIdentifierComponent resources = {
+        .pipeline = "circle",
+        .texture2D = "wall",
     };
 
     bool isCollidable = false;

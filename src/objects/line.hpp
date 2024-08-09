@@ -19,6 +19,10 @@ struct Line {
         .name = "Line",
     };
 
+    ResourceIdentifierComponent resources = {
+        .pipeline = "cube",
+    };
+
     bool isRenderable = false;
 };
 

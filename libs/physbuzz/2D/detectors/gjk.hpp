@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../collision.hpp"
-#include "physbuzz/mesh.hpp"
+#include "../../mesh.hpp"
 #include <initializer_list>
 
 namespace Physbuzz {

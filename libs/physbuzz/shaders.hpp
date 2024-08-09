@@ -1,5 +1,6 @@
 #pragma once
 
+#include "file.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <string>
@@ -30,30 +31,55 @@ concept UniformType =
     std::same_as<T, glm::mat3x4> ||
     std::same_as<T, glm::mat4x3>;
 
+enum class ShaderType {
+    Vertex = GL_VERTEX_SHADER,
+    TessControl = GL_TESS_CONTROL_SHADER,
+    TessEvaluation = GL_TESS_EVALUATION_SHADER,
+    Geometry = GL_GEOMETRY_SHADER,
+    Fragment = GL_FRAGMENT_SHADER,
+    Compute = GL_COMPUTE_SHADER,
+    Unknown = GL_INVALID_ENUM,
+};
+
+struct ShaderInfo {
+    FileInfo file;
+};
+
 class Shader {
   public:
-    Shader(const GLchar *source, GLuint type);
+    Shader(const ShaderInfo &info, const ShaderType &type);
     ~Shader();
 
     void build();
     void destroy();
 
+    bool compile();
+
     void bind(GLuint program) const;
     void unbind(GLuint program) const;
 
-    GLuint getShader() const;
+    const GLuint &getShader() const;
+    const ShaderType &getType() const;
 
   private:
-    const GLchar *m_Source;
-    GLuint m_Type;
+    ShaderInfo m_Info;
     GLuint m_Shader;
+    ShaderType m_Type;
 };
 
-// TODO support more graphics pipelines
-class ShaderPipeline {
+struct ShaderPipelineInfo {
+    ShaderInfo vertex;
+    ShaderInfo tessControl;
+    ShaderInfo tessEvaluation;
+    ShaderInfo geometry;
+    ShaderInfo fragment;
+    ShaderInfo compute;
+};
+
+class ShaderPipelineResource {
   public:
-    ShaderPipeline(const GLchar *vertex, const GLchar *fragment);
-    ~ShaderPipeline();
+    ShaderPipelineResource(const ShaderPipelineInfo &info);
+    ~ShaderPipelineResource();
 
     void build();
     void destroy();
@@ -61,13 +87,12 @@ class ShaderPipeline {
     void bind() const;
     void unbind() const;
 
-    template <typename T>
-        requires UniformType<T>
+    template <UniformType T>
     void setUniform(const std::string &name, const T &data) const {
         setUniformInternal(glGetUniformLocation(m_Program, name.c_str()), data);
     }
 
-    GLuint getProgram() const;
+    const GLuint &getProgram() const;
 
   private:
     void setUniformInternal(const GLint location, const float &data) const;
@@ -98,8 +123,7 @@ class ShaderPipeline {
     void setUniformInternal(const GLint location, const glm::mat3x4 &data) const;
     void setUniformInternal(const GLint location, const glm::mat4x3 &data) const;
 
-    Shader m_Vertex;
-    Shader m_Fragment;
+    ShaderPipelineInfo m_Info;
     GLuint m_Program;
 };
 

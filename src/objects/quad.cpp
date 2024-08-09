@@ -1,11 +1,7 @@
 #include "quad.hpp"
 
 #include <physbuzz/collision.hpp>
-#include <physbuzz/renderer.hpp>
 #include <physbuzz/shaders.hpp>
-
-#include "shaders/quad.frag"
-#include "shaders/quad.vert"
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
@@ -13,6 +9,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
     object.setComponent(info.quad);
     object.setComponent(info.transform);
     object.setComponent(info.identifier);
+    object.setComponent(info.resources);
 
     // generate mesh
     if (info.isRenderable) {
@@ -45,19 +42,11 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
         generate2DTexCoords(aabb, mesh);
         generate2DNormals(mesh);
 
-        // setup rendering
-        Physbuzz::Texture texture = m_Textures.getTexture("quad");
-        Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(quadVertex, quadFrag);
-        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader, texture);
-        render.build();
-
-        object.setComponent(render);
+        mesh.build();
+        object.setComponent(mesh);
 
         // generate bounding box
         if (info.isCollidable) {
-            aabb.max += info.transform.position;
-            aabb.min += info.transform.position;
-
             object.setComponent(aabb);
         }
     }
@@ -75,8 +64,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
     {
         RebuildableComponent rebuilder = {
             .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
-                if (object.hasComponent<Physbuzz::RenderComponent>()) {
-                    object.getComponent<Physbuzz::RenderComponent>().destroy();
+                if (object.hasComponent<Physbuzz::Mesh>()) {
+                    object.getComponent<Physbuzz::Mesh>().destroy();
                 }
 
                 Quad info = {
@@ -85,7 +74,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
                     .quad = object.getComponent<QuadComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
                     .isCollidable = object.hasComponent<Physbuzz::AABBComponent>(),
-                    .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),
+                    .isRenderable = object.hasComponent<Physbuzz::Mesh>(),
                 };
 
                 object.eraseComponents();

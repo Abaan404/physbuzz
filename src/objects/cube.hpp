@@ -23,6 +23,10 @@ struct Cube {
         .name = "Cube",
     };
 
+    ResourceIdentifierComponent resources = {
+        .pipeline = "cube",
+    };
+
     bool isCollidable = false;
     bool isRenderable = false;
 };

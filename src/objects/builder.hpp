@@ -1,6 +1,6 @@
 #pragma once
 
-#include "physbuzz/collision.hpp"
+#include <physbuzz/collision.hpp>
 #include <physbuzz/defines.hpp>
 #include <physbuzz/dynamics.hpp>
 #include <physbuzz/mesh.hpp>
@@ -11,9 +11,6 @@ class ObjectBuilder {
   public:
     ObjectBuilder(Physbuzz::Scene &scene);
     ~ObjectBuilder();
-
-    void build();
-    void destroy();
 
     template <typename T>
     Physbuzz::ObjectID create(Physbuzz::ObjectID id, T &info) {
@@ -36,6 +33,4 @@ class ObjectBuilder {
     // Common Util Functions
     static void generate2DTexCoords(const Physbuzz::AABBComponent &aabb, Physbuzz::Mesh &mesh);
     static void generate2DNormals(Physbuzz::Mesh &mesh);
-
-    Physbuzz::TextureArray m_Textures;
 };

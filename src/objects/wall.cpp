@@ -2,7 +2,6 @@
 
 #include "quad.hpp"
 #include <glm/glm.hpp>
-#include <physbuzz/renderer.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Wall &info) {
@@ -88,12 +87,12 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Wall &info) {
 
             for (const auto &id : {wall.left, wall.right, wall.up, wall.down}) {
                 Physbuzz::Object &side = builder.scene.getObject(id);
-                if (side.hasComponent<Physbuzz::RenderComponent>()) {
-                    side.getComponent<Physbuzz::RenderComponent>().destroy();
+                if (side.hasComponent<Physbuzz::Mesh>()) {
+                    side.getComponent<Physbuzz::Mesh>().destroy();
                 }
 
                 isCollidable = side.hasComponent<Physbuzz::AABBComponent>();
-                isRenderable = side.hasComponent<Physbuzz::RenderComponent>();
+                isRenderable = side.hasComponent<Physbuzz::Mesh>();
 
                 builder.scene.deleteObject(id);
             }

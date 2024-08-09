@@ -1,6 +1,7 @@
 #include "game.hpp"
 #include "objects/wall.hpp"
 
+#include <physbuzz/shaders.hpp>
 #include <physbuzz/2D/detectors/gjk.hpp>
 #include <physbuzz/2D/detectors/sweepandprune.hpp>
 #include <physbuzz/2D/resolvers/angular.hpp>
@@ -27,7 +28,6 @@ void Game::build() {
     window.build(resolution);
     player.build();
     renderer.build();
-    builder.build();
     bindings.build();
     interface.build(window);
     collision.build();
@@ -45,16 +45,60 @@ void Game::build() {
         .isRenderable = true,
     };
 
-    builder.create(wall);
+    // builder.create(wall);
 
     window.addCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) {
         player.resize(event.resolution);
-        renderer.renderer.resize(event.resolution);
+        renderer.resize(event.resolution);
     });
 
     window.addCallback<Physbuzz::WindowCloseEvent>([&](const Physbuzz::WindowCloseEvent &event) {
         window.close();
     });
+
+    resources.insert<Physbuzz::ShaderPipelineResource>(
+        "default",
+        Physbuzz::ShaderPipelineResource({
+            .vertex = {.file = {.path = "resources/shaders/default.vert"}},
+            .fragment = {.file = {.path = "resources/shaders/default.frag"}},
+        }));
+
+    resources.insert<Physbuzz::ShaderPipelineResource>(
+        "quad",
+        Physbuzz::ShaderPipelineResource({
+            .vertex = {.file = {.path = "resources/shaders/default.vert"}},
+            .fragment = {.file = {.path = "resources/shaders/quad.frag"}},
+        }));
+
+    resources.insert<Physbuzz::ShaderPipelineResource>(
+        "circle",
+        Physbuzz::ShaderPipelineResource({
+            .vertex = {.file = {.path = "resources/shaders/default.vert"}},
+            .fragment = {.file = {.path = "resources/shaders/circle.frag"}},
+        }));
+
+    resources.insert<Physbuzz::ShaderPipelineResource>(
+        "cube",
+        Physbuzz::ShaderPipelineResource({
+            .vertex = {.file = {.path = "resources/shaders/default.vert"}},
+            .fragment = {.file = {.path = "resources/shaders/cube.frag"}},
+        }));
+
+    resources.build<Physbuzz::ShaderPipelineResource>();
+
+    resources.insert<Physbuzz::Texture2DResource>(
+        "missing",
+        Physbuzz::Texture2DResource({
+            .image = {.file = {.path = "resources/textures/missing.png"}},
+        }));
+
+    resources.insert<Physbuzz::Texture2DResource>(
+        "wall",
+        Physbuzz::Texture2DResource({
+            .image = {.file = {.path = "resources/textures/wall.jpg"}},
+        }));
+
+    resources.build<Physbuzz::Texture2DResource>();
 }
 
 void Game::loop() {
@@ -64,11 +108,11 @@ void Game::loop() {
     while (m_IsRunning && !window.shouldClose()) {
         window.poll();
 
-        collision.tick(scene);
-        dynamics.tick(scene);
+        // collision.tick(scene);
+        // dynamics.tick(scene);
         bindings.tick();
 
-        renderer.render(scene);
+        renderer.render(scene, resources);
         interface.render();
 
         window.flip();
@@ -76,9 +120,12 @@ void Game::loop() {
 }
 
 void Game::destroy() {
+    resources.destroy<Physbuzz::ShaderPipelineResource>();
+    resources.destroy<Physbuzz::Texture2DResource>();
+
     m_IsRunning = false;
 
-    for (auto &mesh : scene.getComponents<Physbuzz::RenderComponent>()) {
+    for (auto &mesh : scene.getComponents<Physbuzz::Mesh>()) {
         mesh.destroy();
     }
 
@@ -86,7 +133,6 @@ void Game::destroy() {
     interface.destroy();
     bindings.destory();
     scene.clear();
-    builder.destroy();
     renderer.destroy();
     player.destroy();
     window.destroy();

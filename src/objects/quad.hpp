@@ -1,8 +1,8 @@
 #pragma once
 
-#include <physbuzz/dynamics.hpp>
 #include "builder.hpp"
 #include "common.hpp"
+#include <physbuzz/dynamics.hpp>
 
 struct QuadComponent {
     float width = 0.0f;
@@ -20,6 +20,10 @@ struct Quad {
     // naming
     IdentifiableComponent identifier = {
         .name = "Quad",
+    };
+
+    ResourceIdentifierComponent resources = {
+        .pipeline = "quad",
     };
 
     bool isCollidable = false;

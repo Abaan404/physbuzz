@@ -1,12 +1,12 @@
 #pragma once
 
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/scalar_constants.hpp>
-
 #include <physbuzz/camera.hpp>
 #include <physbuzz/clock.hpp>
-#include <physbuzz/renderer.hpp>
+#include <physbuzz/framebuffer.hpp>
+#include <physbuzz/mesh.hpp>
+#include <physbuzz/resources.hpp>
 #include <physbuzz/scene.hpp>
+#include <physbuzz/window.hpp>
 
 class Renderer {
   public:
@@ -16,16 +16,27 @@ class Renderer {
     void build();
     void destroy();
 
-    void render(Physbuzz::Scene &scene);
-    void render(Physbuzz::Object &object) const;
+    void target(Physbuzz::Framebuffer *framebuffer);
+    void render(const Physbuzz::Scene &scene) const;
+
+    void clear(const glm::vec4 &color);
+    void resize(const glm::ivec2 &resolution);
+
+    void render(Physbuzz::Scene &scene, Physbuzz::ResourceManager &resources);
+    void render(Physbuzz::Object &object, Physbuzz::ResourceManager &resources) const;
 
     const Physbuzz::Clock &getClock() const;
+    const glm::ivec2 &getResolution() const;
 
     Physbuzz::Camera *activeCamera = nullptr;
-    Physbuzz::Renderer renderer;
 
   private:
     Physbuzz::Clock m_Clock;
 
+    glm::ivec2 m_Resolution;
     glm::vec4 m_ClearColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+    // FIXME: target only FBOs, remove dependency on a "window"
+    Physbuzz::Framebuffer *m_Framebuffer = nullptr;
+    Physbuzz::Window *m_Window = nullptr;
 };

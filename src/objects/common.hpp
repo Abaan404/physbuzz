@@ -13,6 +13,7 @@ struct RebuildableComponent {
     std::function<void(ObjectBuilder &, Physbuzz::Object &)> rebuild;
 };
 
-struct TextureComponent {
-    std::string identifier;
+struct ResourceIdentifierComponent {
+    std::string pipeline = "default";
+    std::string texture2D = "missing";
 };

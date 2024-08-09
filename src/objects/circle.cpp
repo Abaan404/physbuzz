@@ -2,11 +2,6 @@
 
 #include <glm/ext/scalar_constants.hpp>
 #include <physbuzz/collision.hpp>
-#include <physbuzz/renderer.hpp>
-#include <physbuzz/shaders.hpp>
-
-#include "shaders/circle.frag"
-#include "shaders/circle.vert"
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info) {
@@ -14,6 +9,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info)
     object.setComponent(info.circle);
     object.setComponent(info.transform);
     object.setComponent(info.identifier);
+    object.setComponent(info.resources);
 
     // generate mesh
     if (info.isRenderable) {
@@ -40,19 +36,11 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info)
         generate2DTexCoords(aabb, mesh);
         generate2DNormals(mesh);
 
-        // setup rendering
-        Physbuzz::Texture texture = m_Textures.getTexture("circle");
-        Physbuzz::ShaderPipeline shader = Physbuzz::ShaderPipeline(circleVertex, circleFrag);
-        Physbuzz::RenderComponent render = Physbuzz::RenderComponent(mesh, shader, texture);
-        render.build();
-
-        object.setComponent(render);
+        mesh.build();
+        object.setComponent(mesh);
 
         // generate bounding box
         if (info.isCollidable) {
-            aabb.max += info.transform.position;
-            aabb.min += info.transform.position;
-
             object.setComponent(aabb);
         }
     }
@@ -70,8 +58,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info)
     {
         RebuildableComponent rebuilder = {
             .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
-                if (object.hasComponent<Physbuzz::RenderComponent>()) {
-                    object.getComponent<Physbuzz::RenderComponent>().destroy();
+                if (object.hasComponent<Physbuzz::Mesh>()) {
+                    object.getComponent<Physbuzz::Mesh>().destroy();
                 }
 
                 Circle info = {
@@ -80,7 +68,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info)
                     .circle = object.getComponent<CircleComponent>(),
                     .identifier = object.getComponent<IdentifiableComponent>(),
                     .isCollidable = object.hasComponent<Physbuzz::AABBComponent>(),
-                    .isRenderable = object.hasComponent<Physbuzz::RenderComponent>(),
+                    .isRenderable = object.hasComponent<Physbuzz::Mesh>(),
                 };
 
                 object.eraseComponents();

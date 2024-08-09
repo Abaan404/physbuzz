@@ -26,8 +26,10 @@ class Game {
     Physbuzz::Window window;
     Renderer renderer;
 
-    // ecs object tracking
+    // object management
     Physbuzz::Scene scene;
+    Physbuzz::ResourceManager resources;
+    ObjectBuilder builder;
 
     // game physics
     Physbuzz::Dynamics dynamics;
@@ -36,9 +38,8 @@ class Game {
     // ImGui
     InterfaceManager interface;
 
-    // game elements
+    // player controls
     Physbuzz::Bindings bindings;
-    ObjectBuilder builder;
     Player player;
 
   private:

@@ -1,7 +1,5 @@
 #include "sepaxis.hpp"
 
-#include "../../renderer.hpp"
-
 namespace Physbuzz {
 
 SeperatingAxis2D::SeperatingAxis2D(Scene &scene)
@@ -15,8 +13,8 @@ bool SeperatingAxis2D::check(Contact &contact) {
         return false;
     }
 
-    const Mesh &mesh1 = object1.getComponent<RenderComponent>().mesh;
-    const Mesh &mesh2 = object2.getComponent<RenderComponent>().mesh;
+    const Mesh &mesh1 = object1.getComponent<Mesh>();
+    const Mesh &mesh2 = object2.getComponent<Mesh>();
 
     std::vector<glm::vec3> axes;
 

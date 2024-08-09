@@ -63,6 +63,9 @@ void Player::build() {
                 .circle = {
                     .radius = 100.0f,
                 },
+                .resources = {
+                    .texture2D = "wall",
+                },
                 .isCollidable = true,
                 .isRenderable = true,
             };
@@ -83,9 +86,9 @@ void Player::build() {
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::C] = {
         .callback = [&](const Physbuzz::KeyEvent &event) {
-            if (m_Game->scene.existsComponents<Physbuzz::RenderComponent>()) {
-                for (auto &render : m_Game->scene.getComponents<Physbuzz::RenderComponent>()) {
-                    render.destroy();
+            if (m_Game->scene.existsComponents<Physbuzz::Mesh>()) {
+                for (auto &mesh : m_Game->scene.getComponents<Physbuzz::Mesh>()) {
+                    mesh.destroy();
                 }
             }
 
