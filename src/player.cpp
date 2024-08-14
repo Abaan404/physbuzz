@@ -86,16 +86,7 @@ void Player::build() {
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::C] = {
         .callback = [&](const Physbuzz::KeyEvent &event) {
-            if (m_Game->scene.existsComponents<Physbuzz::Mesh>()) {
-                for (auto &mesh : m_Game->scene.getComponents<Physbuzz::Mesh>()) {
-                    mesh.destroy();
-                }
-            }
-
-            m_Game->scene.clear();
-            m_Game->collision.destroy();
-
-            m_Game->collision.build();
+            m_Game->reset();
         },
         .type = Physbuzz::CallbackType::OneShot,
     };

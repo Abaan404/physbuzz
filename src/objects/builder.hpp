@@ -1,36 +1,39 @@
 #pragma once
 
-#include <physbuzz/collision.hpp>
-#include <physbuzz/defines.hpp>
-#include <physbuzz/dynamics.hpp>
-#include <physbuzz/mesh.hpp>
-#include <physbuzz/scene.hpp>
-#include <physbuzz/texture.hpp>
+#include <physbuzz/physics/collision.hpp>
+#include <physbuzz/physics/dynamics.hpp>
+#include <physbuzz/ecs/scene.hpp>
+#include <physbuzz/render/mesh.hpp>
+#include <physbuzz/render/texture.hpp>
 
 class ObjectBuilder {
   public:
-    ObjectBuilder(Physbuzz::Scene &scene);
+    ObjectBuilder(Physbuzz::Scene *scene);
     ~ObjectBuilder();
 
     template <typename T>
     Physbuzz::ObjectID create(Physbuzz::ObjectID id, T &info) {
-        scene.createObject(id);
+        scene->createObject(id);
         return create(info);
     }
 
     template <typename T>
     Physbuzz::ObjectID create(T &info) {
-        Physbuzz::ObjectID id = scene.createObject();
-        return create(scene.getObject(id), info);
+        // ad-hoc counter for auto-generated object ids
+        while (scene->containsObject(m_ObjectIdCounter)) {
+            m_ObjectIdCounter++;
+        }
+
+        Physbuzz::ObjectID id = scene->createObject(m_ObjectIdCounter++);
+        return create(id, info);
     }
 
-    template <typename T>
-    Physbuzz::ObjectID create(Physbuzz::Object &object, T &info);
-
-    Physbuzz::Scene &scene;
+    Physbuzz::Scene *scene;
 
   private:
     // Common Util Functions
     static void generate2DTexCoords(const Physbuzz::AABBComponent &aabb, Physbuzz::Mesh &mesh);
     static void generate2DNormals(Physbuzz::Mesh &mesh);
+
+    Physbuzz::ObjectID m_ObjectIdCounter = 0;
 };

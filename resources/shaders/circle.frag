@@ -1,4 +1,4 @@
-#version 460
+#version 460 core
 
 uniform ivec2 u_Resolution;
 uniform sampler2D u_Texture;

@@ -2,7 +2,6 @@
 
 #include "builder.hpp"
 #include <functional>
-#include <physbuzz/object.hpp>
 
 struct IdentifiableComponent {
     std::string name = "Unknown";
@@ -10,7 +9,7 @@ struct IdentifiableComponent {
 };
 
 struct RebuildableComponent {
-    std::function<void(ObjectBuilder &, Physbuzz::Object &)> rebuild;
+    std::function<void(ObjectBuilder &, Physbuzz::ObjectID)> rebuild;
 };
 
 struct ResourceIdentifierComponent {

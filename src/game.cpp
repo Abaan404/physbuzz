@@ -1,22 +1,15 @@
 #include "game.hpp"
-#include "objects/wall.hpp"
 
-#include <physbuzz/shaders.hpp>
-#include <physbuzz/2D/detectors/gjk.hpp>
-#include <physbuzz/2D/detectors/sweepandprune.hpp>
-#include <physbuzz/2D/resolvers/angular.hpp>
-#include <physbuzz/context.hpp>
+#include "collision.hpp"
+#include "objects/wall.hpp"
+#include "renderer.hpp"
+#include <physbuzz/events/scene.hpp>
+#include <physbuzz/misc/context.hpp>
+#include <physbuzz/render/mesh.hpp>
+#include <physbuzz/render/shaders.hpp>
 
 Game::Game()
-    : collision(
-          std::make_shared<Physbuzz::Gjk2D>(scene),
-          std::make_shared<Physbuzz::SweepAndPrune2D>(scene),
-          std::make_shared<Physbuzz::AngularResolver2D>(scene, 0.9f)),
-      dynamics(0.005),
-      bindings(&window),
-      player(this),
-      renderer(&window),
-      builder(scene) {}
+    : bindings(&window), player(this), builder(&scene) {}
 
 Game::~Game() {}
 
@@ -27,29 +20,12 @@ void Game::build() {
 
     window.build(resolution);
     player.build();
-    renderer.build();
     bindings.build();
     interface.build(window);
-    collision.build();
-
-    Wall wall = {
-        .transform = {
-            .position = {resolution >> 1, 0.0f},
-        },
-        .wall = {
-            .width = static_cast<float>(resolution.x),
-            .height = static_cast<float>(resolution.y),
-            .thickness = 10.0f,
-        },
-        .isCollidable = true,
-        .isRenderable = true,
-    };
-
-    // builder.create(wall);
 
     window.addCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) {
         player.resize(event.resolution);
-        renderer.resize(event.resolution);
+        scene.getSystem<Renderer>()->resize(event.resolution);
     });
 
     window.addCallback<Physbuzz::WindowCloseEvent>([&](const Physbuzz::WindowCloseEvent &event) {
@@ -99,22 +75,74 @@ void Game::build() {
         }));
 
     resources.build<Physbuzz::Texture2DResource>();
+
+    reset();
+
+    // post build stuff
+    Wall wall = {
+        .transform = {
+            .position = {resolution >> 1, 0.0f},
+        },
+        .wall = {
+            .width = static_cast<float>(resolution.x),
+            .height = static_cast<float>(resolution.y),
+            .thickness = 10.0f,
+        },
+        .isCollidable = true,
+        .isRenderable = true,
+    };
+
+    // builder.create(wall);
+}
+
+void Game::reset() {
+    scene.clear();
+
+    // ticking systems
+    {
+
+        scene.emplaceSystem<Collision>(&scene, 0.9);
+        scene.emplaceSystem<Physbuzz::Dynamics>(0.0005);
+
+        std::shared_ptr<Renderer> renderer = scene.emplaceSystem<Renderer>(&window, &resources);
+        renderer->activeCamera = &player.camera;
+    }
+
+
+    // callbacks for cleaning up meshes
+    {
+        scene.addCallback<Physbuzz::OnComponentEraseEvent<Physbuzz::Mesh>>([](const Physbuzz::OnComponentEraseEvent<Physbuzz::Mesh> &event) {
+            event.component->destroy();
+        });
+
+        scene.addCallback<Physbuzz::OnObjectEraseEvent>([](const Physbuzz::OnObjectEraseEvent &event) {
+            if (event.scene->containsComponent<Physbuzz::Mesh>(event.object)) {
+                event.scene->getComponent<Physbuzz::Mesh>(event.object).destroy();
+            }
+        });
+
+        scene.addCallback<Physbuzz::OnSceneClear>([](const Physbuzz::OnSceneClear &event) {
+            for (const auto id : event.scene->getObjects()) {
+                if (event.scene->containsComponent<Physbuzz::Mesh>(id)) {
+                    event.scene->getComponent<Physbuzz::Mesh>(id).destroy();
+                }
+            }
+        });
+    }
+
+    scene.buildSystems();
 }
 
 void Game::loop() {
     m_IsRunning = true;
-    renderer.activeCamera = &player.camera;
 
     while (m_IsRunning && !window.shouldClose()) {
-        window.poll();
+        bindings.poll();
 
-        // collision.tick(scene);
-        // dynamics.tick(scene);
-        bindings.tick();
+        scene.tickSystem<Physbuzz::Dynamics, Collision>();
+        scene.tickSystem<Renderer>();
 
-        renderer.render(scene, resources);
         interface.render();
-
         window.flip();
     }
 }
@@ -129,11 +157,12 @@ void Game::destroy() {
         mesh.destroy();
     }
 
-    collision.destroy();
+    scene.getSystem<Renderer>()->destroy();
+    scene.getSystem<Physbuzz::Dynamics>();
+
     interface.destroy();
     bindings.destory();
     scene.clear();
-    renderer.destroy();
     player.destroy();
     window.destroy();
 }

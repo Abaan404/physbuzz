@@ -1,6 +1,6 @@
 #pragma once
 
-#include <physbuzz/camera.hpp>
+#include <physbuzz/render/camera.hpp>
 
 class Game;
 

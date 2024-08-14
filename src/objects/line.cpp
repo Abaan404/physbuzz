@@ -1,13 +1,11 @@
 #include "line.hpp"
 
-#include <physbuzz/shaders.hpp>
+#include <physbuzz/render/shaders.hpp>
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Line &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) {
     // user-defined components
-    object.setComponent(info.line);
-    object.setComponent(info.transform);
-    object.setComponent(info.identifier);
+    scene->setComponent(object, info.line, info.transform, info.identifier);
 
     // generate mesh
     if (info.isRenderable) {
@@ -41,31 +39,26 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Line &info) {
         generate2DNormals(mesh);
 
         mesh.build();
-        object.setComponent(mesh);
+        scene->setComponent(object, mesh);
     }
 
     // create a rebuild callback
     {
         RebuildableComponent rebuilder = {
-            .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
-                if (object.hasComponent<Physbuzz::Mesh>()) {
-                    object.getComponent<Physbuzz::Mesh>().destroy();
-                }
-
+            .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
                 Line info = {
-                    .transform = object.getComponent<Physbuzz::TransformableComponent>(),
-                    .line = object.getComponent<LineComponent>(),
-                    .identifier = object.getComponent<IdentifiableComponent>(),
-                    .isRenderable = object.hasComponent<Physbuzz::Mesh>(),
+                    .transform = builder.scene->getComponent<Physbuzz::TransformableComponent>(object),
+                    .line = builder.scene->getComponent<LineComponent>(object),
+                    .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
+                    .isRenderable = builder.scene->containsComponent<Physbuzz::Mesh>(object),
                 };
 
-                object.eraseComponents();
                 builder.create(object, info);
             },
         };
 
-        object.setComponent(rebuilder);
+        scene->setComponent(object, rebuilder);
     }
 
-    return object.getId();
+    return object;
 }

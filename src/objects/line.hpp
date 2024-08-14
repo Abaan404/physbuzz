@@ -2,7 +2,6 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include <physbuzz/dynamics.hpp>
 
 struct LineComponent {
     float length = 0.0f;
@@ -27,4 +26,4 @@ struct Line {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Line &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info);

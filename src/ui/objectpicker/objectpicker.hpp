@@ -2,9 +2,9 @@
 
 #include "../ui.hpp"
 #include <imgui.h>
-#include <physbuzz/camera.hpp>
-#include <physbuzz/framebuffer.hpp>
-#include <physbuzz/scene.hpp>
+#include <physbuzz/ecs/scene.hpp>
+#include <physbuzz/render/camera.hpp>
+#include <physbuzz/render/framebuffer.hpp>
 
 struct PickableComponent {
     bool selected = false;

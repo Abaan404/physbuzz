@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../logging.hpp"
-#include <algorithm>
+#include "physbuzz/debug/logging.hpp"
 #include <unordered_map>
 #include <vector>
 
@@ -14,22 +13,12 @@ concept Comparable = requires(T a, T b) {
     a <=> b;
 };
 
-template <typename F, typename T>
-concept Comparator = requires(F f, T &t1, T &t2) {
-    { f(t1, t2) } -> std::convertible_to<bool>;
-};
-
 } // namespace
 
-template <typename K, typename T>
-    requires Comparable<K>
+template <Comparable K, typename T>
 class ContiguousMap {
   public:
-    T &operator[](K key) {
-        return get(key);
-    }
-
-    K insert(T object, K key) {
+    K insert(const K &key, const T &object) {
         if (contains(key)) {
             // overwrite existing mapping if exist
             std::size_t idx = m_IdxMap[key];
@@ -44,17 +33,7 @@ class ContiguousMap {
         return key;
     }
 
-    K insert(T object) {
-        K key = 0;
-
-        while (contains(key)) {
-            key++;
-        }
-
-        return insert(object, key);
-    }
-
-    bool remove(K key) {
+    bool erase(const K &key) {
         // get the component idx from the object
         if (!contains(key)) {
             return false;
@@ -78,18 +57,7 @@ class ContiguousMap {
         return true;
     }
 
-    template <typename F>
-        requires Comparator<F, T>
-    void sort(F comparator) {
-        if (m_Array.size() <= 1) {
-            return;
-        }
-
-        // using a custom quicksort to keep the internal maps valid
-        quickSort(0, m_Array.size() - 1, comparator);
-    }
-
-    bool contains(K key) const {
+    bool contains(const K &key) const {
         return m_IdxMap.contains(key);
     }
 
@@ -120,52 +88,6 @@ class ContiguousMap {
     std::unordered_map<K, std::size_t> m_IdxMap;
     std::unordered_map<std::size_t, K> m_KeyMap;
     std::vector<T> m_Array;
-
-  private:
-    template <typename F>
-        requires Comparator<F, T>
-    void quickSort(int low, int high, F comparator) {
-        if (low >= high) {
-            return;
-        }
-
-        int pivot = partition(low, high, comparator);
-
-        quickSort(low, pivot - 1, comparator);
-        quickSort(pivot + 1, high, comparator);
-    }
-
-    template <typename F>
-        requires Comparator<F, T>
-    int partition(int low, int high, F comparator) {
-        int pivot = high;
-        int i = low - 1;
-
-        for (int j = low; j <= high; ++j) {
-            if (comparator(m_Array[j], m_Array[pivot])) {
-                ++i;
-                swap(i, j);
-            }
-        }
-
-        swap(++i, high);
-        return i;
-    }
-
-    void swap(int idx1, int idx2) {
-        Logger::ASSERT(idx1 >= 0 && idx1 < m_Array.size() && idx2 >= 0 && idx2 < m_Array.size(), "Invalid swap indices");
-
-        std::iter_swap(m_Array.begin() + idx1, m_Array.begin() + idx2);
-
-        K key1 = m_KeyMap[idx1];
-        K key2 = m_KeyMap[idx2];
-
-        m_IdxMap[key1] = idx2;
-        m_IdxMap[key2] = idx1;
-
-        m_KeyMap[idx1] = key2;
-        m_KeyMap[idx2] = key1;
-    }
 };
 
 } // namespace Physbuzz

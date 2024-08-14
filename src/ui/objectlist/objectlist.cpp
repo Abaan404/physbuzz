@@ -4,12 +4,10 @@
 #include "../../objects/circle.hpp"
 #include "../../objects/line.hpp"
 #include "../../objects/quad.hpp"
-#include <glm/ext/scalar_constants.hpp>
-#include <physbuzz/context.hpp>
-
 #include <format>
+#include <glm/ext/scalar_constants.hpp>
 #include <imgui.h>
-#include <vector>
+#include <physbuzz/misc/context.hpp>
 
 constexpr float MAX_VALUE = 1000.0f;
 constexpr float MIN_VALUE = -1000.0f;
@@ -27,16 +25,12 @@ void ObjectList::draw() {
         return;
     }
 
-    game->scene.sortObjects([](const Physbuzz::Object &object1, const Physbuzz::Object &object2) {
-        return object1.getId() < object2.getId();
-    });
+    const std::set<Physbuzz::ObjectID> &objects = game->scene.getObjects();
 
-    std::vector<Physbuzz::Object> &objects = game->scene.getObjects();
-
-    ImGui::Text("Simulate Physics: %s", game->dynamics.isRunning() ? "true" : "false");
+    ImGui::Text("Simulate Physics: %s", game->scene.getSystem<Physbuzz::Dynamics>()->isRunning() ? "true" : "false");
 
     if (ImGui::Button("Toggle")) {
-        game->dynamics.toggle();
+        game->scene.getSystem<Physbuzz::Dynamics>()->toggle();
     }
 
     ImGui::Text("Spawned Objects: %zu", objects.size());
@@ -45,23 +39,23 @@ void ObjectList::draw() {
     if (ImGui::TreeNode("Objects")) {
 
         int i = 0;
-        for (auto &object : objects) {
+        for (const auto &object : objects) {
             ImGui::PushID(i++);
             bool rebuild = false;
 
-            if (object.hasComponent<IdentifiableComponent>()) {
-                IdentifiableComponent &identifier = object.getComponent<IdentifiableComponent>();
+            if (game->scene.containsComponent<IdentifiableComponent>(object)) {
+                IdentifiableComponent &identifier = game->scene.getComponent<IdentifiableComponent>(object);
 
                 if (identifier.hidden) {
                     ImGui::PopID();
                     continue;
                 }
 
-                ImGui::SeparatorText(std::format("{}) {}", object.getId(), identifier.name).c_str());
+                ImGui::SeparatorText(std::format("{}) {}", object, identifier.name).c_str());
             }
 
-            if (object.hasComponent<Physbuzz::TransformableComponent>()) {
-                Physbuzz::TransformableComponent &transform = object.getComponent<Physbuzz::TransformableComponent>();
+            if (game->scene.containsComponent<Physbuzz::TransformableComponent>(object)) {
+                Physbuzz::TransformableComponent &transform = game->scene.getComponent<Physbuzz::TransformableComponent>(object);
                 glm::vec3 norm = glm::axis(transform.orientation);
 
                 float position[] = {transform.position.x, transform.position.y, transform.position.z};
@@ -97,8 +91,8 @@ void ObjectList::draw() {
                 }
             }
 
-            if (object.hasComponent<Physbuzz::RigidBodyComponent>()) {
-                Physbuzz::RigidBodyComponent &physics = object.getComponent<Physbuzz::RigidBodyComponent>();
+            if (game->scene.containsComponent<Physbuzz::RigidBodyComponent>(object)) {
+                Physbuzz::RigidBodyComponent &physics = game->scene.getComponent<Physbuzz::RigidBodyComponent>(object);
                 float velocity[] = {physics.velocity.x, physics.velocity.y, physics.velocity.z};
                 float acceleration[] = {physics.acceleration.x, physics.acceleration.y, physics.acceleration.z};
                 float gravity[] = {physics.gravity.acceleration.x, physics.gravity.acceleration.y, physics.gravity.acceleration.z};
@@ -127,8 +121,8 @@ void ObjectList::draw() {
                 }
             }
 
-            if (object.hasComponent<LineComponent>()) {
-                LineComponent &line = object.getComponent<LineComponent>();
+            if (game->scene.containsComponent<LineComponent>(object)) {
+                LineComponent &line = game->scene.getComponent<LineComponent>(object);
                 float lt[] = {line.length, line.thickness};
 
                 if (ImGui::DragFloat2("line", lt, 1.0f, MIN_VALUE, MAX_VALUE)) {
@@ -139,8 +133,8 @@ void ObjectList::draw() {
                 }
             }
 
-            if (object.hasComponent<QuadComponent>()) {
-                QuadComponent &quad = object.getComponent<QuadComponent>();
+            if (game->scene.containsComponent<QuadComponent>(object)) {
+                QuadComponent &quad = game->scene.getComponent<QuadComponent>(object);
                 float wh[] = {quad.width, quad.height};
 
                 if (ImGui::DragFloat2("quad", wh, 1.0f, MIN_VALUE, MAX_VALUE)) {
@@ -151,15 +145,15 @@ void ObjectList::draw() {
                 }
             }
 
-            if (object.hasComponent<CircleComponent>()) {
-                CircleComponent &radius = object.getComponent<CircleComponent>();
+            if (game->scene.containsComponent<CircleComponent>(object)) {
+                CircleComponent &radius = game->scene.getComponent<CircleComponent>(object);
                 if (ImGui::DragFloat("circle", &radius.radius, 1.0f, MIN_VALUE, MAX_VALUE)) {
                     rebuild = true;
                 }
             }
 
-            if (rebuild && object.hasComponent<RebuildableComponent>()) {
-                object.getComponent<RebuildableComponent>().rebuild(game->builder, object);
+            if (rebuild && game->scene.containsComponent<RebuildableComponent>(object)) {
+                game->scene.getComponent<RebuildableComponent>(object).rebuild(game->builder, object);
             }
 
             ImGui::PopID();

@@ -4,7 +4,7 @@
 
 #include "../../game.hpp"
 #include <imgui.h>
-#include <physbuzz/context.hpp>
+#include <physbuzz/misc/context.hpp>
 
 constexpr float MAX_VALUE = 1000.0f;
 constexpr float MIN_VALUE = -1000.0f;

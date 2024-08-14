@@ -1,6 +1,6 @@
 #include "builder.hpp"
 
-ObjectBuilder::ObjectBuilder(Physbuzz::Scene &scene)
+ObjectBuilder::ObjectBuilder(Physbuzz::Scene *scene)
     : scene(scene) {}
 
 ObjectBuilder::~ObjectBuilder() {}

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../logging.hpp"
+#include "logging.hpp"
 #include <format>
 #include <glad/gl.h>
 

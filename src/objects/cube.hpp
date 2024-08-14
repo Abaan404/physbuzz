@@ -2,7 +2,6 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include <physbuzz/dynamics.hpp>
 
 struct CubeComponent {
     float width = 0.0f;
@@ -32,4 +31,4 @@ struct Cube {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.hpp"
-#include <physbuzz/dynamics.hpp>
+#include <physbuzz/physics/dynamics.hpp>
 
 struct CircleComponent {
     float radius = 0.0f;
@@ -30,4 +30,4 @@ struct Circle {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Circle &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info);

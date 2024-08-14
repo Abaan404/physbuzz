@@ -1,0 +1,102 @@
+#include "collision.hpp"
+
+#include "../events/collision.hpp"
+
+namespace Physbuzz {
+
+AABBComponent::AABBComponent(const Mesh &mesh, const TransformableComponent &transform) {
+    for (const auto &vertex : mesh.vertices) {
+        glm::vec3 transformedVertex = transform.generateModel() * glm::vec4(vertex.position, 1.0f);
+
+        min = glm::min(min, transformedVertex);
+        max = glm::max(max, transformedVertex);
+    }
+}
+
+ICollisionDetector::ICollisionDetector(Scene *scene)
+    : m_Scene(scene) {}
+
+std::list<Contact> ICollisionDetector::find() {
+    std::list<Contact> contacts;
+
+    for (const auto &object1 : m_Scene->getObjects()) {
+        for (const auto &object2 : m_Scene->getObjects()) {
+            if (object1 == object2) {
+                continue;
+            }
+
+            Contact contact = {
+                .object1 = object1,
+                .object2 = object2,
+            };
+
+            if (check(contact)) {
+                contacts.emplace_back(std::move(contact));
+            }
+        }
+    }
+
+    return contacts;
+}
+
+void ICollisionDetector::find(std::list<Contact> &contacts) {
+    for (auto it = contacts.begin(); it != contacts.end();) {
+        if (check(*it)) {
+            notifyCallbacks<OnCollisionDetectEvent>({
+                .scene = m_Scene,
+                .contact = &*it, // what?
+            });
+            ++it;
+        } else {
+            it = contacts.erase(it);
+        }
+    }
+}
+
+void ICollisionDetector::build() { return; }
+void ICollisionDetector::destroy() { return; }
+
+ICollisionResolver::ICollisionResolver(Scene *scene)
+    : m_Scene(scene) {}
+
+void ICollisionResolver::solve(std::list<Contact> &contacts) {
+    for (const auto &contact : contacts) {
+        m_Scene->notifyCallbacks<OnCollisionResolveEvent>({
+            .scene = m_Scene,
+            .contact = &contact,
+        });
+
+        solve(contact);
+    }
+}
+
+void ICollisionResolver::build() { return; }
+void ICollisionResolver::destroy() { return; }
+
+Collision::Collision(std::shared_ptr<ICollisionDetector> narrow, std::shared_ptr<ICollisionDetector> broad, std::shared_ptr<ICollisionResolver> resolver)
+    : narrowDetector(narrow),
+      broadDetector(broad),
+      resolver(resolver) {}
+
+Collision::~Collision() {}
+
+void Collision::tick(Scene &scene) {
+    std::list<Contact> contacts = broadDetector->find();
+    narrowDetector->find(contacts);
+
+    for (auto &contact : contacts) {
+        resolver->solve(contact);
+    }
+}
+
+void Collision::build() {
+    narrowDetector->build();
+    broadDetector->build();
+}
+
+void Collision::destroy() {
+    narrowDetector->destroy();
+    broadDetector->destroy();
+}
+
+} // namespace Physbuzz

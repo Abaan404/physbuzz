@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.hpp"
-#include <physbuzz/dynamics.hpp>
 
 struct WallComponent {
     float width = 0.0f;
@@ -33,4 +32,4 @@ struct Wall {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Wall &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info);

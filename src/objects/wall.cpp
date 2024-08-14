@@ -4,11 +4,9 @@
 #include <glm/glm.hpp>
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Wall &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) {
     // user-defined components
-    object.setComponent(info.transform);
-    object.setComponent(info.identifier);
-    object.setComponent(info.wall);
+    scene->setComponent(object, info.transform, info.identifier, info.wall);
 
     glm::vec3 min = info.transform.position - glm::vec3(info.wall.width / 2.0f, info.wall.height / 2.0f, 0.0f);
     glm::vec3 max = info.transform.position + glm::vec3(info.wall.width / 2.0f, info.wall.height / 2.0f, 0.0f);
@@ -79,47 +77,41 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Wall &info) {
 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
-        .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
-            const WallComponent &wall = object.getComponent<WallComponent>();
+        .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
+            const WallComponent &wall = builder.scene->getComponent<WallComponent>(object);
 
-            bool isCollidable;
-            bool isRenderable;
+            bool isCollidable = false;
+            bool isRenderable = false;
 
             for (const auto &id : {wall.left, wall.right, wall.up, wall.down}) {
-                Physbuzz::Object &side = builder.scene.getObject(id);
-                if (side.hasComponent<Physbuzz::Mesh>()) {
-                    side.getComponent<Physbuzz::Mesh>().destroy();
-                }
+                isCollidable = builder.scene->containsComponent<Physbuzz::AABBComponent>(id) || isCollidable;
+                isRenderable = builder.scene->containsComponent<Physbuzz::Mesh>(id) || isRenderable;
 
-                isCollidable = side.hasComponent<Physbuzz::AABBComponent>();
-                isRenderable = side.hasComponent<Physbuzz::Mesh>();
-
-                builder.scene.deleteObject(id);
+                builder.scene->eraseObject(id);
             }
 
             Wall info = {
-                .transform = object.getComponent<Physbuzz::TransformableComponent>(),
+                .transform = builder.scene->getComponent<Physbuzz::TransformableComponent>(object),
                 .wall = wall,
-                .identifier = object.getComponent<IdentifiableComponent>(),
+                .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
                 .isCollidable = isCollidable,
                 .isRenderable = isRenderable,
             };
 
-            object.eraseComponents();
             builder.create(object, info);
         },
     };
 
-    object.setComponent(rebuilder);
+    scene->setComponent(object, rebuilder);
 
     // TODO imposter syndrome has bested me
     // calling create within this scope nukes object's internal state for some obscure reason
     // ideally doing info.wall.left = create(left); and object.setComponent(info.wall); should be the better way
-    WallComponent &wall = object.getComponent<WallComponent>();
+    WallComponent &wall = scene->getComponent<WallComponent>(object);
     wall.left = create(left);
     wall.right = create(right);
     wall.up = create(up);
     wall.down = create(down);
 
-    return object.getId();
+    return object;
 }

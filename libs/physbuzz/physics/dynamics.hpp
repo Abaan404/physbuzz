@@ -1,0 +1,81 @@
+#pragma once
+
+#include "../ecs/scene.hpp"
+#include "../misc/clock.hpp"
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+namespace Physbuzz {
+
+struct TransformableComponent {
+    glm::vec3 position = {0.0f, 0.0f, 0.0f};
+    glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+    glm::quat orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+
+    void rotate(const glm::quat &delta);
+    void translate(const glm::vec3 &delta);
+
+    const glm::mat4 generateModel() const;
+};
+
+struct RigidBodyComponent {
+    float mass = 1.0f;
+
+    glm::vec3 accumForces = {0.0f, 0.0f, 0.0f};
+    glm::vec3 accumTorques = {0.0f, 0.0f, 0.0f};
+
+    glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
+    glm::vec3 acceleration = {0.0f, 0.0f, 0.0f};
+
+    struct {
+        float inertia = 1.0f; // technically a Mz moment, Note: use a tensor for 3D
+        float drag = 1.0f;
+        glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
+        glm::vec3 acceleration = {0.0f, 0.0f, 0.0f};
+    } angular;
+
+    struct {
+        glm::vec3 acceleration = {0.0f, 0.0f, 0.0f};
+    } gravity;
+
+    struct {
+        float k1 = 0.0f;
+        float k2 = 0.0f;
+    } drag;
+
+    void addForce(const glm::vec3 &force) {
+        accumForces += force;
+    }
+
+    void addForceAtPoint(const glm::vec3 &force, const glm::vec3 &relPosition) {
+        accumForces += force;
+        accumTorques += glm::cross(relPosition, force);
+    }
+};
+
+class Dynamics : public System<TransformableComponent, RigidBodyComponent> {
+  public:
+    Dynamics(float dtime);
+    ~Dynamics();
+
+    void tick(Scene &scene);
+    const Clock &getClock() const;
+
+    void translate(Scene &scene, ObjectID id, const glm::vec3 &delta) const;
+    void rotate(Scene &scene, ObjectID id, const glm::quat &delta) const;
+
+    const bool &isRunning() const;
+    void start();
+    void stop();
+    const bool &toggle();
+
+  private:
+    void tickMotion(Scene &scene, ObjectID id) const;
+
+    float m_DeltaTime = 0.0f;
+    bool m_IsRunning = true;
+    Clock m_Clock;
+};
+
+} // namespace Physbuzz

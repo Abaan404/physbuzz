@@ -1,8 +1,8 @@
 #pragma once
 
-#include <physbuzz/window.hpp>
 #include "ui.hpp"
 #include <memory>
+#include <physbuzz/window/window.hpp>
 #include <unordered_map>
 
 class InterfaceManager {

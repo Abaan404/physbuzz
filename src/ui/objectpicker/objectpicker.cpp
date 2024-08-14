@@ -4,10 +4,11 @@
 #include "../../objects/builder.hpp"
 #include "../../objects/circle.hpp"
 #include "../../objects/quad.hpp"
+#include "../../renderer.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
-#include <physbuzz/context.hpp>
+#include <physbuzz/misc/context.hpp>
 
 ObjectPicker::ObjectPicker() {
     Quad quad = {
@@ -31,20 +32,19 @@ ObjectPicker::ObjectPicker() {
         .isRenderable = true,
     };
 
-    Game *game = Physbuzz::Context::get<Game>();
-    ObjectBuilder builder = ObjectBuilder(m_Scene);
+    ObjectBuilder builder = ObjectBuilder(&m_Scene);
 
     builder.create(circle);
     builder.create(quad);
 
-    for (auto &object : m_Scene.getObjects()) {
+    for (const auto &object : m_Scene.getObjects()) {
         PickableComponent pickable = {
             .selected = false,
             .framebuffer = Physbuzz::Framebuffer({m_PreviewSize.x, m_PreviewSize.y}),
         };
 
         pickable.framebuffer.build();
-        object.setComponent(pickable);
+        m_Scene.setComponent(object, pickable);
     }
 
     // set orthographic projection for preview
@@ -53,6 +53,7 @@ ObjectPicker::ObjectPicker() {
 
 ObjectPicker::~ObjectPicker() {
     std::vector<PickableComponent> &pickables = m_Scene.getComponents<PickableComponent>();
+
     for (auto &pickable : pickables) {
         pickable.framebuffer.destroy();
     }
@@ -72,24 +73,27 @@ void ObjectPicker::draw() {
     static glm::vec4 bgColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
     Game *game = Physbuzz::Context::get<Game>();
-    game->renderer.activeCamera = &m_Camera;
+
+    const std::shared_ptr<Renderer> renderer = game->scene.getSystem<Renderer>();
+
+    renderer->activeCamera = &m_Camera;
 
     // TODO buttons
-    for (auto &object : m_Scene.getObjects()) {
-        PickableComponent &pickable = object.getComponent<PickableComponent>();
+    for (const auto &object : m_Scene.getObjects()) {
+        PickableComponent &pickable = m_Scene.getComponent<PickableComponent>(object);
 
         // render to framebuffer
-        game->renderer.target(&pickable.framebuffer);
-        game->renderer.clear(bgColor);
-        game->renderer.render(object, game->resources);
+        renderer->target(&pickable.framebuffer);
+        renderer->clear(bgColor);
+        renderer->render(m_Scene, object);
 
         // imgui fuckery
         ImGui::Image((void *)(intptr_t)pickable.framebuffer.getColor(), m_PreviewSize);
     }
 
     // release target
-    game->renderer.target(nullptr);
-    game->renderer.activeCamera = &game->player.camera;
+    renderer->target(nullptr);
+    renderer->activeCamera = &game->player.camera;
 
     ImGui::End();
 }

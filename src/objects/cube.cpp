@@ -1,15 +1,12 @@
 #include "cube.hpp"
 
-#include <physbuzz/collision.hpp>
-#include <physbuzz/shaders.hpp>
+#include <physbuzz/physics/collision.hpp>
+#include <physbuzz/render/shaders.hpp>
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) {
     // user-defined components
-    object.setComponent(info.cube);
-    object.setComponent(info.transform);
-    object.setComponent(info.identifier);
-    object.setComponent(info.resources);
+    scene->setComponent(object, info.cube, info.transform, info.identifier, info.resources);
 
     // generate mesh
     if (info.isRenderable) {
@@ -69,39 +66,34 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Cube &info) {
         };
 
         mesh.build();
-        object.setComponent(mesh);
+        scene->setComponent(object, mesh);
 
         // generate bounding box
         if (info.isCollidable) {
             Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(mesh, info.transform);
-            object.setComponent(aabb);
+            scene->setComponent(object, aabb);
         }
     }
 
     // create a rebuild callback
     {
         RebuildableComponent rebuilder = {
-            .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
-                if (object.hasComponent<Physbuzz::Mesh>()) {
-                    object.getComponent<Physbuzz::Mesh>().destroy();
-                }
-
+            .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
                 Cube info = {
                     // .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
-                    .transform = object.getComponent<Physbuzz::TransformableComponent>(),
-                    .cube = object.getComponent<CubeComponent>(),
-                    .identifier = object.getComponent<IdentifiableComponent>(),
-                    .isCollidable = object.hasComponent<Physbuzz::AABBComponent>(),
-                    .isRenderable = object.hasComponent<Physbuzz::Mesh>(),
+                    .transform = builder.scene->getComponent<Physbuzz::TransformableComponent>(object),
+                    .cube = builder.scene->getComponent<CubeComponent>(object),
+                    .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
+                    .isCollidable = builder.scene->containsComponent<Physbuzz::AABBComponent>(object),
+                    .isRenderable = builder.scene->containsComponent<Physbuzz::Mesh>(object),
                 };
 
-                object.eraseComponents();
                 builder.create(object, info);
             },
         };
 
-        object.setComponent(rebuilder);
+        scene->setComponent(object, rebuilder);
     }
 
-    return object.getId();
+    return object;
 }

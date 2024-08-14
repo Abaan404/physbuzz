@@ -1,6 +1,7 @@
 #pragma once
 
-#include "physbuzz/defines.hpp"
+#include "../ecs/component.hpp"
+#include <memory>
 
 namespace Physbuzz {
 
@@ -12,14 +13,42 @@ struct OnSceneClear {
 
 struct OnObjectCreateEvent {
     Scene *scene;
-
-    ObjectID id;
+    ObjectID object;
 };
 
-struct OnObjectDeleteEvent {
+struct OnObjectEraseEvent {
+    Scene *scene;
+    ObjectID object;
+};
+
+template <typename T>
+struct OnComponentSetEvent {
+    Scene *scene;
+    ObjectID object;
+
+    T *component;
+};
+
+template <typename T>
+struct OnComponentEraseEvent {
+    Scene *scene;
+    ObjectID object;
+
+    T *component;
+};
+
+template <typename T>
+struct OnSystemEmplaceEvent {
     Scene *scene;
 
-    ObjectID id;
+    std::shared_ptr<T> system;
+};
+
+template <typename T>
+struct OnSystemEraseEvent {
+    Scene *scene;
+
+    std::shared_ptr<T> system;
 };
 
 } // namespace Physbuzz

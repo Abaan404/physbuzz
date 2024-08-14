@@ -1,25 +1,25 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <physbuzz/events.hpp>
+#include <physbuzz/events/handler.hpp>
 
-struct onMethodCall1 {
+struct OnMethodCall1 {
     int i;
 };
 
-struct onMethodCall2 {
+struct OnMethodCall2 {
     int j;
 };
 
-class EventHandler : public Physbuzz::IEventSubject {
+class EventHandler : public Physbuzz::EventSubject {
   public:
     void method1(int i) {
-        notifyCallbacks<onMethodCall1>({
+        notifyCallbacks<OnMethodCall1>({
             .i = i,
         });
     }
 
     void method2(int j) {
-        notifyCallbacks<onMethodCall2>({
+        notifyCallbacks<OnMethodCall2>({
             .j = j,
         });
     }
@@ -27,53 +27,26 @@ class EventHandler : public Physbuzz::IEventSubject {
 
 TEST_CASE("Physbuzz::IEventSubject") {
 
-    SECTION("addCallback(): One Handle") {
-        EventHandler handle;
-
-        std::vector<int> calledIds1;
-        std::vector<int> calledIds2;
-
-        handle.addCallback<onMethodCall1>([&](const onMethodCall1 &event) {
-            calledIds1.push_back(event.i);
-        });
-
-        handle.addCallback<onMethodCall2>([&](const onMethodCall2 &event) {
-            calledIds2.push_back(event.j);
-        });
-
-        std::vector<int> expected = {1, 2, 3, 4, 5, 100, 1000};
-
-        for (const auto &num : expected) {
-            handle.method1(num);
-            handle.method2(num);
-        }
-
-        for (int i = 0; i < expected.size(); i++) {
-            CHECK(calledIds1[i] == expected[i]);
-            CHECK(calledIds2[i] == expected[i]);
-        }
-    }
-
-    SECTION("addCallback(): Two Handles") {
+    SECTION("addCallback()") {
         EventHandler handle1;
         EventHandler handle2;
 
         std::vector<int> calledIds1;
         std::vector<int> calledIds2;
 
-        handle1.addCallback<onMethodCall1>([&](const onMethodCall1 &event) {
+        handle1.addCallback<OnMethodCall1>([&](const OnMethodCall1 &event) {
             calledIds1.push_back(event.i);
         });
 
-        handle1.addCallback<onMethodCall2>([&](const onMethodCall2 &event) {
+        handle1.addCallback<OnMethodCall2>([&](const OnMethodCall2 &event) {
             calledIds1.push_back(event.j + 10);
         });
 
-        handle2.addCallback<onMethodCall1>([&](const onMethodCall1 &event) {
+        handle2.addCallback<OnMethodCall1>([&](const OnMethodCall1 &event) {
             calledIds2.push_back(event.i + 20);
         });
 
-        handle2.addCallback<onMethodCall2>([&](const onMethodCall2 &event) {
+        handle2.addCallback<OnMethodCall2>([&](const OnMethodCall2 &event) {
             calledIds2.push_back(event.j + 30);
         });
 
@@ -90,6 +63,9 @@ TEST_CASE("Physbuzz::IEventSubject") {
             handle2.method2(num);
         }
 
+        REQUIRE(expected1.size() == calledIds1.size());
+        REQUIRE(expected2.size() == calledIds2.size());
+
         for (int i = 0; i < expected1.size(); i++) {
             CHECK(calledIds1[i] == expected1[i]);
             CHECK(calledIds2[i] == expected2[i]);
@@ -102,15 +78,14 @@ TEST_CASE("Physbuzz::IEventSubject") {
         std::vector<int> calledIds1;
         std::vector<int> calledIds2;
 
-        Physbuzz::EventID id1 = handle.addCallback<onMethodCall1>([&](const onMethodCall1 &event) {
+        Physbuzz::EventID id1 = handle.addCallback<OnMethodCall1>([&](const OnMethodCall1 &event) {
             calledIds1.push_back(event.i);
         });
-        handle.removeCallback<onMethodCall1>(id1);
 
-        Physbuzz::EventID id2 = handle.addCallback<onMethodCall2>([&](const onMethodCall2 &event) {
+        Physbuzz::EventID id2 = handle.addCallback<OnMethodCall2>([&](const OnMethodCall2 &event) {
             calledIds2.push_back(event.j);
         });
-        handle.removeCallback<onMethodCall2>(id2);
+        handle.eraseCallback<OnMethodCall2>(id2);
 
         std::vector<int> expected = {1, 2, 3, 4, 5, 100, 1000};
         for (const auto &num : expected) {
@@ -118,7 +93,37 @@ TEST_CASE("Physbuzz::IEventSubject") {
             handle.method2(num);
         }
 
-        CHECK(calledIds1.size() == 0);
-        CHECK(calledIds2.size() == 0);
+        REQUIRE(calledIds1.size() == expected.size());
+        REQUIRE(calledIds2.size() == 0);
+
+        for (int i = 0; i < expected.size(); i++) {
+            CHECK(calledIds1[i] == expected[i]);
+        }
+    }
+
+    SECTION("clearCallbacks()") {
+        EventHandler handle;
+
+        std::vector<int> calledIds1;
+        std::vector<int> calledIds2;
+
+        Physbuzz::EventID id1 = handle.addCallback<OnMethodCall1>([&](const OnMethodCall1 &event) {
+            calledIds1.push_back(event.i);
+        });
+
+        Physbuzz::EventID id2 = handle.addCallback<OnMethodCall2>([&](const OnMethodCall2 &event) {
+            calledIds2.push_back(event.j);
+        });
+
+        handle.clearCallbacks();
+
+        std::vector<int> expected = {1, 2, 3, 4, 5, 100, 1000};
+        for (const auto &num : expected) {
+            handle.method1(num);
+            handle.method2(num);
+        }
+
+        REQUIRE(calledIds1.size() == 0);
+        REQUIRE(calledIds2.size() == 0);
     }
 }

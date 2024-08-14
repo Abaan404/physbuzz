@@ -1,414 +1,613 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <algorithm>
-#include <physbuzz/events/scene.hpp>
-#include <physbuzz/scene.hpp>
+#include <physbuzz/ecs/scene.hpp>
+#include <vector>
 
-struct TestComponent {
+struct TestComponent1 {
     int x;
 };
 
-struct TestComponentTheHitSequel {
+struct TestComponent2 {
     int x;
+};
+
+struct TestComponent3 {
+    int z;
+};
+
+class TestSystem1 : public Physbuzz::System<TestComponent1, TestComponent3> {
+  public:
+    void tick(Physbuzz::Scene &scene) {
+        for (const auto &id : m_Objects) {
+            tickedIds.insert(id);
+        }
+    }
+
+    std::set<Physbuzz::ObjectID> tickedIds;
+};
+
+class TestSystem2 : public Physbuzz::System<TestComponent2, TestComponent3> {
+  public:
+    void tick(Physbuzz::Scene &scene) {
+        for (const auto &id : m_Objects) {
+            tickedIds.insert(id);
+        }
+    }
+
+    std::set<Physbuzz::ObjectID> tickedIds;
 };
 
 TEST_CASE("Physbuzz::Scene") {
 
     SECTION("createObject()") {
         Physbuzz::Scene scene;
-        TestComponent test1;
 
-        Physbuzz::ObjectID id1 = scene.createObject();
-        Physbuzz::ObjectID id2 = scene.createObject();
-        scene.getObject(id1).setComponent(test1);
+        // test obj doesnt exists
+        CHECK(!scene.containsObject(12));
+        CHECK(!scene.containsObject(15));
 
-        const std::vector<Physbuzz::Object> &objects = scene.getObjects();
+        const Physbuzz::ObjectID id1 = scene.createObject(12);
+        const Physbuzz::ObjectID id2 = scene.createObject(15);
 
-        CHECK(scene.hasObject(id1));
-        CHECK(scene.hasObject(id2));
+        // test obj exists
+        CHECK(scene.containsObject(id1));
+        CHECK(scene.containsObject(id2));
+        CHECK(scene.getObjects().size() == 2);
 
-        Physbuzz::ObjectID id3 = scene.createObject(id1);
-        Physbuzz::ObjectID id4 = scene.createObject(id2);
-        Physbuzz::ObjectID id5 = scene.createObject(200);
+        // obj1 and obj2 should be same
+        CHECK(id1 == 12);
+        CHECK(id2 == 15);
 
-        CHECK(scene.hasObject(id3));
-        CHECK(scene.hasObject(id4));
+        // this should do effectively nothing
+        const Physbuzz::ObjectID id3 = scene.createObject(id2);
 
-        // check if it overwrote
-        CHECK(!scene.getObject(id1).hasComponent<TestComponent>());
-
-        CHECK(id1 == id3);
-        CHECK(id2 == id4);
-        CHECK(200 == id5);
+        CHECK(id1 == 12);
+        CHECK(id2 == 15);
+        CHECK(id3 == id2);
     }
 
     SECTION("getObjects()") {
         Physbuzz::Scene scene;
 
-        Physbuzz::ObjectID object1 = scene.createObject();
-        Physbuzz::ObjectID object2 = scene.createObject();
+        // scene should be empty
+        CHECK(scene.getObjects().size() == 0);
 
-        const std::vector<Physbuzz::Object> &objects = scene.getObjects();
+        Physbuzz::ObjectID id1 = scene.createObject(42);
+        Physbuzz::ObjectID id2 = scene.createObject(99);
+        const std::set<Physbuzz::ObjectID> &objects = scene.getObjects();
 
+        // but not anymore
         CHECK(objects.size() == 2);
+
+        // objects must exist (but order is NOT garunteed)
+        CHECK(objects.contains(id1));
+        CHECK(objects.contains(id2));
     }
 
-    SECTION("hasObject()") {
+    SECTION("containsObject()") {
         Physbuzz::Scene scene;
 
-        Physbuzz::ObjectID id1 = scene.createObject();
-        Physbuzz::ObjectID id2 = scene.createObject();
+        // must not exist
+        CHECK(!scene.containsObject(15));
+        CHECK(!scene.containsObject(12));
 
-        CHECK(scene.hasObject(id1));
-        CHECK(scene.hasObject(id2));
+        Physbuzz::ObjectID id1 = scene.createObject(15);
+        Physbuzz::ObjectID id2 = scene.createObject(12);
+
+        // oh look it exists now!
+        CHECK(scene.containsObject(15));
+        CHECK(scene.containsObject(12));
     }
 
     SECTION("deleteObject()") {
         Physbuzz::Scene scene;
 
-        Physbuzz::ObjectID id1 = scene.createObject();
-        Physbuzz::ObjectID id2 = scene.createObject();
-        Physbuzz::ObjectID id3 = scene.createObject();
+        Physbuzz::ObjectID id1 = scene.createObject(1);
+        Physbuzz::ObjectID id2 = scene.createObject(2);
+        Physbuzz::ObjectID id3 = scene.createObject(99);
 
         // delete from middle
-        CHECK(scene.deleteObject(id2));
+        CHECK(scene.eraseObject(id2));
         CHECK(scene.getObjects().size() == 2);
-        CHECK(!scene.deleteObject(id2));
-        CHECK(!scene.hasObject(id2));
+        CHECK(!scene.eraseObject(id2));
+        CHECK(!scene.containsObject(id2));
 
         // delete from end
-        CHECK(scene.deleteObject(id3));
+        CHECK(scene.eraseObject(id3));
         CHECK(scene.getObjects().size() == 1);
-        CHECK(!scene.deleteObject(id3));
-        CHECK(!scene.hasObject(id3));
+        CHECK(!scene.eraseObject(id3));
+        CHECK(!scene.containsObject(id3));
 
         // delete from start
-        CHECK(scene.deleteObject(id1));
+        CHECK(scene.eraseObject(id1));
         CHECK(scene.getObjects().size() == 0);
-        CHECK(!scene.deleteObject(id1));
-        CHECK(!scene.hasObject(id1));
+        CHECK(!scene.eraseObject(id1));
+        CHECK(!scene.containsObject(id1));
 
         // adding same id should work
         scene.createObject(id3);
         scene.createObject(id2);
         scene.createObject(id1);
-        CHECK(scene.hasObject(id3));
-        CHECK(scene.hasObject(id2));
-        CHECK(scene.hasObject(id1));
-    }
-
-    SECTION("getComponents()") {
-        Physbuzz::Scene scene;
-
-        CHECK(!scene.existsComponents<TestComponent>());
-        CHECK(!scene.existsComponents<TestComponentTheHitSequel>());
-
-        for (int i = 0; i < 10; i++) {
-            Physbuzz::ObjectID id = scene.createObject();
-
-            TestComponent component = {
-                .x = i,
-            };
-
-            scene.getObject(id).setComponent(component);
-        }
-
-        for (int i = 10; i > 5; i--) {
-            Physbuzz::ObjectID id = scene.createObject();
-
-            TestComponentTheHitSequel component = {
-                .x = -i,
-            };
-
-            scene.getObject(id).setComponent(component);
-        }
-
-        std::vector<TestComponent> &components1 = scene.getComponents<TestComponent>();
-        std::vector<TestComponentTheHitSequel> &components2 = scene.getComponents<TestComponentTheHitSequel>();
-
-        CHECK(scene.existsComponents<TestComponent>());
-        CHECK(scene.existsComponents<TestComponentTheHitSequel>());
-        CHECK(components1.size() == 10);
-        CHECK(components2.size() == 5);
-
-        for (int i = 0; i < 10; i++) {
-            CHECK(components1[i].x == i);
-        }
-
-        for (int i = 0; i < 5; i++) {
-            CHECK(components2[i].x == i - 10);
-        }
-    }
-
-    SECTION("clear()") {
-        Physbuzz::Scene scene;
-
-        for (int i = 0; i < 10; i++) {
-            Physbuzz::ObjectID id = scene.createObject();
-
-            TestComponent component = {
-                .x = i,
-            };
-
-            scene.getObject(id).setComponent(component);
-        }
-
-        scene.clear();
-        CHECK(scene.getObjects().size() == 0);
-
-        for (int i = 0; i < 10; i++) {
-            Physbuzz::ObjectID id = scene.createObject();
-
-            TestComponent component = {
-                .x = i,
-            };
-
-            scene.getObject(id).setComponent(component);
-        }
-
-        CHECK(scene.getObjects().size() == 10);
-    }
-
-    SECTION("addCallback()") {
-        Physbuzz::Scene scene;
-
-        std::vector<int> ids = {1, 2, 3, 4, 10};
-        std::vector<int> calledIds = {};
-
-        Physbuzz::EventID idCreate = scene.addCallback<Physbuzz::OnObjectCreateEvent>([&](const Physbuzz::OnObjectCreateEvent &event) {
-            REQUIRE(event.scene == &scene);
-            calledIds.push_back(event.id);
-        });
-
-        Physbuzz::EventID idRemove = scene.addCallback<Physbuzz::OnObjectDeleteEvent>([&](const Physbuzz::OnObjectDeleteEvent &event) {
-            REQUIRE(event.scene == &scene);
-            calledIds.erase(std::find(calledIds.begin(), calledIds.end(), event.id));
-        });
-
-        for (const auto &id : ids) {
-            scene.createObject(id);
-        }
-
-        for (int i = 0; i < ids.size(); i++) {
-            CHECK(ids[i] == calledIds[i]);
-        }
-
-        for (const auto &id : ids) {
-            scene.deleteObject(id);
-        }
-
-        CHECK(calledIds.size() == 0);
-    }
-
-    SECTION("removeCallback()") {
-        Physbuzz::Scene scene;
-
-        std::vector<int> ids = {1, 2, 3, 4, 10};
-        std::vector<int> calledIds = {};
-
-        Physbuzz::EventID idCreate = scene.addCallback<Physbuzz::OnObjectCreateEvent>([&](const Physbuzz::OnObjectCreateEvent &event) {
-            CHECK(false);
-            calledIds.push_back(event.id);
-        });
-
-        scene.removeCallback<Physbuzz::OnObjectCreateEvent>(idCreate);
-
-        for (const auto &id : ids) {
-            scene.createObject(id);
-        }
-
-        CHECK(calledIds.size() == 0);
-    }
-}
-
-TEST_CASE("Physbuzz::Object") {
-
-    SECTION("getId()") {
-        Physbuzz::Scene scene;
-
-        Physbuzz::ObjectID id1 = scene.createObject();
-        Physbuzz::Object object = scene.getObject(id1);
-
-        // check if id matches with scene
-        CHECK(object.getId() == id1);
+        CHECK(scene.containsObject(id3));
+        CHECK(scene.containsObject(id2));
+        CHECK(scene.containsObject(id1));
     }
 
     SECTION("setComponent()") {
         Physbuzz::Scene scene;
 
-        Physbuzz::ObjectID id1 = scene.createObject();
-        Physbuzz::Object object = scene.getObject(id1);
+        Physbuzz::ObjectID id1 = scene.createObject(5);
+        Physbuzz::ObjectID id2 = scene.createObject(4);
 
-        {
-            TestComponent component = {
-                .x = 12,
-            };
-
-            object.setComponent(component);
-
-            // test if exists
-            CHECK(object.hasComponent<TestComponent>());
-            CHECK(scene.getComponents<TestComponent>().size() == 1);
-
-            // test if it matches the expected value
-            CHECK(object.getComponent<TestComponent>().x == 12);
-        }
-
-        {
-            TestComponent component = {
-                .x = 10,
-            };
-
-            object.setComponent(component);
-
-            // test if it exists
-            CHECK(object.hasComponent<TestComponent>());
-            CHECK(scene.getComponents<TestComponent>().size() == 1);
-
-            // test if it overwrote the previous value
-            CHECK(object.getComponent<TestComponent>().x == 10);
-        }
-
-        {
-            TestComponentTheHitSequel component = {
-                .x = -10,
-            };
-
-            object.setComponent(component);
-
-            // test if it exists
-            CHECK(object.hasComponent<TestComponent>());
-            CHECK(object.hasComponent<TestComponentTheHitSequel>());
-            CHECK(scene.getComponents<TestComponent>().size() == 1);
-            CHECK(scene.getComponents<TestComponentTheHitSequel>().size() == 1);
-
-            // test if it has the right values
-            CHECK(object.getComponent<TestComponent>().x == 10);
-            CHECK(object.getComponent<TestComponentTheHitSequel>().x == -10);
-        }
-    }
-
-    SECTION("removeComponent()") {
-        Physbuzz::Scene scene;
-
-        Physbuzz::ObjectID id1 = scene.createObject();
-        Physbuzz::Object object = scene.getObject(id1);
-
-        TestComponent component = {
+        TestComponent1 component1 = {
             .x = 12,
         };
 
-        object.setComponent(component);
+        TestComponent2 component2 = {
+            .x = -10,
+        };
 
-        // test if removal is successful
-        CHECK(object.removeComponent<TestComponent>());
+        // state check
+        CHECK(!scene.containsComponent<TestComponent1>(id1));
+        CHECK(!scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 0);
+        CHECK(scene.getComponents<TestComponent2>().size() == 0);
 
-        // test if removal actually removed
-        CHECK(!object.hasComponent<TestComponent>());
-        CHECK(scene.getComponents<TestComponent>().size() == 0);
+        scene.setComponent(id1, component1);
+        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
 
-        // test if removing again fails
-        CHECK(!object.removeComponent<TestComponent>());
+        // state check
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(!scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 1);
+        CHECK(scene.getComponents<TestComponent2>().size() == 0);
+
+        scene.setComponent(id2, component1);
+        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
+        CHECK(scene.getComponent<TestComponent1>(id2).x == component1.x);
+
+        // state check
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 2);
+        CHECK(scene.getComponents<TestComponent2>().size() == 0);
+
+        scene.setComponent(id1, component2);
+        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
+        CHECK(scene.getComponent<TestComponent1>(id2).x == component1.x);
+        CHECK(scene.getComponent<TestComponent2>(id1).x == component2.x);
+
+        // state check
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 2);
+        CHECK(scene.getComponents<TestComponent2>().size() == 1);
+
+        scene.setComponent(id2, component2);
+        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
+        CHECK(scene.getComponent<TestComponent1>(id2).x == component1.x);
+        CHECK(scene.getComponent<TestComponent2>(id1).x == component2.x);
+        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+
+        // state check
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(scene.containsComponent<TestComponent2>(id1));
+        CHECK(scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 2);
+        CHECK(scene.getComponents<TestComponent2>().size() == 2);
+
+        TestComponent1 component3 = {
+            .x = 1984,
+        };
+
+        scene.setComponent(id2, component3);
+        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
+        CHECK(scene.getComponent<TestComponent1>(id2).x == component3.x);
+        CHECK(scene.getComponent<TestComponent2>(id1).x == component2.x);
+        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+
+        // state check (unchanged as previous)
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(scene.containsComponent<TestComponent2>(id1));
+        CHECK(scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 2);
+        CHECK(scene.getComponents<TestComponent2>().size() == 2);
+
+        Physbuzz::ObjectID id3 = scene.createObject(21);
+
+        // set variadic components
+        scene.setComponent(id3, component1, component3);
+        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
+        CHECK(scene.getComponent<TestComponent1>(id2).x == component3.x);
+        CHECK(scene.getComponent<TestComponent2>(id1).x == component2.x);
+        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+        CHECK(scene.getComponent<TestComponent1>(id3).x == component3.x); // rightmost priority
+
+        // state check
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(scene.containsComponent<TestComponent1>(id3));
+        CHECK(scene.containsComponent<TestComponent2>(id1));
+        CHECK(scene.containsComponent<TestComponent2>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id3));
+        CHECK(scene.getComponents<TestComponent1>().size() == 3);
+        CHECK(scene.getComponents<TestComponent2>().size() == 2);
+
+        // overwrite variadic
+        scene.setComponent(id1, component1, component2, component3);
+        CHECK(scene.getComponent<TestComponent1>(id1).x == component3.x); // rightmost priority
+        CHECK(scene.getComponent<TestComponent1>(id2).x == component3.x);
+        CHECK(scene.getComponent<TestComponent2>(id1).x == component2.x);
+        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+        CHECK(scene.getComponent<TestComponent1>(id3).x == component3.x);
+
+        // state check (no change)
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(scene.containsComponent<TestComponent1>(id3));
+        CHECK(scene.containsComponent<TestComponent2>(id1));
+        CHECK(scene.containsComponent<TestComponent2>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id3));
+        CHECK(scene.getComponents<TestComponent1>().size() == 3);
+        CHECK(scene.getComponents<TestComponent2>().size() == 2);
     }
 
-    SECTION("eraseComponents()") {
+    SECTION("eraseComponent()") {
         Physbuzz::Scene scene;
 
-        Physbuzz::ObjectID id1 = scene.createObject();
-        Physbuzz::Object object = scene.getObject(id1);
+        Physbuzz::ObjectID id1 = scene.createObject(99);
+        Physbuzz::ObjectID id2 = scene.createObject(11);
 
-        object.eraseComponents();
-
-        TestComponent component1 = {
-            .x = -12,
+        TestComponent1 component1 = {
+            .x = 12,
         };
 
-        TestComponentTheHitSequel component2 = {
-            .x = 10,
+        TestComponent2 component2 = {
+            .x = -10,
         };
 
-        object.setComponent(component1);
-        object.setComponent(component2);
+        TestComponent1 component3 = {
+            .x = 1000,
+        };
 
-        object.eraseComponents();
+        scene.setComponent(id1, component1);
+        scene.setComponent(id2, component1, component2);
 
-        // check if it doesnt have the components
-        CHECK(!object.hasComponent<TestComponent>());
-        CHECK(!object.hasComponent<TestComponentTheHitSequel>());
+        // test is removing an unset component fails
+        CHECK(!scene.eraseComponent<TestComponent2>(id1));
+        CHECK(scene.getComponents<TestComponent1>().size() == 2);
+        CHECK(scene.getComponents<TestComponent2>().size() == 1);
 
-        // and the scene no longer retains the components
-        CHECK(scene.getComponents<TestComponent>().size() == 0);
-        CHECK(scene.getComponents<TestComponentTheHitSequel>().size() == 0);
+        // remove not empty container
+        CHECK(scene.eraseComponent<TestComponent1>(id2));
+        CHECK(!scene.eraseComponent<TestComponent1>(id2));
+        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
+        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+
+        // state check
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(!scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 1);
+        CHECK(scene.getComponents<TestComponent2>().size() == 1);
+
+        // remove until empty
+        CHECK(scene.eraseComponent<TestComponent1>(id1));
+        CHECK(!scene.eraseComponent<TestComponent1>(id1));
+        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+
+        // state check
+        CHECK(!scene.containsComponent<TestComponent1>(id1));
+        CHECK(!scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 0);
+        CHECK(scene.getComponents<TestComponent2>().size() == 1);
+
+        // check if setting component at a previously removed location works
+        scene.setComponent(id1, component3);
+        CHECK(scene.getComponent<TestComponent1>(id1).x == component3.x);
+        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+
+        // state check
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(!scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 1);
+        CHECK(scene.getComponents<TestComponent2>().size() == 1);
+
+        // remove until empty
+        CHECK(scene.eraseComponent<TestComponent1>(id1));
+        CHECK(!scene.eraseComponent<TestComponent1>(id1));
+        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+
+        CHECK(scene.eraseComponent<TestComponent2>(id2));
+        CHECK(!scene.eraseComponent<TestComponent2>(id2));
+
+        // state check
+        CHECK(!scene.containsComponent<TestComponent1>(id1));
+        CHECK(!scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 0);
+        CHECK(scene.getComponents<TestComponent2>().size() == 0);
+
+        scene.setComponent(id1, component1, component2);
+        scene.setComponent(id2, component1);
+
+        // state check
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 2);
+        CHECK(scene.getComponents<TestComponent2>().size() == 1);
+
+        // removes only exclusively these components if exists
+        CHECK(scene.eraseComponent<TestComponent1, TestComponent2>(id1));
+        CHECK(!scene.eraseComponent<TestComponent1, TestComponent2>(id1));
+        CHECK(scene.getComponent<TestComponent1>(id2).x == component1.x);
+
+        // state check
+        CHECK(!scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 1);
+        CHECK(scene.getComponents<TestComponent2>().size() == 0);
+
+        // id2 doesnt not contain the exclusive component pair
+        CHECK(!scene.eraseComponent<TestComponent2, TestComponent1>(id2));
+        CHECK(scene.getComponent<TestComponent1>(id2).x == component1.x);
+
+        // state check (unchanged)
+        CHECK(!scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 1);
+        CHECK(scene.getComponents<TestComponent2>().size() == 0);
+
+        // clear object and regenerate one
+        scene.createObject(id2);
+
+        CHECK(!scene.containsComponent<TestComponent1>(id1));
+        CHECK(!scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 0);
+        CHECK(scene.getComponents<TestComponent2>().size() == 0);
     }
 
-    SECTION("addCallback()") {
+    SECTION("containsComponent()") {
         Physbuzz::Scene scene;
 
-        Physbuzz::ObjectID id1 = scene.createObject();
-        Physbuzz::Object object = scene.getObject(id1);
+        Physbuzz::ObjectID id1 = scene.createObject(123);
+        Physbuzz::ObjectID id2 = scene.createObject(463);
 
-        TestComponent component1 = {
-            .x = -12,
+        TestComponent1 component1 = {
+            .x = 12,
         };
 
-        TestComponentTheHitSequel component2 = {
-            .x = 10,
+        TestComponent2 component2 = {
+            .x = -10,
         };
 
-        Physbuzz::EventID idCreate1 = object.addCallback<Physbuzz::OnComponentSetEvent<TestComponent>>([&](const Physbuzz::OnComponentSetEvent<TestComponent> &event) {
-            REQUIRE(event.object == &object);
-            CHECK(event.component.x == -12);
-        });
+        // state check
+        CHECK(!scene.containsComponent<TestComponent1>(id1));
+        CHECK(!scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(!scene.containsComponent<TestComponent1, TestComponent2>(id1));
+        CHECK(scene.getComponents<TestComponent1>().size() == 0);
+        CHECK(scene.getComponents<TestComponent2>().size() == 0);
 
-        Physbuzz::EventID idCreate2 = object.addCallback<Physbuzz::OnComponentSetEvent<TestComponentTheHitSequel>>([&](const Physbuzz::OnComponentSetEvent<TestComponentTheHitSequel> &event) {
-            REQUIRE(event.object == &object);
-            CHECK(event.component.x == 10);
-        });
+        // variadic check
+        CHECK(!scene.containsComponent<TestComponent1, TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent1, TestComponent2>(id2));
 
-        Physbuzz::EventID idRemove1 = object.addCallback<Physbuzz::OnComponentRemoveEvent<TestComponent>>([&](const Physbuzz::OnComponentRemoveEvent<TestComponent> &event) {
-            REQUIRE(event.object == &object);
-            CHECK(event.component.x == -12);
-        });
+        scene.setComponent(id1, component1, component2);
+        scene.setComponent(id2, component1);
 
-        Physbuzz::EventID idRemove2 = object.addCallback<Physbuzz::OnComponentRemoveEvent<TestComponentTheHitSequel>>([&](const Physbuzz::OnComponentRemoveEvent<TestComponentTheHitSequel> &event) {
-            REQUIRE(event.object == &object);
-            CHECK(event.component.x == 10);
-        });
+        // state check
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 2);
+        CHECK(scene.getComponents<TestComponent2>().size() == 1);
 
-        Physbuzz::EventID idErase = object.addCallback<Physbuzz::OnComponentEraseEvent>([&](const Physbuzz::OnComponentEraseEvent &event) {
-            REQUIRE(event.object == &object);
-        });
+        // varadic check
+        CHECK(scene.containsComponent<TestComponent1, TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent1, TestComponent2>(id2));
 
-        object.setComponent(component1);
-        object.setComponent(component2);
+        scene.eraseComponent<TestComponent1, TestComponent2>(id1);
 
-        object.removeComponent<TestComponent>();
-        object.removeComponent<TestComponentTheHitSequel>();
+        // state check
+        CHECK(!scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(!scene.containsComponent<TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 1);
+        CHECK(scene.getComponents<TestComponent2>().size() == 0);
 
-        object.eraseComponents();
+        // varadic check
+        CHECK(!scene.containsComponent<TestComponent1, TestComponent2>(id1));
+        CHECK(!scene.containsComponent<TestComponent1, TestComponent2>(id2));
+
+        scene.setComponent(id1, component1, component2);
+        scene.setComponent(id2, component2);
+
+        // state check
+        CHECK(scene.containsComponent<TestComponent1>(id1));
+        CHECK(scene.containsComponent<TestComponent1>(id2));
+        CHECK(scene.containsComponent<TestComponent2>(id1));
+        CHECK(scene.containsComponent<TestComponent2>(id2));
+        CHECK(scene.getComponents<TestComponent1>().size() == 2);
+        CHECK(scene.getComponents<TestComponent2>().size() == 2);
+
+        // varadic check
+        CHECK(scene.containsComponent<TestComponent1, TestComponent2>(id1));
+        CHECK(scene.containsComponent<TestComponent1, TestComponent2>(id2));
     }
 
-    SECTION("removeCallback()") {
+    SECTION("emplaceSystem()") {
         Physbuzz::Scene scene;
 
-        Physbuzz::ObjectID id1 = scene.createObject();
-        Physbuzz::Object object = scene.getObject(id1);
+        CHECK(!scene.containsSystem<TestSystem1>());
+        CHECK(!scene.containsSystem<TestSystem2>());
 
-        TestComponent component1 = {
-            .x = -12,
+        scene.emplaceSystem<TestSystem1>();
+        scene.emplaceSystem<TestSystem2>();
+
+        CHECK(scene.containsSystem<TestSystem1>());
+        CHECK(scene.containsSystem<TestSystem2>());
+    }
+
+    SECTION("emplaceSystem()") {
+        Physbuzz::Scene scene;
+
+        CHECK(!scene.containsSystem<TestSystem1>());
+        CHECK(!scene.containsSystem<TestSystem2>());
+
+        scene.emplaceSystem<TestSystem1>();
+        scene.emplaceSystem<TestSystem2>();
+
+        CHECK(scene.containsSystem<TestSystem1>());
+        CHECK(scene.containsSystem<TestSystem2>());
+    }
+
+    SECTION("removeSystem()") {
+        Physbuzz::Scene scene;
+
+        scene.emplaceSystem<TestSystem1>();
+        scene.emplaceSystem<TestSystem2>();
+
+        CHECK(scene.containsSystem<TestSystem1>());
+        CHECK(scene.containsSystem<TestSystem2>());
+
+        scene.eraseSystem<TestSystem1>();
+        scene.eraseSystem<TestSystem2>();
+
+        CHECK(!scene.containsSystem<TestSystem1>());
+        CHECK(!scene.containsSystem<TestSystem2>());
+    }
+
+    SECTION("tickSystem()") {
+        Physbuzz::Scene scene;
+        scene.emplaceSystem<TestSystem1>();
+        scene.emplaceSystem<TestSystem2>();
+
+        Physbuzz::ObjectID id1 = scene.createObject(1);
+        Physbuzz::ObjectID id2 = scene.createObject(2);
+        Physbuzz::ObjectID id3 = scene.createObject(4);
+        Physbuzz::ObjectID id4 = scene.createObject(3);
+        Physbuzz::ObjectID id5 = scene.createObject(5);
+
+        TestComponent1 component1 = {
+            .x = 12,
         };
 
-        Physbuzz::EventID idCreate = object.addCallback<Physbuzz::OnComponentSetEvent<TestComponent>>([&](const Physbuzz::OnComponentSetEvent<TestComponent> &event) {
-            CHECK(false);
-        });
-        object.removeCallback<Physbuzz::OnComponentSetEvent<TestComponent>>(idCreate);
+        TestComponent2 component2 = {
+            .x = 24,
+        };
 
-        Physbuzz::EventID idRemove = object.addCallback<Physbuzz::OnComponentRemoveEvent<TestComponent>>([&](const Physbuzz::OnComponentRemoveEvent<TestComponent> &event) {
-            CHECK(false);
-        });
-        object.removeCallback<Physbuzz::OnComponentRemoveEvent<TestComponent>>(idRemove);
+        TestComponent3 component3 = {
+            .z = 99,
+        };
 
-        object.setComponent(component1);
-        object.removeComponent<TestComponent>();
+        // ticked null
+        scene.setComponent(id1, component3);
+
+        // ticked 1
+        scene.setComponent(id2, component1);
+        scene.setComponent(id2, component3);
+
+        // ticked 2
+        scene.setComponent(id3, component2);
+        scene.setComponent(id3, component3);
+
+        // ticked 1 and 2
+        scene.setComponent(id4, component1);
+        scene.setComponent(id4, component2);
+        scene.setComponent(id4, component3);
+
+        // ticked 1
+        scene.setComponent(id5, component1);
+        scene.setComponent(id5, component3);
+
+        scene.tickSystem<TestSystem1>();
+        scene.tickSystem<TestSystem2>();
+
+        std::shared_ptr<TestSystem1> system1 = nullptr;
+        std::shared_ptr<TestSystem2> system2 = nullptr;
+
+        system1 = scene.getSystem<TestSystem1>();
+        system2 = scene.getSystem<TestSystem2>();
+
+        CHECK(system1->tickedIds.size() == 3);
+        CHECK(!system1->tickedIds.contains(id1));
+        CHECK(system1->tickedIds.contains(id2));
+        CHECK(!system1->tickedIds.contains(id3));
+        CHECK(system1->tickedIds.contains(id4));
+        CHECK(system1->tickedIds.contains(id5));
+
+        CHECK(system2->tickedIds.size() == 2);
+        CHECK(!system2->tickedIds.contains(id1));
+        CHECK(!system2->tickedIds.contains(id2));
+        CHECK(system2->tickedIds.contains(id3));
+        CHECK(system2->tickedIds.contains(id4));
+        CHECK(!system2->tickedIds.contains(id5));
+
+        system1->tickedIds.clear();
+        system2->tickedIds.clear();
+
+        scene.eraseComponent<TestComponent3>(id4);
+        // scene.deleteObject(id2);
+
+        scene.tickSystem<TestSystem1>();
+        scene.tickSystem<TestSystem2>();
+
+        system1 = scene.getSystem<TestSystem1>();
+        system2 = scene.getSystem<TestSystem2>();
+
+        CHECK(system1->tickedIds.size() == 2);
+        CHECK(!system1->tickedIds.contains(id1));
+        CHECK(system1->tickedIds.contains(id2));
+        CHECK(!system1->tickedIds.contains(id3));
+        CHECK(!system1->tickedIds.contains(id4));
+        CHECK(system1->tickedIds.contains(id5));
+
+        CHECK(system2->tickedIds.size() == 1);
+        CHECK(!system2->tickedIds.contains(id1));
+        CHECK(!system2->tickedIds.contains(id2));
+        CHECK(system2->tickedIds.contains(id3));
+        CHECK(!system2->tickedIds.contains(id4));
+        CHECK(!system2->tickedIds.contains(id5));
+
+        scene.eraseSystem<TestSystem1>();
+        scene.eraseSystem<TestSystem2>();
+    }
+
+    SECTION("IEventSubject()") {
+        Physbuzz::Scene scene;
+
+        static int ticks = 0;
+
+        // scene.addCallback(std::function<void (const T &)> callback)
+
+        // scene.addCallback
     }
 }

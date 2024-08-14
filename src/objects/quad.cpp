@@ -1,15 +1,12 @@
 #include "quad.hpp"
 
-#include <physbuzz/collision.hpp>
-#include <physbuzz/shaders.hpp>
+#include <physbuzz/physics/collision.hpp>
+#include <physbuzz/render/shaders.hpp>
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) {
     // user-defined components
-    object.setComponent(info.quad);
-    object.setComponent(info.transform);
-    object.setComponent(info.identifier);
-    object.setComponent(info.resources);
+    scene->setComponent(object, info.quad, info.transform, info.identifier, info.resources);
 
     // generate mesh
     if (info.isRenderable) {
@@ -43,11 +40,11 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
         generate2DNormals(mesh);
 
         mesh.build();
-        object.setComponent(mesh);
+        scene->setComponent(object, mesh);
 
         // generate bounding box
         if (info.isCollidable) {
-            object.setComponent(aabb);
+            scene->setComponent(object, aabb);
         }
     }
 
@@ -57,33 +54,28 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Object &object, Quad &info) {
         // My = (x**2).integrate((x, -a/2, a/2)).integrate((y, -b/2, b/2)) * rho
         info.body.angular.inertia = info.body.mass * (glm::pow(info.quad.width, 2) + glm::pow(info.quad.height, 2)) / 12.0f;
 
-        object.setComponent(info.body);
+        scene->setComponent(object, info.body);
     }
 
     // create a rebuild callback
     {
         RebuildableComponent rebuilder = {
-            .rebuild = [](ObjectBuilder &builder, Physbuzz::Object &object) {
-                if (object.hasComponent<Physbuzz::Mesh>()) {
-                    object.getComponent<Physbuzz::Mesh>().destroy();
-                }
-
+            .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
                 Quad info = {
-                    .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
-                    .transform = object.getComponent<Physbuzz::TransformableComponent>(),
-                    .quad = object.getComponent<QuadComponent>(),
-                    .identifier = object.getComponent<IdentifiableComponent>(),
-                    .isCollidable = object.hasComponent<Physbuzz::AABBComponent>(),
-                    .isRenderable = object.hasComponent<Physbuzz::Mesh>(),
+                    .body = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object),
+                    .transform = builder.scene->getComponent<Physbuzz::TransformableComponent>(object),
+                    .quad = builder.scene->getComponent<QuadComponent>(object),
+                    .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
+                    .isCollidable = builder.scene->containsComponent<Physbuzz::AABBComponent>(object),
+                    .isRenderable = builder.scene->containsComponent<Physbuzz::Mesh>(object),
                 };
 
-                object.eraseComponents();
                 builder.create(object, info);
             },
         };
 
-        object.setComponent(rebuilder);
+        scene->setComponent(object, rebuilder);
     }
 
-    return object.getId();
+    return object;
 }
