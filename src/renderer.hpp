@@ -8,7 +8,7 @@
 #include <physbuzz/resources/manager.hpp>
 #include <physbuzz/window/window.hpp>
 
-class Renderer : public Physbuzz::System<Physbuzz::TransformableComponent, Physbuzz::Mesh, ResourceIdentifierComponent> {
+class Renderer : public Physbuzz::System<Physbuzz::MeshComponent, ResourceIdentifierComponent> {
   public:
     Renderer(Physbuzz::Window *window, Physbuzz::ResourceManager *resources);
     ~Renderer();
@@ -23,9 +23,6 @@ class Renderer : public Physbuzz::System<Physbuzz::TransformableComponent, Physb
 
     void tick(Physbuzz::Scene &scene);
     void render(Physbuzz::Scene &scene, Physbuzz::ObjectID id);
-
-    // void render(Physbuzz::Scene &scene, Physbuzz::ResourceManager &resources);
-    // void render(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Physbuzz::ResourceManager &resources) const;
 
     const Physbuzz::Clock &getClock() const;
     const glm::ivec2 &getResolution() const;

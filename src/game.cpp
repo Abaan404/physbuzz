@@ -7,6 +7,7 @@
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/mesh.hpp>
 #include <physbuzz/render/shaders.hpp>
+#include <physbuzz/render/texture.hpp>
 
 Game::Game()
     : bindings(&window), player(this), builder(&scene) {}
@@ -80,10 +81,8 @@ void Game::build() {
 
     // post build stuff
     Wall wall = {
-        .transform = {
-            .position = {resolution >> 1, 0.0f},
-        },
         .wall = {
+            .position = {resolution >> 1, 0.0f},
             .width = static_cast<float>(resolution.x),
             .height = static_cast<float>(resolution.y),
             .thickness = 10.0f,
@@ -92,7 +91,7 @@ void Game::build() {
         .isRenderable = true,
     };
 
-    // builder.create(wall);
+    builder.create(wall);
 }
 
 void Game::reset() {
@@ -108,23 +107,22 @@ void Game::reset() {
         renderer->activeCamera = &player.camera;
     }
 
-
     // callbacks for cleaning up meshes
     {
-        scene.addCallback<Physbuzz::OnComponentEraseEvent<Physbuzz::Mesh>>([](const Physbuzz::OnComponentEraseEvent<Physbuzz::Mesh> &event) {
+        scene.addCallback<Physbuzz::OnComponentEraseEvent<Physbuzz::MeshComponent>>([](const Physbuzz::OnComponentEraseEvent<Physbuzz::MeshComponent> &event) {
             event.component->destroy();
         });
 
         scene.addCallback<Physbuzz::OnObjectEraseEvent>([](const Physbuzz::OnObjectEraseEvent &event) {
-            if (event.scene->containsComponent<Physbuzz::Mesh>(event.object)) {
-                event.scene->getComponent<Physbuzz::Mesh>(event.object).destroy();
+            if (event.scene->containsComponent<Physbuzz::MeshComponent>(event.object)) {
+                event.scene->getComponent<Physbuzz::MeshComponent>(event.object).destroy();
             }
         });
 
         scene.addCallback<Physbuzz::OnSceneClear>([](const Physbuzz::OnSceneClear &event) {
             for (const auto id : event.scene->getObjects()) {
-                if (event.scene->containsComponent<Physbuzz::Mesh>(id)) {
-                    event.scene->getComponent<Physbuzz::Mesh>(id).destroy();
+                if (event.scene->containsComponent<Physbuzz::MeshComponent>(id)) {
+                    event.scene->getComponent<Physbuzz::MeshComponent>(id).destroy();
                 }
             }
         });
@@ -153,7 +151,7 @@ void Game::destroy() {
 
     m_IsRunning = false;
 
-    for (auto &mesh : scene.getComponents<Physbuzz::Mesh>()) {
+    for (auto &mesh : scene.getComponents<Physbuzz::MeshComponent>()) {
         mesh.destroy();
     }
 

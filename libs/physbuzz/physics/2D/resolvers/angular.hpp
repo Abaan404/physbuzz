@@ -11,7 +11,7 @@ class AngularResolver2D : public LinearResolver2D {
     void solve(const Contact &contact) override;
 
   protected:
-    const glm::vec3 calcTorque(const RigidBodyComponent &body, const TransformableComponent &transform, const glm::vec3 &point, const glm::vec3 &impulse);
+    const glm::vec3 calcTorque(const RigidBodyComponent &body, const MeshComponent &mesh, const glm::vec3 &point, const glm::vec3 &impulse);
 };
 
 } // namespace Physbuzz

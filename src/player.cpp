@@ -10,12 +10,7 @@ Player::Player(Game *game)
 
 Player::~Player() {}
 
-void Player::resize(const glm::ivec2 &resolution) {
-    camera.resize(resolution, camera.getDepth());
-}
-
 void Player::build() {
-    camera.build();
     camera.setPrespective(
         {.fovy = glm::radians(45.0f), .aspect = static_cast<float>(m_Game->window.getResolution().x) / static_cast<float>(m_Game->window.getResolution().y)},
         {.near = 1.0f, .far = 1000.0f});
@@ -27,7 +22,7 @@ void Player::build() {
             }
 
             Cube info = {
-                .transform = {
+                .model = {
                     .position = {0.0f, 0.0f, 0.0f},
                     .orientation = glm::angleAxis(glm::pi<float>() / 4.0f, glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f))),
                 },
@@ -36,7 +31,7 @@ void Player::build() {
                     .height = 100.0f,
                     .length = 100.0f,
                 },
-                .isCollidable = true,
+                .isCollidable = false,
                 .isRenderable = true,
             };
             m_Game->builder.create(info);
@@ -57,14 +52,11 @@ void Player::build() {
                         .acceleration = {0.0f, 1000.0f, 0.0f},
                     },
                 },
-                .transform = {
+                .model = {
                     .position = {cursor.x, cursor.y, 0.0f},
                 },
                 .circle = {
                     .radius = 100.0f,
-                },
-                .resources = {
-                    .texture2D = "wall",
                 },
                 .isCollidable = true,
                 .isRenderable = true,
@@ -93,42 +85,48 @@ void Player::build() {
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::W] = {
         .callback = [&](const Physbuzz::KeyEvent &event) {
-            camera.translate(camera.getFacing() * speed);
+            camera.view.position += camera.view.getFacing() * speed;
+            camera.view.update();
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::A] = {
         .callback = [&](const Physbuzz::KeyEvent &event) {
-            camera.translate(-camera.getRight() * speed);
+            camera.view.position -= camera.view.getRight() * speed;
+            camera.view.update();
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::S] = {
         .callback = [&](const Physbuzz::KeyEvent &event) {
-            camera.translate(-camera.getFacing() * speed);
+            camera.view.position -= camera.view.getFacing() * speed;
+            camera.view.update();
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::D] = {
         .callback = [&](const Physbuzz::KeyEvent &event) {
-            camera.translate(camera.getRight() * speed);
+            camera.view.position += camera.view.getRight() * speed;
+            camera.view.update();
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::Space] = {
         .callback = [&](const Physbuzz::KeyEvent &event) {
-            camera.translate(camera.getUp() * speed);
+            camera.view.position += camera.view.getUp() * speed;
+            camera.view.update();
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::LeftShift] = {
         .callback = [&](const Physbuzz::KeyEvent &event) {
-            camera.translate(-camera.getUp() * speed);
+            camera.view.position -= camera.view.getUp() * speed;
+            camera.view.update();
         },
     };
 
     m_Game->window.addCallback<Physbuzz::MousePositionEvent>([&](const Physbuzz::MousePositionEvent &event) {
-        if (ImGui::GetIO().WantCaptureMouse || m_Game->interface.draw || camera.getProjectionType() == Physbuzz::Camera::ProjectionType::Orthographic2D) {
+        if (ImGui::GetIO().WantCaptureMouse || m_Game->interface.draw || camera.getProjectionType() == Physbuzz::Camera::Type::Orthographic2D) {
             return;
         }
 
@@ -139,13 +137,14 @@ void Player::build() {
         lastPosition = event.position;
 
         glm::quat pitch = glm::angleAxis(glm::radians(offset.x), glm::vec3(0.0f, -1.0f, 0.0f));
-        glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.getUp(), camera.getFacing()));
+        glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.view.getUp(), camera.view.getFacing()));
 
-        camera.rotate(pitch * yaw);
+        camera.view.orientation = pitch * yaw * camera.view.orientation;
+        camera.view.update();
     });
 
     m_Game->window.addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
-        if (ImGui::GetIO().WantCaptureMouse || camera.getProjectionType() != Physbuzz::Camera::ProjectionType::Prespective) {
+        if (ImGui::GetIO().WantCaptureMouse || camera.getProjectionType() != Physbuzz::Camera::Type::Prespective) {
             return;
         }
 
@@ -156,6 +155,8 @@ void Player::build() {
     });
 }
 
-void Player::destroy() {
-    camera.destroy();
+void Player::destroy() {}
+
+void Player::resize(const glm::ivec2 &resolution) {
+    camera.resize(resolution, camera.getDepth());
 }

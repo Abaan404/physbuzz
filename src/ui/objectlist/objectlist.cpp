@@ -5,7 +5,9 @@
 #include "../../objects/line.hpp"
 #include "../../objects/quad.hpp"
 #include <format>
+#include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
 
@@ -54,38 +56,34 @@ void ObjectList::draw() {
                 ImGui::SeparatorText(std::format("{}) {}", object, identifier.name).c_str());
             }
 
-            if (game->scene.containsComponent<Physbuzz::TransformableComponent>(object)) {
-                Physbuzz::TransformableComponent &transform = game->scene.getComponent<Physbuzz::TransformableComponent>(object);
-                glm::vec3 norm = glm::axis(transform.orientation);
+            if (game->scene.containsComponent<Physbuzz::MeshComponent>(object)) {
+                Physbuzz::MeshComponent &mesh = game->scene.getComponent<Physbuzz::MeshComponent>(object);
 
-                float position[] = {transform.position.x, transform.position.y, transform.position.z};
-                float scale[] = {transform.scale.x, transform.scale.y, transform.scale.z};
-                float rotationAxis[] = {norm.x, norm.y, norm.z};
-                float rotationAngle = glm::angle(transform.orientation);
-
-                if (ImGui::DragFloat3("position", position, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    glm::vec3 tmp = glm::vec3(position[0], position[1], position[2]);
-                    transform.position = tmp;
+                if (ImGui::DragFloat3("position", glm::value_ptr(mesh.model.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    mesh.model.update();
 
                     rebuild = true;
                 }
 
-                if (ImGui::DragFloat3("scale", scale, 0.1f, MIN_VALUE, MAX_VALUE)) {
-                    glm::vec3 tmp = glm::vec3(scale[0], scale[1], scale[2]);
-                    transform.scale = tmp;
+                if (ImGui::DragFloat3("scale", glm::value_ptr(mesh.model.scale), 0.1f, MIN_VALUE, MAX_VALUE)) {
+                    mesh.model.update();
 
                     rebuild = true;
                 }
 
-                if (ImGui::DragFloat3("rotAxis", rotationAxis, 0.01f, 0.0f, 1.0f)) {
-                    glm::vec3 ret = glm::normalize(glm::vec3(rotationAxis[0], rotationAxis[1], rotationAxis[2]));
-                    transform.orientation = glm::angleAxis(rotationAngle, glm::vec3(ret[0], ret[1], ret[2]));
+                glm::vec3 axis = glm::axis(mesh.model.orientation);
+                float angle = glm::angle(mesh.model.orientation);
+
+                if (ImGui::DragFloat3("rotAxis", glm::value_ptr(axis), 0.01f, 0.0f, 1.0f)) {
+                    mesh.model.orientation = glm::angleAxis(angle, glm::normalize(axis));
+                    mesh.model.update();
 
                     rebuild = true;
                 }
 
-                if (ImGui::DragFloat("rotMag", &rotationAngle, glm::pi<float>() / 50.0f, 0, 2 * glm::pi<float>())) {
-                    transform.orientation = glm::angleAxis(rotationAngle, glm::vec3(rotationAxis[0], rotationAxis[1], rotationAxis[2]));
+                if (ImGui::DragFloat("rotMag", &angle, glm::pi<float>() / 50.0f, 0.0f, 2 * glm::pi<float>())) {
+                    mesh.model.orientation = glm::angleAxis(angle, glm::normalize(axis));
+                    mesh.model.update();
 
                     rebuild = true;
                 }
@@ -93,32 +91,12 @@ void ObjectList::draw() {
 
             if (game->scene.containsComponent<Physbuzz::RigidBodyComponent>(object)) {
                 Physbuzz::RigidBodyComponent &physics = game->scene.getComponent<Physbuzz::RigidBodyComponent>(object);
-                float velocity[] = {physics.velocity.x, physics.velocity.y, physics.velocity.z};
-                float acceleration[] = {physics.acceleration.x, physics.acceleration.y, physics.acceleration.z};
-                float gravity[] = {physics.gravity.acceleration.x, physics.gravity.acceleration.y, physics.gravity.acceleration.z};
-                float drag[] = {physics.drag.k1, physics.drag.k2};
 
                 ImGui::DragFloat("mass", &physics.mass, 0.01f, -MAX_VALUE, MAX_VALUE);
-
-                if (ImGui::DragFloat3("velocity", velocity, 0.01f, -MAX_VALUE, MAX_VALUE)) {
-                    glm::vec3 tmp = glm::vec3(velocity[0], velocity[1], velocity[2]);
-                    physics.velocity = tmp;
-                }
-
-                if (ImGui::DragFloat3("acceleration", acceleration, 0.01f, -MAX_VALUE, MAX_VALUE)) {
-                    glm::vec3 tmp = glm::vec3(acceleration[0], acceleration[1], velocity[2]);
-                    physics.acceleration = tmp;
-                }
-
-                if (ImGui::DragFloat3("gravity", gravity, 0.01f, -MAX_VALUE, MAX_VALUE)) {
-                    glm::vec3 tmp = glm::vec3(gravity[0], gravity[1], gravity[2]);
-                    physics.gravity.acceleration = tmp;
-                }
-
-                if (ImGui::DragFloat2("drag", drag, 0.01f, -MAX_VALUE, MAX_VALUE)) {
-                    physics.drag.k1 = drag[0];
-                    physics.drag.k2 = drag[1];
-                }
+                ImGui::DragFloat3("velocity", glm::value_ptr(physics.velocity), 0.01f, -MAX_VALUE, MAX_VALUE);
+                ImGui::DragFloat3("acceleration", glm::value_ptr(physics.acceleration), 0.01f, -MAX_VALUE, MAX_VALUE);
+                ImGui::DragFloat3("gravity", glm::value_ptr(physics.gravity.acceleration), 0.01f, -MAX_VALUE, MAX_VALUE);
+                ImGui::DragFloat2("drag", &physics.drag.k1, 0.01f, -MAX_VALUE, MAX_VALUE);
             }
 
             if (game->scene.containsComponent<LineComponent>(object)) {

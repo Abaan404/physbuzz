@@ -6,8 +6,8 @@ AngularResolver2D::AngularResolver2D(Scene *scene, float restitution)
     : LinearResolver2D(scene, restitution) {}
 
 void AngularResolver2D::solve(const Contact &contact) {
-    const TransformableComponent &transform1 = m_Scene->getComponent<TransformableComponent>(contact.object1);
-    const TransformableComponent &transform2 = m_Scene->getComponent<TransformableComponent>(contact.object2);
+    const MeshComponent &transform1 = m_Scene->getComponent<MeshComponent>(contact.object1);
+    const MeshComponent &transform2 = m_Scene->getComponent<MeshComponent>(contact.object2);
 
     RigidBodyComponent &body1 = m_Scene->getComponent<RigidBodyComponent>(contact.object1);
     RigidBodyComponent &body2 = m_Scene->getComponent<RigidBodyComponent>(contact.object2);
@@ -26,8 +26,8 @@ void AngularResolver2D::solve(const Contact &contact) {
     body2.angular.velocity += torque2 / body2.angular.inertia;
 }
 
-const glm::vec3 AngularResolver2D::calcTorque(const RigidBodyComponent &body, const TransformableComponent &transform, const glm::vec3 &point, const glm::vec3 &impulse) {
-    const glm::vec3 relPosition = point - transform.position;
+const glm::vec3 AngularResolver2D::calcTorque(const RigidBodyComponent &body, const MeshComponent &mesh, const glm::vec3 &point, const glm::vec3 &impulse) {
+    const glm::vec3 relPosition = point - mesh.model.position;
     return glm::cross(relPosition, impulse);
 }
 

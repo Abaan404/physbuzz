@@ -1,5 +1,7 @@
 #include "sweepandprune.hpp"
 
+#include <algorithm>
+
 namespace Physbuzz {
 
 SweepAndPrune2D::SweepAndPrune2D(Scene *scene, std::set<ObjectID> *objects)
@@ -24,7 +26,7 @@ std::list<Contact> SweepAndPrune2D::find() {
                 };
 
                 if (check(contact)) {
-                    contacts.push_back(std::move(contact));
+                    contacts.push_back(contact);
                 }
             }
 
@@ -43,7 +45,6 @@ std::list<Contact> SweepAndPrune2D::find() {
 }
 
 std::list<SweepEdge> SweepAndPrune2D::getEdges() {
-    // figure out a better way to store edges instead of allocating new edges everytime
     std::list<SweepEdge> edges;
 
     auto comparator = [](const SweepEdge &a, const SweepEdge &b) {

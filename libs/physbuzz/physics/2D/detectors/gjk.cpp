@@ -46,8 +46,8 @@ Gjk2D::Gjk2D(Scene *scene)
     : ICollisionDetector(scene) {}
 
 bool Gjk2D::check(Contact &contact) {
-    const Mesh &mesh1 = m_Scene->getComponent<Mesh>(contact.object1);
-    const Mesh &mesh2 = m_Scene->getComponent<Mesh>(contact.object2);
+    const MeshComponent &mesh1 = m_Scene->getComponent<MeshComponent>(contact.object1);
+    const MeshComponent &mesh2 = m_Scene->getComponent<MeshComponent>(contact.object2);
 
     glm::vec3 support = minkowskiSupportPoint(mesh1, mesh2, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 direction = -support;
@@ -119,7 +119,7 @@ bool Gjk2D::triangle(Simplex &simplex, glm::vec3 &direction) {
     return true;
 }
 
-void Gjk2D::Epa(Simplex &simplex, Contact &contact, const Mesh &mesh1, const Mesh &mesh2) {
+void Gjk2D::Epa(Simplex &simplex, Contact &contact, const MeshComponent &mesh1, const MeshComponent &mesh2) {
     std::vector<glm::vec3> polytope(simplex.begin(), simplex.end());
 
     std::size_t minIndex = 0;
@@ -164,14 +164,16 @@ void Gjk2D::Epa(Simplex &simplex, Contact &contact, const Mesh &mesh1, const Mes
 }
 
 // this might belong to a component than here, if I care about MPR (https://en.wikipedia.org/wiki/Minkowski_Portal_Refinement)
-glm::vec3 Gjk2D::supportPoint(const Mesh &mesh, const glm::vec3 &direction) {
+glm::vec3 Gjk2D::supportPoint(const MeshComponent &mesh, const glm::vec3 &direction) {
     glm::vec3 point;
     float proj = std::numeric_limits<float>::lowest();
 
     for (const auto &vertex : mesh.vertices) {
-        const float newProj = glm::dot(vertex.position, direction);
+        glm::vec3 position = mesh.model.toWorld(vertex.position);
+
+        const float newProj = glm::dot(position, direction);
         if (newProj > proj) {
-            point = vertex.position;
+            point = position;
             proj = newProj;
         }
     }
@@ -179,7 +181,7 @@ glm::vec3 Gjk2D::supportPoint(const Mesh &mesh, const glm::vec3 &direction) {
     return point;
 }
 
-glm::vec3 Gjk2D::minkowskiSupportPoint(const Mesh &mesh1, const Mesh &mesh2, const glm::vec3 &direction) {
+glm::vec3 Gjk2D::minkowskiSupportPoint(const MeshComponent &mesh1, const MeshComponent &mesh2, const glm::vec3 &direction) {
     return supportPoint(mesh1, direction) - supportPoint(mesh2, -direction);
 }
 

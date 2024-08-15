@@ -3,6 +3,7 @@
 #include "objects/builder.hpp"
 #include "player.hpp"
 #include "ui/handler.hpp"
+#include <physbuzz/resources/manager.hpp>
 #include <physbuzz/window/bindings.hpp>
 #include <physbuzz/window/window.hpp>
 

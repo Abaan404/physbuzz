@@ -4,12 +4,10 @@
 
 namespace Physbuzz {
 
-AABBComponent::AABBComponent(const Mesh &mesh, const TransformableComponent &transform) {
+AABBComponent::AABBComponent(const MeshComponent &mesh) {
     for (const auto &vertex : mesh.vertices) {
-        glm::vec3 transformedVertex = transform.generateModel() * glm::vec4(vertex.position, 1.0f);
-
-        min = glm::min(min, transformedVertex);
-        max = glm::max(max, transformedVertex);
+        min = glm::min(min, mesh.model.toWorld(vertex.position));
+        max = glm::max(max, mesh.model.toWorld(vertex.position));
     }
 }
 
@@ -72,31 +70,5 @@ void ICollisionResolver::solve(std::list<Contact> &contacts) {
 
 void ICollisionResolver::build() { return; }
 void ICollisionResolver::destroy() { return; }
-
-Collision::Collision(std::shared_ptr<ICollisionDetector> narrow, std::shared_ptr<ICollisionDetector> broad, std::shared_ptr<ICollisionResolver> resolver)
-    : narrowDetector(narrow),
-      broadDetector(broad),
-      resolver(resolver) {}
-
-Collision::~Collision() {}
-
-void Collision::tick(Scene &scene) {
-    std::list<Contact> contacts = broadDetector->find();
-    narrowDetector->find(contacts);
-
-    for (auto &contact : contacts) {
-        resolver->solve(contact);
-    }
-}
-
-void Collision::build() {
-    narrowDetector->build();
-    broadDetector->build();
-}
-
-void Collision::destroy() {
-    narrowDetector->destroy();
-    broadDetector->destroy();
-}
 
 } // namespace Physbuzz

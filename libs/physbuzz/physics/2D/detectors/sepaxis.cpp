@@ -6,12 +6,12 @@ SeperatingAxis2D::SeperatingAxis2D(Scene *scene)
     : ICollisionDetector(scene) {}
 
 bool SeperatingAxis2D::check(Contact &contact) {
-    if (!(m_Scene->containsComponent<Mesh>(contact.object1) && m_Scene->containsComponent<Mesh>(contact.object2))) {
+    if (!(m_Scene->containsComponent<MeshComponent>(contact.object1) && m_Scene->containsComponent<MeshComponent>(contact.object2))) {
         return false;
     }
 
-    const Mesh &mesh1 = m_Scene->getComponent<Mesh>(contact.object1);
-    const Mesh &mesh2 = m_Scene->getComponent<Mesh>(contact.object2);
+    const MeshComponent &mesh1 = m_Scene->getComponent<MeshComponent>(contact.object1);
+    const MeshComponent &mesh2 = m_Scene->getComponent<MeshComponent>(contact.object2);
 
     std::vector<glm::vec3> axes;
 
@@ -35,8 +35,8 @@ bool SeperatingAxis2D::check(Contact &contact) {
 }
 
 // get the depth of overlap
-float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const Mesh &mesh1, const Mesh &mesh2) {
-    auto getMinMax = [](const Mesh &mesh, const glm::vec3 &axis) {
+float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const MeshComponent &mesh1, const MeshComponent &mesh2) {
+    auto getMinMax = [](const MeshComponent &mesh, const glm::vec3 &axis) {
         struct {
             float min = std::numeric_limits<float>::max();
             float max = std::numeric_limits<float>::lowest();
@@ -66,7 +66,7 @@ float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const Mesh &mesh1,
     return glm::min(overlap1, overlap2);
 }
 
-void SeperatingAxis2D::addMeshNormals(const Mesh &mesh, std::vector<glm::vec3> &axes) {
+void SeperatingAxis2D::addMeshNormals(const MeshComponent &mesh, std::vector<glm::vec3> &axes) {
     static constexpr float PARALLEL_AXIS_THRESHOLD = 1e-3f;
 
     // TODO do a perf test on n^2 normal check or running on every normal based on no. of vertices

@@ -4,22 +4,6 @@
 
 namespace Physbuzz {
 
-const glm::mat4 TransformableComponent::generateModel() const {
-    const glm::mat4 translation = glm::translate(glm::mat4(1.0f), position);
-    const glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::angle(orientation), glm::axis(orientation)); // conjugate?
-    const glm::mat4 transformation = glm::scale(glm::mat4(1.0f), scale);
-
-    return translation * rotation * transformation;
-}
-
-void TransformableComponent::rotate(const glm::quat &delta) {
-    orientation = delta * orientation;
-}
-
-void TransformableComponent::translate(const glm::vec3 &delta) {
-    position += delta;
-}
-
 Dynamics::Dynamics(float dtime)
     : m_DeltaTime(dtime) {}
 
@@ -80,10 +64,17 @@ void Dynamics::tickMotion(Scene &scene, ObjectID id) const {
     // rotate object wrt axis and length of angular velocity vector
     // Note: t**2 is approx 0 for t << 0 (at high framerate)
     {
-        translate(scene, id, body.velocity * m_DeltaTime);
+        MeshComponent &mesh = scene.getComponent<MeshComponent>(id);
+        mesh.model.position += body.velocity * m_DeltaTime;
         if (glm::length(body.angular.velocity) > 0.0f) {
-            rotate(scene, id, glm::angleAxis(glm::length(body.angular.velocity) * m_DeltaTime, glm::normalize(body.angular.velocity)));
+            mesh.model.orientation = glm::angleAxis(glm::length(body.angular.velocity) * m_DeltaTime, glm::normalize(body.angular.velocity)) * mesh.model.orientation;
         }
+
+        mesh.model.update();
+
+        // adjust collision bounding box
+        AABBComponent aabb = AABBComponent(mesh);
+        scene.setComponent(id, aabb);
     }
 
     // apply accumulated forces to velocity and clear them
@@ -92,30 +83,6 @@ void Dynamics::tickMotion(Scene &scene, ObjectID id) const {
         body.velocity += (body.acceleration + body.accumForces / body.mass) * m_DeltaTime;
         body.accumForces = glm::vec3(0.0f, 0.0f, 0.0f);
         body.accumTorques = glm::vec3(0.0f, 0.0f, 0.0f);
-    }
-}
-
-void Dynamics::rotate(Scene &scene, ObjectID id, const glm::quat &delta) const {
-    TransformableComponent &transform = scene.getComponent<TransformableComponent>(id);
-    transform.rotate(delta);
-
-    // adjust collision bounding box
-    if (scene.containsComponent<AABBComponent, Mesh>(id)) {
-        transform.generateModel();
-        AABBComponent aabb = AABBComponent(scene.getComponent<Mesh>(id), transform);
-        scene.setComponent(id, aabb);
-    }
-}
-
-void Dynamics::translate(Scene &scene, ObjectID id, const glm::vec3 &delta) const {
-    TransformableComponent &transform = scene.getComponent<TransformableComponent>(id);
-    transform.translate(delta);
-
-    // adjust collision bounding box
-    if (scene.containsComponent<AABBComponent>(id)) {
-        AABBComponent &aabb = scene.getComponent<AABBComponent>(id);
-        aabb.max += delta;
-        aabb.min += delta;
     }
 }
 

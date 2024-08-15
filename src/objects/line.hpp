@@ -10,7 +10,7 @@ struct LineComponent {
 
 struct Line {
     // geometry
-    Physbuzz::TransformableComponent transform;
+    Physbuzz::Model model;
     LineComponent line;
 
     // naming

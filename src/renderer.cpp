@@ -5,6 +5,7 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <physbuzz/debug/logging.hpp>
 #include <physbuzz/render/shaders.hpp>
+#include <physbuzz/render/texture.hpp>
 
 Renderer::Renderer(Physbuzz::Window *window, Physbuzz::ResourceManager *resources)
     : m_Window(window), m_Resources(resources) {}
@@ -43,7 +44,7 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         texture = m_Resources->get<Physbuzz::Texture2DResource>("missing");
     }
 
-    const Physbuzz::Mesh &mesh = scene.getComponent<Physbuzz::Mesh>(object);
+    const Physbuzz::MeshComponent &mesh = scene.getComponent<Physbuzz::MeshComponent>(object);
 
     pipeline->bind();
     texture->bind();
@@ -60,8 +61,8 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
     pipeline->setUniform("u_Resolution", m_Window->getResolution());
 
     // MVP camera info
-    pipeline->setUniform("u_Model", scene.getComponent<Physbuzz::TransformableComponent>(object).generateModel());
-    pipeline->setUniform("u_View", activeCamera->getView());
+    pipeline->setUniform("u_Model", mesh.model.matrix);
+    pipeline->setUniform("u_View", activeCamera->view.matrix);
     pipeline->setUniform("u_Projection", activeCamera->getProjection());
 
     // send draw call

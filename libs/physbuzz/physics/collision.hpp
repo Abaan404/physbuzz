@@ -1,14 +1,14 @@
 #pragma once
 
+#include "../ecs/scene.hpp"
 #include "../events/handler.hpp"
 #include "../render/mesh.hpp"
-#include "dynamics.hpp"
 #include <list>
 
 namespace Physbuzz {
 
 struct AABBComponent {
-    AABBComponent(const Mesh &mesh, const TransformableComponent &transform);
+    AABBComponent(const MeshComponent &mesh);
 
     glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 max = glm::vec3(std::numeric_limits<float>::lowest());
@@ -44,33 +44,16 @@ class ICollisionDetector : public EventSubject {
 class ICollisionResolver : public EventSubject {
   public:
     ICollisionResolver(Scene *scene);
+    virtual ~ICollisionResolver() = default;
 
     virtual void build();
     virtual void destroy();
 
-    virtual ~ICollisionResolver() = default;
     virtual void solve(std::list<Contact> &contacts);
     virtual void solve(const Contact &contact) = 0;
 
   protected:
     Scene *m_Scene;
-};
-
-class Collision {
-  public:
-    Collision(std::shared_ptr<ICollisionDetector> narrow, std::shared_ptr<ICollisionDetector> broad, std::shared_ptr<ICollisionResolver> resolver);
-    ~Collision();
-
-    virtual void build();
-    virtual void destroy();
-
-    virtual void tick(Scene &scene);
-
-  protected:
-    std::shared_ptr<ICollisionDetector> narrowDetector;
-    std::shared_ptr<ICollisionDetector> broadDetector;
-
-    std::shared_ptr<ICollisionResolver> resolver;
 };
 
 } // namespace Physbuzz

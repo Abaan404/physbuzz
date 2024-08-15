@@ -12,7 +12,7 @@ struct Circle {
     Physbuzz::RigidBodyComponent body;
 
     // geometry
-    Physbuzz::TransformableComponent transform;
+    Physbuzz::Model model;
     CircleComponent circle;
 
     // naming

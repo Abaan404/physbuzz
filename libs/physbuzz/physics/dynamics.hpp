@@ -2,22 +2,12 @@
 
 #include "../ecs/scene.hpp"
 #include "../misc/clock.hpp"
+#include "../render/mesh.hpp"
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 namespace Physbuzz {
-
-struct TransformableComponent {
-    glm::vec3 position = {0.0f, 0.0f, 0.0f};
-    glm::vec3 scale = {1.0f, 1.0f, 1.0f};
-    glm::quat orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-
-    void rotate(const glm::quat &delta);
-    void translate(const glm::vec3 &delta);
-
-    const glm::mat4 generateModel() const;
-};
 
 struct RigidBodyComponent {
     float mass = 1.0f;
@@ -54,16 +44,13 @@ struct RigidBodyComponent {
     }
 };
 
-class Dynamics : public System<TransformableComponent, RigidBodyComponent> {
+class Dynamics : public System<MeshComponent, RigidBodyComponent> {
   public:
     Dynamics(float dtime);
     ~Dynamics();
 
     void tick(Scene &scene);
     const Clock &getClock() const;
-
-    void translate(Scene &scene, ObjectID id, const glm::vec3 &delta) const;
-    void rotate(Scene &scene, ObjectID id, const glm::quat &delta) const;
 
     const bool &isRunning() const;
     void start();

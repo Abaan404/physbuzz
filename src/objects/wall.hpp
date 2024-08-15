@@ -3,6 +3,8 @@
 #include "common.hpp"
 
 struct WallComponent {
+    glm::vec3 position;
+
     float width = 0.0f;
     float height = 0.0f;
     float thickness = 0.0f;
@@ -15,9 +17,6 @@ struct WallComponent {
 };
 
 struct Wall {
-    // physics info
-    Physbuzz::TransformableComponent transform;
-
     // geometry
     WallComponent wall;
 

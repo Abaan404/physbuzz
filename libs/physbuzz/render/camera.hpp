@@ -5,15 +5,34 @@
 
 namespace Physbuzz {
 
+struct View {
+    void update();
+    void reset();
+
+    void rotate(const glm::quat &delta);
+    void translate(const glm::vec3 &delta);
+
+    void setFacing(const glm::vec3 &facing);
+    const glm::vec3 getFacing() const;
+
+    void setUp(const glm::vec3 &up);
+    const glm::vec3 getUp() const;
+
+    void setRight(const glm::vec3 &right);
+    const glm::vec3 getRight() const;
+
+    glm::vec3 position = {0.0f, 0.0f, 0.0f};
+    glm::quat orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+
+    glm::mat4 matrix = glm::mat4(1.0f);
+};
+
 class Camera {
   public:
     Camera();
     ~Camera();
 
-    void build();
-    void destroy();
-
-    enum class ProjectionType {
+    enum class Type {
         Prespective,
         Orthographic,
         Orthographic2D,
@@ -37,11 +56,8 @@ class Camera {
         float far = 1.0f;
     };
 
-    void updateView();
-    void resetView();
     void resize(const glm::ivec2 &resolution, const Depth &depth);
 
-    // specialization for 2D projection
     void setOrthographic(const glm::ivec2 &resolution);
     void setOrthographic(const Orthographic &orthographic, const Depth &depth);
     const Orthographic &getOrthographic() const;
@@ -52,44 +68,21 @@ class Camera {
     const Depth &getDepth() const;
     void setDepth(const Depth &depth);
 
-    void translate(const glm::vec3 &delta);
-    void rotate(const glm::quat &delta);
-
-    void setView(const glm::mat4 &view);
-    const glm::mat4 &getView() const;
-
     void setProjection(const glm::mat4 &projection);
     const glm::mat4 &getProjection() const;
 
-    const ProjectionType &getProjectionType() const;
+    const Type &getProjectionType() const;
 
-    void setPosition(const glm::vec3 &position);
-    const glm::vec3 &getPosition() const;
-
-    void setOrientation(const glm::quat &orientaton);
-    const glm::quat &getOrientation() const;
-
-    void setFacing(const glm::vec3 &facing);
-    const glm::vec3 getFacing() const;
-
-    void setUp(const glm::vec3 &up);
-    const glm::vec3 getUp() const;
-
-    void setRight(const glm::vec3 &right);
-    const glm::vec3 getRight() const;
+    View view;
 
   private:
-    glm::mat4 m_View = glm::mat4(1.0f);
     glm::mat4 m_Projection = glm::mat4(1.0f);
-
-    glm::vec3 m_Position = {0.0f, 0.0f, 0.0f};
-    glm::quat m_Orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 
     Orthographic m_Orthographic;
     Prespective m_Prespective;
     Depth m_Depth;
 
-    ProjectionType m_ProjectionType = ProjectionType::Unknown;
+    Type m_ProjectionType = Type::Unknown;
 };
 
 } // namespace Physbuzz

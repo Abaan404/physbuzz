@@ -14,7 +14,7 @@ struct Cube {
     // Physbuzz::RigidBodyComponent body; // TODO implement me
 
     // geometry
-    Physbuzz::TransformableComponent transform;
+    Physbuzz::Model model;
     CubeComponent cube;
 
     // naming

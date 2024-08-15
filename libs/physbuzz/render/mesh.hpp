@@ -2,6 +2,7 @@
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <vector>
 
 namespace Physbuzz {
@@ -14,10 +15,24 @@ struct Vertex {
     glm::vec2 texCoords;
 };
 
-class Mesh {
+struct Model {
+    void update();
+    void reset();
+
+    const glm::vec3 toWorld(const glm::vec3 &local) const;
+    const glm::vec3 toLocal(const glm::vec3 &world) const;
+
+    glm::vec3 position = {0.0f, 0.0f, 0.0f};
+    glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+    glm::quat orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+
+    glm::mat4 matrix = glm::mat4(1.0f);
+};
+
+class MeshComponent {
   public:
-    Mesh();
-    ~Mesh();
+    MeshComponent(const Model &model);
+    ~MeshComponent();
 
     void build();
     void destroy();
@@ -28,6 +43,8 @@ class Mesh {
 
     std::vector<Vertex> vertices;
     std::vector<Index> indices;
+
+    Model model;
 
   private:
     GLuint VBO, VAO, EBO;

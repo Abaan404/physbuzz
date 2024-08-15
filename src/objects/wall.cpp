@@ -2,21 +2,22 @@
 
 #include "quad.hpp"
 #include <glm/glm.hpp>
+#include <physbuzz/physics/collision.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) {
     // user-defined components
-    scene->setComponent(object, info.transform, info.identifier, info.wall);
+    scene->setComponent(object, info.identifier, info.wall);
 
-    glm::vec3 min = info.transform.position - glm::vec3(info.wall.width / 2.0f, info.wall.height / 2.0f, 0.0f);
-    glm::vec3 max = info.transform.position + glm::vec3(info.wall.width / 2.0f, info.wall.height / 2.0f, 0.0f);
+    glm::vec3 min = info.wall.position - glm::vec3(info.wall.width / 2.0f, info.wall.height / 2.0f, 0.0f);
+    glm::vec3 max = info.wall.position + glm::vec3(info.wall.width / 2.0f, info.wall.height / 2.0f, 0.0f);
 
     Quad left = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
         },
-        .transform = {
-            .position = {min.x - info.wall.thickness / 2.0f, info.transform.position.y, 0.0f},
+        .model = {
+            .position = {min.x - info.wall.thickness / 2.0f, info.wall.position.y, 0.0f},
         },
         .quad = {
             .width = info.wall.thickness,
@@ -31,8 +32,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
         },
-        .transform = {
-            .position = {max.x + info.wall.thickness / 2.0f, info.transform.position.y, 0.0f},
+        .model = {
+            .position = {max.x + info.wall.thickness / 2.0f, info.wall.position.y, 0.0f},
         },
         .quad = {
             .width = info.wall.thickness,
@@ -47,8 +48,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
         },
-        .transform = {
-            .position = {info.transform.position.x, min.y - info.wall.thickness / 2.0f, 0.0f},
+        .model = {
+            .position = {info.wall.position.x, min.y - info.wall.thickness / 2.0f, 0.0f},
         },
         .quad = {
             .width = info.wall.width,
@@ -63,8 +64,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
         },
-        .transform = {
-            .position = {info.transform.position.x, max.y + info.wall.thickness / 2.0f, 0.0f},
+        .model = {
+            .position = {info.wall.position.x, max.y + info.wall.thickness / 2.0f, 0.0f},
         },
         .quad = {
             .width = info.wall.width,
@@ -85,13 +86,12 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
 
             for (const auto &id : {wall.left, wall.right, wall.up, wall.down}) {
                 isCollidable = builder.scene->containsComponent<Physbuzz::AABBComponent>(id) || isCollidable;
-                isRenderable = builder.scene->containsComponent<Physbuzz::Mesh>(id) || isRenderable;
+                isRenderable = builder.scene->containsComponent<Physbuzz::MeshComponent>(id) || isRenderable;
 
                 builder.scene->eraseObject(id);
             }
 
             Wall info = {
-                .transform = builder.scene->getComponent<Physbuzz::TransformableComponent>(object),
                 .wall = wall,
                 .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
                 .isCollidable = isCollidable,

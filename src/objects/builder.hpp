@@ -1,21 +1,12 @@
 #pragma once
 
-#include <physbuzz/physics/collision.hpp>
-#include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/ecs/scene.hpp>
 #include <physbuzz/render/mesh.hpp>
-#include <physbuzz/render/texture.hpp>
 
 class ObjectBuilder {
   public:
     ObjectBuilder(Physbuzz::Scene *scene);
     ~ObjectBuilder();
-
-    template <typename T>
-    Physbuzz::ObjectID create(Physbuzz::ObjectID id, T &info) {
-        scene->createObject(id);
-        return create(info);
-    }
 
     template <typename T>
     Physbuzz::ObjectID create(T &info) {
@@ -28,12 +19,18 @@ class ObjectBuilder {
         return create(id, info);
     }
 
+    template <typename T>
+    Physbuzz::ObjectID create(Physbuzz::ObjectID id, T &info) {
+        scene->createObject(id);
+        return create(info);
+    }
+
     Physbuzz::Scene *scene;
 
   private:
     // Common Util Functions
-    static void generate2DTexCoords(const Physbuzz::AABBComponent &aabb, Physbuzz::Mesh &mesh);
-    static void generate2DNormals(Physbuzz::Mesh &mesh);
+    static void generate2DTexCoords(Physbuzz::MeshComponent &mesh);
+    static void generate2DNormals(Physbuzz::MeshComponent &mesh);
 
     Physbuzz::ObjectID m_ObjectIdCounter = 0;
 };

@@ -2,6 +2,7 @@
 
 #include "builder.hpp"
 #include "common.hpp"
+#include <physbuzz/physics/dynamics.hpp>
 
 struct QuadComponent {
     float width = 0.0f;
@@ -13,7 +14,7 @@ struct Quad {
     Physbuzz::RigidBodyComponent body;
 
     // geometry
-    Physbuzz::TransformableComponent transform;
+    Physbuzz::Model model;
     QuadComponent quad;
 
     // naming

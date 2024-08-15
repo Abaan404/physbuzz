@@ -47,7 +47,7 @@ void Camera::draw() {
             break;
         }
 
-        game->player.camera.resetView();
+        game->player.camera.view.reset();
     }
 
     switch (currentProjection) {
@@ -112,22 +112,19 @@ void Camera::draw() {
     ImGui::SeparatorText("View");
 
     if (ImGui::Button("Reset")) {
-        game->player.camera.resetView();
+        game->player.camera.view.reset();
     }
 
-    glm::vec3 position = game->player.camera.getPosition();
-    if (ImGui::DragFloat3("position", glm::value_ptr(position), 1.0f, MIN_VALUE, MAX_VALUE)) {
-        game->player.camera.setPosition(position);
-    }
+    ImGui::DragFloat3("position", glm::value_ptr(game->player.camera.view.position), 1.0f, MIN_VALUE, MAX_VALUE);
 
-    glm::vec3 up = game->player.camera.getUp();
+    glm::vec3 up = game->player.camera.view.getUp();
     if (ImGui::DragFloat3("up", glm::value_ptr(up), 0.01f, MIN_VALUE, MAX_VALUE)) {
-        game->player.camera.setUp(glm::normalize(up));
+        game->player.camera.view.setUp(glm::normalize(up));
     }
 
-    glm::vec3 facing = game->player.camera.getFacing();
+    glm::vec3 facing = game->player.camera.view.getFacing();
     if (ImGui::DragFloat3("facing", glm::value_ptr(facing), 0.01f, MIN_VALUE, MAX_VALUE)) {
-        game->player.camera.setFacing(glm::normalize(facing));
+        game->player.camera.view.setFacing(glm::normalize(facing));
     }
 
     ImGui::SeparatorText("Player");

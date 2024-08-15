@@ -12,7 +12,7 @@
 
 ObjectPicker::ObjectPicker() {
     Quad quad = {
-        .transform = {
+        .model = {
             .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
         },
         .quad = {
@@ -23,7 +23,7 @@ ObjectPicker::ObjectPicker() {
     };
 
     Circle circle = {
-        .transform = {
+        .model = {
             .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
         },
         .circle = {
