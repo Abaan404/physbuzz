@@ -10,7 +10,10 @@ Bindings::Bindings(Physbuzz::Window *window)
 Bindings::~Bindings() {}
 
 void Bindings::build() {
-    Physbuzz::Logger::ASSERT(m_Window != nullptr, "[Binding] Building to a missing window");
+    if (!m_Window) {
+        Physbuzz::Logger::ERROR("[Binding] Building with a missing window");
+        return;
+    }
 
     m_Events.key = m_Window->addCallback<Physbuzz::KeyEvent>([&](const Physbuzz::KeyEvent &event) {
         if (event.action == Physbuzz::Action::Press) {
@@ -31,7 +34,7 @@ void Bindings::build() {
 
 void Bindings::destory() {
     if (m_Window == nullptr) {
-        Physbuzz::Logger::WARNING("[Binding] Destroying to a missing window");
+        Physbuzz::Logger::ERROR("[Binding] Destroying with a missing window");
         return;
     }
 
@@ -45,7 +48,10 @@ void Bindings::destory() {
 }
 
 void Bindings::poll() {
-    Physbuzz::Logger::ASSERT(m_Window != nullptr, "[Binding] Ticking to a missing window");
+    if (m_Window == nullptr) {
+        Physbuzz::Logger::ERROR("[Binding] Ticking with a missing window");
+        return;
+    }
 
     m_Window->poll();
 

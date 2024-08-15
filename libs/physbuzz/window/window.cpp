@@ -20,7 +20,7 @@ void Window::build(const glm::ivec2 &resolution) {
 
     // init glfw
     int isInit = glfwInit();
-    Logger::ASSERT(isInit == GLFW_TRUE, "[GLFW] Could not initialize GLFW.");
+    PBZ_ASSERT(isInit == GLFW_TRUE, "[GLFW] Could not initialize GLFW.");
 
     // create a window.
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -28,7 +28,7 @@ void Window::build(const glm::ivec2 &resolution) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     m_Window = glfwCreateWindow(resolution.x, resolution.y, "PhysBuzz Engine", nullptr, nullptr);
-    Logger::ASSERT(m_Window != nullptr, "[GLFW] Could not create a window.");
+    PBZ_ASSERT(m_Window != nullptr, "[GLFW] Could not create a window.");
 
     // Setup OpenGL
     glfwMakeContextCurrent(m_Window);

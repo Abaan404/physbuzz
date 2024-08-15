@@ -14,12 +14,12 @@ class Context {
     template <typename T>
     static T *get() {
         T *object = static_cast<T *>(storage);
-        Logger::ASSERT(object != nullptr, "Context does not exist");
+        PBZ_ASSERT(object != nullptr, "Context does not exist");
         return object;
     }
 
   private:
-    static void *storage;
+    inline static void *storage = nullptr;
 
     Context() = delete;
     Context(const Context &) = delete;

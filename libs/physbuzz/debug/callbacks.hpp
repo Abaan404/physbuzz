@@ -1,7 +1,6 @@
 #pragma once
 
 #include "logging.hpp"
-#include <format>
 #include <glad/gl.h>
 
 namespace Physbuzz {
@@ -103,12 +102,12 @@ static void OpenGLDebugCallback(GLenum source, GLenum type, unsigned int id, GLe
         break;
     }
 
-    fprintf(stderr, "[OpenGL %s %s %s]: %s\n", _source, _type, _severity, msg);
-    Logger::ASSERT(type != GL_DEBUG_TYPE_ERROR, "OpenGL ERROR");
+    Logger::ERROR("[OpenGL {} {} {}]: {}", _source, _type, _severity, msg);
+    PBZ_ASSERT(type != GL_DEBUG_TYPE_ERROR, "OpenGL ERROR");
 }
 
 static void glfwErrorCallback(int error, const char *description) {
-    Logger::WARNING(std::format("[GLFW ERROR] ({}) {}", error, description));
+    Logger::ERROR("[GLFW] ({}) {}", error, description);
 }
 
 } // namespace

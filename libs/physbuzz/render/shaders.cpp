@@ -105,12 +105,12 @@ void ShaderPipelineResource::build() {
     }
 
     if (!compiled[offsetof(ShaderPipelineInfo, vertex) / sizeof(ShaderInfo)]) {
-        Logger::WARNING("[ShaderPipelineResource] Could not compile vertex shader");
+        Logger::ERROR("[ShaderPipelineResource] Could not compile vertex shader");
         return;
     }
 
     if (!compiled[offsetof(ShaderPipelineInfo, fragment) / sizeof(ShaderInfo)]) {
-        Logger::WARNING("[ShaderPipelineResource] Could not compile fragment shader.");
+        Logger::ERROR("[ShaderPipelineResource] Could not compile fragment shader.");
         return;
     }
 

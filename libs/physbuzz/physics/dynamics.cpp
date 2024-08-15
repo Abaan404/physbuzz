@@ -23,7 +23,7 @@ void Dynamics::tick(Scene &scene) {
     const float &delta = m_Clock.getDelta();
 
     if (delta > 10.0f) {
-        Logger::WARNING(std::format("[Dynamics] Max Timeout exceeded, skipping frame ({}ms since last tick)", delta));
+        Logger::WARNING("[Dynamics] Max Timeout exceeded, skipping frame. ({:.3f}ms since last tick)", delta);
         return;
     }
 

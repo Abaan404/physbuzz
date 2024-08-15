@@ -11,7 +11,9 @@ Simplex::Simplex() {
 }
 
 Simplex::Simplex(std::initializer_list<glm::vec3> list) {
-    Logger::ASSERT(list.size() <= maxSize(), "4D collision is not supported.");
+    if (list.size() >= maxSize()) {
+        Logger::CRITICAL("[Gjk2D] 4D collision is not supported.");
+    }
 
     std::size_t i = 0;
     for (const auto &vec : list) {
@@ -30,7 +32,10 @@ void Simplex::pushFront(const glm::vec3 &point) {
 }
 
 const glm::vec3 &Simplex::operator[](const std::size_t &idx) const {
-    Logger::ASSERT(0 <= idx < size(), "Invalid Index");
+    if (idx < 0 || idx > size()) {
+        Logger::CRITICAL("[Gjk2D] Invalid Index {}.", idx);
+    }
+
     return m_Points[idx];
 }
 
@@ -78,8 +83,7 @@ bool Gjk2D::nextSimplex(Simplex &simplex, glm::vec3 &direction) {
         return triangle(simplex, direction);
     }
 
-    Logger::WARNING("Invalid Simplex... Discarding collision");
-    return false;
+    UNREACHABLE("Invalid Simplex.")
 }
 
 bool Gjk2D::line(Simplex &simplex, glm::vec3 &direction) {

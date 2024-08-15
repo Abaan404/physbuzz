@@ -62,7 +62,7 @@ class ContiguousMap {
     }
 
     T &get(K key) {
-        Logger::ASSERT(contains(key), "Map Does Not Contain Key.");
+        PBZ_ASSERT(contains(key), "Map Does Not Contain Key.");
         return m_Array[m_IdxMap[key]];
     }
 

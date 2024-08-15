@@ -26,8 +26,8 @@ class Signature {
         return m_CurId;
     }
 
-    static SignatureID m_CurId;
-    static std::set<SignatureID> m_Ids;
+    inline static SignatureID m_CurId = 0;
+    inline static std::set<SignatureID> m_Ids;
 };
 
 } // namespace Physbuzz

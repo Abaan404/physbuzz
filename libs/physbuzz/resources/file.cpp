@@ -1,7 +1,6 @@
 #include "file.hpp"
 
 #include "../debug/logging.hpp"
-#include <format>
 #include <fstream>
 
 namespace Physbuzz {
@@ -19,7 +18,7 @@ void FileResource::read() {
     std::ifstream stream = std::ifstream(m_Info.path, std::ios::in | std::ios::binary);
 
     if (!stream.is_open()) {
-        Logger::WARNING(std::format("[File] Failed to open file: {}", m_Info.path));
+        Logger::ERROR("[FileResource] Failed to open file: {}", m_Info.path);
         return;
     }
 
@@ -32,7 +31,7 @@ void FileResource::read() {
     buffer.push_back('\0');
 
     if (stream.fail()) {
-        Logger::WARNING(std::format("[File] Failed to read file: {}", m_Info.path));
+        Logger::ERROR("[FileResource] Failed to read file: {}", m_Info.path);
         return;
     }
 
@@ -43,20 +42,20 @@ void FileResource::write() {
     std::ofstream stream = std::ofstream(m_Info.path, std::ios::out | std::ios::binary);
 
     if (!stream.is_open()) {
-        Logger::WARNING(std::format("[File] Failed to open file: {}", m_Info.path));
+        Logger::ERROR("[FileResource] Failed to open file: {}", m_Info.path);
         return;
     }
 
     stream.write(buffer.data(), buffer.size());
 
     if (stream.fail()) {
-        Logger::WARNING(std::format("[File] Failed to write file: {}", m_Info.path));
+        Logger::ERROR("[FileResource] Failed to write file: {}", m_Info.path);
         return;
     }
 
     stream.close();
     if (stream.bad()) {
-        Logger::WARNING(std::format("[File] Failed to close file: {}", m_Info.path));
+        Logger::ERROR("[FileResource] Failed to close file: {}", m_Info.path);
         return;
     }
 }

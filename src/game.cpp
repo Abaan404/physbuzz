@@ -16,6 +16,7 @@ Game::~Game() {}
 
 void Game::build() {
     Physbuzz::Context::set(this);
+    Physbuzz::Logger::build();
 
     glm::ivec2 resolution = glm::ivec2(1920, 1080);
 

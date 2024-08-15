@@ -13,6 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # glm
 set(GLM_PATH "submodules/glm")
 add_subdirectory(${GLM_PATH})
+set(SPDLOG_BUILD_SHARED ON)
 
 # glad
 set(GLAD_PATH "submodules/glad")
@@ -23,6 +24,11 @@ glad_add_library(glad SHARED API gl:core=4.6)
 set(GLFW_PATH "submodules/glfw")
 add_subdirectory(${GLFW_PATH})
 
+# spdlog
+set(SPDLOG_PATH "submodules/spdlog")
+add_subdirectory(${SPDLOG_PATH})
+
+# stb
 set(STB_PATH "submodules/stb")
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE
@@ -58,6 +64,7 @@ target_include_directories(physbuzz PUBLIC
     ${ENGINE_PATH})
 
 target_link_libraries(physbuzz PUBLIC
+    spdlog::spdlog
     stb
     glfw
     glad

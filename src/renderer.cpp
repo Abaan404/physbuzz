@@ -1,7 +1,6 @@
 #include "renderer.hpp"
 
 #include "objects/common.hpp"
-#include <format>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <physbuzz/debug/logging.hpp>
 #include <physbuzz/render/shaders.hpp>
@@ -22,25 +21,28 @@ void Renderer::tick(Physbuzz::Scene &scene) {
     m_Clock.tick();
     clear(m_ClearColor);
 
+    if (!activeCamera) {
+        Physbuzz::Logger::ERROR("[Renderer] No camera bound to renderer.");
+        return;
+    }
+
     for (const auto &object : m_Objects) {
         render(scene, object);
     }
 }
 
 void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
-    Physbuzz::Logger::ASSERT(activeCamera != nullptr, "No camera bound to renderer");
-
     const ResourceIdentifierComponent &identifiers = scene.getComponent<ResourceIdentifierComponent>(object);
     const Physbuzz::ShaderPipelineResource *pipeline = m_Resources->get<Physbuzz::ShaderPipelineResource>(identifiers.pipeline);
     const Physbuzz::Texture2DResource *texture = m_Resources->get<Physbuzz::Texture2DResource>(identifiers.texture2D);
 
     if (!pipeline) {
-        Physbuzz::Logger::WARNING(std::format("[Renderer] ShaderPipelineResource '{}' unknown.", identifiers.pipeline));
+        Physbuzz::Logger::ERROR("[Renderer] ShaderPipelineResource '{}' unknown.", identifiers.pipeline);
         return;
     }
 
     if (!texture) {
-        Physbuzz::Logger::WARNING(std::format("[Renderer] Texture2DResource '{}' unknown.", identifiers.texture2D));
+        Physbuzz::Logger::WARNING("[Renderer] Texture2DResource '{}' unknown.", identifiers.texture2D);
         texture = m_Resources->get<Physbuzz::Texture2DResource>("missing");
     }
 

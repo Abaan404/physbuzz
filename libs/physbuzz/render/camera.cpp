@@ -135,7 +135,7 @@ const Camera::Prespective &Camera::getPrespective() const {
 }
 
 const Camera::Orthographic &Camera::getOrthographic() const {
-    if (m_ProjectionType != Type::Orthographic || m_ProjectionType != Type::Orthographic2D) {
+    if (m_ProjectionType != Type::Orthographic && m_ProjectionType != Type::Orthographic2D) {
         Logger::WARNING("[Camera] Trying to fetch a non-orthographic camera");
     }
 

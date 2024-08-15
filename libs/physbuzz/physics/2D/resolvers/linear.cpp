@@ -7,7 +7,8 @@ namespace Physbuzz {
 LinearResolver2D::LinearResolver2D(Scene *scene, float restitution)
     : ICollisionResolver(scene), m_Restitution(restitution) {
     if (m_Restitution > 1.0f) {
-        Logger::WARNING("Linear restitution is greater than 1.0f");
+        Logger::WARNING("[LinearResolver2D] Linear restitution is out of bounds {}, Clamping...", restitution);
+        m_Restitution = glm::clamp(m_Restitution, 0.0f, 1.0f);
     }
 }
 

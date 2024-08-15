@@ -1,7 +1,5 @@
 #include "texture.hpp"
 
-#include <format>
-
 namespace Physbuzz {
 
 Texture2DResource::Texture2DResource(const Texture2DInfo &texture2D)
@@ -17,7 +15,7 @@ void Texture2DResource::build() {
     GLint maxUnits;
     glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &maxUnits);
     if (m_Unit > maxUnits) {
-        Logger::ERROR(std::format("[Texture2DResource] TextureUnit is out of range, supported ranges: {}", maxUnits));
+        Logger::ERROR("[Texture2DResource] TextureUnit is out of range, supported ranges: {}", maxUnits);
     }
 
     ImageResource image = ImageResource(m_Info.image);
@@ -25,7 +23,7 @@ void Texture2DResource::build() {
     image.read();
 
     if (image.buffer == nullptr) {
-        Logger::WARNING(std::format("[Texture2D] Could not load image: {}", m_Info.image.file.path));
+        Logger::ERROR("[Texture2D] Could not load image: {}", m_Info.image.file.path);
         image.destroy();
         return;
     }
@@ -104,7 +102,7 @@ void ResourceContainer<Texture2DResource>::insert(const std::string &identifier,
     }
 
     if (unit == -1) {
-        Logger::ERROR(std::format("[Texture2DResource] TextureArray is full, cannot allocate \"{}\"...", identifier));
+        Logger::ERROR("[Texture2DResource] TextureArray is full, cannot allocate \"{}\"...", identifier);
     }
 
     Texture2DResource newResource = resource;
