@@ -1,6 +1,8 @@
 #pragma once
 
+#include "../misc/watcher.hpp"
 #include "../resources/file.hpp"
+#include "../resources/manager.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <string>
@@ -50,21 +52,21 @@ class Shader {
     Shader(const ShaderInfo &info, const ShaderType &type);
     ~Shader();
 
-    void build();
-    void destroy();
+    bool build();
+    bool destroy();
 
     bool compile();
 
-    void bind(GLuint program) const;
-    void unbind(GLuint program) const;
+    bool attach(GLuint program) const;
+    bool detach(GLuint program) const;
 
     const GLuint &getShader() const;
     const ShaderType &getType() const;
 
   private:
     ShaderInfo m_Info;
-    GLuint m_Shader;
-    ShaderType m_Type;
+    GLuint m_Shader = 0;
+    ShaderType m_Type = ShaderType::Unknown;
 };
 
 struct ShaderPipelineInfo {
@@ -78,17 +80,20 @@ struct ShaderPipelineInfo {
 
 class ShaderPipelineResource {
   public:
-    ShaderPipelineResource(const ShaderPipelineInfo &info);
+    ShaderPipelineResource(const ShaderPipelineInfo &info, bool watched = false);
     ~ShaderPipelineResource();
 
-    void build();
-    void destroy();
+    bool build();
+    bool destroy();
 
-    void bind() const;
-    void unbind() const;
+    bool reload();
+    void requestReload();
+
+    bool bind() const;
+    bool unbind() const;
 
     template <UniformType T>
-    void setUniform(const std::string &name, const T &data) const {
+    inline void setUniform(const std::string &name, const T &data) const {
         setUniformInternal(glGetUniformLocation(m_Program, name.c_str()), data);
     }
 
@@ -124,7 +129,20 @@ class ShaderPipelineResource {
     void setUniformInternal(const GLint location, const glm::mat4x3 &data) const;
 
     ShaderPipelineInfo m_Info;
-    GLuint m_Program;
+    GLuint m_Program = 0;
+    WatchID m_WatchId = 0;
+
+    bool m_RequestedReload = false;
+    bool m_IsWatched = false;
+
+    template <ResourceType T>
+    friend class ResourceContainer;
 };
+
+template <>
+bool ResourceContainer<ShaderPipelineResource>::insert(const std::string &identifier, ShaderPipelineResource &&resource);
+
+template <>
+bool ResourceContainer<ShaderPipelineResource>::erase(const std::string &identifier);
 
 } // namespace Physbuzz

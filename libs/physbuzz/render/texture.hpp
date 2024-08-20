@@ -15,11 +15,11 @@ class Texture2DResource {
     Texture2DResource(const Texture2DInfo &texture2D);
     ~Texture2DResource();
 
-    void build();
-    void destroy();
+    bool build();
+    bool destroy();
 
-    void bind() const;
-    void unbind() const;
+    bool bind() const;
+    bool unbind() const;
 
     const GLint &getUnit() const;
 
@@ -33,14 +33,10 @@ class Texture2DResource {
     friend class ResourceContainer;
 };
 
-// specialize texture containers
 template <>
-void ResourceContainer<Texture2DResource>::destroy();
+bool ResourceContainer<Texture2DResource>::insert(const std::string &identifier, Texture2DResource &&resource);
 
 template <>
-void ResourceContainer<Texture2DResource>::insert(const std::string &identifier, const Texture2DResource &resource);
-
-template <>
-bool ResourceContainer<Texture2DResource>::remove(const std::string &identifier);
+bool ResourceContainer<Texture2DResource>::erase(const std::string &identifier);
 
 } // namespace Physbuzz

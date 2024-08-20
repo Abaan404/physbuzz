@@ -7,108 +7,139 @@ namespace Physbuzz {
 
 template <typename T>
 concept ResourceType = requires(T a) {
-    { a.build() } -> std::same_as<void>;
-    { a.destroy() } -> std::same_as<void>;
+    { a.build() } -> std::same_as<bool>;
+    { a.destroy() } -> std::same_as<bool>;
 };
 
 template <ResourceType T>
 class ResourceContainer {
   public:
-    void build() {
-        base_build();
+    inline bool build(const std::string &identifier) {
+        return base_build(identifier);
     }
 
-    void destroy() {
-        base_destroy();
+    inline bool destroy(const std::string &identifier) {
+        return base_destroy(identifier);
     }
 
-    void insert(const std::string &identifer, const T &data) {
-        base_insert(identifer, data);
+    inline bool insert(const std::string &identifier, T &&data) {
+        return base_insert(identifier, std::move(data));
     }
 
-    bool remove(const std::string &identifer) {
-        return base_remove(identifer);
+    inline bool erase(const std::string &identifier) {
+        return base_erase(identifier);
     }
 
-    bool contains(const std::string &identifier) {
+    inline bool contains(const std::string &identifier) {
         return base_contains(identifier);
     }
 
-    T *get(const std::string &identifer) {
-        return base_get(identifer);
+    inline T *get(const std::string &identifier) {
+        return base_get(identifier);
+    }
+
+    inline void clear() {
+        return base_clear();
     }
 
   private:
-    void base_build() {
-        for (const auto &identifier : m_Map.getKeys()) {
-            m_Map.get(identifier).build();
+    inline bool base_build(const std::string &identifier) {
+        T *resource = get(identifier);
+        if (!resource) {
+            Logger::ERROR("[ResourceManager] Failed to find resource {}", identifier);
+            return false;
         }
-    }
 
-    void base_destroy() {
-        for (const auto &identifier : m_Map.getKeys()) {
-            m_Map.get(identifier).destroy();
+        if (!resource->build()) {
+            Logger::ERROR("[ResourceManager] Failed to build resource {}", identifier);
+            return false;
         }
+
+        return true;
     }
 
-    void base_insert(const std::string &identifer, const T &resource) {
-        m_Map.insert(identifer, resource);
+    inline bool base_destroy(const std::string &identifier) {
+        T *resource = get(identifier);
+
+        if (!resource) {
+            Logger::ERROR("[ResourceManager] Failed to find resource {}", identifier);
+            return false;
+        }
+
+        if (!resource->destroy()) {
+            Logger::ERROR("[ResourceManager] Failed to destroy resource {}", identifier);
+            return false;
+        }
+
+        return true;
     }
 
-    bool base_remove(const std::string &identifer) {
-        return m_Map.erase(identifer);
+    inline bool base_insert(const std::string &identifier, T &&resource) {
+        if (contains(identifier)) {
+            erase(identifier);
+        }
+
+        m_Map.insert(identifier, resource);
+        build(identifier);
+        return true;
     }
 
-    bool base_contains(const std::string &identifier) {
+    inline bool base_erase(const std::string &identifier) {
+        destroy(identifier);
+        return m_Map.erase(identifier);
+    }
+
+    inline bool base_contains(const std::string &identifier) {
         return m_Map.contains(identifier);
     }
 
-    T *base_get(const std::string &identifer) {
-        if (m_Map.contains(identifer)) {
-            return &m_Map.get(identifer);
-        } else {
+    inline T *base_get(const std::string &identifier) {
+        if (!contains(identifier)) {
             return nullptr;
+        }
+
+        return &m_Map.get(identifier);
+    }
+
+    inline void base_clear() {
+        for (auto &identifier : m_Map.getKeys()) {
+            destroy(identifier);
         }
     }
 
     ContiguousMap<std::string, T> m_Map;
 };
 
-class ResourceManager {
+class ResourceRegistry {
   public:
     template <ResourceType T>
-    void build() {
-        getContainer<T>().build();
+    inline static void insert(const std::string &identifier, T &&data) {
+        getContainer<T>().insert(identifier, std::move(data));
     }
 
     template <ResourceType T>
-    void destroy() {
-        getContainer<T>().destroy();
+    inline static bool erase(const std::string &identifier) {
+        return getContainer<T>().erase(identifier);
     }
 
     template <ResourceType T>
-    T *get(const std::string &identifier) {
+    inline static T *get(const std::string &identifier) {
         return getContainer<T>().get(identifier);
     }
 
     template <ResourceType T>
-    void insert(const std::string &identifier, const T &data) {
-        getContainer<T>().insert(identifier, data);
-    }
-
-    template <ResourceType T>
-    bool remove(const std::string &identifier) {
-        return getContainer<T>().remove(identifier);
-    }
-
-    template <ResourceType T>
-    bool contains(const std::string &identifier) {
+    inline static bool contains(const std::string &identifier) {
         return getContainer<T>().contains(identifier);
+    }
+
+    template <ResourceType T>
+    inline static void clear() {
+        getContainer<T>().clear();
     }
 
   private:
     template <ResourceType T>
-    ResourceContainer<T> &getContainer() {
+    inline static ResourceContainer<T> &getContainer() {
         static ResourceContainer<T> container = ResourceContainer<T>();
         return container;
     }

@@ -14,11 +14,11 @@ class ImageResource {
     ImageResource(const ImageInfo &image);
     ~ImageResource();
 
-    void build();
-    void destroy();
+    bool build();
+    bool destroy();
 
-    void read();
-    void write();
+    bool read();
+    bool write();
 
     const int &getChannels() const;
     const glm::ivec2 &getResolution() const;

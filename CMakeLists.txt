@@ -28,6 +28,10 @@ add_subdirectory(${GLFW_PATH})
 set(SPDLOG_PATH "submodules/spdlog")
 add_subdirectory(${SPDLOG_PATH})
 
+# efsw
+set(EFSW_PATH "submodules/efsw")
+add_subdirectory(${EFSW_PATH})
+
 # stb
 set(STB_PATH "submodules/stb")
 add_library(stb INTERFACE)
@@ -66,6 +70,7 @@ target_include_directories(physbuzz PUBLIC
 target_link_libraries(physbuzz PUBLIC
     spdlog::spdlog
     stb
+    efsw
     glfw
     glad
     glm)

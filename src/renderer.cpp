@@ -6,8 +6,8 @@
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/texture.hpp>
 
-Renderer::Renderer(Physbuzz::Window *window, Physbuzz::ResourceManager *resources)
-    : m_Window(window), m_Resources(resources) {}
+Renderer::Renderer(Physbuzz::Window *window)
+    : m_Window(window) {}
 
 Renderer::~Renderer() {}
 
@@ -33,22 +33,31 @@ void Renderer::tick(Physbuzz::Scene &scene) {
 
 void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
     const ResourceIdentifierComponent &identifiers = scene.getComponent<ResourceIdentifierComponent>(object);
-    const Physbuzz::ShaderPipelineResource *pipeline = m_Resources->get<Physbuzz::ShaderPipelineResource>(identifiers.pipeline);
-    const Physbuzz::Texture2DResource *texture = m_Resources->get<Physbuzz::Texture2DResource>(identifiers.texture2D);
 
+    Physbuzz::ShaderPipelineResource *pipeline = Physbuzz::ResourceRegistry::get<Physbuzz::ShaderPipelineResource>(identifiers.pipeline);
     if (!pipeline) {
         Physbuzz::Logger::ERROR("[Renderer] ShaderPipelineResource '{}' unknown.", identifiers.pipeline);
         return;
     }
 
+    // check for reload before binding
+    if (!pipeline->reload()) {
+        return;
+    }
+
+    if (!pipeline->bind()) {
+        pipeline->unbind();
+        return;
+    }
+
+    Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(identifiers.texture2D);
     if (!texture) {
         Physbuzz::Logger::WARNING("[Renderer] Texture2DResource '{}' unknown.", identifiers.texture2D);
-        texture = m_Resources->get<Physbuzz::Texture2DResource>("missing");
+        texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>("missing");
     }
 
     const Physbuzz::MeshComponent &mesh = scene.getComponent<Physbuzz::MeshComponent>(object);
 
-    pipeline->bind();
     texture->bind();
     mesh.bind();
 

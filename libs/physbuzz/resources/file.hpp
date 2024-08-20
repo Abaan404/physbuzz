@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
+#include <filesystem>
 #include <vector>
 
 namespace Physbuzz {
 
 struct FileInfo {
-    std::string path = "";
+    std::filesystem::path path;
 };
 
 class FileResource {
@@ -14,11 +14,11 @@ class FileResource {
     FileResource(const FileInfo &file);
     ~FileResource();
 
-    void build();
-    void destroy();
+    bool build();
+    bool destroy();
 
-    void read();
-    void write();
+    bool read();
+    bool write();
 
     const std::streampos &getSize() const;
 

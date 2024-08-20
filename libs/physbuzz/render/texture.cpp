@@ -7,9 +7,9 @@ Texture2DResource::Texture2DResource(const Texture2DInfo &texture2D)
 
 Texture2DResource::~Texture2DResource() {}
 
-void Texture2DResource::build() {
+bool Texture2DResource::build() {
     if (m_Info.image.file.path.empty()) {
-        return;
+        return false;
     }
 
     GLint maxUnits;
@@ -19,13 +19,15 @@ void Texture2DResource::build() {
     }
 
     ImageResource image = ImageResource(m_Info.image);
-    image.build();
-    image.read();
+    if (!image.build()) {
+        Logger::ERROR("[Texture2D] Could not build image: {}", m_Info.image.file.path.string());
+        return false;
+    }
 
-    if (image.buffer == nullptr) {
-        Logger::ERROR("[Texture2D] Could not load image: {}", m_Info.image.file.path);
+    if (!image.read()) {
+        Logger::ERROR("[Texture2D] Could not load image: {}", m_Info.image.file.path.string());
         image.destroy();
-        return;
+        return false;
     }
 
     glGenTextures(1, &m_Texture);
@@ -45,19 +47,23 @@ void Texture2DResource::build() {
     glGenerateMipmap(GL_TEXTURE_2D);
 
     image.destroy();
+    return true;
 }
 
-void Texture2DResource::destroy() {
+bool Texture2DResource::destroy() {
     glDeleteTextures(1, &m_Texture);
+    return true;
 }
 
-void Texture2DResource::bind() const {
+bool Texture2DResource::bind() const {
     glActiveTexture(GL_TEXTURE0 + m_Unit);
     glBindTexture(GL_TEXTURE_2D, m_Texture);
+    return true;
 }
 
-void Texture2DResource::unbind() const {
+bool Texture2DResource::unbind() const {
     glBindTexture(GL_TEXTURE_2D, 0);
+    return true;
 }
 
 const GLint &Texture2DResource::getUnit() const {
@@ -81,15 +87,7 @@ static std::vector<bool> &getClaimedUnits() {
 }
 
 template <>
-void ResourceContainer<Texture2DResource>::destroy() {
-    std::vector<bool> &claimedUnits = getClaimedUnits();
-    std::fill(claimedUnits.begin(), claimedUnits.end(), false);
-
-    ResourceContainer::base_destroy();
-}
-
-template <>
-void ResourceContainer<Texture2DResource>::insert(const std::string &identifier, const Texture2DResource &resource) {
+bool ResourceContainer<Texture2DResource>::insert(const std::string &identifier, Texture2DResource &&resource) {
     std::vector<bool> &claimedUnits = getClaimedUnits();
 
     GLint unit = -1;
@@ -103,20 +101,19 @@ void ResourceContainer<Texture2DResource>::insert(const std::string &identifier,
 
     if (unit == -1) {
         Logger::ERROR("[Texture2DResource] TextureArray is full, cannot allocate \"{}\"...", identifier);
+        return false;
     }
 
-    Texture2DResource newResource = resource;
-    newResource.m_Unit = unit;
-
-    ResourceContainer::base_insert(identifier, newResource);
+    resource.m_Unit = unit;
+    return ResourceContainer::base_insert(identifier, std::move(resource));
 }
 
 template <>
-bool ResourceContainer<Texture2DResource>::remove(const std::string &identifier) {
+bool ResourceContainer<Texture2DResource>::erase(const std::string &identifier) {
     Texture2DResource &texture = m_Map.get(identifier);
     getClaimedUnits()[texture.m_Unit] = false;
 
-    return base_remove(identifier);
+    return base_erase(identifier);
 }
 
 } // namespace Physbuzz

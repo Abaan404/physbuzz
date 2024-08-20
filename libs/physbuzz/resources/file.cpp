@@ -10,16 +10,20 @@ FileResource::FileResource(const FileInfo &file)
 
 FileResource::~FileResource() {}
 
-void FileResource::build() {}
+bool FileResource::build() {
+    return true;
+}
 
-void FileResource::destroy() {}
+bool FileResource::destroy() {
+    return true;
+}
 
-void FileResource::read() {
+bool FileResource::read() {
     std::ifstream stream = std::ifstream(m_Info.path, std::ios::in | std::ios::binary);
 
     if (!stream.is_open()) {
-        Logger::ERROR("[FileResource] Failed to open file: {}", m_Info.path);
-        return;
+        Logger::ERROR("[FileResource] Failed to open file: {}", m_Info.path.string());
+        return false;
     }
 
     stream.seekg(0, std::ios::end);
@@ -31,33 +35,29 @@ void FileResource::read() {
     buffer.push_back('\0');
 
     if (stream.fail()) {
-        Logger::ERROR("[FileResource] Failed to read file: {}", m_Info.path);
-        return;
+        Logger::ERROR("[FileResource] Failed to read file: {}", m_Info.path.string());
+        return false;
     }
 
-    stream.close();
+    return true;
 }
 
-void FileResource::write() {
+bool FileResource::write() {
     std::ofstream stream = std::ofstream(m_Info.path, std::ios::out | std::ios::binary);
 
     if (!stream.is_open()) {
-        Logger::ERROR("[FileResource] Failed to open file: {}", m_Info.path);
-        return;
+        Logger::ERROR("[FileResource] Failed to open file: {}", m_Info.path.string());
+        return false;
     }
 
     stream.write(buffer.data(), buffer.size());
 
     if (stream.fail()) {
-        Logger::ERROR("[FileResource] Failed to write file: {}", m_Info.path);
-        return;
+        Logger::ERROR("[FileResource] Failed to write file: {}", m_Info.path.string());
+        return false;
     }
 
-    stream.close();
-    if (stream.bad()) {
-        Logger::ERROR("[FileResource] Failed to close file: {}", m_Info.path);
-        return;
-    }
+    return true;
 }
 
 const std::streampos &FileResource::getSize() const {

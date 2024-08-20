@@ -10,7 +10,7 @@
 
 class Renderer : public Physbuzz::System<Physbuzz::MeshComponent, ResourceIdentifierComponent> {
   public:
-    Renderer(Physbuzz::Window *window, Physbuzz::ResourceManager *resources);
+    Renderer(Physbuzz::Window *window);
     ~Renderer();
 
     void build() override;
@@ -38,5 +38,4 @@ class Renderer : public Physbuzz::System<Physbuzz::MeshComponent, ResourceIdenti
     // FIXME: target only FBOs, remove dependency on a "window"
     Physbuzz::Framebuffer *m_Framebuffer = nullptr;
     Physbuzz::Window *m_Window = nullptr;
-    Physbuzz::ResourceManager *m_Resources = nullptr;
 };

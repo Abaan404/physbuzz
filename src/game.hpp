@@ -25,7 +25,6 @@ class Game {
 
     // object management
     Physbuzz::Scene scene;
-    Physbuzz::ResourceManager resources;
     ObjectBuilder builder;
 
     // ImGui

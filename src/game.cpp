@@ -18,7 +18,7 @@ void Game::build() {
     Physbuzz::Context::set(this);
     Physbuzz::Logger::build();
 
-    glm::ivec2 resolution = glm::ivec2(1920, 1080);
+    glm::ivec2 resolution = glm::ivec2(1280, 720);
 
     window.build(resolution);
     player.build();
@@ -34,49 +34,45 @@ void Game::build() {
         window.close();
     });
 
-    resources.insert<Physbuzz::ShaderPipelineResource>(
+    Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
         "default",
-        Physbuzz::ShaderPipelineResource({
+        {{
             .vertex = {.file = {.path = "resources/shaders/default.vert"}},
             .fragment = {.file = {.path = "resources/shaders/default.frag"}},
-        }));
+        }});
 
-    resources.insert<Physbuzz::ShaderPipelineResource>(
+    Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
         "quad",
-        Physbuzz::ShaderPipelineResource({
+        {{
             .vertex = {.file = {.path = "resources/shaders/default.vert"}},
             .fragment = {.file = {.path = "resources/shaders/quad.frag"}},
-        }));
+        }});
 
-    resources.insert<Physbuzz::ShaderPipelineResource>(
+    Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
         "circle",
-        Physbuzz::ShaderPipelineResource({
+        {{
             .vertex = {.file = {.path = "resources/shaders/default.vert"}},
             .fragment = {.file = {.path = "resources/shaders/circle.frag"}},
-        }));
+        }});
 
-    resources.insert<Physbuzz::ShaderPipelineResource>(
+    Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
         "cube",
-        Physbuzz::ShaderPipelineResource({
+        {{
             .vertex = {.file = {.path = "resources/shaders/default.vert"}},
             .fragment = {.file = {.path = "resources/shaders/cube.frag"}},
-        }));
+        }});
 
-    resources.build<Physbuzz::ShaderPipelineResource>();
-
-    resources.insert<Physbuzz::Texture2DResource>(
+    Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
         "missing",
-        Physbuzz::Texture2DResource({
+        {{
             .image = {.file = {.path = "resources/textures/missing.png"}},
-        }));
+        }});
 
-    resources.insert<Physbuzz::Texture2DResource>(
+    Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
         "wall",
-        Physbuzz::Texture2DResource({
+        {{
             .image = {.file = {.path = "resources/textures/wall.jpg"}},
-        }));
-
-    resources.build<Physbuzz::Texture2DResource>();
+        }});
 
     reset();
 
@@ -104,7 +100,7 @@ void Game::reset() {
         scene.emplaceSystem<Collision>(&scene, 0.9);
         scene.emplaceSystem<Physbuzz::Dynamics>(0.0005);
 
-        std::shared_ptr<Renderer> renderer = scene.emplaceSystem<Renderer>(&window, &resources);
+        std::shared_ptr<Renderer> renderer = scene.emplaceSystem<Renderer>(&window);
         renderer->activeCamera = &player.camera;
     }
 
@@ -147,8 +143,8 @@ void Game::loop() {
 }
 
 void Game::destroy() {
-    resources.destroy<Physbuzz::ShaderPipelineResource>();
-    resources.destroy<Physbuzz::Texture2DResource>();
+    Physbuzz::ResourceRegistry::clear<Physbuzz::ShaderPipelineResource>();
+    Physbuzz::ResourceRegistry::clear<Physbuzz::Texture2DResource>();
 
     m_IsRunning = false;
 
@@ -157,9 +153,6 @@ void Game::destroy() {
             scene.getComponent<Physbuzz::MeshComponent>(object).destroy();
         }
     }
-
-    scene.getSystem<Renderer>()->destroy();
-    scene.getSystem<Physbuzz::Dynamics>();
 
     interface.destroy();
     bindings.destory();
