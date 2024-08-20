@@ -40,14 +40,14 @@ class ResourceContainer {
 
   private:
     void base_build() {
-        for (auto &resource : m_Map.getArray()) {
-            resource.build();
+        for (const auto &identifier : m_Map.getKeys()) {
+            m_Map.get(identifier).build();
         }
     }
 
     void base_destroy() {
-        for (auto &resource : m_Map.getArray()) {
-            resource.destroy();
+        for (const auto &identifier : m_Map.getKeys()) {
+            m_Map.get(identifier).destroy();
         }
     }
 

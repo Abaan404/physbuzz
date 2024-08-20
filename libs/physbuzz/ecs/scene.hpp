@@ -49,7 +49,7 @@ class Scene : public EventSubject {
     }
 
     template <typename T>
-    inline std::vector<T> &getComponents() {
+    inline const std::vector<T> &getComponents() {
         return m_ComponentManager.getArray<T>();
     }
 

@@ -152,8 +152,10 @@ void Game::destroy() {
 
     m_IsRunning = false;
 
-    for (auto &mesh : scene.getComponents<Physbuzz::MeshComponent>()) {
-        mesh.destroy();
+    for (const auto &object : scene.getObjects()) {
+        if (scene.containsComponent<Physbuzz::MeshComponent>(object)) {
+            scene.getComponent<Physbuzz::MeshComponent>(object).destroy();
+        }
     }
 
     scene.getSystem<Renderer>()->destroy();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "physbuzz/debug/logging.hpp"
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -28,6 +29,9 @@ class ContiguousMap {
             m_IdxMap[key] = m_Array.size();
             m_KeyMap[m_Array.size()] = key;
             m_Array.emplace_back(object);
+
+            // cache the key
+            m_Keys.insert(key);
         }
 
         return key;
@@ -54,6 +58,9 @@ class ContiguousMap {
         m_KeyMap.erase(idxEnd);
         m_IdxMap.erase(key);
         m_Array.pop_back();
+
+        // remove the cached key
+        m_Keys.erase(key);
         return true;
     }
 
@@ -61,13 +68,14 @@ class ContiguousMap {
         return m_IdxMap.contains(key);
     }
 
-    T &get(K key) {
+    T &get(const K &key) {
         PBZ_ASSERT(contains(key), "Map Does Not Contain Key.");
         return m_Array[m_IdxMap[key]];
     }
 
     void clear() {
         m_Array.clear();
+        m_Keys.clear();
         m_IdxMap.clear();
         m_KeyMap.clear();
     }
@@ -80,14 +88,19 @@ class ContiguousMap {
         return m_Array.size();
     }
 
-    std::vector<T> &getArray() {
+    const std::vector<T> &getArray() {
         return m_Array;
+    }
+
+    const std::set<K> &getKeys() {
+        return m_Keys;
     }
 
   protected:
     std::unordered_map<K, std::size_t> m_IdxMap;
     std::unordered_map<std::size_t, K> m_KeyMap;
     std::vector<T> m_Array;
+    std::set<K> m_Keys;
 };
 
 } // namespace Physbuzz

@@ -52,10 +52,10 @@ ObjectPicker::ObjectPicker() {
 }
 
 ObjectPicker::~ObjectPicker() {
-    std::vector<PickableComponent> &pickables = m_Scene.getComponents<PickableComponent>();
-
-    for (auto &pickable : pickables) {
-        pickable.framebuffer.destroy();
+    for (const auto &object : m_Scene.getObjects()) {
+        if (m_Scene.containsComponent<PickableComponent>(object)) {
+            m_Scene.getComponent<PickableComponent>(object).framebuffer.destroy();
+        }
     }
 }
 

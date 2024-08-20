@@ -34,7 +34,7 @@ class ComponentArray : public IComponentArray {
         return m_Map.get(id);
     }
 
-    inline std::vector<T> &getArray() {
+    inline const std::vector<T> &getArray() {
         return m_Map.getArray();
     }
 
@@ -83,7 +83,7 @@ class ComponentManager {
     }
 
     template <ComponentArrayType T>
-    inline std::vector<T> &getArray() {
+    inline const std::vector<T> &getArray() {
         return getComponents<T>()->getArray();
     }
 
