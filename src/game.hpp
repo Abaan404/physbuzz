@@ -15,7 +15,7 @@ class Game {
     void build();
     void destroy();
 
-    void reset();
+    void rebuild();
 
     void loop();
     const bool &isRunning();

@@ -61,7 +61,7 @@ class Dynamics : public System<MeshComponent, RigidBodyComponent> {
     void tickMotion(Scene &scene, ObjectID id) const;
 
     float m_DeltaTime = 0.0f;
-    bool m_IsRunning = true;
+    bool m_IsRunning = false;
     Clock m_Clock;
 };
 

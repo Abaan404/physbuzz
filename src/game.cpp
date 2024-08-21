@@ -1,7 +1,7 @@
 #include "game.hpp"
 
 #include "collision.hpp"
-#include "objects/wall.hpp"
+#include "objects/quad.hpp"
 #include "renderer.hpp"
 #include <physbuzz/events/scene.hpp>
 #include <physbuzz/misc/context.hpp>
@@ -74,34 +74,22 @@ void Game::build() {
             .image = {.file = {.path = "resources/textures/wall.jpg"}},
         }});
 
-    reset();
-
-    // post build stuff
-    Wall wall = {
-        .wall = {
-            .position = {resolution >> 1, 0.0f},
-            .width = static_cast<float>(resolution.x),
-            .height = static_cast<float>(resolution.y),
-            .thickness = 10.0f,
-        },
-        .isCollidable = true,
-        .isRenderable = true,
-    };
-
-    builder.create(wall);
+    // Create a default scene
+    rebuild();
 }
 
-void Game::reset() {
+void Game::rebuild() {
     scene.clear();
 
     // ticking systems
     {
-
         scene.emplaceSystem<Collision>(&scene, 0.9);
         scene.emplaceSystem<Physbuzz::Dynamics>(0.0005);
 
         std::shared_ptr<Renderer> renderer = scene.emplaceSystem<Renderer>(&window);
         renderer->activeCamera = &player.camera;
+
+        scene.buildSystems();
     }
 
     // callbacks for cleaning up meshes
@@ -125,7 +113,22 @@ void Game::reset() {
         });
     }
 
-    scene.buildSystems();
+    // platform
+    {
+        Quad quad = {
+            .model = {
+                .orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            },
+            .quad = {
+                .width = 500.0f,
+                .height = 500.0f,
+            },
+            .resources = {.texture2D = "wall"},
+            .isRenderable = true,
+        };
+
+        builder.create(quad);
+    }
 }
 
 void Game::loop() {

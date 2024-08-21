@@ -11,6 +11,7 @@ Player::Player(Game *game)
 Player::~Player() {}
 
 void Player::build() {
+    camera.view.position = {0.0f, 50.0f, 0.0f};
     camera.setPrespective(
         {.fovy = glm::radians(45.0f), .aspect = static_cast<float>(m_Game->window.getResolution().x) / static_cast<float>(m_Game->window.getResolution().y)},
         {.near = 1.0f, .far = 1000.0f});
@@ -76,9 +77,17 @@ void Player::build() {
         .type = Physbuzz::CallbackType::OneShot,
     };
 
+    m_Game->bindings.keyboardCallbacks[Physbuzz::Key::Escape] = {
+        .callback = [&](const Physbuzz::KeyEvent &event) {
+            m_CaptureMouse ^= true;
+            m_Game->window.setCursorCapture(false);
+        },
+        .type = Physbuzz::CallbackType::OneShot,
+    };
+
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::C] = {
         .callback = [&](const Physbuzz::KeyEvent &event) {
-            m_Game->reset();
+            m_Game->rebuild();
         },
         .type = Physbuzz::CallbackType::OneShot,
     };
@@ -126,7 +135,7 @@ void Player::build() {
     };
 
     m_Game->window.addCallback<Physbuzz::MousePositionEvent>([&](const Physbuzz::MousePositionEvent &event) {
-        if (ImGui::GetIO().WantCaptureMouse || m_Game->interface.draw || camera.getProjectionType() == Physbuzz::Camera::Type::Orthographic2D) {
+        if (m_CaptureMouse || m_Game->interface.draw || camera.getProjectionType() == Physbuzz::Camera::Type::Orthographic2D) {
             return;
         }
 
@@ -144,7 +153,7 @@ void Player::build() {
     });
 
     m_Game->window.addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
-        if (ImGui::GetIO().WantCaptureMouse || camera.getProjectionType() != Physbuzz::Camera::Type::Prespective) {
+        if (m_CaptureMouse || ImGui::GetIO().WantCaptureMouse || camera.getProjectionType() != Physbuzz::Camera::Type::Prespective) {
             return;
         }
 

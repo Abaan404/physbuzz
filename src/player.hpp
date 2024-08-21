@@ -20,5 +20,6 @@ class Player {
     float sensitivity = 0.1f;
 
   private:
+    bool m_CaptureMouse = false;
     Game *m_Game = nullptr;
 };
