@@ -32,7 +32,7 @@ void InterfaceManager::build(const Physbuzz::Window &window) {
     ImGui_ImplOpenGL3_Init("#version 460");
 
     m_Interfaces["Demo"] = std::make_shared<Demo>();
-    m_Interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
+    // m_Interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
     m_Interfaces["ObjectList"] = std::make_unique<ObjectList>();
     m_Interfaces["Camera"] = std::make_unique<Camera>();
     m_Interfaces["Dockspace"] = std::make_unique<Dockspace>();

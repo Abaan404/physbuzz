@@ -13,7 +13,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
         glm::vec3 min = glm::vec3(-info.cube.width / 2.0f, -info.cube.height / 2.0f, -info.cube.length / 2.0f);
         glm::vec3 max = glm::vec3(info.cube.width / 2.0f, info.cube.height / 2.0f, info.cube.length / 2.0f);
 
-        Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent(info.model);
+        Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent(info.model, info.material);
         mesh.vertices.resize(24);
 
         // this hurts to look at but probably the best solution
@@ -83,6 +83,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
                     // .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
                     .cube = builder.scene->getComponent<CubeComponent>(object),
                     .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
+                    .resources = builder.scene->getComponent<ResourceIdentifierComponent>(object),
                     .isCollidable = builder.scene->containsComponent<Physbuzz::AABBComponent>(object),
                     .isRenderable = false,
                 };
@@ -90,6 +91,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
                 if (builder.scene->containsComponent<Physbuzz::MeshComponent>(object)) {
                     info.isRenderable = true;
                     info.model = builder.scene->getComponent<Physbuzz::MeshComponent>(object).model;
+                    info.material = builder.scene->getComponent<Physbuzz::MeshComponent>(object).material;
                 }
 
                 builder.create(object, info);

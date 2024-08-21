@@ -3,8 +3,16 @@
 #include "objects/common.hpp"
 #include <glm/ext/matrix_clip_space.hpp>
 #include <physbuzz/debug/logging.hpp>
+#include <physbuzz/render/lighting.hpp>
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/texture.hpp>
+
+static Physbuzz::PointLightComponent s_PointLight = {
+    .position = {100.0f, 100.0f, 100.0f},
+    .ambient = {0.2f, 0.2f, 0.2f},
+    .diffuse = {0.5f, 0.5f, 0.5f},
+    .specular = {1.0f, 1.0f, 1.0f},
+};
 
 Renderer::Renderer(Physbuzz::Window *window)
     : m_Window(window) {}
@@ -50,28 +58,43 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         return;
     }
 
-    Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(identifiers.texture2D);
-    if (!texture) {
-        Physbuzz::Logger::WARNING("[Renderer] Texture2DResource '{}' unknown.", identifiers.texture2D);
-        texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>("missing");
-    }
-
     const Physbuzz::MeshComponent &mesh = scene.getComponent<Physbuzz::MeshComponent>(object);
 
-    texture->bind();
+    // fetch materials
+    Physbuzz::Texture2DResource *diffuse = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(mesh.material.diffuse);
+    Physbuzz::Texture2DResource *specular = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(mesh.material.specular);
+    if (diffuse == nullptr) {
+        diffuse = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>("missing");
+    }
+
+    if (specular == nullptr) {
+        specular = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>("missing_specular");
+    }
+
+    diffuse->bind();
+    specular->bind();
     mesh.bind();
 
-    // texture sampler
-    pipeline->setUniform("u_Texture", texture->getUnit());
-
-    // time info
+    // time
     pipeline->setUniform<unsigned int>("u_Time", m_Clock.getTime());
     pipeline->setUniform<unsigned int>("u_TimeDelta", m_Clock.getDelta());
 
-    // render info
+    // render
     pipeline->setUniform("u_Resolution", m_Window->getResolution());
+    pipeline->setUniform("u_ViewPosition", activeCamera->view.position);
 
-    // MVP camera info
+    // Lighting
+    pipeline->setUniform("u_Light.position", s_PointLight.position);
+    pipeline->setUniform("u_Light.ambient", s_PointLight.ambient);
+    pipeline->setUniform("u_Light.diffuse", s_PointLight.diffuse);
+    pipeline->setUniform("u_Light.specular", s_PointLight.specular);
+
+    // Material
+    pipeline->setUniform("u_Material.diffuse", diffuse->getUnit());
+    pipeline->setUniform("u_Material.specular", specular->getUnit());
+    pipeline->setUniform("u_Material.shininess", mesh.material.shininess);
+
+    // MVP
     pipeline->setUniform("u_Model", mesh.model.matrix);
     pipeline->setUniform("u_View", activeCamera->view.matrix);
     pipeline->setUniform("u_Projection", activeCamera->getProjection());
@@ -81,7 +104,8 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
 
     mesh.unbind();
     pipeline->unbind();
-    texture->unbind();
+    diffuse->unbind();
+    specular->unbind();
 }
 
 const Physbuzz::Clock &Renderer::getClock() const {

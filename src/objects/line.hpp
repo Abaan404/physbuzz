@@ -22,6 +22,11 @@ struct Line {
         .pipeline = "cube",
     };
 
+    Physbuzz::Material material = {
+        .diffuse = "missing",
+        .specular = "missing_specular",
+    };
+
     bool isRenderable = false;
 };
 

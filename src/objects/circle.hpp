@@ -22,7 +22,11 @@ struct Circle {
 
     ResourceIdentifierComponent resources = {
         .pipeline = "circle",
-        .texture2D = "wall",
+    };
+
+    Physbuzz::Material material = {
+        .diffuse = "missing",
+        .specular = "missing_specular",
     };
 
     bool isCollidable = false;

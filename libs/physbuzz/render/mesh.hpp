@@ -3,6 +3,7 @@
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <string>
 #include <vector>
 
 namespace Physbuzz {
@@ -29,9 +30,15 @@ struct Model {
     glm::mat4 matrix = glm::mat4(1.0f);
 };
 
+struct Material {
+    std::string diffuse;
+    std::string specular;
+    float shininess = 32.0f;
+};
+
 class MeshComponent {
   public:
-    MeshComponent(const Model &model);
+    MeshComponent(const Model &model, const Material &material);
     ~MeshComponent();
 
     void build();
@@ -45,6 +52,7 @@ class MeshComponent {
     std::vector<Index> indices;
 
     Model model;
+    Material material;
 
   private:
     GLuint VBO, VAO, EBO;

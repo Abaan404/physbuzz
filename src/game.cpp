@@ -1,6 +1,7 @@
 #include "game.hpp"
 
 #include "collision.hpp"
+#include "objects/circle.hpp"
 #include "objects/quad.hpp"
 #include "renderer.hpp"
 #include <physbuzz/events/scene.hpp>
@@ -69,9 +70,27 @@ void Game::build() {
         }});
 
     Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
+        "missing_specular",
+        {{
+            .image = {.file = {.path = "resources/textures/missing_specular.png"}},
+        }});
+
+    Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
         "wall",
         {{
             .image = {.file = {.path = "resources/textures/wall.jpg"}},
+        }});
+
+    Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
+        "crate",
+        {{
+            .image = {.file = {.path = "resources/textures/crate.png"}},
+        }});
+
+    Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
+        "crate_specular",
+        {{
+            .image = {.file = {.path = "resources/textures/crate_specular.png"}},
         }});
 
     // Create a default scene
@@ -123,11 +142,31 @@ void Game::rebuild() {
                 .width = 500.0f,
                 .height = 500.0f,
             },
-            .resources = {.texture2D = "wall"},
+            .resources = {
+                .pipeline = "default",
+            },
+            .material = {
+                .diffuse = "wall",
+            },
             .isRenderable = true,
         };
 
         builder.create(quad);
+
+        Circle point = {
+            .model = {
+                .position = {100.0f, 100.0f, 100.0f},
+            },
+            .circle = {
+                .radius = 10.0f,
+            },
+            .resources = {
+                .pipeline = "default",
+            },
+            .isRenderable = true,
+        };
+
+        builder.create(point);
     }
 }
 

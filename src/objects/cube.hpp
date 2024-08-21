@@ -26,6 +26,11 @@ struct Cube {
         .pipeline = "cube",
     };
 
+    Physbuzz::Material material = {
+        .diffuse = "missing",
+        .specular = "missing_specular",
+    };
+
     bool isCollidable = false;
     bool isRenderable = false;
 };

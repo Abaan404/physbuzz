@@ -32,6 +32,13 @@ void Player::build() {
                     .height = 100.0f,
                     .length = 100.0f,
                 },
+                .resources = {
+                    .pipeline = "default",
+                },
+                .material = {
+                    .diffuse = "crate",
+                    .specular = "crate_specular",
+                },
                 .isCollidable = false,
                 .isRenderable = true,
             };

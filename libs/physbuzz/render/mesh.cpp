@@ -24,8 +24,8 @@ void Model::update() {
     matrix = translation * rotation * stretch;
 }
 
-MeshComponent::MeshComponent(const Model &model)
-    : model(model) {}
+MeshComponent::MeshComponent(const Model &model, const Material &material)
+    : model(model), material(material) {}
 
 MeshComponent::~MeshComponent() {}
 

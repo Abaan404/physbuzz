@@ -14,5 +14,4 @@ struct RebuildableComponent {
 
 struct ResourceIdentifierComponent {
     std::string pipeline = "default";
-    std::string texture2D = "missing";
 };

@@ -13,7 +13,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
         glm::vec3 min = glm::vec3(-info.quad.width / 2.0f, -info.quad.height / 2.0f, 0.0f);
         glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
 
-        Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent(info.model);
+        Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent(info.model, info.material);
         mesh.vertices.resize(4);
 
         // calc positions
@@ -65,6 +65,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
                     .body = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object),
                     .quad = builder.scene->getComponent<QuadComponent>(object),
                     .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
+                    .resources = builder.scene->getComponent<ResourceIdentifierComponent>(object),
                     .isCollidable = builder.scene->containsComponent<Physbuzz::AABBComponent>(object),
                     .isRenderable = false,
                 };
@@ -72,6 +73,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
                 if (builder.scene->containsComponent<Physbuzz::MeshComponent>(object)) {
                     info.isRenderable = true;
                     info.model = builder.scene->getComponent<Physbuzz::MeshComponent>(object).model;
+                    info.material = builder.scene->getComponent<Physbuzz::MeshComponent>(object).material;
                 }
 
                 builder.create(object, info);

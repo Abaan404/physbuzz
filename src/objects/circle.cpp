@@ -13,7 +13,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
         constexpr float MAX_VERTICES = 50;
         constexpr const float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
 
-        Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent(info.model);
+        Physbuzz::MeshComponent mesh = Physbuzz::MeshComponent(info.model, info.material);
         mesh.vertices.resize(MAX_VERTICES);
 
         // calc positions
@@ -59,6 +59,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
                     .body = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object),
                     .circle = builder.scene->getComponent<CircleComponent>(object),
                     .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
+                    .resources = builder.scene->getComponent<ResourceIdentifierComponent>(object),
                     .isCollidable = builder.scene->containsComponent<Physbuzz::AABBComponent>(object),
                     .isRenderable = false,
                 };
@@ -66,6 +67,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
                 if (builder.scene->containsComponent<Physbuzz::MeshComponent>(object)) {
                     info.isRenderable = true;
                     info.model = builder.scene->getComponent<Physbuzz::MeshComponent>(object).model;
+                    info.material = builder.scene->getComponent<Physbuzz::MeshComponent>(object).material;
                 }
 
                 builder.create(object, info);
