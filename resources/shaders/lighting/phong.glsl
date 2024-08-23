@@ -1,3 +1,5 @@
+#pbz_include "defines.glsl"
+
 vec3 calculatePhong(Material material, Light light, vec3 fragPosition, vec3 normal, vec2 texCoord, vec3 viewPosition) {
     // diffuse
     vec3 lightDir = normalize(light.position - fragPosition);

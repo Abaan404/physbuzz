@@ -81,63 +81,10 @@ void Shader::preprocess(FileResource &file) {
         return;
     }
 
-    std::vector<std::pair<std::string, std::function<bool(std::size_t)>>> directives = {
-        {
-            "pbz_include ",
-            [&](std::size_t position) {
-                std::size_t pathBegin = file.buffer.find('\"', position) + 1;
-                if (pathBegin >= file.buffer.size()) {
-                    return false;
-                }
-
-                std::size_t pathEnd = file.buffer.find('\"', pathBegin + 1);
-                if (pathEnd >= file.buffer.size()) {
-                    return false;
-                }
-
-                std::filesystem::path cwdIncludePath = file.buffer.substr(pathBegin, pathEnd - pathBegin);
-                std::filesystem::path relativeIncludePath = file.getPath().parent_path() / cwdIncludePath;
-
-                // check relative path first, the cwd path
-                std::filesystem::path includePath;
-                if (std::filesystem::is_regular_file(relativeIncludePath)) {
-                    includePath = relativeIncludePath;
-                } else if (std::filesystem::is_regular_file(cwdIncludePath)) {
-                    includePath = cwdIncludePath;
-                }
-
-                // could not locate file
-                if (includePath.empty()) {
-                    return false;
-                }
-
-                FileResource includeFile = FileResource({
-                    .path = includePath,
-                });
-
-                if (!includeFile.build() || !includeFile.read()) {
-                    Logger::ERROR("[Shader] Could not process file '{}'", includeFile.getPath().string());
-                    return false;
-                }
-
-                includeFile.buffer[includeFile.buffer.size()] = ' '; // pop null terminator
-
-                std::string top = file.buffer.substr(0, position);
-                std::string bottom = file.buffer.substr(
-                    std::min(file.buffer.find('\n', position), file.buffer.size()),
-                    file.buffer.size());
-
-                file.buffer = top + includeFile.buffer + bottom;
-
-                includeFile.destroy();
-
-                m_IncludedPaths.emplace_back(includePath);
-                return true;
-            },
-        },
+    std::unordered_map<std::string, std::function<bool(FileResource &, std::size_t)>> directives = {
+        {"pbz_include ", std::bind(&Shader::preprocessInclude, this, std::placeholders::_1, std::placeholders::_2)},
     };
 
-    std::size_t position = 0;
     for (std::size_t position = 0; position < file.buffer.size(); position = file.buffer.find('#', position + 1)) {
         if (position >= file.buffer.size()) {
             break;
@@ -149,13 +96,71 @@ void Shader::preprocess(FileResource &file) {
                     break;
                 }
 
-                if (!func(position)) {
+                if (!func(file, position)) {
                     std::string line = file.buffer.substr(position, std::min(file.buffer.find('\n', position), file.buffer.size()) - position);
                     Logger::ERROR("[Shader] Could not parse directive '{}'", line);
                 }
             }
         }
     }
+}
+
+bool Shader::preprocessInclude(FileResource &file, std::size_t position) {
+    std::size_t pathBegin = file.buffer.find('\"', position) + 1;
+    if (pathBegin >= file.buffer.size()) {
+        return false;
+    }
+
+    std::size_t pathEnd = file.buffer.find('\"', pathBegin + 1);
+    if (pathEnd >= file.buffer.size()) {
+        return false;
+    }
+
+    std::filesystem::path cwdIncludePath = file.buffer.substr(pathBegin, pathEnd - pathBegin);
+    std::filesystem::path relativeIncludePath = file.getPath().parent_path() / cwdIncludePath;
+
+    // check relative path first, the cwd path
+    std::filesystem::path includePath;
+    if (std::filesystem::is_regular_file(relativeIncludePath)) {
+        includePath = relativeIncludePath;
+    } else if (std::filesystem::is_regular_file(cwdIncludePath)) {
+        includePath = cwdIncludePath;
+    }
+
+    // could not locate file
+    if (includePath.empty()) {
+        return false;
+    }
+
+    std::string top = file.buffer.substr(0, position);
+    std::string bottom = file.buffer.substr(
+        std::min(file.buffer.find('\n', position), file.buffer.size()),
+        file.buffer.size());
+
+    // guard headers by default
+    if (m_IncludedPaths.contains(includePath)) {
+        file.buffer = top + bottom;
+        return true;
+    }
+
+    FileResource includeFile = FileResource({
+        .path = includePath,
+    });
+
+    if (!includeFile.build() || !includeFile.read()) {
+        Logger::ERROR("[Shader] Could not process file '{}'", includeFile.getPath().string());
+        return false;
+    }
+    m_IncludedPaths.insert(includePath);
+
+    // recursively apply directives to included path
+    preprocess(includeFile);
+    includeFile.buffer[includeFile.buffer.size()] = ' '; // pop null terminator
+    file.buffer = top + includeFile.buffer + bottom;
+
+    includeFile.destroy();
+
+    return true;
 }
 
 bool Shader::attach(GLuint program) const {
@@ -184,7 +189,7 @@ const ShaderType &Shader::getType() const {
     return m_Type;
 }
 
-const std::vector<std::filesystem::path> Shader::getIncludedPaths() const {
+const std::set<std::filesystem::path> Shader::getIncludedPaths() const {
     return m_IncludedPaths;
 }
 
@@ -281,21 +286,20 @@ bool ShaderPipelineResource::build() {
     }
 
     // add to watched paths
-    m_Paths.push_back(m_Info.vertex.file.path);
-    m_Paths.push_back(m_Info.tessControl.file.path);
-    m_Paths.push_back(m_Info.tessEvaluation.file.path);
-    m_Paths.push_back(m_Info.geometry.file.path);
-    m_Paths.push_back(m_Info.fragment.file.path);
-    m_Paths.push_back(m_Info.compute.file.path);
+    m_Paths.insert(m_Info.vertex.file.path);
+    m_Paths.insert(m_Info.tessControl.file.path);
+    m_Paths.insert(m_Info.tessEvaluation.file.path);
+    m_Paths.insert(m_Info.geometry.file.path);
+    m_Paths.insert(m_Info.fragment.file.path);
+    m_Paths.insert(m_Info.compute.file.path);
 
     for (int i = 0; i < shaders.size(); i++) {
         if (!compiled[i]) {
             continue;
         }
 
-        const auto &includedPaths = shaders[i].getIncludedPaths();
-        m_Paths.reserve(m_Paths.size() + includedPaths.size());
-        m_Paths.insert(m_Paths.end(), includedPaths.begin(), includedPaths.end());
+        std::set<std::filesystem::path> includedPaths = shaders[i].getIncludedPaths();
+        m_Paths.merge(includedPaths);
     }
 
     return true;

@@ -63,12 +63,13 @@ class Shader {
 
     const GLuint &getShader() const;
     const ShaderType &getType() const;
-    const std::vector<std::filesystem::path> getIncludedPaths() const;
+    const std::set<std::filesystem::path> getIncludedPaths() const;
 
   private:
     void preprocess(FileResource &file);
+    bool preprocessInclude(FileResource &file, std::size_t position);
 
-    std::vector<std::filesystem::path> m_IncludedPaths;
+    std::set<std::filesystem::path> m_IncludedPaths;
     ShaderInfo m_Info;
     GLuint m_Shader = 0;
     ShaderType m_Type = ShaderType::Unknown;
@@ -138,7 +139,7 @@ class ShaderPipelineResource {
     WatchID m_WatchId = 0;
 
     bool m_RequestedReload = false;
-    std::vector<std::filesystem::path> m_Paths;
+    std::set<std::filesystem::path> m_Paths;
 
     template <ResourceType T>
     friend class ResourceContainer;
