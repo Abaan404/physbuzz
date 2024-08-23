@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <vector>
 
 namespace Physbuzz {
 
@@ -21,8 +20,9 @@ class FileResource {
     bool write();
 
     const std::streampos &getSize() const;
+    const std::filesystem::path &getPath() const;
 
-    std::vector<char> buffer;
+    std::string buffer;
 
   private:
     FileInfo m_Info;

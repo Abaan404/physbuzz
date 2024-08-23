@@ -32,7 +32,9 @@ bool FileResource::read() {
 
     buffer.resize(m_Size);
     stream.read(buffer.data(), buffer.size());
-    buffer.push_back('\0');
+    if (buffer[buffer.size()] != '\0') {
+        buffer.push_back('\0');
+    }
 
     if (stream.fail()) {
         Logger::ERROR("[FileResource] Failed to read file: {}", m_Info.path.string());
@@ -62,6 +64,10 @@ bool FileResource::write() {
 
 const std::streampos &FileResource::getSize() const {
     return m_Size;
+}
+
+const std::filesystem::path &FileResource::getPath() const {
+    return m_Info.path;
 }
 
 } // namespace Physbuzz

@@ -6,6 +6,7 @@
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <string>
+#include <vector>
 
 namespace Physbuzz {
 
@@ -62,8 +63,12 @@ class Shader {
 
     const GLuint &getShader() const;
     const ShaderType &getType() const;
+    const std::vector<std::filesystem::path> getIncludedPaths() const;
 
   private:
+    void preprocess(FileResource &file);
+
+    std::vector<std::filesystem::path> m_IncludedPaths;
     ShaderInfo m_Info;
     GLuint m_Shader = 0;
     ShaderType m_Type = ShaderType::Unknown;
@@ -80,7 +85,7 @@ struct ShaderPipelineInfo {
 
 class ShaderPipelineResource {
   public:
-    ShaderPipelineResource(const ShaderPipelineInfo &info, bool watched = false);
+    ShaderPipelineResource(const ShaderPipelineInfo &info);
     ~ShaderPipelineResource();
 
     bool build();
@@ -133,7 +138,7 @@ class ShaderPipelineResource {
     WatchID m_WatchId = 0;
 
     bool m_RequestedReload = false;
-    bool m_IsWatched = false;
+    std::vector<std::filesystem::path> m_Paths;
 
     template <ResourceType T>
     friend class ResourceContainer;

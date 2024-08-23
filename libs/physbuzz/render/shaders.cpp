@@ -2,7 +2,6 @@
 
 #include "../debug/logging.hpp"
 #include <bitset>
-#include <format>
 #include <vector>
 
 namespace Physbuzz {
@@ -55,6 +54,7 @@ bool Shader::compile() {
     }
 
     Logger::INFO("[Shader] Compiling shader {}", m_Info.file.path.string());
+    preprocess(file);
     const char *source = file.buffer.data();
     glShaderSource(m_Shader, 1, &source, NULL);
     glCompileShader(m_Shader);
@@ -74,6 +74,88 @@ bool Shader::compile() {
     }
 
     return true;
+}
+
+void Shader::preprocess(FileResource &file) {
+    if (file.buffer.empty()) {
+        return;
+    }
+
+    std::vector<std::pair<std::string, std::function<bool(std::size_t)>>> directives = {
+        {
+            "pbz_include ",
+            [&](std::size_t position) {
+                std::size_t pathBegin = file.buffer.find('\"', position) + 1;
+                if (pathBegin >= file.buffer.size()) {
+                    return false;
+                }
+
+                std::size_t pathEnd = file.buffer.find('\"', pathBegin + 1);
+                if (pathEnd >= file.buffer.size()) {
+                    return false;
+                }
+
+                std::filesystem::path cwdIncludePath = file.buffer.substr(pathBegin, pathEnd - pathBegin);
+                std::filesystem::path relativeIncludePath = file.getPath().parent_path() / cwdIncludePath;
+
+                // check relative path first, the cwd path
+                std::filesystem::path includePath;
+                if (std::filesystem::is_regular_file(relativeIncludePath)) {
+                    includePath = relativeIncludePath;
+                } else if (std::filesystem::is_regular_file(cwdIncludePath)) {
+                    includePath = cwdIncludePath;
+                }
+
+                // could not locate file
+                if (includePath.empty()) {
+                    return false;
+                }
+
+                FileResource includeFile = FileResource({
+                    .path = includePath,
+                });
+
+                if (!includeFile.build() || !includeFile.read()) {
+                    Logger::ERROR("[Shader] Could not process file '{}'", includeFile.getPath().string());
+                    return false;
+                }
+
+                includeFile.buffer[includeFile.buffer.size()] = ' '; // pop null terminator
+
+                std::string top = file.buffer.substr(0, position);
+                std::string bottom = file.buffer.substr(
+                    std::min(file.buffer.find('\n', position), file.buffer.size()),
+                    file.buffer.size());
+
+                file.buffer = top + includeFile.buffer + bottom;
+
+                includeFile.destroy();
+
+                m_IncludedPaths.emplace_back(includePath);
+                return true;
+            },
+        },
+    };
+
+    std::size_t position = 0;
+    for (std::size_t position = 0; position < file.buffer.size(); position = file.buffer.find('#', position + 1)) {
+        if (position >= file.buffer.size()) {
+            break;
+        }
+
+        for (const auto &[directive, func] : directives) {
+            if (file.buffer.compare(position + 1, directive.size(), directive) == 0) {
+                if (position != 0 && file.buffer[position - 1] != '\n') {
+                    break;
+                }
+
+                if (!func(position)) {
+                    std::string line = file.buffer.substr(position, std::min(file.buffer.find('\n', position), file.buffer.size()) - position);
+                    Logger::ERROR("[Shader] Could not parse directive '{}'", line);
+                }
+            }
+        }
+    }
 }
 
 bool Shader::attach(GLuint program) const {
@@ -100,6 +182,10 @@ const GLuint &Shader::getShader() const {
 
 const ShaderType &Shader::getType() const {
     return m_Type;
+}
+
+const std::vector<std::filesystem::path> Shader::getIncludedPaths() const {
+    return m_IncludedPaths;
 }
 
 template <std::size_t N>
@@ -133,8 +219,8 @@ inline void destroyShaders(std::array<Shader, N> &shaders, const GLuint &program
     }
 }
 
-ShaderPipelineResource::ShaderPipelineResource(const ShaderPipelineInfo &info, bool watched)
-    : m_Info(info), m_IsWatched(watched) {}
+ShaderPipelineResource::ShaderPipelineResource(const ShaderPipelineInfo &info)
+    : m_Info(info) {}
 
 ShaderPipelineResource::~ShaderPipelineResource() {}
 
@@ -192,6 +278,24 @@ bool ShaderPipelineResource::build() {
         Logger::ERROR(std::format("[ShaderPipelineResource] Shader Linking failed!\n{}", errorMessage.data()));
         destroy();
         return false;
+    }
+
+    // add to watched paths
+    m_Paths.push_back(m_Info.vertex.file.path);
+    m_Paths.push_back(m_Info.tessControl.file.path);
+    m_Paths.push_back(m_Info.tessEvaluation.file.path);
+    m_Paths.push_back(m_Info.geometry.file.path);
+    m_Paths.push_back(m_Info.fragment.file.path);
+    m_Paths.push_back(m_Info.compute.file.path);
+
+    for (int i = 0; i < shaders.size(); i++) {
+        if (!compiled[i]) {
+            continue;
+        }
+
+        const auto &includedPaths = shaders[i].getIncludedPaths();
+        m_Paths.reserve(m_Paths.size() + includedPaths.size());
+        m_Paths.insert(m_Paths.end(), includedPaths.begin(), includedPaths.end());
     }
 
     return true;
@@ -284,30 +388,19 @@ void ShaderPipelineResource::setUniformInternal(const GLint location, const glm:
 
 template <>
 bool ResourceContainer<ShaderPipelineResource>::insert(const std::string &identifier, ShaderPipelineResource &&resource) {
-    if (resource.m_IsWatched) {
-        resource.m_WatchId = FileWatcher::insert([identifier](const FileWatcherInfo &info) {
-            ShaderPipelineResource *resource = ResourceRegistry::get<ShaderPipelineResource>(identifier);
+    resource.m_WatchId = FileWatcher::insert([identifier](const FileWatcherInfo &info) {
+        ShaderPipelineResource *resource = ResourceRegistry::get<ShaderPipelineResource>(identifier);
 
-            if (info.action != WatchAction::Modified) {
-                return;
-            }
+        if (info.action != WatchAction::Modified) {
+            return;
+        }
 
-            std::array paths = {
-                resource->m_Info.vertex.file.path,
-                resource->m_Info.tessControl.file.path,
-                resource->m_Info.tessEvaluation.file.path,
-                resource->m_Info.geometry.file.path,
-                resource->m_Info.fragment.file.path,
-                resource->m_Info.compute.file.path,
-            };
-
-            if (std::any_of(paths.begin(), paths.end(), [&](const std::filesystem::path &path) { return path.filename() == info.path.filename(); })) {
-                // OpenGL's context must exist in the main thread (not necessarily but adds too much complexity)
-                // hence why the creation is not done in this watcher thread
-                resource->requestReload();
-            }
-        });
-    }
+        if (std::any_of(resource->m_Paths.begin(), resource->m_Paths.end(), [&](const std::filesystem::path &path) { return path.filename() == info.path.filename(); })) {
+            // OpenGL's context must exist in the main thread (not necessarily but adds too much complexity)
+            // hence why the creation is not done in this watcher thread
+            resource->requestReload();
+        }
+    });
 
     return base_insert(identifier, std::move(resource));
 }
@@ -315,10 +408,7 @@ bool ResourceContainer<ShaderPipelineResource>::insert(const std::string &identi
 template <>
 bool ResourceContainer<ShaderPipelineResource>::erase(const std::string &identifier) {
     ShaderPipelineResource *resource = get(identifier);
-
-    if (resource->m_IsWatched) {
-        FileWatcher::erase(resource->m_WatchId);
-    }
+    FileWatcher::erase(resource->m_WatchId);
 
     return base_erase(identifier);
 }
