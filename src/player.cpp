@@ -14,7 +14,7 @@ void Player::build() {
     camera.view.position = {0.0f, 50.0f, 0.0f};
     camera.setPrespective(
         {.fovy = glm::radians(45.0f), .aspect = static_cast<float>(m_Game->window.getResolution().x) / static_cast<float>(m_Game->window.getResolution().y)},
-        {.near = 1.0f, .far = 1000.0f});
+        {.near = 1.0f, .far = 10000.0f});
 
     m_Game->bindings.mouseButtonCallbacks[Physbuzz::Mouse::Left] = {
         .callback = [&](const Physbuzz::MouseButtonEvent &event) {

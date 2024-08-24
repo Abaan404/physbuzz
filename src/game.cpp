@@ -2,6 +2,7 @@
 
 #include "collision.hpp"
 #include "objects/circle.hpp"
+#include "objects/cube.hpp"
 #include "objects/quad.hpp"
 #include "renderer.hpp"
 #include <physbuzz/events/scene.hpp>
@@ -9,6 +10,7 @@
 #include <physbuzz/render/mesh.hpp>
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/texture.hpp>
+#include <random>
 
 Game::Game()
     : bindings(&window), player(this), builder(&scene) {}
@@ -152,6 +154,36 @@ void Game::rebuild() {
         };
 
         builder.create(quad);
+
+        std::random_device rd;
+        std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-250, 250);
+
+        for (int i = 0; i < 25; ++i) {
+            Cube cube = {
+                .model = {
+                    .position = {distribution(rd), distribution(rd) + 250, distribution(rd)},
+                    .orientation = glm::angleAxis(
+                        glm::radians(static_cast<float>(distribution(rd) % 360)),
+                        glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
+                },
+                .cube = {
+                    .width = 50.0f,
+                    .height = 50.0f,
+                    .length = 50.0f,
+                },
+                .resources = {
+                    .pipeline = "default",
+                },
+                .material = {
+                    .diffuse = "crate",
+                    .specular = "crate_specular",
+                },
+                .isCollidable = false,
+                .isRenderable = true,
+            };
+
+            builder.create(cube);
+        }
 
         Circle point = {
             .model = {
