@@ -3,6 +3,7 @@
 #include "collision.hpp"
 #include "objects/circle.hpp"
 #include "objects/cube.hpp"
+#include "objects/lightcube.hpp"
 #include "objects/quad.hpp"
 #include "renderer.hpp"
 #include <physbuzz/events/scene.hpp>
@@ -149,12 +150,16 @@ void Game::rebuild() {
             },
             .material = {
                 .diffuse = "wall",
+                .specular = "missing_specular",
             },
             .isRenderable = true,
         };
 
         builder.create(quad);
+    }
 
+    // illuminating pointlight cubes
+    {
         std::random_device rd;
         std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-250, 250);
 
@@ -185,6 +190,46 @@ void Game::rebuild() {
             builder.create(cube);
         }
 
+        // point lights
+        for (int i = 0; i < 3; ++i) {
+            LightCube lightCube = {
+                .cube = {
+                    .model = {
+                        .position = {distribution(rd), distribution(rd) + 250, distribution(rd)},
+                        .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
+                    },
+                    .cube = {
+                        .width = 10.0f,
+                        .height = 10.0f,
+                        .length = 10.0f,
+                    },
+                    .identifier = {
+                        .name = "LightCube",
+                    },
+                    .resources = {
+                        .pipeline = "default",
+                    },
+                    .material = {
+                        .diffuse = "missing_specular",
+                        .specular = "missing_specular",
+                    },
+                    .isRenderable = true,
+                },
+                .pointLight = {
+                    .ambient = {0.2f, 0.2f, 0.2f},
+                    .diffuse = {0.8f, 0.8f, 0.8f},
+                    .specular = {1.0f, 1.0f, 1.0f},
+
+                    .constant = 1.0f,
+                    .linear = 0.01f,
+                    .quadratic = 0.0001f,
+                },
+            };
+
+            builder.create(lightCube);
+        }
+
+        // a circle because why not?
         Circle point = {
             .model = {
                 .position = {100.0f, 100.0f, 100.0f},

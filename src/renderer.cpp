@@ -7,18 +7,6 @@
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/texture.hpp>
 
-static Physbuzz::PointLightComponent s_PointLight = {
-    .position = {100.0f, 100.0f, 100.0f},
-
-    .ambient = {0.2f, 0.2f, 0.2f},
-    .diffuse = {0.8f, 0.8f, 0.8f},
-    .specular = {1.0f, 1.0f, 1.0f},
-
-    .constant = 0.1f,
-    .linear = 0.09f,
-    .quadratic = 0.00032f,
-};
-
 static Physbuzz::DirectionalLightComponent s_DirectionalLight = {
     .direction = glm::normalize(glm::vec3(1.0f, -1.0f, 1.0f)),
 
@@ -116,15 +104,33 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
     pipeline->setUniform("u_DirectionalLight.specular", s_DirectionalLight.specular);
 
     // Point Lighting
-    pipeline->setUniform("u_PointLight.position", s_PointLight.position);
+    const std::vector<Physbuzz::PointLightComponent> &pointLights = scene.getComponents<Physbuzz::PointLightComponent>();
+    pipeline->setUniform<unsigned int>("u_PointLightLength", pointLights.size());
 
-    pipeline->setUniform("u_PointLight.ambient", s_PointLight.ambient);
-    pipeline->setUniform("u_PointLight.diffuse", s_PointLight.diffuse);
-    pipeline->setUniform("u_PointLight.specular", s_PointLight.specular);
+    // TODO dont do this
+    pipeline->setUniform("u_PointLight[0].position", pointLights[0].position);
+    pipeline->setUniform("u_PointLight[0].ambient", pointLights[0].ambient);
+    pipeline->setUniform("u_PointLight[0].diffuse", pointLights[0].diffuse);
+    pipeline->setUniform("u_PointLight[0].specular", pointLights[0].specular);
+    pipeline->setUniform("u_PointLight[0].constant", pointLights[0].constant);
+    pipeline->setUniform("u_PointLight[0].linear", pointLights[0].linear);
+    pipeline->setUniform("u_PointLight[0].quadratic", pointLights[0].quadratic);
 
-    pipeline->setUniform("u_PointLight.constant", s_PointLight.constant);
-    pipeline->setUniform("u_PointLight.linear", s_PointLight.linear);
-    pipeline->setUniform("u_PointLight.quadratic", s_PointLight.quadratic);
+    pipeline->setUniform("u_PointLight[1].position", pointLights[1].position);
+    pipeline->setUniform("u_PointLight[1].ambient", pointLights[1].ambient);
+    pipeline->setUniform("u_PointLight[1].diffuse", pointLights[1].diffuse);
+    pipeline->setUniform("u_PointLight[1].specular", pointLights[1].specular);
+    pipeline->setUniform("u_PointLight[1].constant", pointLights[1].constant);
+    pipeline->setUniform("u_PointLight[1].linear", pointLights[1].linear);
+    pipeline->setUniform("u_PointLight[1].quadratic", pointLights[1].quadratic);
+
+    pipeline->setUniform("u_PointLight[2].position", pointLights[2].position);
+    pipeline->setUniform("u_PointLight[2].ambient", pointLights[2].ambient);
+    pipeline->setUniform("u_PointLight[2].diffuse", pointLights[2].diffuse);
+    pipeline->setUniform("u_PointLight[2].specular", pointLights[2].specular);
+    pipeline->setUniform("u_PointLight[2].constant", pointLights[2].constant);
+    pipeline->setUniform("u_PointLight[2].linear", pointLights[2].linear);
+    pipeline->setUniform("u_PointLight[2].quadratic", pointLights[2].quadratic);
 
     // Spotlight Lighting
     pipeline->setUniform("u_SpotLight.position", activeCamera->view.position);

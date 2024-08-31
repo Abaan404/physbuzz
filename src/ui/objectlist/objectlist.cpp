@@ -4,12 +4,12 @@
 #include "../../objects/circle.hpp"
 #include "../../objects/line.hpp"
 #include "../../objects/quad.hpp"
-#include <format>
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
+#include <physbuzz/render/lighting.hpp>
 
 constexpr float MAX_VALUE = 1000.0f;
 constexpr float MIN_VALUE = -1000.0f;
@@ -57,6 +57,8 @@ void ObjectList::draw() {
             }
 
             if (game->scene.containsComponent<Physbuzz::MeshComponent>(object)) {
+                ImGui::SeparatorText("Mesh");
+
                 Physbuzz::MeshComponent &mesh = game->scene.getComponent<Physbuzz::MeshComponent>(object);
 
                 if (ImGui::DragFloat3("position", glm::value_ptr(mesh.model.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
@@ -90,6 +92,8 @@ void ObjectList::draw() {
             }
 
             if (game->scene.containsComponent<Physbuzz::RigidBodyComponent>(object)) {
+                ImGui::SeparatorText("RigidBody");
+
                 Physbuzz::RigidBodyComponent &physics = game->scene.getComponent<Physbuzz::RigidBodyComponent>(object);
 
                 ImGui::DragFloat("mass", &physics.mass, 0.01f, -MAX_VALUE, MAX_VALUE);
@@ -100,6 +104,8 @@ void ObjectList::draw() {
             }
 
             if (game->scene.containsComponent<LineComponent>(object)) {
+                ImGui::SeparatorText("Line");
+
                 LineComponent &line = game->scene.getComponent<LineComponent>(object);
                 float lt[] = {line.length, line.thickness};
 
@@ -112,6 +118,8 @@ void ObjectList::draw() {
             }
 
             if (game->scene.containsComponent<QuadComponent>(object)) {
+                ImGui::SeparatorText("Quad");
+
                 QuadComponent &quad = game->scene.getComponent<QuadComponent>(object);
                 float wh[] = {quad.width, quad.height};
 
@@ -124,8 +132,109 @@ void ObjectList::draw() {
             }
 
             if (game->scene.containsComponent<CircleComponent>(object)) {
+                ImGui::SeparatorText("Circle");
+
                 CircleComponent &radius = game->scene.getComponent<CircleComponent>(object);
                 if (ImGui::DragFloat("circle", &radius.radius, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+            }
+
+            if (game->scene.containsComponent<Physbuzz::PointLightComponent>(object)) {
+                ImGui::SeparatorText("PointLight");
+
+                Physbuzz::PointLightComponent &pointLight = game->scene.getComponent<Physbuzz::PointLightComponent>(object);
+                if (ImGui::DragFloat3("position", glm::value_ptr(pointLight.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("ambient", glm::value_ptr(pointLight.ambient), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("diffuse", glm::value_ptr(pointLight.diffuse), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("specular", glm::value_ptr(pointLight.specular), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat("constant", &pointLight.constant, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat("linear", &pointLight.linear, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat("quadratic", &pointLight.quadratic, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+            }
+
+            if (game->scene.containsComponent<Physbuzz::SpotLightComponent>(object)) {
+                ImGui::SeparatorText("SpotLight");
+
+                Physbuzz::SpotLightComponent &spotLight = game->scene.getComponent<Physbuzz::SpotLightComponent>(object);
+                if (ImGui::DragFloat3("position", glm::value_ptr(spotLight.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("direction", glm::value_ptr(spotLight.direction), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("ambient", glm::value_ptr(spotLight.ambient), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("diffuse", glm::value_ptr(spotLight.diffuse), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("specular", glm::value_ptr(spotLight.specular), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat("constant", &spotLight.constant, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat("linear", &spotLight.linear, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat("quadratic", &spotLight.quadratic, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat("cutOff", &spotLight.cutOff, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat("outerCutOff", &spotLight.outerCutOff, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+            }
+
+            if (game->scene.containsComponent<Physbuzz::DirectionalLightComponent>(object)) {
+                ImGui::SeparatorText("DirectionalLight");
+
+                Physbuzz::DirectionalLightComponent &directionalLight = game->scene.getComponent<Physbuzz::DirectionalLightComponent>(object);
+                if (ImGui::DragFloat3("direction", glm::value_ptr(directionalLight.direction), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("ambient", glm::value_ptr(directionalLight.ambient), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("diffuse", glm::value_ptr(directionalLight.diffuse), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    rebuild = true;
+                }
+
+                if (ImGui::DragFloat3("specular", glm::value_ptr(directionalLight.specular), 1.0f, MIN_VALUE, MAX_VALUE)) {
                     rebuild = true;
                 }
             }
