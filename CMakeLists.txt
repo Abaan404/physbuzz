@@ -10,23 +10,15 @@ set(CMAKE_BUILD_PARALLEL_LEVEL 12)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# glm
-set(GLM_PATH "submodules/glm")
-add_subdirectory(${GLM_PATH})
-set(SPDLOG_BUILD_SHARED ON)
+find_package(glm REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(Catch2 3 REQUIRED)
 
 # glad
 set(GLAD_PATH "submodules/glad")
 add_subdirectory("${GLAD_PATH}/cmake")
 glad_add_library(glad SHARED API gl:core=4.6)
-
-# glfw
-set(GLFW_PATH "submodules/glfw")
-add_subdirectory(${GLFW_PATH})
-
-# spdlog
-set(SPDLOG_PATH "submodules/spdlog")
-add_subdirectory(${SPDLOG_PATH})
 
 # efsw
 set(EFSW_PATH "submodules/efsw")
@@ -37,14 +29,6 @@ set(STB_PATH "submodules/stb")
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE
     ${STB_PATH})
-
-# engine
-set(ENGINE_PATH "libs")
-file(GLOB_RECURSE ENGINE_SRCS "${ENGINE_PATH}/*.cpp")
-
-# Catch2
-set(CATCH2_PATH "submodules/Catch2")
-add_subdirectory(${CATCH2_PATH})
 
 # ImGui
 set(IMGUI_PATH "submodules/imgui")
@@ -60,6 +44,8 @@ target_include_directories(imgui PUBLIC
     ${GLFW_PATH}/include) # for glfw backend
 
 # physbuzz
+set(ENGINE_PATH "libs")
+file(GLOB_RECURSE ENGINE_SRCS "${ENGINE_PATH}/*.cpp")
 add_library(physbuzz SHARED ${ENGINE_SRCS})
 add_compile_definitions(physbuzz
     GLFW_INCLUDE_NONE)
