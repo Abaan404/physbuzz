@@ -6,7 +6,7 @@
   };
 
   outputs =
-    { self, nixpkgs }:
+    { nixpkgs, ... }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
@@ -23,6 +23,7 @@
           pkgs.cmake
           pkgs.ninja
           pkgs.valgrind
+          pkgs.vscode-extensions.vadimcn.vscode-lldb.adapter
 
           # libraries
           pkgs.assimp
@@ -32,6 +33,9 @@
           pkgs.catch2_3
           pkgs.python312Packages.glad2
         ];
+
+        # https://github.com/NixOS/nixpkgs/issues/18995
+        hardeningDisable = [ "all" ];
 
         shellHook = ''
           export LD_LIBRARY_PATH="${lib.makeLibraryPath [ pkgs.libGL ]}";
