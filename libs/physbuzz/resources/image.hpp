@@ -23,7 +23,7 @@ class ImageResource {
     const int &getChannels() const;
     const glm::ivec2 &getResolution() const;
 
-    unsigned char *buffer = nullptr;
+    std::uint8_t *buffer = nullptr;
 
   private:
     ImageInfo m_Info;

@@ -3,6 +3,7 @@
 #include "builder.hpp"
 #include "common.hpp"
 #include <physbuzz/physics/dynamics.hpp>
+#include <physbuzz/render/model.hpp>
 
 struct QuadComponent {
     float width = 0.0f;
@@ -14,25 +15,25 @@ struct Quad {
     Physbuzz::RigidBodyComponent body;
 
     // geometry
-    Physbuzz::Model model;
     QuadComponent quad;
+    Physbuzz::TransformComponent transform;
 
     // naming
     IdentifiableComponent identifier = {
         .name = "Quad",
+        .hidden = false,
     };
 
-    ResourceIdentifierComponent resources = {
-        .pipeline = "quad",
+    // rendering
+    std::string pipeline = "quad";
+    TextureResources textures = {
+        .texture2D = {
+            {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
+            {Physbuzz::TextureType::Specular, {"default/specular"}},
+        },
     };
 
-    Physbuzz::Material material = {
-        .diffuse = "missing",
-        .specular = "missing_specular",
-    };
-
-    bool isCollidable = false;
-    bool isRenderable = false;
+    bool hasPhysics = false;
 };
 
 template <>

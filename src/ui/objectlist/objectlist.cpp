@@ -56,38 +56,30 @@ void ObjectList::draw() {
                 ImGui::SeparatorText(std::format("{}) {}", object, identifier.name).c_str());
             }
 
-            if (game->scene.containsComponent<Physbuzz::MeshComponent>(object)) {
-                ImGui::SeparatorText("Mesh");
+            if (game->scene.containsComponent<Physbuzz::TransformComponent>(object)) {
+                ImGui::SeparatorText("Transfrom");
 
-                Physbuzz::MeshComponent &mesh = game->scene.getComponent<Physbuzz::MeshComponent>(object);
+                Physbuzz::TransformComponent &transform = game->scene.getComponent<Physbuzz::TransformComponent>(object);
 
-                if (ImGui::DragFloat3("position", glm::value_ptr(mesh.model.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    mesh.model.update();
-
-                    rebuild = true;
+                if (ImGui::DragFloat3("position", glm::value_ptr(transform.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    transform.update();
                 }
 
-                if (ImGui::DragFloat3("scale", glm::value_ptr(mesh.model.scale), 0.1f, MIN_VALUE, MAX_VALUE)) {
-                    mesh.model.update();
-
-                    rebuild = true;
+                if (ImGui::DragFloat3("scale", glm::value_ptr(transform.scale), 0.1f, MIN_VALUE, MAX_VALUE)) {
+                    transform.update();
                 }
 
-                glm::vec3 axis = glm::axis(mesh.model.orientation);
-                float angle = glm::angle(mesh.model.orientation);
+                glm::vec3 axis = glm::axis(transform.orientation);
+                float angle = glm::angle(transform.orientation);
 
                 if (ImGui::DragFloat3("rotAxis", glm::value_ptr(axis), 0.01f, 0.0f, 1.0f)) {
-                    mesh.model.orientation = glm::angleAxis(angle, glm::normalize(axis));
-                    mesh.model.update();
-
-                    rebuild = true;
+                    transform.orientation = glm::angleAxis(angle, glm::normalize(axis));
+                    transform.update();
                 }
 
                 if (ImGui::DragFloat("rotMag", &angle, glm::pi<float>() / 50.0f, 0.0f, 2 * glm::pi<float>())) {
-                    mesh.model.orientation = glm::angleAxis(angle, glm::normalize(axis));
-                    mesh.model.update();
-
-                    rebuild = true;
+                    transform.orientation = glm::angleAxis(angle, glm::normalize(axis));
+                    transform.update();
                 }
             }
 

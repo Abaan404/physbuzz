@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(glm REQUIRED)
+find_package(assimp REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(Catch2 3 REQUIRED)
@@ -54,6 +55,7 @@ target_include_directories(physbuzz PUBLIC
     ${ENGINE_PATH})
 
 target_link_libraries(physbuzz PUBLIC
+    assimp
     spdlog::spdlog
     stb
     efsw

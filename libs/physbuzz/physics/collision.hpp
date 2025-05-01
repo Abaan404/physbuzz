@@ -3,12 +3,14 @@
 #include "../ecs/scene.hpp"
 #include "../events/handler.hpp"
 #include "../render/mesh.hpp"
+#include "../render/model.hpp"
 #include <list>
 
 namespace Physbuzz {
 
 struct AABBComponent {
-    AABBComponent(const MeshComponent &mesh);
+    AABBComponent(const Mesh &mesh, const TransformComponent &transform);
+    AABBComponent(const std::vector<Mesh> &meshes, const TransformComponent &transform);
 
     glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 max = glm::vec3(std::numeric_limits<float>::lowest());

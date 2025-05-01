@@ -2,13 +2,11 @@
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <string>
 #include <vector>
 
 namespace Physbuzz {
 
-using Index = glm::uvec3;
+using Index = std::uint32_t;
 
 struct Vertex {
     glm::vec3 position;
@@ -16,30 +14,10 @@ struct Vertex {
     glm::vec2 texCoords;
 };
 
-struct Model {
-    void update();
-    void reset();
-
-    const glm::vec3 toWorld(const glm::vec3 &local) const;
-    const glm::vec3 toLocal(const glm::vec3 &world) const;
-
-    glm::vec3 position = {0.0f, 0.0f, 0.0f};
-    glm::vec3 scale = {1.0f, 1.0f, 1.0f};
-    glm::quat orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-
-    glm::mat4 matrix = glm::mat4(1.0f);
-};
-
-struct Material {
-    std::string diffuse;
-    std::string specular;
-    float shininess = 32.0f;
-};
-
-class MeshComponent {
+class Mesh {
   public:
-    MeshComponent(const Model &model, const Material &material);
-    ~MeshComponent();
+    Mesh();
+    ~Mesh();
 
     void build();
     void destroy();
@@ -50,9 +28,6 @@ class MeshComponent {
 
     std::vector<Vertex> vertices;
     std::vector<Index> indices;
-
-    Model model;
-    Material material;
 
   private:
     GLuint VBO, VAO, EBO;

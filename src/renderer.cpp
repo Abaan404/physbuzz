@@ -1,8 +1,6 @@
 #include "renderer.hpp"
 
-#include "objects/common.hpp"
-#include <glm/ext/matrix_clip_space.hpp>
-#include <physbuzz/debug/logging.hpp>
+#include <cstddef>
 #include <physbuzz/render/lighting.hpp>
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/texture.hpp>
@@ -54,11 +52,12 @@ void Renderer::tick(Physbuzz::Scene &scene) {
 }
 
 void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
-    const ResourceIdentifierComponent &identifiers = scene.getComponent<ResourceIdentifierComponent>(object);
+    const Physbuzz::ModelComponent &render = scene.getComponent<Physbuzz::ModelComponent>(object);
+    const Physbuzz::TransformComponent &transform = scene.getComponent<Physbuzz::TransformComponent>(object);
 
-    Physbuzz::ShaderPipelineResource *pipeline = Physbuzz::ResourceRegistry::get<Physbuzz::ShaderPipelineResource>(identifiers.pipeline);
+    Physbuzz::ShaderPipelineResource *pipeline = Physbuzz::ResourceRegistry::get<Physbuzz::ShaderPipelineResource>(render.pipeline);
     if (!pipeline) {
-        Physbuzz::Logger::ERROR("[Renderer] ShaderPipelineResource '{}' unknown.", identifiers.pipeline);
+        Physbuzz::Logger::ERROR("[Renderer] ShaderPipelineResource '{}' unknown.", render.pipeline);
         return;
     }
 
@@ -67,27 +66,35 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         return;
     }
 
-    if (!pipeline->bind()) {
-        pipeline->unbind();
+    pipeline->bind();
+
+    Physbuzz::ModelResource *model = Physbuzz::ResourceRegistry::get<Physbuzz::ModelResource>(render.model);
+    if (!model) {
+        Physbuzz::Logger::ERROR("[Renderer] ModelResource '{}' unknown.", render.model);
         return;
     }
 
-    const Physbuzz::MeshComponent &mesh = scene.getComponent<Physbuzz::MeshComponent>(object);
+    const std::unordered_map<Physbuzz::TextureType, std::vector<std::string>> &textures = model->getTextures();
 
-    // fetch materials
-    Physbuzz::Texture2DResource *diffuse = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(mesh.material.diffuse);
-    Physbuzz::Texture2DResource *specular = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(mesh.material.specular);
-    if (diffuse == nullptr) {
-        diffuse = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>("missing");
+    if (textures.contains(Physbuzz::TextureType::Diffuse)) {
+        const std::vector<std::string> &diffuseTextures = textures.at(Physbuzz::TextureType::Diffuse);
+        pipeline->setUniform<unsigned int>("u_TextureDiffuseLength", diffuseTextures.size());
+
+        for (std::size_t i = 0; i < diffuseTextures.size(); i++) {
+            Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(diffuseTextures[i]);
+            pipeline->setUniform(std::format("u_TextureDiffuse[{}]", i), texture->getUnit());
+        }
     }
 
-    if (specular == nullptr) {
-        specular = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>("missing_specular");
-    }
+    if (textures.contains(Physbuzz::TextureType::Specular)) {
+        const std::vector<std::string> &specularTextures = textures.at(Physbuzz::TextureType::Specular);
+        pipeline->setUniform<unsigned int>("u_TextureSpecularLength", specularTextures.size());
 
-    diffuse->bind();
-    specular->bind();
-    mesh.bind();
+        for (std::size_t i = 0; i < specularTextures.size(); i++) {
+            Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(specularTextures[i]);
+            pipeline->setUniform(std::format("u_TextureSpecular[{}]", i), texture->getUnit());
+        }
+    }
 
     // time
     pipeline->setUniform<unsigned int>("u_Time", m_Clock.getTime());
@@ -107,30 +114,15 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
     const std::vector<Physbuzz::PointLightComponent> &pointLights = scene.getComponents<Physbuzz::PointLightComponent>();
     pipeline->setUniform<unsigned int>("u_PointLightLength", pointLights.size());
 
-    // TODO dont do this
-    pipeline->setUniform("u_PointLight[0].position", pointLights[0].position);
-    pipeline->setUniform("u_PointLight[0].ambient", pointLights[0].ambient);
-    pipeline->setUniform("u_PointLight[0].diffuse", pointLights[0].diffuse);
-    pipeline->setUniform("u_PointLight[0].specular", pointLights[0].specular);
-    pipeline->setUniform("u_PointLight[0].constant", pointLights[0].constant);
-    pipeline->setUniform("u_PointLight[0].linear", pointLights[0].linear);
-    pipeline->setUniform("u_PointLight[0].quadratic", pointLights[0].quadratic);
-
-    pipeline->setUniform("u_PointLight[1].position", pointLights[1].position);
-    pipeline->setUniform("u_PointLight[1].ambient", pointLights[1].ambient);
-    pipeline->setUniform("u_PointLight[1].diffuse", pointLights[1].diffuse);
-    pipeline->setUniform("u_PointLight[1].specular", pointLights[1].specular);
-    pipeline->setUniform("u_PointLight[1].constant", pointLights[1].constant);
-    pipeline->setUniform("u_PointLight[1].linear", pointLights[1].linear);
-    pipeline->setUniform("u_PointLight[1].quadratic", pointLights[1].quadratic);
-
-    pipeline->setUniform("u_PointLight[2].position", pointLights[2].position);
-    pipeline->setUniform("u_PointLight[2].ambient", pointLights[2].ambient);
-    pipeline->setUniform("u_PointLight[2].diffuse", pointLights[2].diffuse);
-    pipeline->setUniform("u_PointLight[2].specular", pointLights[2].specular);
-    pipeline->setUniform("u_PointLight[2].constant", pointLights[2].constant);
-    pipeline->setUniform("u_PointLight[2].linear", pointLights[2].linear);
-    pipeline->setUniform("u_PointLight[2].quadratic", pointLights[2].quadratic);
+    for (std::size_t i = 0; i < pointLights.size(); ++i) {
+        pipeline->setUniform(std::format("u_PointLight[{}].position", i), pointLights[i].position);
+        pipeline->setUniform(std::format("u_PointLight[{}].ambient", i), pointLights[i].ambient);
+        pipeline->setUniform(std::format("u_PointLight[{}].diffuse", i), pointLights[i].diffuse);
+        pipeline->setUniform(std::format("u_PointLight[{}].specular", i), pointLights[i].specular);
+        pipeline->setUniform(std::format("u_PointLight[{}].constant", i), pointLights[i].constant);
+        pipeline->setUniform(std::format("u_PointLight[{}].linear", i), pointLights[i].linear);
+        pipeline->setUniform(std::format("u_PointLight[{}].quadratic", i), pointLights[i].quadratic);
+    }
 
     // Spotlight Lighting
     pipeline->setUniform("u_SpotLight.position", activeCamera->view.position);
@@ -147,23 +139,28 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
     pipeline->setUniform("u_SpotLight.cutOff", s_SpotLight.cutOff);
     pipeline->setUniform("u_SpotLight.outerCutOff", s_SpotLight.outerCutOff);
 
-    // Material
-    pipeline->setUniform("u_Material.diffuse", diffuse->getUnit());
-    pipeline->setUniform("u_Material.specular", specular->getUnit());
-    pipeline->setUniform("u_Material.shininess", mesh.material.shininess);
-
     // MVP
-    pipeline->setUniform("u_Model", mesh.model.matrix);
+    pipeline->setUniform("u_Model", transform.matrix);
     pipeline->setUniform("u_View", activeCamera->view.matrix);
     pipeline->setUniform("u_Projection", activeCamera->getProjection());
 
-    // send draw call
-    mesh.draw();
+    // draw meshes
+    for (const Physbuzz::Mesh &mesh : model->getMeshs()) {
+        mesh.bind();
+        mesh.draw();
+        mesh.unbind();
+    }
 
-    mesh.unbind();
+    // unbind textures
+    for (const auto &[_, textures] : textures) {
+        for (const auto &texture : textures) {
+            Physbuzz::Texture2DResource *tex = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(texture);
+            tex->unbind();
+        }
+    }
+
+    // unbind pipeline
     pipeline->unbind();
-    diffuse->unbind();
-    specular->unbind();
 }
 
 const Physbuzz::Clock &Renderer::getClock() const {

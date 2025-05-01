@@ -2,6 +2,7 @@
 
 #include "builder.hpp"
 #include "common.hpp"
+#include <physbuzz/render/model.hpp>
 
 struct CubeComponent {
     float width = 0.0f;
@@ -14,25 +15,25 @@ struct Cube {
     // Physbuzz::RigidBodyComponent body; // TODO implement me
 
     // geometry
-    Physbuzz::Model model;
     CubeComponent cube;
+    Physbuzz::TransformComponent transform;
 
     // naming
     IdentifiableComponent identifier = {
         .name = "Cube",
+        .hidden = false,
     };
 
-    ResourceIdentifierComponent resources = {
-        .pipeline = "cube",
+    // rendering
+    std::string pipeline = "cube";
+    TextureResources textures = {
+        .texture2D = {
+            {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
+            {Physbuzz::TextureType::Specular, {"default/specular"}},
+        },
     };
 
-    Physbuzz::Material material = {
-        .diffuse = "missing",
-        .specular = "missing_specular",
-    };
-
-    bool isCollidable = false;
-    bool isRenderable = false;
+    bool hasPhysics = false;
 };
 
 template <>

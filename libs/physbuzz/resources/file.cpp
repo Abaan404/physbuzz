@@ -32,7 +32,7 @@ bool FileResource::read() {
 
     buffer.resize(m_Size);
     stream.read(buffer.data(), buffer.size());
-    if (buffer[buffer.size()] != '\0') {
+    if (*buffer.end() != '\0') {
         buffer.push_back('\0');
     }
 

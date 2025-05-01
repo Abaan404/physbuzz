@@ -25,6 +25,7 @@
           pkgs.valgrind
 
           # libraries
+          pkgs.assimp
           pkgs.glfw-wayland
           pkgs.spdlog
           pkgs.glm

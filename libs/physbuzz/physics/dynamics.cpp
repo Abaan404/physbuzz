@@ -1,5 +1,6 @@
 #include "dynamics.hpp"
 
+#include "../resources/manager.hpp"
 #include "collision.hpp"
 
 namespace Physbuzz {
@@ -64,16 +65,17 @@ void Dynamics::tickMotion(Scene &scene, ObjectID id) const {
     // rotate object wrt axis and length of angular velocity vector
     // Note: t**2 is approx 0 for t << 0 (at high framerate)
     {
-        MeshComponent &mesh = scene.getComponent<MeshComponent>(id);
-        mesh.model.position += body.velocity * m_DeltaTime;
+        TransformComponent &transform = scene.getComponent<TransformComponent>(id);
+        transform.position += body.velocity * m_DeltaTime;
         if (glm::length(body.angular.velocity) > 0.0f) {
-            mesh.model.orientation = glm::angleAxis(glm::length(body.angular.velocity) * m_DeltaTime, glm::normalize(body.angular.velocity)) * mesh.model.orientation;
+            transform.orientation = glm::angleAxis(glm::length(body.angular.velocity) * m_DeltaTime, glm::normalize(body.angular.velocity)) * transform.orientation;
         }
 
-        mesh.model.update();
+        transform.update();
 
         // adjust collision bounding box
-        AABBComponent aabb = AABBComponent(mesh);
+        const ModelComponent &model = scene.getComponent<ModelComponent>(id);
+        AABBComponent aabb = AABBComponent(ResourceRegistry::get<ModelResource>(model.model)->getMeshs(), transform);
         scene.setComponent(id, aabb);
     }
 

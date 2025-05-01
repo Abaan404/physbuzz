@@ -115,16 +115,20 @@ void Camera::draw() {
         game->player.camera.view.reset();
     }
 
-    ImGui::DragFloat3("position", glm::value_ptr(game->player.camera.view.position), 1.0f, MIN_VALUE, MAX_VALUE);
+    if (ImGui::DragFloat3("position", glm::value_ptr(game->player.camera.view.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
+        game->player.camera.view.update();
+    }
 
     glm::vec3 up = game->player.camera.view.getUp();
     if (ImGui::DragFloat3("up", glm::value_ptr(up), 0.01f, MIN_VALUE, MAX_VALUE)) {
         game->player.camera.view.setUp(glm::normalize(up));
+        game->player.camera.view.update();
     }
 
     glm::vec3 facing = game->player.camera.view.getFacing();
     if (ImGui::DragFloat3("facing", glm::value_ptr(facing), 0.01f, MIN_VALUE, MAX_VALUE)) {
         game->player.camera.view.setFacing(glm::normalize(facing));
+        game->player.camera.view.update();
     }
 
     ImGui::SeparatorText("Player");

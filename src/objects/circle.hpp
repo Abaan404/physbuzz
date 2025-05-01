@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include <physbuzz/physics/dynamics.hpp>
+#include <physbuzz/render/model.hpp>
 
 struct CircleComponent {
     float radius = 0.0f;
@@ -12,25 +13,25 @@ struct Circle {
     Physbuzz::RigidBodyComponent body;
 
     // geometry
-    Physbuzz::Model model;
     CircleComponent circle;
+    Physbuzz::TransformComponent transform;
 
     // naming
     IdentifiableComponent identifier = {
         .name = "Circle",
+        .hidden = false,
     };
 
-    ResourceIdentifierComponent resources = {
-        .pipeline = "circle",
+    // rendering
+    std::string pipeline = "circle";
+    TextureResources textures = {
+        .texture2D = {
+            {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
+            {Physbuzz::TextureType::Specular, {"default/specular"}},
+        },
     };
 
-    Physbuzz::Material material = {
-        .diffuse = "missing",
-        .specular = "missing_specular",
-    };
-
-    bool isCollidable = false;
-    bool isRenderable = false;
+    bool hasPhysics = false;
 };
 
 template <>

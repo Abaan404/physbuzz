@@ -2,6 +2,7 @@
 
 #include "builder.hpp"
 #include "common.hpp"
+#include <physbuzz/render/model.hpp>
 
 struct LineComponent {
     float length = 0.0f;
@@ -10,24 +11,23 @@ struct LineComponent {
 
 struct Line {
     // geometry
-    Physbuzz::Model model;
     LineComponent line;
+    Physbuzz::TransformComponent transform;
 
     // naming
     IdentifiableComponent identifier = {
         .name = "Line",
+        .hidden = false,
     };
 
-    ResourceIdentifierComponent resources = {
-        .pipeline = "cube",
+    // rendering
+    std::string pipeline = "line";
+    TextureResources textures = {
+        .texture2D = {
+            {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
+            {Physbuzz::TextureType::Specular, {"default/specular"}},
+        },
     };
-
-    Physbuzz::Material material = {
-        .diffuse = "missing",
-        .specular = "missing_specular",
-    };
-
-    bool isRenderable = false;
 };
 
 template <>

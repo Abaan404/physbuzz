@@ -23,24 +23,23 @@ void Player::build() {
             }
 
             Cube info = {
-                .model = {
-                    .position = {0.0f, 0.0f, 0.0f},
-                    .orientation = glm::angleAxis(glm::pi<float>() / 4.0f, glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f))),
-                },
                 .cube = {
                     .width = 100.0f,
                     .height = 100.0f,
                     .length = 100.0f,
                 },
-                .resources = {
-                    .pipeline = "default",
+                .transform = {
+                    .position = {0.0f, 0.0f, 0.0f},
+                    .orientation = glm::angleAxis(glm::pi<float>() / 4.0f, glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f))),
                 },
-                .material = {
-                    .diffuse = "crate",
-                    .specular = "crate_specular",
+                .pipeline = "default",
+                .textures = {
+                    .texture2D = {
+                        {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
+                        {Physbuzz::TextureType::Specular, {"default/specular"}},
+                    },
                 },
-                .isCollidable = false,
-                .isRenderable = true,
+                .hasPhysics = false,
             };
             m_Game->builder.create(info);
         },
@@ -60,14 +59,13 @@ void Player::build() {
                         .acceleration = {0.0f, 1000.0f, 0.0f},
                     },
                 },
-                .model = {
-                    .position = {cursor.x, cursor.y, 0.0f},
-                },
                 .circle = {
                     .radius = 100.0f,
                 },
-                .isCollidable = true,
-                .isRenderable = true,
+                .transform = {
+                    .position = {cursor.x, cursor.y, 0.0f},
+                },
+                .hasPhysics = true,
             };
             m_Game->builder.create(info);
         },

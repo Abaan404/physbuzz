@@ -16,64 +16,60 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
         },
-        .model = {
-            .position = {min.x - info.wall.thickness / 2.0f, info.wall.position.y, 0.0f},
-        },
         .quad = {
             .width = info.wall.thickness,
             .height = info.wall.height,
         },
+        .transform = {
+            .position = {min.x - info.wall.thickness / 2.0f, info.wall.position.y, 0.0f},
+        },
         .identifier = info.identifier,
-        .isCollidable = info.isCollidable,
-        .isRenderable = info.isRenderable,
+        .hasPhysics = info.isCollidable,
     };
 
     Quad right = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
         },
-        .model = {
-            .position = {max.x + info.wall.thickness / 2.0f, info.wall.position.y, 0.0f},
-        },
         .quad = {
             .width = info.wall.thickness,
             .height = info.wall.height,
         },
+        .transform = {
+            .position = {max.x + info.wall.thickness / 2.0f, info.wall.position.y, 0.0f},
+        },
         .identifier = info.identifier,
-        .isCollidable = info.isCollidable,
-        .isRenderable = info.isRenderable,
+        .hasPhysics = info.isCollidable,
     };
 
     Quad up = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
         },
-        .model = {
-            .position = {info.wall.position.x, min.y - info.wall.thickness / 2.0f, 0.0f},
-        },
         .quad = {
             .width = info.wall.width,
             .height = info.wall.thickness,
         },
+        .transform = {
+            .position = {info.wall.position.x, min.y - info.wall.thickness / 2.0f, 0.0f},
+        },
         .identifier = info.identifier,
-        .isCollidable = info.isCollidable,
-        .isRenderable = info.isRenderable,
+        .hasPhysics = info.isCollidable,
     };
 
     Quad down = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
         },
-        .model = {
-            .position = {info.wall.position.x, max.y + info.wall.thickness / 2.0f, 0.0f},
-        },
         .quad = {
             .width = info.wall.width,
             .height = info.wall.thickness,
         },
+        .transform = {
+            .position = {info.wall.position.x, max.y + info.wall.thickness / 2.0f, 0.0f},
+        },
         .identifier = info.identifier,
-        .isCollidable = info.isCollidable,
-        .isRenderable = info.isRenderable,
+        .hasPhysics = info.isCollidable,
     };
 
     // create a rebuild callback
@@ -86,7 +82,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
 
             for (const auto &id : {wall.left, wall.right, wall.up, wall.down}) {
                 isCollidable = builder.scene->containsComponent<Physbuzz::AABBComponent>(id) || isCollidable;
-                isRenderable = builder.scene->containsComponent<Physbuzz::MeshComponent>(id) || isRenderable;
+                isRenderable = builder.scene->containsComponent<Physbuzz::Mesh>(id) || isRenderable;
 
                 builder.scene->eraseObject(id);
             }

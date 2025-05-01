@@ -1,14 +1,13 @@
 #pragma once
 
-#include "objects/common.hpp"
-#include <physbuzz/physics/dynamics.hpp>
+#include <physbuzz/ecs/scene.hpp>
+#include <physbuzz/misc/clock.hpp>
 #include <physbuzz/render/camera.hpp>
 #include <physbuzz/render/framebuffer.hpp>
-#include <physbuzz/render/mesh.hpp>
-#include <physbuzz/resources/manager.hpp>
+#include <physbuzz/render/model.hpp>
 #include <physbuzz/window/window.hpp>
 
-class Renderer : public Physbuzz::System<Physbuzz::MeshComponent, ResourceIdentifierComponent> {
+class Renderer : public Physbuzz::System<Physbuzz::ModelComponent, Physbuzz::TransformComponent> {
   public:
     Renderer(Physbuzz::Window *window);
     ~Renderer();

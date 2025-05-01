@@ -2,10 +2,8 @@
 
 #include "../ecs/scene.hpp"
 #include "../misc/clock.hpp"
-#include "../render/mesh.hpp"
-#include <glm/ext/matrix_transform.hpp>
+#include "../render/model.hpp"
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 
 namespace Physbuzz {
 
@@ -44,7 +42,7 @@ struct RigidBodyComponent {
     }
 };
 
-class Dynamics : public System<MeshComponent, RigidBodyComponent> {
+class Dynamics : public System<TransformComponent, ModelComponent, RigidBodyComponent> {
   public:
     Dynamics(float dtime);
     ~Dynamics();

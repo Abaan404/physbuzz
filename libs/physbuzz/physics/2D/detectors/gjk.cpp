@@ -51,17 +51,20 @@ Gjk2D::Gjk2D(Scene *scene)
     : ICollisionDetector(scene) {}
 
 bool Gjk2D::check(Contact &contact) {
-    const MeshComponent &mesh1 = m_Scene->getComponent<MeshComponent>(contact.object1);
-    const MeshComponent &mesh2 = m_Scene->getComponent<MeshComponent>(contact.object2);
+    const Mesh &mesh1 = m_Scene->getComponent<Mesh>(contact.object1);
+    const Mesh &mesh2 = m_Scene->getComponent<Mesh>(contact.object2);
 
-    glm::vec3 support = minkowskiSupportPoint(mesh1, mesh2, glm::vec3(0.0f, 1.0f, 0.0f));
+    const TransformComponent &transfrom1 = m_Scene->getComponent<TransformComponent>(contact.object1);
+    const TransformComponent &transfrom2 = m_Scene->getComponent<TransformComponent>(contact.object2);
+
+    glm::vec3 support = minkowskiSupportPoint(mesh1, mesh2, transfrom1, transfrom2, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 direction = -support;
 
     Simplex simplex;
     simplex.pushFront(support);
 
     while (true) {
-        support = minkowskiSupportPoint(mesh1, mesh2, direction);
+        support = minkowskiSupportPoint(mesh1, mesh2, transfrom1, transfrom2, direction);
 
         if (glm::dot(support, direction) <= 0) {
             return false;
@@ -69,7 +72,7 @@ bool Gjk2D::check(Contact &contact) {
 
         simplex.pushFront(support);
         if (nextSimplex(simplex, direction)) {
-            Epa(simplex, contact, mesh1, mesh2);
+            Epa(simplex, contact, mesh1, mesh2, transfrom1, transfrom2);
             return true;
         }
     }
@@ -123,7 +126,7 @@ bool Gjk2D::triangle(Simplex &simplex, glm::vec3 &direction) {
     return true;
 }
 
-void Gjk2D::Epa(Simplex &simplex, Contact &contact, const MeshComponent &mesh1, const MeshComponent &mesh2) {
+void Gjk2D::Epa(Simplex &simplex, Contact &contact, const Mesh &mesh1, const Mesh &mesh2, const TransformComponent &transfrom1, const TransformComponent &transfrom2) {
     std::vector<glm::vec3> polytope(simplex.begin(), simplex.end());
 
     std::size_t minIndex = 0;
@@ -149,8 +152,8 @@ void Gjk2D::Epa(Simplex &simplex, Contact &contact, const MeshComponent &mesh1, 
             }
         }
 
-        const glm::vec3 support1 = supportPoint(mesh1, contact.normal);
-        const glm::vec3 support2 = supportPoint(mesh2, -contact.normal);
+        const glm::vec3 support1 = supportPoint(mesh1, transfrom1, contact.normal);
+        const glm::vec3 support2 = supportPoint(mesh2, transfrom2, -contact.normal);
         const glm::vec3 support = support1 - support2;
 
         const float curDepth = glm::dot(contact.normal, support);
@@ -168,12 +171,12 @@ void Gjk2D::Epa(Simplex &simplex, Contact &contact, const MeshComponent &mesh1, 
 }
 
 // this might belong to a component than here, if I care about MPR (https://en.wikipedia.org/wiki/Minkowski_Portal_Refinement)
-glm::vec3 Gjk2D::supportPoint(const MeshComponent &mesh, const glm::vec3 &direction) {
+glm::vec3 Gjk2D::supportPoint(const Mesh &mesh, const TransformComponent &transfrom, const glm::vec3 &direction) {
     glm::vec3 point;
     float proj = std::numeric_limits<float>::lowest();
 
     for (const auto &vertex : mesh.vertices) {
-        glm::vec3 position = mesh.model.toWorld(vertex.position);
+        glm::vec3 position = transfrom.toWorld(vertex.position);
 
         const float newProj = glm::dot(position, direction);
         if (newProj > proj) {
@@ -185,8 +188,8 @@ glm::vec3 Gjk2D::supportPoint(const MeshComponent &mesh, const glm::vec3 &direct
     return point;
 }
 
-glm::vec3 Gjk2D::minkowskiSupportPoint(const MeshComponent &mesh1, const MeshComponent &mesh2, const glm::vec3 &direction) {
-    return supportPoint(mesh1, direction) - supportPoint(mesh2, -direction);
+glm::vec3 Gjk2D::minkowskiSupportPoint(const Mesh &mesh1, const Mesh &mesh2, const TransformComponent &transfrom1, const TransformComponent &transfrom2, const glm::vec3 &direction) {
+    return supportPoint(mesh1, transfrom1, direction) - supportPoint(mesh2, transfrom2, -direction);
 }
 
 bool Gjk2D::isFacing(const glm::vec3 &vec, const glm::vec3 &direction) {

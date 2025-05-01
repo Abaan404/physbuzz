@@ -5,7 +5,7 @@ ObjectBuilder::ObjectBuilder(Physbuzz::Scene *scene)
 
 ObjectBuilder::~ObjectBuilder() {}
 
-void ObjectBuilder::generate2DTexCoords(Physbuzz::MeshComponent &mesh) {
+void ObjectBuilder::generate2DTexCoords(Physbuzz::Mesh &mesh) {
     glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 max = glm::vec3(std::numeric_limits<float>::lowest());
 
@@ -20,7 +20,7 @@ void ObjectBuilder::generate2DTexCoords(Physbuzz::MeshComponent &mesh) {
     }
 }
 
-void ObjectBuilder::generate2DNormals(Physbuzz::MeshComponent &mesh) {
+void ObjectBuilder::generate2DNormals(Physbuzz::Mesh &mesh) {
     for (std::size_t i = 0; i < mesh.vertices.size(); ++i) {
         const std::size_t next = (i + 1) % mesh.vertices.size();                            // cycle next vertex
         const glm::vec3 tangent = mesh.vertices[next].position - mesh.vertices[i].position; // get the tangent

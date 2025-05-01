@@ -9,55 +9,49 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, LightCube &i
     create(object, info.cube);
 
     // add a point light to the center of the cube
-    if (info.cube.isRenderable) {
-        Physbuzz::PointLightComponent pointLight = {
-            .position = {
-                info.cube.model.position.x + info.cube.cube.width / 2.0f,
-                info.cube.model.position.y + info.cube.cube.height / 2.0f,
-                info.cube.model.position.z + info.cube.cube.length / 2.0f,
-            },
+    Physbuzz::PointLightComponent pointLight = {
+        .position = {
+            info.cube.transform.position.x + info.cube.cube.width / 2.0f,
+            info.cube.transform.position.y + info.cube.cube.height / 2.0f,
+            info.cube.transform.position.z + info.cube.cube.length / 2.0f,
+        },
 
-            .ambient = info.pointLight.ambient,
-            .diffuse = info.pointLight.diffuse,
-            .specular = info.pointLight.specular,
+        .ambient = info.pointLight.ambient,
+        .diffuse = info.pointLight.diffuse,
+        .specular = info.pointLight.specular,
 
-            .constant = info.pointLight.constant,
-            .linear = info.pointLight.linear,
-            .quadratic = info.pointLight.quadratic,
-        };
-
-        scene->setComponent(object, pointLight);
-    }
+        .constant = info.pointLight.constant,
+        .linear = info.pointLight.linear,
+        .quadratic = info.pointLight.quadratic,
+    };
 
     // create a rebuild callback
-    {
-        RebuildableComponent rebuilder = {
-            .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-                // NOTE: rebuilder framework may need a rewrite
-                LightCube info = {
-                    .cube = {
-                        // .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
-                        .cube = builder.scene->getComponent<CubeComponent>(object),
-                        .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                        .resources = builder.scene->getComponent<ResourceIdentifierComponent>(object),
-                        .isCollidable = builder.scene->containsComponent<Physbuzz::AABBComponent>(object),
-                        .isRenderable = false,
-                    },
-                    .pointLight = builder.scene->getComponent<Physbuzz::PointLightComponent>(object),
-                };
+    RebuildableComponent rebuilder = {
+        .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
+            if (!builder.scene->containsComponent<CubeComponent, IdentifiableComponent, TextureResources, Physbuzz::ModelComponent>(object)) {
+                Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
+                return;
+            }
 
-                if (builder.scene->containsComponent<Physbuzz::MeshComponent>(object)) {
-                    info.cube.isRenderable = true;
-                    info.cube.model = builder.scene->getComponent<Physbuzz::MeshComponent>(object).model;
-                    info.cube.material = builder.scene->getComponent<Physbuzz::MeshComponent>(object).material;
-                }
+            // NOTE: rebuilder framework may need a rewrite
+            LightCube info = {
+                .cube = {
+                    // .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
+                    .cube = builder.scene->getComponent<CubeComponent>(object),
+                    .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
+                    .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
+                    .pipeline = builder.scene->getComponent<Physbuzz::ModelComponent>(object).pipeline,
+                    .textures = builder.scene->getComponent<TextureResources>(object),
+                    .hasPhysics = builder.scene->containsComponent<Physbuzz::AABBComponent>(object),
+                },
+                .pointLight = builder.scene->getComponent<Physbuzz::PointLightComponent>(object),
+            };
 
-                builder.create(object, info);
-            },
-        };
+            builder.create(object, info);
+        },
+    };
 
-        scene->setComponent(object, rebuilder);
-    }
+    scene->setComponent(object, pointLight, rebuilder);
 
     return object;
 }

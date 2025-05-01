@@ -2,6 +2,7 @@
 
 #include "builder.hpp"
 #include <functional>
+#include <physbuzz/render/model.hpp>
 
 struct IdentifiableComponent {
     std::string name = "Unknown";
@@ -12,6 +13,6 @@ struct RebuildableComponent {
     std::function<void(ObjectBuilder &, Physbuzz::ObjectID)> rebuild;
 };
 
-struct ResourceIdentifierComponent {
-    std::string pipeline = "default";
+struct TextureResources {
+    std::unordered_map<Physbuzz::TextureType, std::vector<std::string>> texture2D;
 };

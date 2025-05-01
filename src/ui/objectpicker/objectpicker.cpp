@@ -12,24 +12,22 @@
 
 ObjectPicker::ObjectPicker() {
     Quad quad = {
-        .model = {
-            .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
-        },
         .quad = {
             .width = m_PreviewSize.x,
             .height = m_PreviewSize.y,
         },
-        .isRenderable = true,
+        .transform = {
+            .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
+        },
     };
 
     Circle circle = {
-        .model = {
-            .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
-        },
         .circle = {
             .radius = glm::min(m_PreviewSize.x, m_PreviewSize.y) / 2.0f,
         },
-        .isRenderable = true,
+        .transform = {
+            .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
+        },
     };
 
     ObjectBuilder builder = ObjectBuilder(&m_Scene);

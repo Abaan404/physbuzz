@@ -41,41 +41,41 @@ void Game::build() {
     Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
         "default",
         {{
-            .vertex = {.file = {.path = "resources/shaders/default.vert"}},
-            .fragment = {.file = {.path = "resources/shaders/default.frag"}},
+            .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
+            .fragment = {.file = {.path = "resources/shaders/default/default.frag"}},
         }});
 
     Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
         "quad",
         {{
-            .vertex = {.file = {.path = "resources/shaders/default.vert"}},
-            .fragment = {.file = {.path = "resources/shaders/quad.frag"}},
+            .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
+            .fragment = {.file = {.path = "resources/shaders/quad/quad.frag"}},
         }});
 
     Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
         "circle",
         {{
-            .vertex = {.file = {.path = "resources/shaders/default.vert"}},
-            .fragment = {.file = {.path = "resources/shaders/circle.frag"}},
+            .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
+            .fragment = {.file = {.path = "resources/shaders/circle/circle.frag"}},
         }});
 
     Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
         "cube",
         {{
-            .vertex = {.file = {.path = "resources/shaders/default.vert"}},
-            .fragment = {.file = {.path = "resources/shaders/cube.frag"}},
+            .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
+            .fragment = {.file = {.path = "resources/shaders/cube/cube.frag"}},
         }});
 
     Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
-        "missing",
+        "default/diffuse",
         {{
-            .image = {.file = {.path = "resources/textures/missing.png"}},
+            .image = {.file = {.path = "resources/textures/default/diffuse.png"}},
         }});
 
     Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
-        "missing_specular",
+        "default/specular",
         {{
-            .image = {.file = {.path = "resources/textures/missing_specular.png"}},
+            .image = {.file = {.path = "resources/textures/default/specular.png"}},
         }});
 
     Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
@@ -85,15 +85,15 @@ void Game::build() {
         }});
 
     Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
-        "crate",
+        "crate/diffuse",
         {{
-            .image = {.file = {.path = "resources/textures/crate.png"}},
+            .image = {.file = {.path = "resources/textures/crate/diffuse.png"}},
         }});
 
     Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
-        "crate_specular",
+        "crate/specular",
         {{
-            .image = {.file = {.path = "resources/textures/crate_specular.png"}},
+            .image = {.file = {.path = "resources/textures/crate/specular.png"}},
         }});
 
     // Create a default scene
@@ -116,20 +116,20 @@ void Game::rebuild() {
 
     // callbacks for cleaning up meshes
     {
-        scene.addCallback<Physbuzz::OnComponentEraseEvent<Physbuzz::MeshComponent>>([](const Physbuzz::OnComponentEraseEvent<Physbuzz::MeshComponent> &event) {
+        scene.addCallback<Physbuzz::OnComponentEraseEvent<Physbuzz::Mesh>>([](const Physbuzz::OnComponentEraseEvent<Physbuzz::Mesh> &event) {
             event.component->destroy();
         });
 
         scene.addCallback<Physbuzz::OnObjectEraseEvent>([](const Physbuzz::OnObjectEraseEvent &event) {
-            if (event.scene->containsComponent<Physbuzz::MeshComponent>(event.object)) {
-                event.scene->getComponent<Physbuzz::MeshComponent>(event.object).destroy();
+            if (event.scene->containsComponent<Physbuzz::Mesh>(event.object)) {
+                event.scene->getComponent<Physbuzz::Mesh>(event.object).destroy();
             }
         });
 
         scene.addCallback<Physbuzz::OnSceneClear>([](const Physbuzz::OnSceneClear &event) {
             for (const auto id : event.scene->getObjects()) {
-                if (event.scene->containsComponent<Physbuzz::MeshComponent>(id)) {
-                    event.scene->getComponent<Physbuzz::MeshComponent>(id).destroy();
+                if (event.scene->containsComponent<Physbuzz::Mesh>(id)) {
+                    event.scene->getComponent<Physbuzz::Mesh>(id).destroy();
                 }
             }
         });
@@ -138,21 +138,19 @@ void Game::rebuild() {
     // platform
     {
         Quad quad = {
-            .model = {
-                .orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
-            },
             .quad = {
                 .width = 500.0f,
                 .height = 500.0f,
             },
-            .resources = {
-                .pipeline = "default",
+            .transform = {
+                .orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             },
-            .material = {
-                .diffuse = "wall",
-                .specular = "missing_specular",
+            .pipeline = "default",
+            .textures = {
+                .texture2D = {
+                    {Physbuzz::TextureType::Diffuse, {"wall"}},
+                },
             },
-            .isRenderable = true,
         };
 
         builder.create(quad);
@@ -165,26 +163,23 @@ void Game::rebuild() {
 
         for (int i = 0; i < 25; ++i) {
             Cube cube = {
-                .model = {
-                    .position = {distribution(rd), distribution(rd) + 250, distribution(rd)},
-                    .orientation = glm::angleAxis(
-                        glm::radians(static_cast<float>(distribution(rd) % 360)),
-                        glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
-                },
                 .cube = {
                     .width = 50.0f,
                     .height = 50.0f,
                     .length = 50.0f,
                 },
-                .resources = {
-                    .pipeline = "default",
+                .transform = {
+                    .position = {distribution(rd), distribution(rd) + 250, distribution(rd)},
+                    .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
                 },
-                .material = {
-                    .diffuse = "crate",
-                    .specular = "crate_specular",
+                .pipeline = "default",
+                .textures = {
+                    .texture2D = {
+                        {Physbuzz::TextureType::Diffuse, {"crate/diffuse"}},
+                        {Physbuzz::TextureType::Specular, {"crate/specular"}},
+                    },
                 },
-                .isCollidable = false,
-                .isRenderable = true,
+                .hasPhysics = false,
             };
 
             builder.create(cube);
@@ -194,26 +189,25 @@ void Game::rebuild() {
         for (int i = 0; i < 3; ++i) {
             LightCube lightCube = {
                 .cube = {
-                    .model = {
-                        .position = {distribution(rd), distribution(rd) + 250, distribution(rd)},
-                        .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
-                    },
                     .cube = {
                         .width = 10.0f,
                         .height = 10.0f,
                         .length = 10.0f,
                     },
+                    .transform = {
+                        .position = {distribution(rd), distribution(rd) + 250, distribution(rd)},
+                        .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
+                    },
                     .identifier = {
                         .name = "LightCube",
                     },
-                    .resources = {
-                        .pipeline = "default",
+                    .pipeline = "default",
+                    .textures = {
+                        .texture2D = {
+                            {Physbuzz::TextureType::Diffuse, {"default/specular"}},
+                            {Physbuzz::TextureType::Specular, {"default/specular"}},
+                        },
                     },
-                    .material = {
-                        .diffuse = "missing_specular",
-                        .specular = "missing_specular",
-                    },
-                    .isRenderable = true,
                 },
                 .pointLight = {
                     .ambient = {0.2f, 0.2f, 0.2f},
@@ -231,16 +225,19 @@ void Game::rebuild() {
 
         // a circle because why not?
         Circle point = {
-            .model = {
-                .position = {100.0f, 100.0f, 100.0f},
-            },
             .circle = {
                 .radius = 10.0f,
             },
-            .resources = {
-                .pipeline = "default",
+            .transform = {
+                .position = {100.0f, 100.0f, 100.0f},
             },
-            .isRenderable = true,
+            .pipeline = "circle",
+            .textures = {
+                .texture2D = {
+                    {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
+                    {Physbuzz::TextureType::Specular, {"default/specular"}},
+                },
+            },
         };
 
         builder.create(point);
@@ -253,7 +250,7 @@ void Game::loop() {
     while (m_IsRunning && !window.shouldClose()) {
         bindings.poll();
 
-        scene.tickSystem<Physbuzz::Dynamics, Collision>();
+        // scene.tickSystem<Physbuzz::Dynamics, Collision>();
         scene.tickSystem<Renderer>();
 
         interface.render();
@@ -268,8 +265,8 @@ void Game::destroy() {
     m_IsRunning = false;
 
     for (const auto &object : scene.getObjects()) {
-        if (scene.containsComponent<Physbuzz::MeshComponent>(object)) {
-            scene.getComponent<Physbuzz::MeshComponent>(object).destroy();
+        if (scene.containsComponent<Physbuzz::Mesh>(object)) {
+            scene.getComponent<Physbuzz::Mesh>(object).destroy();
         }
     }
 
