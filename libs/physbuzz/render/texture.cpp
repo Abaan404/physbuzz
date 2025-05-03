@@ -16,6 +16,7 @@ bool Texture2DResource::build() {
     glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &maxUnits);
     if (m_Unit > maxUnits) {
         Logger::ERROR("[Texture2DResource] TextureUnit is out of range, supported ranges: {}", maxUnits);
+        return false;
     }
 
     ImageResource image = ImageResource(m_Info.image);
@@ -119,7 +120,7 @@ bool ResourceContainer<Texture2DResource>::insert(const std::string &identifier,
     }
 
     if (unit == -1) {
-        Logger::ERROR("[Texture2DResource] TextureArray is full, cannot allocate \"{}\"...", identifier);
+        Logger::ERROR("[Texture2DResource] TextureArray is full, cannot allocate \"{}\".", identifier);
         return false;
     }
 
@@ -129,6 +130,11 @@ bool ResourceContainer<Texture2DResource>::insert(const std::string &identifier,
 
 template <>
 bool ResourceContainer<Texture2DResource>::erase(const std::string &identifier) {
+    if (!m_Map.contains(identifier)) {
+        Logger::WARNING("[Texture2DResource] Tried to erase non-existent texture \"{}\".", identifier);
+        return false;
+    }
+
     Texture2DResource &texture = m_Map.get(identifier);
     getClaimedUnits()[texture.m_Unit] = false;
 

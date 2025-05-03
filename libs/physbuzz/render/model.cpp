@@ -7,33 +7,11 @@
 
 namespace Physbuzz {
 
-const glm::vec3 TransformComponent::toWorld(const glm::vec3 &local) const {
-    return matrix * glm::vec4(local, 1.0f);
-}
-
-const glm::vec3 TransformComponent::toLocal(const glm::vec3 &world) const {
-    return glm::inverse(matrix) * glm::vec4(world, 1.0f);
-}
-
-void TransformComponent::reset() {
-    position = {0.0f, 0.0f, 0.0f};
-    scale = {1.0f, 1.0f, 1.0f};
-    orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-}
-
-void TransformComponent::update() {
-    const glm::mat4 translation = glm::translate(glm::mat4(1.0f), position);
-    const glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::angle(orientation), glm::axis(orientation)); // conjugate?
-    const glm::mat4 stretch = glm::scale(glm::mat4(1.0f), scale);
-
-    matrix = translation * rotation * stretch;
-}
-
 ModelResource::ModelResource(const std::filesystem::path &path)
     : m_Path(path) {}
 
-ModelResource::ModelResource(const std::vector<Mesh> &meshes, std::unordered_map<TextureType, std::vector<std::string>> &textures)
-    : m_Meshes(meshes), m_Textures(textures) {}
+ModelResource::ModelResource(const std::vector<Mesh> &meshes)
+    : m_Meshes(meshes) {}
 
 ModelResource::~ModelResource() {}
 
@@ -60,10 +38,6 @@ bool ModelResource::destroy() {
 
 const std::vector<Mesh> &ModelResource::getMeshs() const {
     return m_Meshes;
-}
-
-const std::unordered_map<TextureType, std::vector<std::string>> &ModelResource::getTextures() const {
-    return m_Textures;
 }
 
 bool ModelResource::load() {
@@ -126,8 +100,10 @@ bool ModelResource::processMesh(aiMesh *aimesh, const aiScene *scene) {
     if (aimesh->mMaterialIndex >= 0) {
         aiMaterial *material = scene->mMaterials[aimesh->mMaterialIndex];
 
-        loadTextures(material, aiTextureType_DIFFUSE);
-        loadTextures(material, aiTextureType_SPECULAR);
+        mesh.textures[TextureType::Diffuse] = loadTextures(material, aiTextureType_DIFFUSE);
+        mesh.textures[TextureType::Specular] = loadTextures(material, aiTextureType_SPECULAR);
+
+        material->Get(AI_MATKEY_SHININESS, mesh.shininess);
     }
 
     m_Meshes.push_back(mesh);
@@ -135,29 +111,31 @@ bool ModelResource::processMesh(aiMesh *aimesh, const aiScene *scene) {
     return true;
 }
 
-bool ModelResource::loadTextures(aiMaterial *aimaterial, aiTextureType type) {
+std::vector<std::string> ModelResource::loadTextures(aiMaterial *aimaterial, aiTextureType type) {
+    std::vector<std::string> textures;
+
     for (unsigned int i = 0; i < aimaterial->GetTextureCount(type); i++) {
-        aiString path;
-        aimaterial->GetTexture(type, i, &path);
+        aiString aiPath;
+        aimaterial->GetTexture(type, i, &aiPath);
+
+        std::string path = m_Path.parent_path() / aiPath.C_Str();
 
         Texture2DInfo info = {
             .image = {
                 .file = {
-                    .path = path.C_Str(),
+                    .path = path,
                 },
             },
         };
 
-        const std::string &textureName = info.image.file.path.filename().string();
-
-        if (!ResourceRegistry::contains<Texture2DResource>(textureName)) {
-            ResourceRegistry::insert(info.image.file.path.filename(), Texture2DResource(info));
+        if (!ResourceRegistry::contains<Texture2DResource>(path)) {
+            ResourceRegistry::insert(path, Texture2DResource(info));
         }
 
-        m_Textures[static_cast<TextureType>(type)].push_back(textureName);
+        textures.push_back(path);
     }
 
-    return true;
+    return textures;
 }
 
 } // namespace Physbuzz

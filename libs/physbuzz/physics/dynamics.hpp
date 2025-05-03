@@ -3,6 +3,7 @@
 #include "../ecs/scene.hpp"
 #include "../misc/clock.hpp"
 #include "../render/model.hpp"
+#include "../render/transform.hpp"
 #include <glm/glm.hpp>
 
 namespace Physbuzz {

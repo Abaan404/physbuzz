@@ -4,8 +4,10 @@
 #include "objects/circle.hpp"
 #include "objects/cube.hpp"
 #include "objects/lightcube.hpp"
+#include "objects/model.hpp"
 #include "objects/quad.hpp"
 #include "renderer.hpp"
+#include <glm/ext/vector_float3.hpp>
 #include <physbuzz/events/scene.hpp>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/mesh.hpp>
@@ -96,6 +98,12 @@ void Game::build() {
             .image = {.file = {.path = "resources/textures/crate/specular.png"}},
         }});
 
+    Physbuzz::ResourceRegistry::insert<Physbuzz::ModelResource>(
+        "backpack",
+        {{
+            "resources/models/backpack/backpack.obj",
+        }});
+
     // Create a default scene
     rebuild();
 }
@@ -135,6 +143,23 @@ void Game::rebuild() {
         });
     }
 
+    // backpack
+    {
+        Model backpack = {
+            .model = {
+                .id = "backpack",
+            },
+            .transform = {
+                .position = glm::vec3(0.0f, 50.0f, 0.0f),
+                .scale = glm::vec3(20.0f, 20.0f, 20.0f),
+                .orientation = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            },
+            .pipeline = "default",
+        };
+
+        builder.create(backpack);
+    }
+
     // platform
     {
         Quad quad = {
@@ -149,6 +174,7 @@ void Game::rebuild() {
             .textures = {
                 .texture2D = {
                     {Physbuzz::TextureType::Diffuse, {"wall"}},
+                    {Physbuzz::TextureType::Specular, {"default/specular"}},
                 },
             },
         };

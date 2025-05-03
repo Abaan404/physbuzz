@@ -30,13 +30,12 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
     generate2DTexCoords(mesh);
     generate2DNormals(mesh);
 
+    // add textures
+    mesh.textures = info.textures.texture2D;
+
     // create model
     std::string model = std::format("quad_{}", object);
-    if (Physbuzz::ResourceRegistry::contains<Physbuzz::ModelResource>(model)) {
-        Physbuzz::ResourceRegistry::erase<Physbuzz::ModelResource>(model);
-    }
-
-    Physbuzz::ResourceRegistry::insert(model, Physbuzz::ModelResource({mesh}, info.textures.texture2D));
+    Physbuzz::ResourceRegistry::insert(model, Physbuzz::ModelResource({mesh}));
 
     // setup rendering
     Physbuzz::ModelComponent render = {

@@ -1,6 +1,6 @@
 struct Material {
-    sampler2D diffuse;
-    sampler2D specular;
+    uint diffuseLength;
+    uint specularLength;
 
     float shininess;
 };

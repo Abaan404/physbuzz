@@ -3,7 +3,7 @@
 #include "builder.hpp"
 #include "common.hpp"
 #include <physbuzz/physics/dynamics.hpp>
-#include <physbuzz/render/model.hpp>
+#include <physbuzz/render/transform.hpp>
 
 struct QuadComponent {
     float width = 0.0f;

@@ -47,13 +47,12 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
     // calc indices
     mesh.indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20};
 
+    // add textures
+    mesh.textures = info.textures.texture2D;
+
     // create model
     std::string model = std::format("cube_{}", object);
-    if (Physbuzz::ResourceRegistry::contains<Physbuzz::ModelResource>(model)) {
-        Physbuzz::ResourceRegistry::erase<Physbuzz::ModelResource>(model);
-    }
-
-    Physbuzz::ResourceRegistry::insert(model, Physbuzz::ModelResource({mesh}, info.textures.texture2D));
+    Physbuzz::ResourceRegistry::insert(model, Physbuzz::ModelResource({mesh}));
 
     // setup rendering
     Physbuzz::ModelComponent render = {

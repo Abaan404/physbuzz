@@ -2,7 +2,7 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include <physbuzz/render/model.hpp>
+#include <physbuzz/render/transform.hpp>
 
 struct CubeComponent {
     float width = 0.0f;

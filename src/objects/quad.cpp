@@ -22,6 +22,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
     // calc indices
     mesh.indices = {0, 1, 2, 0, 3, 2};
 
+    // add textures
+    mesh.textures = info.textures.texture2D;
+
     mesh.vertices.resize(positions.size());
     for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
         mesh.vertices[i].position = positions[i];
@@ -33,11 +36,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
 
     // create model
     std::string model = std::format("quad_{}", object);
-    if (Physbuzz::ResourceRegistry::contains<Physbuzz::ModelResource>(model)) {
-        Physbuzz::ResourceRegistry::erase<Physbuzz::ModelResource>(model);
-    }
-
-    Physbuzz::ResourceRegistry::insert(model, Physbuzz::ModelResource({mesh}, info.textures.texture2D));
+    Physbuzz::ResourceRegistry::insert(model, Physbuzz::ModelResource({mesh}));
 
     // setup rendering
     Physbuzz::ModelComponent render = {

@@ -6,6 +6,7 @@
 #include <physbuzz/render/framebuffer.hpp>
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/window/window.hpp>
+#include <physbuzz/render/transform.hpp>
 
 class Renderer : public Physbuzz::System<Physbuzz::ModelComponent, Physbuzz::TransformComponent> {
   public:
