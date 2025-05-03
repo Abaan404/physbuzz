@@ -140,15 +140,15 @@ void Player::build() {
     };
 
     m_Game->window.addCallback<Physbuzz::MousePositionEvent>([&](const Physbuzz::MousePositionEvent &event) {
+        static glm::vec2 lastPosition = m_Game->window.getResolution() >> 1;
+        glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * sensitivity;
+        lastPosition = event.position;
+
         if (m_CaptureMouse || m_Game->interface.draw || camera.getProjectionType() == Physbuzz::Camera::Type::Orthographic2D) {
             return;
         }
 
         m_Game->window.setCursorCapture(true);
-
-        static glm::vec2 lastPosition = m_Game->window.getResolution() >> 1;
-        glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * sensitivity;
-        lastPosition = event.position;
 
         glm::quat pitch = glm::angleAxis(glm::radians(offset.x), glm::vec3(0.0f, -1.0f, 0.0f));
         glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.view.getUp(), camera.view.getFacing()));
