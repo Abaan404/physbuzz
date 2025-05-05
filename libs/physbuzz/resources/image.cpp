@@ -29,7 +29,7 @@ bool ImageResource::destroy() {
 }
 
 bool ImageResource::read() {
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(m_Info.flipVertically);
 
     buffer = stbi_load(m_Info.file.path.c_str(), &m_Resolution.x, &m_Resolution.y, &m_Channels, 0);
 

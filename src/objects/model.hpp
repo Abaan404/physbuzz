@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "shader/default.hpp"
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/transform.hpp>
 
@@ -23,7 +24,7 @@ struct Model {
     };
 
     // rendering
-    std::string pipeline = "default";
+    ShaderComponent shader = s_DefaultShader;
 
     bool hasPhysics = false;
 };

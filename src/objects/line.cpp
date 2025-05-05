@@ -31,7 +31,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
     generate2DNormals(mesh);
 
     // add textures
-    mesh.textures = info.textures.texture2D;
+    mesh.textures = info.textures.resource;
 
     // create model
     std::string model = std::format("quad_{}", object);
@@ -40,7 +40,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
     // setup rendering
     Physbuzz::ModelComponent render = {
         .model = model,
-        .pipeline = info.pipeline,
     };
 
     info.transform.update();
@@ -57,7 +56,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
                 .line = builder.scene->getComponent<LineComponent>(object),
                 .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
                 .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                .pipeline = builder.scene->getComponent<Physbuzz::ModelComponent>(object).pipeline,
+                .shader = builder.scene->getComponent<ShaderComponent>(object),
                 .textures = builder.scene->getComponent<TextureResources>(object),
             };
 
@@ -65,7 +64,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
         },
     };
 
-    scene->setComponent(object, info.line, info.identifier, info.textures, info.transform, render, rebuilder);
+    scene->setComponent(object, info.line, info.identifier, info.textures, info.transform, info.shader, render, rebuilder);
 
     return object;
 }

@@ -8,7 +8,6 @@ namespace Physbuzz {
 
 struct ModelComponent {
     std::string model;
-    std::string pipeline;
 };
 
 class ModelResource {

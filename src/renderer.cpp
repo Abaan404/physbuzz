@@ -1,12 +1,18 @@
 #include "renderer.hpp"
+#include "objects/common.hpp"
+#include "objects/skybox.hpp"
+#include "physbuzz/debug/logging.hpp"
+#include "physbuzz/render/cubemap.hpp"
+#include "physbuzz/resources/manager.hpp"
 
 #include <cstddef>
+#include <format>
 #include <physbuzz/render/lighting.hpp>
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/texture.hpp>
 
 static Physbuzz::DirectionalLightComponent s_DirectionalLight = {
-    .direction = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f)),
+    .direction = glm::normalize(glm::vec3(1.0f, 1.0f, -1.0f)),
 
     .ambient = {0.2f, 0.2f, 0.2f},
     .diffuse = {0.5f, 0.5f, 0.5f},
@@ -52,14 +58,17 @@ void Renderer::tick(Physbuzz::Scene &scene) {
 }
 
 void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
-    const Physbuzz::ModelComponent &render = scene.getComponent<Physbuzz::ModelComponent>(object);
+    const ShaderComponent &shader = scene.getComponent<ShaderComponent>(object);
     const Physbuzz::TransformComponent &transform = scene.getComponent<Physbuzz::TransformComponent>(object);
 
-    Physbuzz::ShaderPipelineResource *pipeline = Physbuzz::ResourceRegistry::get<Physbuzz::ShaderPipelineResource>(render.pipeline);
-    if (!pipeline) {
-        Physbuzz::Logger::ERROR("[Renderer] ShaderPipelineResource '{}' unknown.", render.pipeline);
-        return;
-    }
+    Physbuzz::ShaderPipelineResource *pipeline = Physbuzz::ResourceRegistry::get<Physbuzz::ShaderPipelineResource>(shader.resource);
+    PBZ_ASSERT(pipeline, std::format("[Renderer] ShaderPipelineResource '{}' unknown.", shader.resource));
+
+    std::vector<SkyboxComponent> skyboxes = scene.getComponents<SkyboxComponent>();
+    PBZ_ASSERT(skyboxes.size() == 1, "[Renderer] Invalid number of skyboxes in scene");
+
+    const SkyboxComponent &skybox = skyboxes[0];
+    Physbuzz::CubemapResource *cubemap = Physbuzz::ResourceRegistry::get<Physbuzz::CubemapResource>(skybox.cubemap);
 
     // check for reload before binding
     if (!pipeline->reload()) {
@@ -70,17 +79,15 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         return;
     }
 
-    Physbuzz::ModelResource *model = Physbuzz::ResourceRegistry::get<Physbuzz::ModelResource>(render.model);
-    if (!model) {
-        Physbuzz::Logger::ERROR("[Renderer] ModelResource '{}' unknown.", render.model);
-        return;
-    }
+    // skybox
+    cubemap->bind();
+    pipeline->setUniform("u_Skybox", cubemap->getUnit());
 
     // time
     pipeline->setUniform<unsigned int>("u_Time", m_Clock.getTime());
     pipeline->setUniform<unsigned int>("u_TimeDelta", m_Clock.getDelta());
 
-    // render
+    // player
     pipeline->setUniform("u_Resolution", m_Window->getResolution());
     pipeline->setUniform("u_ViewPosition", activeCamera->view.position);
 
@@ -124,56 +131,10 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
     pipeline->setUniform("u_View", activeCamera->view.matrix);
     pipeline->setUniform("u_Projection", activeCamera->getProjection());
 
-    // draw meshes
-    for (const Physbuzz::Mesh &mesh : model->getMeshs()) {
-        if (mesh.textures.contains(Physbuzz::TextureType::Diffuse)) {
-            const std::vector<std::string> &diffuseTextures = mesh.textures.at(Physbuzz::TextureType::Diffuse);
-            pipeline->setUniform<unsigned int>("u_Material.diffuseLength", diffuseTextures.size());
+    shader.render(scene, object);
 
-            for (std::size_t i = 0; i < diffuseTextures.size(); i++) {
-                Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(diffuseTextures[i]);
-                pipeline->setUniform(std::format("u_MaterialDiffuse[{}]", i), texture->getUnit());
-                texture->bind();
-            }
-        }
-
-        if (mesh.textures.contains(Physbuzz::TextureType::Specular)) {
-            const std::vector<std::string> &specularTextures = mesh.textures.at(Physbuzz::TextureType::Specular);
-            pipeline->setUniform<unsigned int>("u_Material.specularLength", specularTextures.size());
-
-            for (std::size_t i = 0; i < specularTextures.size(); i++) {
-                Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(specularTextures[i]);
-                pipeline->setUniform(std::format("u_MaterialSpecular[{}]", i), texture->getUnit());
-                texture->bind();
-            }
-        }
-
-        pipeline->setUniform("u_Material.shininess", mesh.shininess);
-
-        mesh.bind();
-        mesh.draw();
-        mesh.unbind();
-
-        if (mesh.textures.contains(Physbuzz::TextureType::Diffuse)) {
-            const std::vector<std::string> &diffuseTextures = mesh.textures.at(Physbuzz::TextureType::Diffuse);
-
-            for (std::size_t i = 0; i < diffuseTextures.size(); i++) {
-                Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(diffuseTextures[i]);
-                texture->unbind();
-            }
-        }
-
-        if (mesh.textures.contains(Physbuzz::TextureType::Specular)) {
-            const std::vector<std::string> &specularTextures = mesh.textures.at(Physbuzz::TextureType::Specular);
-
-            for (std::size_t i = 0; i < specularTextures.size(); i++) {
-                Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(specularTextures[i]);
-                texture->unbind();
-            }
-        }
-    }
-
-    // unbind pipeline
+    // unbind scene
+    cubemap->unbind();
     pipeline->unbind();
 }
 

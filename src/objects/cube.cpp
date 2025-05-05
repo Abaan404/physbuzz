@@ -48,7 +48,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
     mesh.indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20};
 
     // add textures
-    mesh.textures = info.textures.texture2D;
+    mesh.textures = info.textures.resource;
 
     // create model
     std::string model = std::format("cube_{}", object);
@@ -57,7 +57,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
     // setup rendering
     Physbuzz::ModelComponent render = {
         .model = model,
-        .pipeline = info.pipeline,
     };
 
     info.transform.update();
@@ -75,7 +74,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
                 .cube = builder.scene->getComponent<CubeComponent>(object),
                 .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
                 .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                .pipeline = builder.scene->getComponent<Physbuzz::ModelComponent>(object).pipeline,
+                .shader = builder.scene->getComponent<ShaderComponent>(object),
                 .textures = builder.scene->getComponent<TextureResources>(object),
                 .hasPhysics = builder.scene->containsComponent<Physbuzz::RigidBodyComponent>(object),
             };
@@ -88,7 +87,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
         },
     };
 
-    scene->setComponent(object, info.cube, info.identifier, info.textures, info.transform, render, rebuilder);
+    scene->setComponent(object, info.cube, info.identifier, info.textures, info.transform, info.shader, render, rebuilder);
 
     if (info.hasPhysics) {
         // generate bounding box

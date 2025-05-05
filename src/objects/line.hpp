@@ -2,6 +2,7 @@
 
 #include "builder.hpp"
 #include "common.hpp"
+#include "shader/default.hpp"
 #include <physbuzz/render/transform.hpp>
 
 struct LineComponent {
@@ -21,9 +22,9 @@ struct Line {
     };
 
     // rendering
-    std::string pipeline = "line";
+    ShaderComponent shader = s_DefaultShader;
     TextureResources textures = {
-        .texture2D = {
+        .resource = {
             {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
             {Physbuzz::TextureType::Specular, {"default/specular"}},
         },

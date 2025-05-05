@@ -14,5 +14,10 @@ struct RebuildableComponent {
 };
 
 struct TextureResources {
-    std::unordered_map<Physbuzz::TextureType, std::vector<std::string>> texture2D;
+    std::unordered_map<Physbuzz::TextureType, std::vector<std::string>> resource;
+};
+
+struct ShaderComponent {
+    std::string resource;
+    std::function<void(Physbuzz::Scene &, Physbuzz::ObjectID)> render;
 };

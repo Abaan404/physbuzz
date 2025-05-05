@@ -23,7 +23,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
     mesh.indices = {0, 1, 2, 0, 3, 2};
 
     // add textures
-    mesh.textures = info.textures.texture2D;
+    mesh.textures = info.textures.resource;
 
     mesh.vertices.resize(positions.size());
     for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
@@ -41,7 +41,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
     // setup rendering
     Physbuzz::ModelComponent render = {
         .model = model,
-        .pipeline = info.pipeline,
     };
 
     info.transform.update();
@@ -58,7 +57,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
                 .quad = builder.scene->getComponent<QuadComponent>(object),
                 .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
                 .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                .pipeline = builder.scene->getComponent<Physbuzz::ModelComponent>(object).pipeline,
+                .shader = builder.scene->getComponent<ShaderComponent>(object),
                 .textures = builder.scene->getComponent<TextureResources>(object),
                 .hasPhysics = builder.scene->containsComponent<Physbuzz::RigidBodyComponent>(object),
             };
@@ -71,7 +70,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
         },
     };
 
-    scene->setComponent(object, info.quad, info.identifier, info.textures, info.transform, render, rebuilder);
+    scene->setComponent(object, info.quad, info.identifier, info.textures, info.transform, info.shader, render, rebuilder);
 
     // generate bounding box
     if (info.hasPhysics) {

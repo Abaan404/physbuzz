@@ -7,6 +7,7 @@ namespace Physbuzz {
 
 struct ImageInfo {
     FileInfo file;
+    bool flipVertically = false;
 };
 
 class ImageResource {

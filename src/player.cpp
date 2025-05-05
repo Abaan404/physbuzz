@@ -32,9 +32,8 @@ void Player::build() {
                     .position = {0.0f, 0.0f, 0.0f},
                     .orientation = glm::angleAxis(glm::pi<float>() / 4.0f, glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f))),
                 },
-                .pipeline = "default",
                 .textures = {
-                    .texture2D = {
+                    .resource = {
                         {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
                         {Physbuzz::TextureType::Specular, {"default/specular"}},
                     },

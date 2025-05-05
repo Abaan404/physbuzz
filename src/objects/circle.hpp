@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "shader/default.hpp"
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/model.hpp>
 
@@ -23,9 +24,9 @@ struct Circle {
     };
 
     // rendering
-    std::string pipeline = "circle";
+    ShaderComponent shader = s_DefaultShader;
     TextureResources textures = {
-        .texture2D = {
+        .resource = {
             {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
             {Physbuzz::TextureType::Specular, {"default/specular"}},
         },

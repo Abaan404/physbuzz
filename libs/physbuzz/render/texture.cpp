@@ -19,6 +19,8 @@ bool Texture2DResource::build() {
         return false;
     }
 
+    // OpenGL's origin for textures are on its top-left
+    m_Info.image.flipVertically = true;
     ImageResource image = ImageResource(m_Info.image);
     if (!image.build()) {
         Logger::ERROR("[Texture2D] Could not build image: {}", m_Info.image.file.path.string());
@@ -88,22 +90,6 @@ bool Texture2DResource::unbind() const {
 
 const GLint &Texture2DResource::getUnit() const {
     return m_Unit;
-}
-
-/** A virtual mirror of claimed units in the GPU as described in the OpenGL spec. Temporary
- *  implementation detail until the engine moves to Vulkan */
-static std::vector<bool> &getClaimedUnits() {
-    static std::vector<bool> claimedUnits;
-
-    static int runOnce = []() {
-        GLint maxUnits;
-        glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &maxUnits);
-        claimedUnits.resize(maxUnits, false);
-
-        return 0;
-    }();
-
-    return claimedUnits;
 }
 
 template <>

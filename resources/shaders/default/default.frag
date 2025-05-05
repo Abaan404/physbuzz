@@ -19,6 +19,8 @@ uniform PointLight u_PointLight[MAX_POINT_LIGHTS];
 uniform DirectionalLight u_DirectionalLight;
 uniform SpotLight u_SpotLight;
 
+uniform samplerCube u_Skybox;
+
 uniform vec3 u_ViewPosition;
 
 in vec3 normal;
@@ -46,6 +48,10 @@ void main() {
 
     result += calcDirectionalLight(u_Material, u_DirectionalLight, fragPosition, normal, u_ViewPosition, diffuse, specular);
     result += calcSpotLight(u_Material, u_SpotLight, fragPosition, normal, u_ViewPosition, diffuse, specular);
+
+    vec3 I = normalize(fragPosition - u_ViewPosition);
+    vec3 R = refract(I, -normalize(normal), 1.00 / 1.52);
+    result += vec4(texture(u_Skybox, R).rgb, 1.0);
 
     for (int i = 0; i < u_PointLightLength; i++) {
         result += calcPointLight(u_Material, u_PointLight[i], fragPosition, normal, u_ViewPosition, diffuse, specular);
