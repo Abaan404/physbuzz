@@ -1,15 +1,17 @@
 #include "renderer.hpp"
 #include "objects/common.hpp"
 #include "objects/skybox.hpp"
-#include "physbuzz/debug/logging.hpp"
-#include "physbuzz/render/cubemap.hpp"
-#include "physbuzz/resources/manager.hpp"
+#include "resources/uniforms/camera.hpp"
+#include "resources/uniforms/time.hpp"
+#include "resources/uniforms/window.hpp"
 
 #include <cstddef>
 #include <format>
+#include <physbuzz/render/cubemap.hpp>
 #include <physbuzz/render/lighting.hpp>
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/texture.hpp>
+#include <physbuzz/render/uniforms.hpp>
 
 static Physbuzz::DirectionalLightComponent s_DirectionalLight = {
     .direction = glm::normalize(glm::vec3(1.0f, 1.0f, -1.0f)),
@@ -52,17 +54,28 @@ void Renderer::tick(Physbuzz::Scene &scene) {
         return;
     }
 
+    Physbuzz::ResourceRegistry::get<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->update({
+        .position = activeCamera->view.position,
+        .view = activeCamera->view.matrix,
+        .projection = activeCamera->getProjection(),
+    });
+
+    Physbuzz::ResourceRegistry::get<Physbuzz::UniformBufferResource<UniformTime>>("time")->update({
+        .time = m_Clock.getTime(),
+        .timedelta = m_Clock.getDelta(),
+    });
+
     for (const auto &object : m_Objects) {
         render(scene, object);
     }
 }
 
 void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
-    const ShaderComponent &shader = scene.getComponent<ShaderComponent>(object);
+    const ResourceComponent &resources = scene.getComponent<ResourceComponent>(object);
     const Physbuzz::TransformComponent &transform = scene.getComponent<Physbuzz::TransformComponent>(object);
 
-    Physbuzz::ShaderPipelineResource *pipeline = Physbuzz::ResourceRegistry::get<Physbuzz::ShaderPipelineResource>(shader.resource);
-    PBZ_ASSERT(pipeline, std::format("[Renderer] ShaderPipelineResource '{}' unknown.", shader.resource));
+    Physbuzz::ShaderPipelineResource *pipeline = Physbuzz::ResourceRegistry::get<Physbuzz::ShaderPipelineResource>(resources.pipeline);
+    PBZ_ASSERT(pipeline, std::format("[Renderer] ShaderPipelineResource '{}' unknown.", resources.pipeline));
 
     std::vector<SkyboxComponent> skyboxes = scene.getComponents<SkyboxComponent>();
     PBZ_ASSERT(skyboxes.size() == 1, "[Renderer] Invalid number of skyboxes in scene");
@@ -82,14 +95,6 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
     // skybox
     cubemap->bind();
     pipeline->setUniform("u_Skybox", cubemap->getUnit());
-
-    // time
-    pipeline->setUniform<unsigned int>("u_Time", m_Clock.getTime());
-    pipeline->setUniform<unsigned int>("u_TimeDelta", m_Clock.getDelta());
-
-    // player
-    pipeline->setUniform("u_Resolution", m_Window->getResolution());
-    pipeline->setUniform("u_ViewPosition", activeCamera->view.position);
 
     // Directional Lighting
     pipeline->setUniform("u_DirectionalLight.direction", s_DirectionalLight.direction);
@@ -128,10 +133,8 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
 
     // MVP
     pipeline->setUniform("u_Model", transform.matrix);
-    pipeline->setUniform("u_View", activeCamera->view.matrix);
-    pipeline->setUniform("u_Projection", activeCamera->getProjection());
 
-    shader.render(scene, object);
+    pipeline->draw(scene, object);
 
     // unbind scene
     cubemap->unbind();
@@ -161,6 +164,10 @@ void Renderer::clear(const glm::vec4 &color) {
 void Renderer::resize(const glm::ivec2 &resolution) {
     if (m_Framebuffer == nullptr) {
         m_Window->setResolution(resolution);
+        Physbuzz::ResourceRegistry::get<Physbuzz::UniformBufferResource<UniformWindow>>("window")->update({
+            .resolution = resolution,
+        });
+
     } else {
         m_Framebuffer->resize(resolution);
     }

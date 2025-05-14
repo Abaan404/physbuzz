@@ -6,10 +6,9 @@
 #include "objects/lightcube.hpp"
 #include "objects/model.hpp"
 #include "objects/quad.hpp"
-#include "objects/shader/circle.hpp"
-#include "objects/shader/skybox.hpp"
 #include "objects/skybox.hpp"
 #include "renderer.hpp"
+#include "resources/builder.hpp"
 #include <glm/ext/vector_float3.hpp>
 #include <physbuzz/events/scene.hpp>
 #include <physbuzz/misc/context.hpp>
@@ -35,6 +34,13 @@ void Game::build() {
     bindings.build();
     interface.build(window);
 
+    ResourceBuilder builder;
+    builder.buildTextures();
+    builder.buildModels();
+    builder.buildCubemaps();
+    builder.buildUniforms();
+    builder.buildShaders();
+
     window.addCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) {
         player.resize(event.resolution);
         scene.getSystem<Renderer>()->resize(event.resolution);
@@ -43,88 +49,6 @@ void Game::build() {
     window.addCallback<Physbuzz::WindowCloseEvent>([&](const Physbuzz::WindowCloseEvent &event) {
         window.close();
     });
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
-        "default",
-        {{
-            .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
-            .fragment = {.file = {.path = "resources/shaders/default/default.frag"}},
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
-        "quad",
-        {{
-            .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
-            .fragment = {.file = {.path = "resources/shaders/quad/quad.frag"}},
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
-        "circle",
-        {{
-            .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
-            .fragment = {.file = {.path = "resources/shaders/circle/circle.frag"}},
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
-        "cube",
-        {{
-            .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
-            .fragment = {.file = {.path = "resources/shaders/cube/cube.frag"}},
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::ShaderPipelineResource>(
-        "skybox",
-        {{
-            .vertex = {.file = {.path = "resources/shaders/skybox/skybox.vert"}},
-            .fragment = {.file = {.path = "resources/shaders/skybox/skybox.frag"}},
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
-        "default/diffuse",
-        {{
-            .image = {.file = {.path = "resources/textures/default/diffuse.png"}},
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
-        "default/specular",
-        {{
-            .image = {.file = {.path = "resources/textures/default/specular.png"}},
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
-        "wall",
-        {{
-            .image = {.file = {.path = "resources/textures/wall.jpg"}},
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
-        "crate/diffuse",
-        {{
-            .image = {.file = {.path = "resources/textures/crate/diffuse.png"}},
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::Texture2DResource>(
-        "crate/specular",
-        {{
-            .image = {.file = {.path = "resources/textures/crate/specular.png"}},
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::ModelResource>(
-        "backpack",
-        {{
-            "resources/models/backpack/backpack.obj",
-        }});
-
-    Physbuzz::ResourceRegistry::insert<Physbuzz::CubemapResource>(
-        "skybox",
-        {{
-            .right = {.file = {.path = "resources/textures/skybox/right.jpg"}},
-            .left = {.file = {.path = "resources/textures/skybox/left.jpg"}},
-            .top = {.file = {.path = "resources/textures/skybox/top.jpg"}},
-            .bottom = {.file = {.path = "resources/textures/skybox/bottom.jpg"}},
-            .back = {.file = {.path = "resources/textures/skybox/back.jpg"}},
-            .front = {.file = {.path = "resources/textures/skybox/front.jpg"}},
-        }});
 
     // Create a default scene
     rebuild();
@@ -167,14 +91,7 @@ void Game::rebuild() {
 
     // skybox
     {
-        Skybox skybox = {
-            .skybox = {
-                .cubemap = "skybox",
-            },
-            .transform = {},
-            .shader = s_SkyboxShader,
-        };
-
+        Skybox skybox;
         builder.create(skybox);
     }
 
@@ -182,7 +99,7 @@ void Game::rebuild() {
     {
         Model backpack = {
             .model = {
-                .id = "backpack",
+                .resource = "backpack",
             },
             .transform = {
                 .position = glm::vec3(0.0f, 50.0f, 0.0f),
@@ -204,11 +121,12 @@ void Game::rebuild() {
             .transform = {
                 .orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             },
-            .textures = {
-                .resource = {
+            .resources = {
+                .textures = {
                     {Physbuzz::TextureType::Diffuse, {"wall"}},
                     {Physbuzz::TextureType::Specular, {"default/specular"}},
                 },
+                .pipeline = "default",
             },
         };
 
@@ -231,11 +149,12 @@ void Game::rebuild() {
                     .position = {distribution(rd), distribution(rd) + 250, distribution(rd)},
                     .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
                 },
-                .textures = {
-                    .resource = {
+                .resources = {
+                    .textures = {
                         {Physbuzz::TextureType::Diffuse, {"crate/diffuse"}},
                         {Physbuzz::TextureType::Specular, {"crate/specular"}},
                     },
+                    .pipeline = "default",
                 },
                 .hasPhysics = false,
             };
@@ -259,11 +178,12 @@ void Game::rebuild() {
                     .identifier = {
                         .name = "LightCube",
                     },
-                    .textures = {
-                        .resource = {
+                    .resources = {
+                        .textures = {
                             {Physbuzz::TextureType::Diffuse, {"default/specular"}},
                             {Physbuzz::TextureType::Specular, {"default/specular"}},
                         },
+                        .pipeline = "default",
                     },
                 },
                 .pointLight = {
@@ -288,12 +208,12 @@ void Game::rebuild() {
             .transform = {
                 .position = {100.0f, 100.0f, 100.0f},
             },
-            .shader = s_CircleShader,
-            .textures = {
-                .resource = {
+            .resources = {
+                .textures = {
                     {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
                     {Physbuzz::TextureType::Specular, {"default/specular"}},
                 },
+                .pipeline = "circle",
             },
         };
 

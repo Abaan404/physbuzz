@@ -55,7 +55,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Skybox &info
     info.transform.update();
 
     // setup rendering
-    scene->setComponent(object, info.shader, info.skybox, info.transform, render);
+    scene->setComponent(object, info.resources, info.skybox, info.transform, render);
 
     return object;
 }

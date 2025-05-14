@@ -225,7 +225,7 @@ inline void destroyShaders(std::array<Shader, N> &shaders, const GLuint &program
 }
 
 ShaderPipelineResource::ShaderPipelineResource(const ShaderPipelineInfo &info)
-    : m_Info(info) {}
+    : m_Info(info), draw(info.draw) {}
 
 ShaderPipelineResource::~ShaderPipelineResource() {}
 
@@ -302,6 +302,7 @@ bool ShaderPipelineResource::build() {
         m_Paths.merge(includedPaths);
     }
 
+    m_Info.setup(this);
     return true;
 }
 

@@ -48,7 +48,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
     mesh.indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20};
 
     // add textures
-    mesh.textures = info.textures.resource;
+    mesh.textures = info.resources.textures;
 
     // create model
     std::string model = std::format("cube_{}", object);
@@ -64,7 +64,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<CubeComponent, Physbuzz::TransformComponent, IdentifiableComponent, Physbuzz::ModelComponent, TextureResources>(object)) {
+            if (!builder.scene->containsComponent<CubeComponent, Physbuzz::TransformComponent, IdentifiableComponent, Physbuzz::ModelComponent, ResourceComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
@@ -74,8 +74,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
                 .cube = builder.scene->getComponent<CubeComponent>(object),
                 .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
                 .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                .shader = builder.scene->getComponent<ShaderComponent>(object),
-                .textures = builder.scene->getComponent<TextureResources>(object),
+                .resources = builder.scene->getComponent<ResourceComponent>(object),
                 .hasPhysics = builder.scene->containsComponent<Physbuzz::RigidBodyComponent>(object),
             };
 
@@ -87,7 +86,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
         },
     };
 
-    scene->setComponent(object, info.cube, info.identifier, info.textures, info.transform, info.shader, render, rebuilder);
+    scene->setComponent(object, info.cube, info.identifier, info.resources, info.transform, render, rebuilder);
 
     if (info.hasPhysics) {
         // generate bounding box

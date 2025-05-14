@@ -2,13 +2,18 @@
 
 layout(location = 0) in vec3 aPosition;
 
-out vec3 texCoord;
+layout(std140, binding = 1) uniform Camera {
+    vec3 position;
+    mat4 view;
+    mat4 projection;
+} camera;
 
-uniform mat4 u_View;
-uniform mat4 u_Projection;
+out VS_OUT {
+    vec3 texCoord;
+} vs_out;
 
 void main()
 {
-    texCoord = vec3(aPosition.xy, -aPosition.z);
-    gl_Position = (u_Projection * mat4(mat3(u_View)) * vec4(aPosition, 1.0)).xyww;
+    vs_out.texCoord = vec3(aPosition.xy, -aPosition.z);
+    gl_Position = (camera.projection * mat4(mat3(camera.view)) * vec4(aPosition, 1.0)).xyww;
 }

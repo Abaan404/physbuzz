@@ -2,7 +2,6 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include "shader/default.hpp"
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/transform.hpp>
 
@@ -26,13 +25,7 @@ struct Quad {
     };
 
     // rendering
-    ShaderComponent shader = s_DefaultShader;
-    TextureResources textures = {
-        .resource = {
-            {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
-            {Physbuzz::TextureType::Specular, {"default/specular"}},
-        },
-    };
+    ResourceComponent resources;
 
     bool hasPhysics = false;
 };

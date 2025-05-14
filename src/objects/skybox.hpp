@@ -2,12 +2,11 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include "shader/default.hpp"
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/transform.hpp>
 
 struct SkyboxComponent {
-    std::string cubemap;
+    std::string cubemap = "skybox";
 };
 
 struct Skybox {
@@ -16,7 +15,9 @@ struct Skybox {
     Physbuzz::TransformComponent transform;
 
     // rendering
-    ShaderComponent shader = s_DefaultShader;
+    ResourceComponent resources = {
+        .pipeline = "skybox",
+    };
 };
 
 template <>

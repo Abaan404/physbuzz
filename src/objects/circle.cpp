@@ -29,7 +29,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
     generate2DNormals(mesh);
 
     // add textures
-    mesh.textures = info.textures.resource;
+    mesh.textures = info.resources.textures;
 
     // create model
     std::string model = std::format("circle_{}", object);
@@ -45,7 +45,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<CircleComponent, Physbuzz::TransformComponent, IdentifiableComponent, Physbuzz::ModelComponent, TextureResources>(object)) {
+            if (!builder.scene->containsComponent<CircleComponent, Physbuzz::TransformComponent, IdentifiableComponent, ResourceComponent, Physbuzz::ModelComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
@@ -54,8 +54,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
                 .circle = builder.scene->getComponent<CircleComponent>(object),
                 .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
                 .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                .shader = builder.scene->getComponent<ShaderComponent>(object),
-                .textures = builder.scene->getComponent<TextureResources>(object),
+                .resources = builder.scene->getComponent<ResourceComponent>(object),
                 .hasPhysics = builder.scene->containsComponent<Physbuzz::RigidBodyComponent>(object),
             };
 
@@ -67,7 +66,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
         },
     };
 
-    scene->setComponent(object, info.circle, info.identifier, info.textures, info.transform, info.shader, render, rebuilder);
+    scene->setComponent(object, info.circle, info.identifier, info.resources, info.transform, render, rebuilder);
 
     // generate physics info
     if (info.hasPhysics) {

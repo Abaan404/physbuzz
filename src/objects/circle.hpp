@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common.hpp"
-#include "shader/default.hpp"
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/model.hpp>
+#include <physbuzz/resources/manager.hpp>
 
 struct CircleComponent {
     float radius = 0.0f;
@@ -23,13 +23,9 @@ struct Circle {
         .hidden = false,
     };
 
-    // rendering
-    ShaderComponent shader = s_DefaultShader;
-    TextureResources textures = {
-        .resource = {
-            {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
-            {Physbuzz::TextureType::Specular, {"default/specular"}},
-        },
+    // resources
+    ResourceComponent resources = {
+        .pipeline = "circle",
     };
 
     bool hasPhysics = false;

@@ -31,7 +31,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
     generate2DNormals(mesh);
 
     // add textures
-    mesh.textures = info.textures.resource;
+    mesh.textures = info.resources.textures;
 
     // create model
     std::string model = std::format("quad_{}", object);
@@ -47,7 +47,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<LineComponent, Physbuzz::TransformComponent, IdentifiableComponent, Physbuzz::ModelComponent, TextureResources>(object)) {
+            if (!builder.scene->containsComponent<LineComponent, Physbuzz::TransformComponent, IdentifiableComponent, Physbuzz::ModelComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
@@ -56,15 +56,14 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
                 .line = builder.scene->getComponent<LineComponent>(object),
                 .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
                 .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                .shader = builder.scene->getComponent<ShaderComponent>(object),
-                .textures = builder.scene->getComponent<TextureResources>(object),
+                .resources = builder.scene->getComponent<ResourceComponent>(object),
             };
 
             builder.create(object, info);
         },
     };
 
-    scene->setComponent(object, info.line, info.identifier, info.textures, info.transform, info.shader, render, rebuilder);
+    scene->setComponent(object, info.line, info.identifier, info.resources, info.transform, render, rebuilder);
 
     return object;
 }

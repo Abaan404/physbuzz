@@ -3,11 +3,14 @@
 #include "../misc/watcher.hpp"
 #include "../resources/file.hpp"
 #include "../resources/manager.hpp"
+#include "../ecs/scene.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <string>
 
 namespace Physbuzz {
+
+class ShaderPipelineResource;
 
 template <typename T>
 concept UniformType =
@@ -81,6 +84,10 @@ struct ShaderPipelineInfo {
     ShaderInfo geometry;
     ShaderInfo fragment;
     ShaderInfo compute;
+
+    // (TODO this should be an event for every resource)
+    std::function<void(ShaderPipelineResource *)> setup;
+    std::function<void(Scene &, ObjectID)> draw;
 };
 
 class ShaderPipelineResource {
@@ -103,6 +110,8 @@ class ShaderPipelineResource {
     }
 
     const GLuint &getProgram() const;
+
+    std::function<void(Scene &, ObjectID)> draw;
 
   private:
     void setUniformInternal(const GLint location, const float &data) const;

@@ -1,19 +1,28 @@
 #version 460 core
 
-uniform ivec2 u_Resolution;
-uniform sampler2D u_Texture;
-uniform uint u_Time;
+layout(std140, binding = 2) uniform Window {
+    ivec2 resolution;
+} window;
 
-in vec3 fragPosition;
-in vec3 normal;
-in vec2 texCoord;
+layout(std140, binding = 3) uniform Time {
+    uint time;
+    uint timedelta;
+} time;
+
+uniform sampler2D u_Texture;
+
+in VS_OUT {
+    vec3 normal;
+    vec2 texCoord;
+    vec3 fragPosition;
+} fs_in;
 
 out vec4 fragColor;
 
 void main() {
-    vec2 uv = ((fragPosition.xy / u_Resolution) + 1.0) / 2.0;
+    vec2 uv = ((fs_in.fragPosition.xy / window.resolution) + 1.0) / 2.0;
 
-    float scaled_time = u_Time / 2000.0;
+    float scaled_time = time.time / 2000.0f;
     fragColor = vec4(abs(sin(scaled_time + uv.x)), abs(sin(scaled_time + uv.y)), abs(sin(scaled_time - uv.x)), 1.0);
-    fragColor = mix(texture(u_Texture, texCoord), fragColor, 0.6);
+    fragColor = mix(texture(u_Texture, fs_in.texCoord), fragColor, 0.6);
 }

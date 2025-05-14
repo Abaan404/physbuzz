@@ -10,15 +10,13 @@ class Clock {
     ~Clock();
 
     void tick();
-    float getDelta() const;
-    float getTime() const;
+    std::uint32_t getDelta() const;
+    std::uint32_t getTime() const;
 
   private:
     std::chrono::time_point<std::chrono::steady_clock> m_Init;
     std::chrono::time_point<std::chrono::steady_clock> m_Prev;
     std::chrono::steady_clock::duration m_Delta;
-
-    std::uint32_t m_Ticks;
 };
 
 } // namespace Physbuzz

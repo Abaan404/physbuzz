@@ -2,7 +2,6 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include "shader/default.hpp"
 #include <physbuzz/render/transform.hpp>
 
 struct CubeComponent {
@@ -26,12 +25,8 @@ struct Cube {
     };
 
     // rendering
-    ShaderComponent shader = s_DefaultShader;
-    TextureResources textures = {
-        .resource = {
-            {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
-            {Physbuzz::TextureType::Specular, {"default/specular"}},
-        },
+    ResourceComponent resources = {
+        .pipeline = "cube",
     };
 
     bool hasPhysics = false;

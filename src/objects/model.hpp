@@ -1,12 +1,11 @@
 #pragma once
 
 #include "common.hpp"
-#include "shader/default.hpp"
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/transform.hpp>
 
 struct ModelComponent {
-    std::string id;
+    std::string resource;
 };
 
 struct Model {
@@ -24,7 +23,7 @@ struct Model {
     };
 
     // rendering
-    ShaderComponent shader = s_DefaultShader;
+    ResourceComponent resources;
 
     bool hasPhysics = false;
 };

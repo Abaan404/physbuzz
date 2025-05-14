@@ -23,7 +23,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
     mesh.indices = {0, 1, 2, 0, 3, 2};
 
     // add textures
-    mesh.textures = info.textures.resource;
+    mesh.textures = info.resources.textures;
 
     mesh.vertices.resize(positions.size());
     for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
@@ -48,7 +48,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<QuadComponent, Physbuzz::TransformComponent, IdentifiableComponent, Physbuzz::ModelComponent, TextureResources>(object)) {
+            if (!builder.scene->containsComponent<QuadComponent, Physbuzz::TransformComponent, IdentifiableComponent, Physbuzz::ModelComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
@@ -57,8 +57,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
                 .quad = builder.scene->getComponent<QuadComponent>(object),
                 .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
                 .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                .shader = builder.scene->getComponent<ShaderComponent>(object),
-                .textures = builder.scene->getComponent<TextureResources>(object),
+                .resources = builder.scene->getComponent<ResourceComponent>(object),
                 .hasPhysics = builder.scene->containsComponent<Physbuzz::RigidBodyComponent>(object),
             };
 
@@ -70,7 +69,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
         },
     };
 
-    scene->setComponent(object, info.quad, info.identifier, info.textures, info.transform, info.shader, render, rebuilder);
+    scene->setComponent(object, info.quad, info.identifier, info.resources, info.transform, render, rebuilder);
 
     // generate bounding box
     if (info.hasPhysics) {

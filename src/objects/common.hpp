@@ -13,11 +13,11 @@ struct RebuildableComponent {
     std::function<void(ObjectBuilder &, Physbuzz::ObjectID)> rebuild;
 };
 
-struct TextureResources {
-    std::unordered_map<Physbuzz::TextureType, std::vector<std::string>> resource;
-};
+struct ResourceComponent {
+    std::unordered_map<Physbuzz::TextureType, std::vector<std::string>> textures = {
+        {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
+        {Physbuzz::TextureType::Specular, {"default/specular"}},
+    };
 
-struct ShaderComponent {
-    std::string resource;
-    std::function<void(Physbuzz::Scene &, Physbuzz::ObjectID)> render;
+    std::string pipeline = "default";
 };

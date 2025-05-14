@@ -8,12 +8,12 @@ template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Model &info) {
     // setup rendering
     Physbuzz::ModelComponent render = {
-        .model = info.model.id,
+        .model = info.model.resource,
     };
 
     info.transform.update();
 
-    scene->setComponent(object, info.model, info.identifier, info.transform, info.shader, render);
+    scene->setComponent(object, info.model, info.identifier, info.transform, info.resources, render);
 
     return object;
 }
