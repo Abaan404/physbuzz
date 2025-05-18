@@ -2,6 +2,7 @@
 
 #include <physbuzz/physics/collision.hpp>
 #include <physbuzz/render/lighting.hpp>
+#include <physbuzz/render/model.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, LightCube &info) {

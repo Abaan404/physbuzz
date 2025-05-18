@@ -111,10 +111,13 @@ bool ModelResource::processMesh(aiMesh *aimesh, const aiScene *scene) {
     return true;
 }
 
-std::vector<std::string> ModelResource::loadTextures(aiMaterial *aimaterial, aiTextureType type) {
-    std::vector<std::string> textures;
+std::vector<ResourceHandle<Texture2DResource>> ModelResource::loadTextures(aiMaterial *aimaterial, aiTextureType type) {
+    std::uint32_t size = aimaterial->GetTextureCount(type);
 
-    for (unsigned int i = 0; i < aimaterial->GetTextureCount(type); i++) {
+    std::vector<ResourceHandle<Texture2DResource>> textures;
+    textures.reserve(size);
+
+    for (std::uint32_t i = 0; i < size; i++) {
         aiString aiPath;
         aimaterial->GetTexture(type, i, &aiPath);
 
@@ -128,11 +131,11 @@ std::vector<std::string> ModelResource::loadTextures(aiMaterial *aimaterial, aiT
             },
         };
 
-        if (!ResourceRegistry::contains<Texture2DResource>(path)) {
-            ResourceRegistry::insert(path, Texture2DResource(info));
+        if (!ResourceRegistry<Texture2DResource>::contains(path)) {
+            ResourceRegistry<Texture2DResource>::insert(path, info);
         }
 
-        textures.push_back(path);
+        textures.emplace_back(path);
     }
 
     return textures;

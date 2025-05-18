@@ -1,14 +1,11 @@
 #pragma once
 
+#include "../resources/handle.hpp"
 #include "mesh.hpp"
 #include <assimp/scene.h>
 #include <filesystem>
 
 namespace Physbuzz {
-
-struct ModelComponent {
-    std::string model;
-};
 
 class ModelResource {
   public:
@@ -26,10 +23,14 @@ class ModelResource {
 
     bool processNode(aiNode *ainode, const aiScene *aiscene);
     bool processMesh(aiMesh *aimesh, const aiScene *scene);
-    std::vector<std::string> loadTextures(aiMaterial *aimaterial, aiTextureType type);
+    std::vector<ResourceHandle<Texture2DResource>> loadTextures(aiMaterial *aimaterial, aiTextureType type);
 
     std::filesystem::path m_Path;
     std::vector<Mesh> m_Meshes;
+};
+
+struct ModelComponent {
+    ResourceHandle<ModelResource> model;
 };
 
 } // namespace Physbuzz

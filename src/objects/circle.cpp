@@ -33,7 +33,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
 
     // create model
     std::string model = std::format("circle_{}", object);
-    Physbuzz::ResourceRegistry::insert(model, Physbuzz::ModelResource({mesh}));
+    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(model, {{mesh}});
 
     // setup rendering
     Physbuzz::ModelComponent render = {

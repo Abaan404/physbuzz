@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../render/texture.hpp"
+#include "../resources/handle.hpp"
 #include <assimp/material.h>
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -61,7 +63,7 @@ class Mesh {
 
     std::vector<Vertex> vertices;
     std::vector<Index> indices;
-    std::unordered_map<TextureType, std::vector<std::string>> textures;
+    std::unordered_map<TextureType, std::vector<ResourceHandle<Texture2DResource>>> textures;
 
   private:
     GLuint VBO, VAO, EBO;

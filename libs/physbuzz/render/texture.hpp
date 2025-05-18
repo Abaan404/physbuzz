@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../resources/image.hpp"
-#include "../resources/manager.hpp"
+#include "../io/image.hpp"
 #include <glad/gl.h>
+#include <mutex>
+#include <vector>
 
 namespace Physbuzz {
 
@@ -27,32 +28,22 @@ class Texture2DResource {
     Texture2DInfo m_Info;
     GLuint m_Texture;
     GLint m_Unit = 0;
-
-    // to access m_Unit in container
-    template <ResourceType T>
-    friend class ResourceContainer;
 };
-
-template <>
-bool ResourceContainer<Texture2DResource>::insert(const std::string &identifier, Texture2DResource &&resource);
-
-template <>
-bool ResourceContainer<Texture2DResource>::erase(const std::string &identifier);
 
 namespace {
 
 /** A virtual mirror of claimed units in the GPU as described in the OpenGL spec. Temporary
- *  implementation detail until the engine moves to Vulkan */
+ *  implementation detail until the engine moves to Vulkan
+ *  Note: could investigate https://registry.khronos.org/OpenGL/extensions/ARB/ARB_bindless_texture.txt */
 static std::vector<bool> &getClaimedUnits() {
     static std::vector<bool> claimedUnits;
 
-    static int runOnce = []() {
+    static std::once_flag onceFlag;
+    std::call_once(onceFlag, [] {
         GLint maxUnits;
         glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &maxUnits);
         claimedUnits.resize(maxUnits, false);
-
-        return 0;
-    }();
+    });
 
     return claimedUnits;
 }

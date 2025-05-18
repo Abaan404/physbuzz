@@ -1,5 +1,6 @@
 #include "line.hpp"
 
+#include <physbuzz/render/model.hpp>
 #include <physbuzz/resources/manager.hpp>
 
 template <>
@@ -35,7 +36,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
 
     // create model
     std::string model = std::format("quad_{}", object);
-    Physbuzz::ResourceRegistry::insert(model, Physbuzz::ModelResource({mesh}));
+    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(model, {{mesh}});
 
     // setup rendering
     Physbuzz::ModelComponent render = {

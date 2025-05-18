@@ -54,13 +54,13 @@ void Renderer::tick(Physbuzz::Scene &scene) {
         return;
     }
 
-    Physbuzz::ResourceRegistry::get<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->update({
+    Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->update({
         .position = activeCamera->view.position,
         .view = activeCamera->view.matrix,
         .projection = activeCamera->getProjection(),
     });
 
-    Physbuzz::ResourceRegistry::get<Physbuzz::UniformBufferResource<UniformTime>>("time")->update({
+    Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformTime>>("time")->update({
         .time = m_Clock.getTime(),
         .timedelta = m_Clock.getDelta(),
     });
@@ -73,72 +73,67 @@ void Renderer::tick(Physbuzz::Scene &scene) {
 void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
     const ResourceComponent &resources = scene.getComponent<ResourceComponent>(object);
     const Physbuzz::TransformComponent &transform = scene.getComponent<Physbuzz::TransformComponent>(object);
-
-    Physbuzz::ShaderPipelineResource *pipeline = Physbuzz::ResourceRegistry::get<Physbuzz::ShaderPipelineResource>(resources.pipeline);
-    PBZ_ASSERT(pipeline, std::format("[Renderer] ShaderPipelineResource '{}' unknown.", resources.pipeline));
-
     std::vector<SkyboxComponent> skyboxes = scene.getComponents<SkyboxComponent>();
-    PBZ_ASSERT(skyboxes.size() == 1, "[Renderer] Invalid number of skyboxes in scene");
 
-    const SkyboxComponent &skybox = skyboxes[0];
-    Physbuzz::CubemapResource *cubemap = Physbuzz::ResourceRegistry::get<Physbuzz::CubemapResource>(skybox.cubemap);
+    const SkyboxComponent &skybox = skyboxes[0]; // fetch first skybox
 
     // check for reload before binding
-    if (!pipeline->reload()) {
+    if (!resources.pipeline->reload()) {
         return;
     }
 
-    if (!pipeline->bind()) {
+    if (!resources.pipeline->bind()) {
         return;
     }
 
     // skybox
-    cubemap->bind();
-    pipeline->setUniform("u_Skybox", cubemap->getUnit());
+    skybox.cubemap->bind();
+
+    resources.pipeline->setUniform("u_Skybox", skybox.cubemap->getUnit());
 
     // Directional Lighting
-    pipeline->setUniform("u_DirectionalLight.direction", s_DirectionalLight.direction);
-    pipeline->setUniform("u_DirectionalLight.ambient", s_DirectionalLight.ambient);
-    pipeline->setUniform("u_DirectionalLight.diffuse", s_DirectionalLight.diffuse);
-    pipeline->setUniform("u_DirectionalLight.specular", s_DirectionalLight.specular);
+    resources.pipeline->setUniform("u_DirectionalLight.direction", s_DirectionalLight.direction);
+    resources.pipeline->setUniform("u_DirectionalLight.ambient", s_DirectionalLight.ambient);
+    resources.pipeline->setUniform("u_DirectionalLight.diffuse", s_DirectionalLight.diffuse);
+    resources.pipeline->setUniform("u_DirectionalLight.specular", s_DirectionalLight.specular);
 
     // Point Lighting
     const std::vector<Physbuzz::PointLightComponent> &pointLights = scene.getComponents<Physbuzz::PointLightComponent>();
-    pipeline->setUniform<unsigned int>("u_PointLightLength", pointLights.size());
+    resources.pipeline->setUniform<unsigned int>("u_PointLightLength", pointLights.size());
 
     for (std::size_t i = 0; i < pointLights.size(); ++i) {
-        pipeline->setUniform(std::format("u_PointLight[{}].position", i), pointLights[i].position);
-        pipeline->setUniform(std::format("u_PointLight[{}].ambient", i), pointLights[i].ambient);
-        pipeline->setUniform(std::format("u_PointLight[{}].diffuse", i), pointLights[i].diffuse);
-        pipeline->setUniform(std::format("u_PointLight[{}].specular", i), pointLights[i].specular);
-        pipeline->setUniform(std::format("u_PointLight[{}].constant", i), pointLights[i].constant);
-        pipeline->setUniform(std::format("u_PointLight[{}].linear", i), pointLights[i].linear);
-        pipeline->setUniform(std::format("u_PointLight[{}].quadratic", i), pointLights[i].quadratic);
+        resources.pipeline->setUniform(std::format("u_PointLight[{}].position", i), pointLights[i].position);
+        resources.pipeline->setUniform(std::format("u_PointLight[{}].ambient", i), pointLights[i].ambient);
+        resources.pipeline->setUniform(std::format("u_PointLight[{}].diffuse", i), pointLights[i].diffuse);
+        resources.pipeline->setUniform(std::format("u_PointLight[{}].specular", i), pointLights[i].specular);
+        resources.pipeline->setUniform(std::format("u_PointLight[{}].constant", i), pointLights[i].constant);
+        resources.pipeline->setUniform(std::format("u_PointLight[{}].linear", i), pointLights[i].linear);
+        resources.pipeline->setUniform(std::format("u_PointLight[{}].quadratic", i), pointLights[i].quadratic);
     }
 
     // Spotlight Lighting
-    pipeline->setUniform("u_SpotLight.position", activeCamera->view.position);
-    pipeline->setUniform("u_SpotLight.direction", activeCamera->view.getFacing());
+    resources.pipeline->setUniform("u_SpotLight.position", activeCamera->view.position);
+    resources.pipeline->setUniform("u_SpotLight.direction", activeCamera->view.getFacing());
 
-    pipeline->setUniform("u_SpotLight.ambient", s_SpotLight.ambient);
-    pipeline->setUniform("u_SpotLight.diffuse", s_SpotLight.diffuse);
-    pipeline->setUniform("u_SpotLight.specular", s_SpotLight.specular);
+    resources.pipeline->setUniform("u_SpotLight.ambient", s_SpotLight.ambient);
+    resources.pipeline->setUniform("u_SpotLight.diffuse", s_SpotLight.diffuse);
+    resources.pipeline->setUniform("u_SpotLight.specular", s_SpotLight.specular);
 
-    pipeline->setUniform("u_SpotLight.constant", s_SpotLight.constant);
-    pipeline->setUniform("u_SpotLight.linear", s_SpotLight.linear);
-    pipeline->setUniform("u_SpotLight.quadratic", s_SpotLight.quadratic);
+    resources.pipeline->setUniform("u_SpotLight.constant", s_SpotLight.constant);
+    resources.pipeline->setUniform("u_SpotLight.linear", s_SpotLight.linear);
+    resources.pipeline->setUniform("u_SpotLight.quadratic", s_SpotLight.quadratic);
 
-    pipeline->setUniform("u_SpotLight.cutOff", s_SpotLight.cutOff);
-    pipeline->setUniform("u_SpotLight.outerCutOff", s_SpotLight.outerCutOff);
+    resources.pipeline->setUniform("u_SpotLight.cutOff", s_SpotLight.cutOff);
+    resources.pipeline->setUniform("u_SpotLight.outerCutOff", s_SpotLight.outerCutOff);
 
     // MVP
-    pipeline->setUniform("u_Model", transform.matrix);
+    resources.pipeline->setUniform("u_Model", transform.matrix);
 
-    pipeline->draw(scene, object);
+    resources.pipeline->draw(scene, object);
 
     // unbind scene
-    cubemap->unbind();
-    pipeline->unbind();
+    skybox.cubemap->unbind();
+    resources.pipeline->unbind();
 }
 
 const Physbuzz::Clock &Renderer::getClock() const {
@@ -164,7 +159,7 @@ void Renderer::clear(const glm::vec4 &color) {
 void Renderer::resize(const glm::ivec2 &resolution) {
     if (m_Framebuffer == nullptr) {
         m_Window->setResolution(resolution);
-        Physbuzz::ResourceRegistry::get<Physbuzz::UniformBufferResource<UniformWindow>>("window")->update({
+        Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformWindow>>("window")->update({
             .resolution = resolution,
         });
 

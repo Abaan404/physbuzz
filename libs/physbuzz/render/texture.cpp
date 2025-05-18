@@ -1,5 +1,7 @@
 #include "texture.hpp"
 
+#include "../debug/logging.hpp"
+
 namespace Physbuzz {
 
 Texture2DResource::Texture2DResource(const Texture2DInfo &texture2D)
@@ -8,6 +10,20 @@ Texture2DResource::Texture2DResource(const Texture2DInfo &texture2D)
 Texture2DResource::~Texture2DResource() {}
 
 bool Texture2DResource::build() {
+    std::vector<bool> &claimedUnits = getClaimedUnits();
+
+    for (; m_Unit < claimedUnits.size(); m_Unit++) {
+        if (!claimedUnits[m_Unit]) {
+            claimedUnits[m_Unit] = true;
+            break;
+        }
+    }
+
+    if (m_Unit >= claimedUnits.size()) {
+        Logger::ERROR("[Texture2DResource] TextureArray is full, cannot allocate.");
+        return false;
+    }
+
     if (m_Info.image.file.path.empty()) {
         return false;
     }
@@ -74,6 +90,8 @@ bool Texture2DResource::build() {
 
 bool Texture2DResource::destroy() {
     glDeleteTextures(1, &m_Texture);
+    getClaimedUnits()[m_Unit] = false;
+
     return true;
 }
 
@@ -90,41 +108,6 @@ bool Texture2DResource::unbind() const {
 
 const GLint &Texture2DResource::getUnit() const {
     return m_Unit;
-}
-
-template <>
-bool ResourceContainer<Texture2DResource>::insert(const std::string &identifier, Texture2DResource &&resource) {
-    std::vector<bool> &claimedUnits = getClaimedUnits();
-
-    GLint unit = -1;
-    for (std::size_t i = 0; i < claimedUnits.size(); i++) {
-        if (!claimedUnits[i]) {
-            claimedUnits[i] = true;
-            unit = i;
-            break;
-        }
-    }
-
-    if (unit == -1) {
-        Logger::ERROR("[Texture2DResource] TextureArray is full, cannot allocate \"{}\".", identifier);
-        return false;
-    }
-
-    resource.m_Unit = unit;
-    return ResourceContainer::base_insert(identifier, std::move(resource));
-}
-
-template <>
-bool ResourceContainer<Texture2DResource>::erase(const std::string &identifier) {
-    if (!m_Map.contains(identifier)) {
-        Logger::WARNING("[Texture2DResource] Tried to erase non-existent texture \"{}\".", identifier);
-        return false;
-    }
-
-    Texture2DResource &texture = m_Map.get(identifier);
-    getClaimedUnits()[texture.m_Unit] = false;
-
-    return base_erase(identifier);
 }
 
 } // namespace Physbuzz

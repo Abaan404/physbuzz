@@ -1,49 +1,34 @@
 #pragma once
 
-#include "../uniforms/camera.hpp"
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/shaders.hpp>
-#include <physbuzz/render/texture.hpp>
-#include <physbuzz/render/uniforms.hpp>
-#include <physbuzz/resources/manager.hpp>
-#include <string>
 
 inline Physbuzz::ShaderPipelineResource shaderDefault = {{
     .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
     .fragment = {.file = {.path = "resources/shaders/default/default.frag"}},
-    .setup = [](Physbuzz::ShaderPipelineResource *pipeline) {
-        Physbuzz::ResourceRegistry::get<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->bindPipeline(pipeline, 1);
-    },
     .draw = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         const Physbuzz::ModelComponent &render = scene.getComponent<Physbuzz::ModelComponent>(object);
-
-        const Physbuzz::ModelResource *model = Physbuzz::ResourceRegistry::get<Physbuzz::ModelResource>(render.model);
-        PBZ_ASSERT(model, std::format("[Renderer] ModelResource '{}' unknown.", render.model));
-
-        const Physbuzz::ShaderPipelineResource *pipeline = Physbuzz::ResourceRegistry::get<Physbuzz::ShaderPipelineResource>("default");
-        PBZ_ASSERT(pipeline, std::format("[Renderer] ShaderPipelineResource '{}' unknown.", "default"));
+        const Physbuzz::ResourceHandle<Physbuzz::ShaderPipelineResource> pipeline = {"default"};
 
         // draw meshes
-        for (const Physbuzz::Mesh &mesh : model->getMeshs()) {
+        for (const Physbuzz::Mesh &mesh : render.model->getMeshs()) {
             if (mesh.textures.contains(Physbuzz::TextureType::Diffuse)) {
-                const std::vector<std::string> &diffuseTextures = mesh.textures.at(Physbuzz::TextureType::Diffuse);
-                pipeline->setUniform<unsigned int>("u_Material.diffuseLength", diffuseTextures.size());
+                const std::vector<Physbuzz::ResourceHandle<Physbuzz::Texture2DResource>> &textures = mesh.textures.at(Physbuzz::TextureType::Diffuse);
+                pipeline->setUniform<unsigned int>("u_Material.diffuseLength", textures.size());
 
-                for (std::size_t i = 0; i < diffuseTextures.size(); i++) {
-                    Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(diffuseTextures[i]);
-                    pipeline->setUniform(std::format("u_MaterialDiffuse[{}]", i), texture->getUnit());
-                    texture->bind();
+                for (std::size_t i = 0; i < textures.size(); i++) {
+                    pipeline->setUniform(std::format("u_MaterialDiffuse[{}]", i), textures[i]->getUnit());
+                    textures[i]->bind();
                 }
             }
 
             if (mesh.textures.contains(Physbuzz::TextureType::Specular)) {
-                const std::vector<std::string> &specularTextures = mesh.textures.at(Physbuzz::TextureType::Specular);
-                pipeline->setUniform<unsigned int>("u_Material.specularLength", specularTextures.size());
+                const std::vector<Physbuzz::ResourceHandle<Physbuzz::Texture2DResource>> &textures = mesh.textures.at(Physbuzz::TextureType::Specular);
+                pipeline->setUniform<unsigned int>("u_Material.specularLength", textures.size());
 
-                for (std::size_t i = 0; i < specularTextures.size(); i++) {
-                    Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(specularTextures[i]);
-                    pipeline->setUniform(std::format("u_MaterialSpecular[{}]", i), texture->getUnit());
-                    texture->bind();
+                for (std::size_t i = 0; i < textures.size(); i++) {
+                    pipeline->setUniform(std::format("u_MaterialSpecular[{}]", i), textures[i]->getUnit());
+                    textures[i]->bind();
                 }
             }
 
@@ -54,19 +39,13 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
             mesh.unbind();
 
             if (mesh.textures.contains(Physbuzz::TextureType::Diffuse)) {
-                const std::vector<std::string> &diffuseTextures = mesh.textures.at(Physbuzz::TextureType::Diffuse);
-
-                for (std::size_t i = 0; i < diffuseTextures.size(); i++) {
-                    Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(diffuseTextures[i]);
+                for (const auto &texture : mesh.textures.at(Physbuzz::TextureType::Diffuse)) {
                     texture->unbind();
                 }
             }
 
             if (mesh.textures.contains(Physbuzz::TextureType::Specular)) {
-                const std::vector<std::string> &specularTextures = mesh.textures.at(Physbuzz::TextureType::Specular);
-
-                for (std::size_t i = 0; i < specularTextures.size(); i++) {
-                    Physbuzz::Texture2DResource *texture = Physbuzz::ResourceRegistry::get<Physbuzz::Texture2DResource>(specularTextures[i]);
+                for (const auto &texture : mesh.textures.at(Physbuzz::TextureType::Specular)) {
                     texture->unbind();
                 }
             }

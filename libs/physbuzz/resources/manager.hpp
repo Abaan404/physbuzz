@@ -1,148 +1,125 @@
 #pragma once
 
 #include "../containers/contigiousmap.hpp"
-#include <string>
+#include "../events/handler.hpp"
+#include "../events/resources.hpp"
 
 namespace Physbuzz {
 
+namespace {
+
 template <typename T>
-concept ResourceType = requires(T a) {
-    { a.build() } -> std::same_as<bool>;
-    { a.destroy() } -> std::same_as<bool>;
-};
+concept ResourceCustomWatched = requires(T a) {
+    requires std::same_as<decltype(a.m_ReloadCallback), std::function<void(const ResourceWatcherInfo &)>>;
+} && ResourceType<T>;
 
 template <ResourceType T>
-class ResourceContainer {
+class ResourceFileWatcher : public efsw::FileWatchListener {
   public:
-    inline bool build(const std::string &identifier) {
-        return base_build(identifier);
-    }
+    std::unordered_map<ResourceID, std::function<void(const ResourceWatcherInfo &)>> callbacks;
 
-    inline bool destroy(const std::string &identifier) {
-        return base_destroy(identifier);
-    }
-
-    inline bool insert(const std::string &identifier, T &&data) {
-        return base_insert(identifier, std::move(data));
-    }
-
-    inline bool erase(const std::string &identifier) {
-        return base_erase(identifier);
-    }
-
-    inline bool contains(const std::string &identifier) {
-        return base_contains(identifier);
-    }
-
-    inline T *get(const std::string &identifier) {
-        return base_get(identifier);
-    }
-
-    inline void clear() {
-        return base_clear();
-    }
-
-  private:
-    inline bool base_build(const std::string &identifier) {
-        T *resource = get(identifier);
-        if (!resource) {
-            Logger::ERROR("[ResourceManager] Failed to find resource {}", identifier);
-            return false;
-        }
-
-        if (!resource->build()) {
-            Logger::ERROR("[ResourceManager] Failed to build resource {}", identifier);
-            return false;
-        }
-
-        return true;
-    }
-
-    inline bool base_destroy(const std::string &identifier) {
-        T *resource = get(identifier);
-
-        if (!resource) {
-            Logger::ERROR("[ResourceManager] Failed to find resource {}", identifier);
-            return false;
-        }
-
-        if (!resource->destroy()) {
-            Logger::ERROR("[ResourceManager] Failed to destroy resource {}", identifier);
-            return false;
-        }
-
-        return true;
-    }
-
-    inline bool base_insert(const std::string &identifier, T &&resource) {
-        if (contains(identifier)) {
-            erase(identifier);
-        }
-
-        m_Map.insert(identifier, resource);
-        build(identifier);
-        return true;
-    }
-
-    inline bool base_erase(const std::string &identifier) {
-        destroy(identifier);
-        return m_Map.erase(identifier);
-    }
-
-    inline bool base_contains(const std::string &identifier) {
-        return m_Map.contains(identifier);
-    }
-
-    inline T *base_get(const std::string &identifier) {
-        if (!contains(identifier)) {
-            return nullptr;
-        }
-
-        return &m_Map.get(identifier);
-    }
-
-    inline void base_clear() {
-        for (auto &identifier : m_Map.getKeys()) {
-            destroy(identifier);
+    void handleFileAction(efsw::WatchID _1, const std::string &directory, const std::string &filename, efsw::Action action, std::string _2) override {
+        for (const auto &[id, callback] : callbacks) {
+            callback({
+                .action = static_cast<WatchAction>(action),
+                .identifier = id,
+                .path = directory + filename,
+            });
         }
     }
-
-    ContiguousMap<std::string, T> m_Map;
 };
 
+} // namespace
+
+template <ResourceType T>
 class ResourceRegistry {
   public:
-    template <ResourceType T>
-    inline static void insert(const std::string &identifier, T &&data) {
-        getContainer<T>().insert(identifier, std::move(data));
+    inline static bool insert(const ResourceID &identifier, T &&resource) {
+        if (contains(identifier)) {
+            Logger::ERROR("[ResourceRegistry] resource \"{}\" was already loaded.", identifier);
+            return false;
+        }
+
+        if (!resource.build()) {
+            Logger::ERROR("[ResourceRegistry] Failed to build resource \"{}\".", identifier);
+            return false;
+        }
+
+        m_Container.insert(identifier, std::move(resource));
+
+        if constexpr (ResourceCustomWatched<T>) {
+            m_Listener.callbacks[identifier] = m_Container.get(identifier).m_ReloadCallback;
+        }
+
+        Events.notifyCallbacks<OnResourceBuild>({
+            .identifier = identifier,
+        });
+
+        return true;
     }
 
-    template <ResourceType T>
-    inline static bool erase(const std::string &identifier) {
-        return getContainer<T>().erase(identifier);
+    inline static bool erase(const ResourceID &identifier) {
+        if (!contains(identifier)) {
+            Logger::ERROR("[ResourceRegistry] resource \"{}\" was already unloaded or not found.", identifier);
+            return false;
+        }
+
+        T &resource = m_Container.get(identifier);
+
+        Events.notifyCallbacks<OnResourceDestroy>({
+            .identifier = identifier,
+        });
+
+        if (!resource.destroy()) {
+            Logger::ERROR("[ResourceRegistry] Failed to destroy resource \"{}\".", identifier);
+            return false;
+        }
+
+        m_Container.erase(identifier);
+        m_Listener.callbacks.erase(identifier);
+
+        return true;
     }
 
-    template <ResourceType T>
-    inline static T *get(const std::string &identifier) {
-        return getContainer<T>().get(identifier);
+    inline static bool contains(const ResourceID &identifier) {
+        return m_Container.contains(identifier);
     }
 
-    template <ResourceType T>
-    inline static bool contains(const std::string &identifier) {
-        return getContainer<T>().contains(identifier);
+    static void watch() {
+        m_Watcher.allowOutOfScopeLinks(true);
+        m_Watcher.followSymlinks(true);
+
+        if (m_ResourceDirectory.empty()) {
+            setResourceDirectory(std::filesystem::current_path()); // use cwd by default
+        }
+
+        m_Watcher.watch();
     }
 
-    template <ResourceType T>
-    inline static void clear() {
-        getContainer<T>().clear();
+    static void setResourceDirectory(const std::filesystem::path &directory) {
+        if (!std::filesystem::is_directory(directory)) {
+            return;
+        }
+
+        m_ResourceDirectory = directory;
+
+        static efsw::WatchID resourcePathWatchId = -1;
+        m_Watcher.removeWatch(resourcePathWatchId);
+        m_Watcher.addWatch(directory, &m_Listener, true);
     }
+
+    // crappy workaround to allow this static class to generate events through a proxy
+    static inline EventSubject Events;
 
   private:
-    template <ResourceType T>
-    inline static ResourceContainer<T> &getContainer() {
-        static ResourceContainer<T> container = ResourceContainer<T>();
-        return container;
-    }
+    inline static ContiguousMap<ResourceID, T> m_Container;
+
+    inline static ResourceFileWatcher<T> m_Listener;
+    inline static efsw::FileWatcher m_Watcher;
+    inline static std::filesystem::path m_ResourceDirectory;
+
+    template <ResourceType>
+    friend class ResourceHandle;
 };
 
 } // namespace Physbuzz

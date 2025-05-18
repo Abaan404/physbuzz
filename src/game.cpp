@@ -35,11 +35,7 @@ void Game::build() {
     interface.build(window);
 
     ResourceBuilder builder;
-    builder.buildTextures();
-    builder.buildModels();
-    builder.buildCubemaps();
-    builder.buildUniforms();
-    builder.buildShaders();
+    builder.build();
 
     window.addCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) {
         player.resize(event.resolution);
@@ -91,7 +87,11 @@ void Game::rebuild() {
 
     // skybox
     {
-        Skybox skybox;
+        Skybox skybox = {
+            .resources = {
+                .pipeline = {"skybox"},
+            },
+        };
         builder.create(skybox);
     }
 
@@ -123,10 +123,10 @@ void Game::rebuild() {
             },
             .resources = {
                 .textures = {
-                    {Physbuzz::TextureType::Diffuse, {"wall"}},
-                    {Physbuzz::TextureType::Specular, {"default/specular"}},
+                    {Physbuzz::TextureType::Diffuse, {{"wall"}}},
+                    {Physbuzz::TextureType::Specular, {{"default/specular"}}},
                 },
-                .pipeline = "default",
+                .pipeline = {"default"},
             },
         };
 
@@ -151,10 +151,10 @@ void Game::rebuild() {
                 },
                 .resources = {
                     .textures = {
-                        {Physbuzz::TextureType::Diffuse, {"crate/diffuse"}},
-                        {Physbuzz::TextureType::Specular, {"crate/specular"}},
+                        {Physbuzz::TextureType::Diffuse, {{"crate/diffuse"}}},
+                        {Physbuzz::TextureType::Specular, {{"crate/specular"}}},
                     },
-                    .pipeline = "default",
+                    .pipeline = {"default"},
                 },
                 .hasPhysics = false,
             };
@@ -180,10 +180,10 @@ void Game::rebuild() {
                     },
                     .resources = {
                         .textures = {
-                            {Physbuzz::TextureType::Diffuse, {"default/specular"}},
-                            {Physbuzz::TextureType::Specular, {"default/specular"}},
+                            {Physbuzz::TextureType::Diffuse, {{"default/specular"}}},
+                            {Physbuzz::TextureType::Specular, {{"default/specular"}}},
                         },
-                        .pipeline = "default",
+                        .pipeline = {"default"},
                     },
                 },
                 .pointLight = {
@@ -210,10 +210,10 @@ void Game::rebuild() {
             },
             .resources = {
                 .textures = {
-                    {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
-                    {Physbuzz::TextureType::Specular, {"default/specular"}},
+                    {Physbuzz::TextureType::Diffuse, {{"default/diffuse"}}},
+                    {Physbuzz::TextureType::Specular, {{"default/specular"}}},
                 },
-                .pipeline = "circle",
+                .pipeline = {"circle"},
             },
         };
 
@@ -236,8 +236,8 @@ void Game::loop() {
 }
 
 void Game::destroy() {
-    Physbuzz::ResourceRegistry::clear<Physbuzz::ShaderPipelineResource>();
-    Physbuzz::ResourceRegistry::clear<Physbuzz::Texture2DResource>();
+    ResourceBuilder builder;
+    builder.destroy();
 
     m_IsRunning = false;
 

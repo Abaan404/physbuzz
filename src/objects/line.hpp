@@ -21,9 +21,7 @@ struct Line {
     };
 
     // rendering
-    ResourceComponent resources = {
-        .pipeline = "default",
-    };
+    ResourceComponent resources;
 };
 
 template <>

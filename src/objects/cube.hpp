@@ -25,9 +25,7 @@ struct Cube {
     };
 
     // rendering
-    ResourceComponent resources = {
-        .pipeline = "cube",
-    };
+    ResourceComponent resources;
 
     bool hasPhysics = false;
 };

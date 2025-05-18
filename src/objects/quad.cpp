@@ -36,7 +36,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
 
     // create model
     std::string model = std::format("quad_{}", object);
-    Physbuzz::ResourceRegistry::insert(model, Physbuzz::ModelResource({mesh}));
+    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(model, {{mesh}});
 
     // setup rendering
     Physbuzz::ModelComponent render = {

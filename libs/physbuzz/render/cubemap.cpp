@@ -1,6 +1,6 @@
 #include "cubemap.hpp"
 
-#include "glad/gl.h"
+#include "../debug/logging.hpp"
 #include "texture.hpp"
 
 namespace Physbuzz {
@@ -11,6 +11,20 @@ CubemapResource::CubemapResource(const CubemapInfo &info)
 CubemapResource::~CubemapResource() {}
 
 bool CubemapResource::build() {
+    std::vector<bool> &claimedUnits = getClaimedUnits();
+
+    for (; m_Unit < claimedUnits.size(); m_Unit++) {
+        if (!claimedUnits[m_Unit]) {
+            claimedUnits[m_Unit] = true;
+            break;
+        }
+    }
+
+    if (m_Unit >= claimedUnits.size()) {
+        Logger::ERROR("[CubemapResource] TextureArray is full, cannot allocate.");
+        return false;
+    }
+
     glGenTextures(1, &m_Texture);
     glActiveTexture(GL_TEXTURE0 + m_Unit);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_Texture);
@@ -40,11 +54,13 @@ bool CubemapResource::build() {
 
 bool CubemapResource::destroy() {
     glDeleteTextures(1, &m_Texture);
+    getClaimedUnits()[m_Unit] = false;
+
     return true;
 }
 
-bool CubemapResource::bind(bool depthMask) const {
-    if (depthMask) {
+bool CubemapResource::bind(bool disableDepth) const {
+    if (disableDepth) {
         glDepthMask(GL_FALSE);
         glDepthFunc(GL_LEQUAL);
     }
@@ -54,12 +70,12 @@ bool CubemapResource::bind(bool depthMask) const {
     return true;
 }
 
-bool CubemapResource::unbind(bool depthMask) const {
+bool CubemapResource::unbind(bool enableDepth) const {
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-    if (depthMask) {
-        glDepthFunc(GL_LESS);
+    if (enableDepth) {
         glDepthMask(GL_TRUE);
+        glDepthFunc(GL_LESS);
     }
     return true;
 }
@@ -68,15 +84,8 @@ const GLint &CubemapResource::getUnit() const {
     return m_Unit;
 }
 
-std::uint8_t CubemapResource::loadImage(ImageInfo &imageInfo, GLenum target) {
+bool CubemapResource::loadImage(ImageInfo &imageInfo, GLenum target) {
     if (imageInfo.file.path.empty()) {
-        return false;
-    }
-
-    GLint maxUnits;
-    glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &maxUnits);
-    if (m_Unit > maxUnits) {
-        Logger::ERROR("[CubemapResource] TextureUnit is out of range, supported ranges: {}", maxUnits);
         return false;
     }
 
@@ -116,41 +125,6 @@ std::uint8_t CubemapResource::loadImage(ImageInfo &imageInfo, GLenum target) {
 
     image.destroy();
     return true;
-}
-
-template <>
-bool ResourceContainer<CubemapResource>::insert(const std::string &identifier, CubemapResource &&resource) {
-    std::vector<bool> &claimedUnits = getClaimedUnits();
-
-    GLint unit = -1;
-    for (std::size_t i = 0; i < claimedUnits.size(); i++) {
-        if (!claimedUnits[i]) {
-            claimedUnits[i] = true;
-            unit = i;
-            break;
-        }
-    }
-
-    if (unit == -1) {
-        Logger::ERROR("[CubemapResource] TextureArray is full, cannot allocate \"{}\".", identifier);
-        return false;
-    }
-
-    resource.m_Unit = unit;
-    return ResourceContainer::base_insert(identifier, std::move(resource));
-}
-
-template <>
-bool ResourceContainer<CubemapResource>::erase(const std::string &identifier) {
-    if (!m_Map.contains(identifier)) {
-        Logger::WARNING("[CubemapResource] Tried to erase non-existent texture \"{}\".", identifier);
-        return false;
-    }
-
-    CubemapResource &texture = m_Map.get(identifier);
-    getClaimedUnits()[texture.m_Unit] = false;
-
-    return base_erase(identifier);
 }
 
 } // namespace Physbuzz

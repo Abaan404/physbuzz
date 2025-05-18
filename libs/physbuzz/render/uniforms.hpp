@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../debug/logging.hpp"
-#include "shaders.hpp"
 #include <glad/gl.h>
 #include <type_traits>
 
@@ -56,12 +55,12 @@ class UniformBufferResource {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-    void bindPipeline(const ShaderPipelineResource *pipeline, GLuint binding) {
+    void bindPipeline(GLuint binding) {
         glBindBufferBase(GL_UNIFORM_BUFFER, binding, UBO);
     }
 
-    void unbindPipeline(const ShaderPipelineResource *pipeline, GLuint binding) {
-        glBindBufferBase(GL_UNIFORM_BUFFER, binding, 0); // 0 means unbinding
+    void unbindPipeline(GLuint binding) {
+        glBindBufferBase(GL_UNIFORM_BUFFER, binding, 0);
     }
 
   private:

@@ -2,7 +2,7 @@
 
 #include "builder.hpp"
 #include <functional>
-#include <physbuzz/render/model.hpp>
+#include <physbuzz/render/shaders.hpp>
 
 struct IdentifiableComponent {
     std::string name = "Unknown";
@@ -14,10 +14,9 @@ struct RebuildableComponent {
 };
 
 struct ResourceComponent {
-    std::unordered_map<Physbuzz::TextureType, std::vector<std::string>> textures = {
-        {Physbuzz::TextureType::Diffuse, {"default/diffuse"}},
-        {Physbuzz::TextureType::Specular, {"default/specular"}},
+    std::unordered_map<Physbuzz::TextureType, std::vector<Physbuzz::ResourceHandle<Physbuzz::Texture2DResource>>> textures = {
+        {Physbuzz::TextureType::Diffuse, {{"default/diffuse"}}},
+        {Physbuzz::TextureType::Specular, {{"default/specular"}}},
     };
-
-    std::string pipeline = "default";
+    Physbuzz::ResourceHandle<Physbuzz::ShaderPipelineResource> pipeline = {"default"};
 };

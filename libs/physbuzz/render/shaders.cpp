@@ -1,6 +1,7 @@
 #include "shaders.hpp"
 
 #include "../debug/logging.hpp"
+#include "../resources/handle.hpp"
 #include <bitset>
 #include <vector>
 
@@ -73,6 +74,7 @@ bool Shader::compile() {
         return false;
     }
 
+    m_Paths.insert(std::filesystem::canonical(m_Info.file.path));
     return true;
 }
 
@@ -132,13 +134,15 @@ bool Shader::preprocessInclude(FileResource &file, std::size_t position) {
         return false;
     }
 
+    includePath = std::filesystem::canonical(includePath);
+
     std::string top = file.buffer.substr(0, position);
     std::string bottom = file.buffer.substr(
         std::min(file.buffer.find('\n', position), file.buffer.size()),
         file.buffer.size());
 
     // guard headers by default
-    if (m_IncludedPaths.contains(includePath)) {
+    if (m_Paths.contains(includePath)) {
         file.buffer = top + bottom;
         return true;
     }
@@ -151,7 +155,7 @@ bool Shader::preprocessInclude(FileResource &file, std::size_t position) {
         Logger::ERROR("[Shader] Could not process file '{}'", includeFile.getPath().string());
         return false;
     }
-    m_IncludedPaths.insert(includePath);
+    m_Paths.insert(includePath);
 
     // recursively apply directives to included path
     preprocess(includeFile);
@@ -189,8 +193,8 @@ const ShaderType &Shader::getType() const {
     return m_Type;
 }
 
-const std::set<std::filesystem::path> Shader::getIncludedPaths() const {
-    return m_IncludedPaths;
+const std::set<std::filesystem::path> &Shader::getPaths() const {
+    return m_Paths;
 }
 
 template <std::size_t N>
@@ -285,24 +289,26 @@ bool ShaderPipelineResource::build() {
         return false;
     }
 
-    // add to watched paths
-    m_Paths.insert(m_Info.vertex.file.path);
-    m_Paths.insert(m_Info.tessControl.file.path);
-    m_Paths.insert(m_Info.tessEvaluation.file.path);
-    m_Paths.insert(m_Info.geometry.file.path);
-    m_Paths.insert(m_Info.fragment.file.path);
-    m_Paths.insert(m_Info.compute.file.path);
-
+    std::set<std::filesystem::path> paths;
     for (int i = 0; i < shaders.size(); i++) {
         if (!compiled[i]) {
             continue;
         }
 
-        std::set<std::filesystem::path> includedPaths = shaders[i].getIncludedPaths();
-        m_Paths.merge(includedPaths);
+        std::set<std::filesystem::path> shaderPaths = shaders[i].getPaths();
+        paths.merge(shaderPaths);
     }
 
-    m_Info.setup(this);
+    m_ReloadCallback = [paths](const ResourceWatcherInfo &event) {
+        if (!paths.contains(event.path)) {
+            return;
+        }
+
+        // OpenGL's context must exist in the main thread (not necessarily but adds too much complexity)
+        // hence why reload cannot be done in the watcher thread
+        ResourceHandle<ShaderPipelineResource>(event.identifier)->m_RequestedReload = true;
+    };
+
     return true;
 }
 
@@ -335,10 +341,6 @@ bool ShaderPipelineResource::reload() {
     }
 
     return true;
-}
-
-void ShaderPipelineResource::requestReload() {
-    m_RequestedReload = true;
 }
 
 bool ShaderPipelineResource::bind() const {
@@ -390,32 +392,5 @@ void ShaderPipelineResource::setUniformInternal(const GLint location, const glm:
 
 void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat3x4 &data) const { glUniformMatrix3x4fv(location, 1, GL_FALSE, &data[0][0]); }
 void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat4x3 &data) const { glUniformMatrix4x3fv(location, 1, GL_FALSE, &data[0][0]); }
-
-template <>
-bool ResourceContainer<ShaderPipelineResource>::insert(const std::string &identifier, ShaderPipelineResource &&resource) {
-    resource.m_WatchId = FileWatcher::insert([identifier](const FileWatcherInfo &info) {
-        ShaderPipelineResource *resource = ResourceRegistry::get<ShaderPipelineResource>(identifier);
-
-        if (info.action != WatchAction::Modified) {
-            return;
-        }
-
-        if (std::any_of(resource->m_Paths.begin(), resource->m_Paths.end(), [&](const std::filesystem::path &path) { return path.filename() == info.path.filename(); })) {
-            // OpenGL's context must exist in the main thread (not necessarily but adds too much complexity)
-            // hence why the creation is not done in this watcher thread
-            resource->requestReload();
-        }
-    });
-
-    return base_insert(identifier, std::move(resource));
-}
-
-template <>
-bool ResourceContainer<ShaderPipelineResource>::erase(const std::string &identifier) {
-    ShaderPipelineResource *resource = get(identifier);
-    FileWatcher::erase(resource->m_WatchId);
-
-    return base_erase(identifier);
-}
 
 } // namespace Physbuzz

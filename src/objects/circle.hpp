@@ -24,9 +24,7 @@ struct Circle {
     };
 
     // resources
-    ResourceComponent resources = {
-        .pipeline = "circle",
-    };
+    ResourceComponent resources;
 
     bool hasPhysics = false;
 };

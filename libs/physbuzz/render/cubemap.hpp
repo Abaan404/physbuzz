@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../resources/manager.hpp"
-#include "physbuzz/resources/image.hpp"
-
+#include "../io/image.hpp"
 #include <glad/gl.h>
 
 namespace Physbuzz {
@@ -31,20 +29,10 @@ class CubemapResource {
 
   private:
     CubemapInfo m_Info;
-    GLuint m_Texture;
-    GLint m_Unit;
+    GLuint m_Texture = 0;
+    GLint m_Unit = 0;
 
-    std::uint8_t loadImage(ImageInfo &imageInfo, GLenum target);
-
-    // to access m_Unit in container
-    template <ResourceType T>
-    friend class ResourceContainer;
+    bool loadImage(ImageInfo &imageInfo, GLenum target);
 };
-
-template <>
-bool ResourceContainer<CubemapResource>::insert(const std::string &identifier, CubemapResource &&resource);
-
-template <>
-bool ResourceContainer<CubemapResource>::erase(const std::string &identifier);
 
 } // namespace Physbuzz
