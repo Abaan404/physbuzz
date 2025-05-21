@@ -86,7 +86,7 @@ bool Gjk2D::nextSimplex(Simplex &simplex, glm::vec3 &direction) {
         return triangle(simplex, direction);
     }
 
-    UNREACHABLE("Invalid Simplex.")
+    UNREACHABLE("Invalid Simplex.");
 }
 
 bool Gjk2D::line(Simplex &simplex, glm::vec3 &direction) {

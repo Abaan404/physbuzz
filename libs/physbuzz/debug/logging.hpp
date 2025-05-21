@@ -17,20 +17,23 @@
 #if defined(NDEBUG)
 #define PBZ_ASSERT
 #else
-#define PBZ_ASSERT(condition, message)                                                                      \
-    if (!(condition)) {                                                                                     \
-        ::Physbuzz::Logger::ERROR("[assert] {} -> {} (in {}:{})", #condition, message, __FILE__, __LINE__); \
-        BREAKPOINT();                                                                                       \
-    }
+#define PBZ_ASSERT(condition, message)                                                                          \
+    do {                                                                                                        \
+        if (!(condition)) {                                                                                     \
+            ::Physbuzz::Logger::ERROR("[assert] {} -> {} (in {}:{})", #condition, message, __FILE__, __LINE__); \
+            BREAKPOINT();                                                                                       \
+        }                                                                                                       \
+    } while (false)
 #endif
 
 #if defined(NDEBUG)
 #define UNREACHABLE
 #else
-#define UNREACHABLE(message)                                                               \
-    ::Physbuzz::Logger::ERROR("[unreachable] {} (in {}:{})", message, __FILE__, __LINE__); \
-    __builtin_unreachable();
-
+#define UNREACHABLE(message)                                                                   \
+    do {                                                                                       \
+        ::Physbuzz::Logger::ERROR("[unreachable] {} (in {}:{})", message, __FILE__, __LINE__); \
+        __builtin_unreachable();                                                               \
+    } while (false)
 #endif
 
 namespace Physbuzz {
