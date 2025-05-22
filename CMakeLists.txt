@@ -49,7 +49,9 @@ set(ENGINE_PATH "libs")
 file(GLOB_RECURSE ENGINE_SRCS "${ENGINE_PATH}/*.cpp")
 add_library(physbuzz SHARED ${ENGINE_SRCS})
 add_compile_definitions(physbuzz
-    GLFW_INCLUDE_NONE)
+    GLFW_INCLUDE_NONE # dont include gl, use glad instead
+    GLM_ENABLE_EXPERIMENTAL # enable glm's quat headers
+)
 
 target_include_directories(physbuzz PUBLIC 
     ${ENGINE_PATH})
