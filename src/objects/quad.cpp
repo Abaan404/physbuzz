@@ -20,7 +20,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
     };
 
     // calc indices
-    mesh.indices = {0, 1, 2, 0, 3, 2};
+    mesh.indices = {0, 1, 2, 2, 3, 0};
 
     // add textures
     mesh.textures = info.resources.textures;
@@ -31,8 +31,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
     }
 
     // calc vertices
-    generate2DTexCoords(mesh);
-    generate2DNormals(mesh);
+    generateTexCoords(mesh);
+    generateNormals(mesh);
 
     // create model
     std::string model = std::format("quad_{}", object);

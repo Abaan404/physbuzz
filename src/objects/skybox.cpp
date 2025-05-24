@@ -10,39 +10,39 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Skybox &info
     constexpr glm::vec3 max = glm::vec3(2.0f, 2.0f, 2.0f);
 
     mesh.vertices = {
-        {{min.x, min.y, max.z}, {}, {}},
-        {{max.x, min.y, max.z}, {}, {}},
-        {{max.x, max.y, max.z}, {}, {}},
-        {{min.x, max.y, max.z}, {}, {}},
-                              
-        {{min.x, min.y, min.z}, {}, {}},
-        {{max.x, min.y, min.z}, {}, {}},
-        {{max.x, max.y, min.z}, {}, {}},
-        {{min.x, max.y, min.z}, {}, {}},
-                              
         {{min.x, min.y, min.z}, {}, {}},
         {{min.x, min.y, max.z}, {}, {}},
         {{min.x, max.y, max.z}, {}, {}},
         {{min.x, max.y, min.z}, {}, {}},
-                              
+
+        {{max.x, min.y, max.z}, {}, {}},
         {{max.x, min.y, min.z}, {}, {}},
+        {{max.x, max.y, min.z}, {}, {}},
+        {{max.x, max.y, max.z}, {}, {}},
+
+        {{max.x, min.y, min.z}, {}, {}},
+        {{min.x, min.y, min.z}, {}, {}},
+        {{min.x, max.y, min.z}, {}, {}},
+        {{max.x, max.y, min.z}, {}, {}},
+
+        {{min.x, min.y, max.z}, {}, {}},
         {{max.x, min.y, max.z}, {}, {}},
         {{max.x, max.y, max.z}, {}, {}},
+        {{min.x, max.y, max.z}, {}, {}},
+
+        {{min.x, min.y, min.z}, {}, {}},
+        {{max.x, min.y, min.z}, {}, {}},
+        {{max.x, min.y, max.z}, {}, {}},
+        {{min.x, min.y, max.z}, {}, {}},
+
         {{max.x, max.y, min.z}, {}, {}},
-                              
         {{min.x, max.y, min.z}, {}, {}},
         {{min.x, max.y, max.z}, {}, {}},
         {{max.x, max.y, max.z}, {}, {}},
-        {{max.x, max.y, min.z}, {}, {}},
-                              
-        {{min.x, min.y, min.z}, {}, {}},
-        {{min.x, min.y, max.z}, {}, {}},
-        {{max.x, min.y, max.z}, {}, {}},
-        {{max.x, min.y, min.z}, {}, {}},
     };
 
     // calc indices
-    mesh.indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20};
+    mesh.indices = {0, 3, 2, 2, 1, 0, 4, 7, 6, 6, 5, 4, 8, 11, 10, 10, 9, 8, 12, 15, 14, 14, 13, 12, 16, 19, 18, 18, 17, 16, 20, 23, 22, 22, 21, 20};
 
     std::string model = std::format("skybox_{}", object);
     Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(model, {{mesh}});

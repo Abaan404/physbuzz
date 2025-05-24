@@ -41,6 +41,8 @@ Renderer::~Renderer() {}
 
 void Renderer::build() {
     target(nullptr);
+
+    glEnable(GL_CULL_FACE);
 }
 
 void Renderer::destroy() {}
@@ -135,6 +137,23 @@ void Renderer::render(Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
     // unbind scene
     skybox.cubemap->unbind();
     resources.pipeline->unbind();
+
+    // TODO: allow customizable pipeline passes
+    // const Physbuzz::ResourceHandle<Physbuzz::ShaderPipelineResource> normals = {"debug/normal"};
+    //
+    // // check for reload before binding
+    // if (!normals->reload()) {
+    //     return;
+    // }
+    //
+    // if (!normals->bind()) {
+    //     return;
+    // }
+    //
+    // normals->setUniform("u_Model", transform.matrix);
+    //
+    // normals->draw(scene, object);
+    // normals->unbind();
 }
 
 const Physbuzz::Clock &Renderer::getClock() const {

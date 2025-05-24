@@ -5,7 +5,7 @@ ObjectBuilder::ObjectBuilder(Physbuzz::Scene *scene)
 
 ObjectBuilder::~ObjectBuilder() {}
 
-void ObjectBuilder::generate2DTexCoords(Physbuzz::Mesh &mesh) {
+void ObjectBuilder::generateTexCoords(Physbuzz::Mesh &mesh) {
     glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 max = glm::vec3(std::numeric_limits<float>::lowest());
 
@@ -20,12 +20,26 @@ void ObjectBuilder::generate2DTexCoords(Physbuzz::Mesh &mesh) {
     }
 }
 
-void ObjectBuilder::generate2DNormals(Physbuzz::Mesh &mesh) {
-    for (std::size_t i = 0; i < mesh.vertices.size(); ++i) {
-        const std::size_t next = (i + 1) % mesh.vertices.size();                            // cycle next vertex
-        const glm::vec3 tangent = mesh.vertices[next].position - mesh.vertices[i].position; // get the tangent
-        const glm::vec3 normal = glm::cross(tangent, glm::vec3(0.0f, 0.0f, 1.0f));          // cross prod for normal
+void ObjectBuilder::generateNormals(Physbuzz::Mesh &mesh) {
+    for (std::size_t i = 0; i < mesh.indices.size(); i += 3) {
+        const Physbuzz::Index i0 = mesh.indices[i];
+        const Physbuzz::Index i1 = mesh.indices[i + 1];
+        const Physbuzz::Index i2 = mesh.indices[i + 2];
 
-        mesh.vertices[i].normal = glm::normalize(normal);
+        const glm::vec3 &p1 = mesh.vertices[i0].position;
+        const glm::vec3 &p2 = mesh.vertices[i1].position;
+        const glm::vec3 &p3 = mesh.vertices[i2].position;
+
+        const glm::vec3 p12 = p2 - p1;
+        const glm::vec3 p13 = p3 - p1;
+        const glm::vec3 normal = glm::cross(p12, p13);
+
+        mesh.vertices[i0].normal += normal;
+        mesh.vertices[i1].normal += normal;
+        mesh.vertices[i2].normal += normal;
+    }
+
+    for (auto &v : mesh.vertices) {
+        v.normal = glm::normalize(v.normal);
     }
 }

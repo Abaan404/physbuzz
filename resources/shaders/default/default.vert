@@ -14,8 +14,8 @@ uniform mat4 u_Model;
 
 out VS_OUT {
     vec3 normal;
-    vec2 texCoord;
     vec3 fragPosition;
+    vec2 texCoord;
 } vs_out;
 
 void main() {

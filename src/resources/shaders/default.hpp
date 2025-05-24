@@ -36,7 +36,7 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
                 }
             }
 
-            pipeline->setUniform("u_Material.shininess", mesh.shininess);
+            pipeline->setUniform("u_MaterialShininess", mesh.shininess);
 
             mesh.bind();
             mesh.draw();

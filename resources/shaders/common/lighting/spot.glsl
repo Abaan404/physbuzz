@@ -16,7 +16,7 @@ struct SpotLight {
     float outerCutOff;
 };
 
-vec4 calcSpotLight(Material material, SpotLight light, vec3 fragPosition, vec3 normal, vec3 viewPosition, vec4 materialDiffuse, vec4 materialSpecular) {
+vec4 calcSpotLight(SpotLight light, float shininess, vec3 fragPosition, vec3 normal, vec3 viewPosition, vec4 materialDiffuse, vec4 materialSpecular) {
     // diffuse
     vec3 lightDirection = normalize(light.position - fragPosition);
     float diff = max(dot(normal, lightDirection), 0.0);
@@ -24,7 +24,7 @@ vec4 calcSpotLight(Material material, SpotLight light, vec3 fragPosition, vec3 n
     // specular
     vec3 viewDirection = normalize(viewPosition - fragPosition);
     vec3 reflectDir = reflect(-lightDirection, normal);
-    float spec = pow(max(dot(viewDirection, reflectDir), 0.0), material.shininess);
+    float spec = pow(max(dot(viewDirection, reflectDir), 0.0), shininess);
 
     float theta = dot(lightDirection, normalize(-light.direction));
     float epsilon = light.cutOff - light.outerCutOff;

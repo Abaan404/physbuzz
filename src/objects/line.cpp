@@ -28,8 +28,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
     }
 
     // calc vertices
-    generate2DTexCoords(mesh);
-    generate2DNormals(mesh);
+    generateTexCoords(mesh);
+    generateNormals(mesh);
 
     // add textures
     mesh.textures = info.resources.textures;

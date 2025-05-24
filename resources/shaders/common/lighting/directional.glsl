@@ -8,14 +8,14 @@ struct DirectionalLight {
     vec3 specular;
 };
 
-vec4 calcDirectionalLight(Material material, DirectionalLight light, vec3 fragPosition, vec3 normal, vec3 viewPosition, vec4 materialDiffuse, vec4 materialSpecular) {
+vec4 calcDirectionalLight(DirectionalLight light, float shininess, vec3 fragPosition, vec3 normal, vec3 viewPosition, vec4 materialDiffuse, vec4 materialSpecular) {
     // diffuse
     float diff = max(dot(normal, -light.direction), 0.0);
 
     // specular
     vec3 viewDirection = normalize(viewPosition - fragPosition);
-    vec3 reflectDir = reflect(-light.direction, normal);
-    float spec = pow(max(dot(viewDirection, reflectDir), 0.0), material.shininess);
+    vec3 halfwayDirection = normalize(light.direction + viewDirection);
+    float spec = pow(max(dot(normal, halfwayDirection), 0.0), shininess);
 
     // phong
     vec3 ambient = light.ambient * materialDiffuse.rgb;

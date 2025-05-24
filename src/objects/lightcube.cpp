@@ -12,9 +12,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, LightCube &i
     // add a point light to the center of the cube
     Physbuzz::PointLightComponent pointLight = {
         .position = {
-            info.cube.transform.position.x + info.cube.cube.width / 2.0f,
-            info.cube.transform.position.y + info.cube.cube.height / 2.0f,
-            info.cube.transform.position.z + info.cube.cube.length / 2.0f,
+            info.cube.transform.position.x,
+            info.cube.transform.position.y,
+            info.cube.transform.position.z,
         },
 
         .ambient = info.pointLight.ambient,

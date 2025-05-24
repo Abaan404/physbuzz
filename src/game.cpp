@@ -84,6 +84,8 @@ void Game::rebuild() {
             }
         });
     }
+    std::random_device rd;
+    std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-250, 250);
 
     // skybox
     {
@@ -128,7 +130,7 @@ void Game::rebuild() {
             },
             .resources = {
                 .textures = {
-                    {Physbuzz::TextureType::Diffuse, {{"wall"}}},
+                    {Physbuzz::TextureType::Diffuse, {{"floor"}}},
                     {Physbuzz::TextureType::Specular, {{"default/specular"}}},
                 },
                 .pipeline = {"default"},
@@ -138,11 +140,8 @@ void Game::rebuild() {
         builder.create(quad);
     }
 
-    // illuminating pointlight cubes
+    // cubes
     {
-        std::random_device rd;
-        std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-250, 250);
-
         for (int i = 0; i < 25; ++i) {
             Cube cube = {
                 .cube = {
@@ -166,8 +165,10 @@ void Game::rebuild() {
 
             builder.create(cube);
         }
+    }
 
-        // point lights
+    // point lights
+    {
         for (int i = 0; i < 3; ++i) {
             LightCube lightCube = {
                 .cube = {
@@ -204,8 +205,10 @@ void Game::rebuild() {
 
             builder.create(lightCube);
         }
+    }
 
-        // a circle because why not?
+    // a circle because why not?
+    {
         Circle point = {
             .body = {},
             .circle = {

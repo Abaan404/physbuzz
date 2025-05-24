@@ -18,9 +18,9 @@ void ResourceBuilder::buildTextures() {
         }});
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::insert(
-        "wall",
+        "floor",
         {{
-            .image = {.file = {.path = "resources/textures/wall.jpg"}},
+            .image = {.file = {.path = "resources/textures/floor.png"}},
         }});
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::insert(
@@ -41,7 +41,7 @@ void ResourceBuilder::destroyTextures() {
     Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::erase("default/specular");
     Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::erase("crate/diffuse");
     Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::erase("crate/specular");
-    Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::erase("wall");
+    Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::erase("floor");
 }
 
 void ResourceBuilder::buildCubemaps() {

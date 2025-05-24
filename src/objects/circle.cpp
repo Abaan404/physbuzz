@@ -25,8 +25,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
     mesh.indices.insert(mesh.indices.end(), {0, MAX_VERTICES - 1, 1});
 
     // calc vertices
-    generate2DTexCoords(mesh);
-    generate2DNormals(mesh);
+    generateTexCoords(mesh);
+    generateNormals(mesh);
 
     // add textures
     mesh.textures = info.resources.textures;

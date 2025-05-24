@@ -5,8 +5,8 @@ uniform sampler2D u_Texture;
 
 in VS_OUT {
     vec3 normal;
-    vec2 texCoord;
     vec3 fragPosition;
+    vec2 texCoord;
 } fs_in;
 
 out vec4 fragColor;
