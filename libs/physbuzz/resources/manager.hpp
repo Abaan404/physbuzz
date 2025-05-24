@@ -18,7 +18,7 @@ class ResourceFileWatcher : public efsw::FileWatchListener {
   public:
     std::unordered_map<ResourceID, std::function<void(const ResourceWatcherInfo &)>> callbacks;
 
-    void handleFileAction(efsw::WatchID _1, const std::string &directory, const std::string &filename, efsw::Action action, std::string _2) override {
+    void handleFileAction([[maybe_unused]] efsw::WatchID id, const std::string &directory, const std::string &filename, efsw::Action action, [[maybe_unused]] std::string oldFileName) override {
         for (const auto &[id, callback] : callbacks) {
             callback({
                 .action = static_cast<WatchAction>(action),

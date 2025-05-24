@@ -19,7 +19,7 @@
 #include <random>
 
 Game::Game()
-    : bindings(&window), player(this), builder(&scene) {}
+    : builder(&scene), bindings(&window), player(this) {}
 
 Game::~Game() {}
 
@@ -42,7 +42,7 @@ void Game::build() {
         scene.getSystem<Renderer>()->resize(event.resolution);
     });
 
-    window.addCallback<Physbuzz::WindowCloseEvent>([&](const Physbuzz::WindowCloseEvent &event) {
+    window.addCallback<Physbuzz::WindowCloseEvent>([&](const Physbuzz::WindowCloseEvent &) {
         window.close();
     });
 
@@ -88,6 +88,8 @@ void Game::rebuild() {
     // skybox
     {
         Skybox skybox = {
+            .skybox = {},
+            .transform = {},
             .resources = {
                 .pipeline = {"skybox"},
             },
@@ -98,6 +100,7 @@ void Game::rebuild() {
     // backpack
     {
         Model backpack = {
+            .body = {},
             .model = {
                 .resource = "backpack",
             },
@@ -106,6 +109,7 @@ void Game::rebuild() {
                 .scale = glm::vec3(20.0f, 20.0f, 20.0f),
                 .orientation = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             },
+            .resources = {},
         };
 
         builder.create(backpack);
@@ -114,6 +118,7 @@ void Game::rebuild() {
     // platform
     {
         Quad quad = {
+            .body = {},
             .quad = {
                 .width = 500.0f,
                 .height = 500.0f,
@@ -202,6 +207,7 @@ void Game::rebuild() {
 
         // a circle because why not?
         Circle point = {
+            .body = {},
             .circle = {
                 .radius = 10.0f,
             },
@@ -254,7 +260,7 @@ void Game::destroy() {
     window.destroy();
 }
 
-int main(int argc, char *argv[]) {
+int main() {
     Game game = Game();
 
     game.build();

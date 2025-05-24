@@ -19,9 +19,9 @@ class Framebuffer {
     void resize(const glm::ivec2 &resolution);
     void clear(const glm::vec4 &color);
 
-    const GLuint getColor() const;
-    const GLuint getDepth() const;
-    const GLuint getFramebuffer() const;
+    GLuint getColor() const;
+    GLuint getDepth() const;
+    GLuint getFramebuffer() const;
     const glm::ivec2 getResolution() const;
 
   private:

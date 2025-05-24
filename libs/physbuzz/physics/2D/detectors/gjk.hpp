@@ -15,7 +15,7 @@ class Simplex {
 
     void pushFront(const glm::vec3 &point);
 
-    const std::size_t size() const;
+    std::size_t size() const;
     constexpr std::size_t maxSize() const {
         return m_Points.max_size();
     }

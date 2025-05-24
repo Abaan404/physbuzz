@@ -2,6 +2,9 @@
 
 #include <imgui.h>
 #include <imgui_internal.h> // for DockBuilder API
+#include <mutex>
+
+static std::once_flag onceFlag;
 
 void Dockspace::draw() {
     // setup dockspace
@@ -27,7 +30,7 @@ void Dockspace::draw() {
     ImGuiID dockspace = viewport->ID;
     ImGui::DockSpace(dockspace, ImVec2(0.0f, 0.0f), dockspaceFlags | ImGuiDockNodeFlags_PassthruCentralNode);
 
-    static auto runOnce = [&]() {
+    std::call_once(onceFlag, [&]() {
         // DockBuilder is experimental
         // see: https://github.com/ocornut/imgui/wiki/Docking
         ImGui::DockBuilderAddNode(dockspace, dockspaceFlags | ImGuiDockNodeFlags_DockSpace);
@@ -58,14 +61,13 @@ void Dockspace::draw() {
 
         // setup left hand side
         {
-            ImGuiID dockspaceCamera = ImGui::GetID("DockspaceLeft");
             ImGui::DockBuilderDockWindow("Camera", dockspaceLeft);
         }
 
         ImGui::DockBuilderFinish(dockspace);
 
         return 0;
-    }();
+    });
 
     ImGui::End();
 }

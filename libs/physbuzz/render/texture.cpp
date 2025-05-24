@@ -1,6 +1,7 @@
 #include "texture.hpp"
 
 #include "../debug/logging.hpp"
+#include <mutex>
 
 namespace Physbuzz {
 
@@ -110,4 +111,16 @@ const GLint &Texture2DResource::getUnit() const {
     return m_Unit;
 }
 
+std::vector<bool> &getClaimedUnits() {
+    static std::vector<bool> claimedUnits;
+
+    static std::once_flag onceFlag;
+    std::call_once(onceFlag, [] {
+        GLint maxUnits;
+        glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &maxUnits);
+        claimedUnits.resize(maxUnits, false);
+    });
+
+    return claimedUnits;
+}
 } // namespace Physbuzz

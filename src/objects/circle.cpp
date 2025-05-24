@@ -13,7 +13,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
     mesh.vertices.resize(MAX_VERTICES);
 
     // calc positions
-    for (int i = 0; i < MAX_VERTICES; i++) {
+    for (Physbuzz::Index i = 0; i < MAX_VERTICES; i++) {
         float angle = i * angleIncrement;
         mesh.vertices[i].position = info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f);
     }
@@ -51,6 +51,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
             }
 
             Circle info = {
+                .body = {},
                 .circle = builder.scene->getComponent<CircleComponent>(object),
                 .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
                 .identifier = builder.scene->getComponent<IdentifiableComponent>(object),

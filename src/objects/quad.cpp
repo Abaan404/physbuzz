@@ -54,6 +54,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
             }
 
             Quad info = {
+                .body = {},
                 .quad = builder.scene->getComponent<QuadComponent>(object),
                 .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
                 .identifier = builder.scene->getComponent<IdentifiableComponent>(object),

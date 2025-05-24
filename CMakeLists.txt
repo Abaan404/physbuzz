@@ -69,6 +69,7 @@ target_link_libraries(physbuzz PUBLIC
 file(GLOB_RECURSE SRCS "src/*.cpp")
 add_executable(game ${SRCS})
 
+target_compile_options(game PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(game PRIVATE
     physbuzz
     imgui)

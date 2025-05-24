@@ -1,6 +1,5 @@
 #include "dynamics.hpp"
 
-#include "../resources/manager.hpp"
 #include "collision.hpp"
 
 namespace Physbuzz {

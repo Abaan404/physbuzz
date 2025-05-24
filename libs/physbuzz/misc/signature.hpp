@@ -10,14 +10,14 @@ using SignatureID = std::uint32_t;
 class Signature {
   public:
     template <typename T>
-    inline static const SignatureID ID() {
+    inline static SignatureID ID() {
         static SignatureID id = nextID<T>();
         return id;
     }
 
   private:
     template <typename T>
-    inline static const SignatureID nextID() {
+    inline static SignatureID nextID() {
         if (!m_Ids.contains(m_CurId)) {
             m_Ids.insert(m_CurId);
             m_CurId++;

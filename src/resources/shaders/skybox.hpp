@@ -10,7 +10,11 @@
 
 inline Physbuzz::ShaderPipelineResource shaderSkybox = {{
     .vertex = {.file = {.path = "resources/shaders/skybox/skybox.vert"}},
+    .tessControl = {},
+    .tessEvaluation = {},
+    .geometry = {},
     .fragment = {.file = {.path = "resources/shaders/skybox/skybox.frag"}},
+    .compute = {},
     .draw = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         const SkyboxComponent &skybox = scene.getComponent<SkyboxComponent>(object);
         const Physbuzz::ModelComponent &render = scene.getComponent<Physbuzz::ModelComponent>(object);

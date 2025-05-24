@@ -15,6 +15,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
     Quad left = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
+            .angular = {},
+            .gravity = {},
+            .drag = {},
         },
         .quad = {
             .width = info.wall.thickness,
@@ -24,12 +27,16 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
             .position = {min.x - info.wall.thickness / 2.0f, info.wall.position.y, 0.0f},
         },
         .identifier = info.identifier,
+        .resources = {},
         .hasPhysics = info.isCollidable,
     };
 
     Quad right = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
+            .angular = {},
+            .gravity = {},
+            .drag = {},
         },
         .quad = {
             .width = info.wall.thickness,
@@ -39,12 +46,16 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
             .position = {max.x + info.wall.thickness / 2.0f, info.wall.position.y, 0.0f},
         },
         .identifier = info.identifier,
+        .resources = {},
         .hasPhysics = info.isCollidable,
     };
 
     Quad up = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
+            .angular = {},
+            .gravity = {},
+            .drag = {},
         },
         .quad = {
             .width = info.wall.width,
@@ -54,12 +65,16 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
             .position = {info.wall.position.x, min.y - info.wall.thickness / 2.0f, 0.0f},
         },
         .identifier = info.identifier,
+        .resources = {},
         .hasPhysics = info.isCollidable,
     };
 
     Quad down = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
+            .angular = {},
+            .gravity = {},
+            .drag = {},
         },
         .quad = {
             .width = info.wall.width,
@@ -69,6 +84,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
             .position = {info.wall.position.x, max.y + info.wall.thickness / 2.0f, 0.0f},
         },
         .identifier = info.identifier,
+        .resources = {},
         .hasPhysics = info.isCollidable,
     };
 

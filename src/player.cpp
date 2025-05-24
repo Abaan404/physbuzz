@@ -17,7 +17,7 @@ void Player::build() {
         {.near = 1.0f, .far = 10000.0f});
 
     m_Game->bindings.mouseButtonCallbacks[Physbuzz::Mouse::Left] = {
-        .callback = [&](const Physbuzz::MouseButtonEvent &event) {
+        .callback = [&]([[maybe_unused]] const Physbuzz::MouseButtonEvent &event) {
             if (ImGui::GetIO().WantCaptureMouse) {
                 return;
             }
@@ -32,6 +32,7 @@ void Player::build() {
                     .position = {0.0f, 0.0f, 0.0f},
                     .orientation = glm::angleAxis(glm::pi<float>() / 4.0f, glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f))),
                 },
+                .resources = {},
                 .hasPhysics = false,
             };
             m_Game->builder.create(info);
@@ -40,7 +41,7 @@ void Player::build() {
     };
 
     m_Game->bindings.mouseButtonCallbacks[Physbuzz::Mouse::Right] = {
-        .callback = [&](const Physbuzz::MouseButtonEvent &event) {
+        .callback = [&]([[maybe_unused]] const Physbuzz::MouseButtonEvent &event) {
             if (ImGui::GetIO().WantCaptureMouse) {
                 return;
             }
@@ -48,9 +49,11 @@ void Player::build() {
             glm::ivec2 cursor = m_Game->window.getCursorPos();
             Circle info = {
                 .body = {
+                    .angular = {},
                     .gravity = {
                         .acceleration = {0.0f, 1000.0f, 0.0f},
                     },
+                    .drag = {},
                 },
                 .circle = {
                     .radius = 100.0f,
@@ -58,6 +61,7 @@ void Player::build() {
                 .transform = {
                     .position = {cursor.x, cursor.y, 0.0f},
                 },
+                .resources = {},
                 .hasPhysics = true,
             };
             m_Game->builder.create(info);
@@ -66,7 +70,7 @@ void Player::build() {
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::F3] = {
-        .callback = [&](const Physbuzz::KeyEvent &event) {
+        .callback = [&]([[maybe_unused]] const Physbuzz::KeyEvent &event) {
             m_Game->interface.draw ^= true;
             if (m_Game->interface.draw) {
                 m_Game->window.setCursorCapture(false);
@@ -76,7 +80,7 @@ void Player::build() {
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::Escape] = {
-        .callback = [&](const Physbuzz::KeyEvent &event) {
+        .callback = [&]([[maybe_unused]] const Physbuzz::KeyEvent &event) {
             m_CaptureMouse ^= true;
             m_Game->window.setCursorCapture(false);
         },
@@ -84,49 +88,49 @@ void Player::build() {
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::C] = {
-        .callback = [&](const Physbuzz::KeyEvent &event) {
+        .callback = [&]([[maybe_unused]] const Physbuzz::KeyEvent &event) {
             m_Game->rebuild();
         },
         .type = Physbuzz::CallbackType::OneShot,
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::W] = {
-        .callback = [&](const Physbuzz::KeyEvent &event) {
+        .callback = [&]([[maybe_unused]] const Physbuzz::KeyEvent &event) {
             camera.view.position += camera.view.getFacing() * speed;
             camera.view.update();
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::A] = {
-        .callback = [&](const Physbuzz::KeyEvent &event) {
+        .callback = [&]([[maybe_unused]] const Physbuzz::KeyEvent &event) {
             camera.view.position -= camera.view.getRight() * speed;
             camera.view.update();
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::S] = {
-        .callback = [&](const Physbuzz::KeyEvent &event) {
+        .callback = [&]([[maybe_unused]] const Physbuzz::KeyEvent &event) {
             camera.view.position -= camera.view.getFacing() * speed;
             camera.view.update();
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::D] = {
-        .callback = [&](const Physbuzz::KeyEvent &event) {
+        .callback = [&]([[maybe_unused]] const Physbuzz::KeyEvent &event) {
             camera.view.position += camera.view.getRight() * speed;
             camera.view.update();
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::Space] = {
-        .callback = [&](const Physbuzz::KeyEvent &event) {
+        .callback = [&]([[maybe_unused]] const Physbuzz::KeyEvent &event) {
             camera.view.position += camera.view.getUp() * speed;
             camera.view.update();
         },
     };
 
     m_Game->bindings.keyboardCallbacks[Physbuzz::Key::LeftShift] = {
-        .callback = [&](const Physbuzz::KeyEvent &event) {
+        .callback = [&]([[maybe_unused]]  const Physbuzz::KeyEvent &event) {
             camera.view.position -= camera.view.getUp() * speed;
             camera.view.update();
         },

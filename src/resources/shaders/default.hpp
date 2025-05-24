@@ -5,7 +5,11 @@
 
 inline Physbuzz::ShaderPipelineResource shaderDefault = {{
     .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
+    .tessControl = {},
+    .tessEvaluation = {},
+    .geometry = {},
     .fragment = {.file = {.path = "resources/shaders/default/default.frag"}},
+    .compute = {},
     .draw = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         const Physbuzz::ModelComponent &render = scene.getComponent<Physbuzz::ModelComponent>(object);
         const Physbuzz::ResourceHandle<Physbuzz::ShaderPipelineResource> pipeline = {"default"};

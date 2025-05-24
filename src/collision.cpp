@@ -1,7 +1,7 @@
 #include "collision.hpp"
 
 Collision::Collision(Physbuzz::Scene *scene, const float restitution)
-    : m_DetectorNarrow(scene), m_DetectorBroad(scene, &m_Objects), m_Resolver(scene, restitution) {}
+    : m_DetectorBroad(scene, &m_Objects), m_DetectorNarrow(scene), m_Resolver(scene, restitution) {}
 
 Collision::~Collision() {}
 
@@ -15,7 +15,7 @@ void Collision::destroy() {
     m_DetectorNarrow.destroy();
 }
 
-void Collision::tick(Physbuzz::Scene &scene) {
+void Collision::tick([[maybe_unused]] Physbuzz::Scene &scene) {
     std::list<Physbuzz::Contact> contacts = m_DetectorBroad.find();
     m_DetectorNarrow.find(contacts);
 

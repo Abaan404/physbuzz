@@ -22,7 +22,7 @@ Simplex::Simplex(std::initializer_list<glm::vec3> list) {
     m_Size = i;
 }
 
-const std::size_t Simplex::size() const {
+std::size_t Simplex::size() const {
     return m_Size;
 }
 

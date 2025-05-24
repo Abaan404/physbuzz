@@ -58,15 +58,15 @@ void Framebuffer::unbind() const {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-const GLuint Framebuffer::getColor() const {
+GLuint Framebuffer::getColor() const {
     return m_Color;
 };
 
-const GLuint Framebuffer::getDepth() const {
+GLuint Framebuffer::getDepth() const {
     return m_Depth;
 };
 
-const GLuint Framebuffer::getFramebuffer() const {
+GLuint Framebuffer::getFramebuffer() const {
     return m_Framebuffer;
 }
 

@@ -56,6 +56,7 @@ void Renderer::tick(Physbuzz::Scene &scene) {
 
     Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->update({
         .position = activeCamera->view.position,
+        ._padding0 = 0.0f,
         .view = activeCamera->view.matrix,
         .projection = activeCamera->getProjection(),
     });

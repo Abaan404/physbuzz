@@ -6,7 +6,6 @@
 #include <physbuzz/misc/context.hpp>
 
 void FrametimeOverlay::draw() {
-    ImGuiIO &io = ImGui::GetIO();
     ImGuiWindowFlags window_flags =
         ImGuiWindowFlags_NoDecoration |
         ImGuiWindowFlags_NoDocking |
