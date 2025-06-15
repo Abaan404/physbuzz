@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ecs/component.hpp"
+#include "../ecs/defines.hpp"
 #include <memory>
 
 namespace Physbuzz {

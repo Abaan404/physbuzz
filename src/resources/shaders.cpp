@@ -9,11 +9,12 @@
 #include "uniforms/camera.hpp"
 #include "uniforms/time.hpp"
 #include "uniforms/window.hpp"
+#include <physbuzz/render/uniforms.hpp>
 
 static Physbuzz::EventID eventBuild;
 
 void ResourceBuilder::buildShaders() {
-    eventBuild = Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::Events.addCallback<Physbuzz::OnResourceBuild>([]([[maybe_unused]] const Physbuzz::OnResourceBuild &event) {
+    eventBuild = Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::Events.addCallback<Physbuzz::OnResourceBuild>([](const auto &) {
         Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->bindPipeline(1);
         Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformWindow>>("window")->bindPipeline(2);
         Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformTime>>("time")->bindPipeline(3);

@@ -29,102 +29,92 @@ void Camera::draw() {
 
         ImGui::SeparatorText("Projection");
 
-        const Physbuzz::CameraInfo &cameraInfo = camera.getInfo();
+        Physbuzz::CameraInfo info = camera.getInfo();
 
-        const char *projections[] = {"Prespective", "Orthographic", "Orthographic2D", "Unknown"};
-        static int currentProjection = static_cast<int>(cameraInfo.type);
+        const char *projections[] = {"Prespective", "Orthographic", "Unknown"};
+        static int currentProjection = static_cast<int>(info.type);
 
         if (ImGui::Combo("type", &currentProjection, projections, IM_ARRAYSIZE(projections))) {
             glm::vec2 resolution = game->window.getResolution();
             switch (currentProjection) {
             case 0:
-                camera.setPrespective({
+                info.type = Physbuzz::CameraInfo::Projection::Perspective;
+                info.perspective = {
                     .fovy = glm::radians(45.0f),
                     .aspect = resolution.x / resolution.y,
-                });
+                };
                 break;
 
-            case 1:
-                camera.setOrthographic({
+            case 1: // Orthographic
+                info.type = Physbuzz::CameraInfo::Projection::Orthographic;
+                info.orthographic = {
                     .left = 0.0f,
                     .right = resolution.x,
                     .bottom = resolution.y,
                     .top = 0.0f,
-                });
-                break;
-
-            case 2:
-                camera.setOrthographic2D(resolution);
+                };
                 break;
 
             default:
                 break;
             }
 
-            // disable depth testing for Ortho2D camera
-            Physbuzz::GL::setCapability(Physbuzz::GL::Capabilities::DepthTest, camera.getInfo().type != Physbuzz::CameraInfo::Type::Orthographic2D);
+            camera.update(info);
             camera.reset();
         }
 
         switch (currentProjection) {
         // Prespective
         case 0: {
-            Physbuzz::CameraInfo::Prespective prespective = cameraInfo.prespective;
-
-            if (ImGui::DragFloat("fov", &prespective.fovy, 0.01f, 0.0f, 2.0f * glm::pi<float>())) {
-                camera.setPrespective(prespective);
+            if (ImGui::DragFloat("fov", &info.perspective.fovy, 0.01f, 0.0f, 2.0f * glm::pi<float>())) {
+                camera.update(info);
             }
 
-            if (ImGui::DragFloat("aspect", &prespective.aspect, 0.1f, 0.0f, MAX_VALUE)) {
-                camera.setPrespective(prespective);
+            if (ImGui::DragFloat("aspect", &info.perspective.aspect, 0.1f, 0.0f, MAX_VALUE)) {
+                camera.update(info);
             }
 
-            Physbuzz::CameraInfo::Depth depth = cameraInfo.depth;
+            Physbuzz::CameraInfo::Depth depth = info.depth;
             float depths[2] = {depth.near, depth.far};
             if (ImGui::DragFloat2("depth", depths, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                camera.setDepth({
-                    .near = depths[0],
-                    .far = depths[1],
-                });
+                info.depth.near = depths[0];
+                info.depth.far = depths[1];
+                camera.update(info);
             }
         } break;
 
         // Orthographic
         case 1: {
-            Physbuzz::CameraInfo::Orthographic orthographic = cameraInfo.orthographic;
+            Physbuzz::CameraInfo::Orthographic orthographic = info.orthographic;
 
             if (ImGui::DragFloat("top", &orthographic.top, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                camera.setOrthographic(orthographic);
+                camera.update(info);
             }
 
             if (ImGui::DragFloat("bottom", &orthographic.bottom, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                camera.setOrthographic(orthographic);
+                camera.update(info);
             }
 
             if (ImGui::DragFloat("left", &orthographic.left, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                camera.setOrthographic(orthographic);
+                camera.update(info);
             }
 
             if (ImGui::DragFloat("right", &orthographic.right, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                camera.setOrthographic(orthographic);
+                camera.update(info);
             }
 
-            Physbuzz::CameraInfo::Depth depth = cameraInfo.depth;
+            Physbuzz::CameraInfo::Depth depth = info.depth;
             float depths[2] = {depth.near, depth.far};
             if (ImGui::DragFloat2("depth", depths, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                camera.setDepth({
-                    .near = depths[0],
-                    .far = depths[1],
-                });
+                info.depth.near = depths[0];
+                info.depth.far = depths[1];
+                camera.update(info);
             }
 
         } break;
 
-        // Orthographic2D
-        case 2: {
-            glm::ivec2 resolution = game->window.getResolution();
-            ImGui::DragInt2("Resolution", glm::value_ptr(resolution), 1.0f, MIN_VALUE, MAX_VALUE); // 2D projection limited by window res
-        } break;
+        default:
+            break;
         }
 
         ImGui::SeparatorText("View");
@@ -133,7 +123,7 @@ void Camera::draw() {
             camera.reset();
         }
 
-        glm::vec3 position = cameraInfo.view.position;
+        glm::vec3 position = info.view.position;
         if (ImGui::DragFloat3("position", glm::value_ptr(position), 1.0f, MIN_VALUE, MAX_VALUE)) {
             camera.setPosition(position);
         }

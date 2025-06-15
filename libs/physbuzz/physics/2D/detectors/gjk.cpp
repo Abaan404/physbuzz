@@ -1,6 +1,7 @@
 #include "gjk.hpp"
 
 #include "../../../debug/logging.hpp"
+#include "../../../ecs/scene.hpp"
 #include <limits>
 #include <vector>
 
@@ -173,7 +174,7 @@ glm::vec3 Gjk2D::supportPoint(const RenderComponent &render, const glm::vec3 &di
     float proj = std::numeric_limits<float>::lowest();
 
     for (const auto &[mesh, _] : render.model->getMeshs()) {
-        for (const auto &vertex : mesh.getVertices()) {
+        for (const auto &vertex : mesh.getInfo().vertices) {
             glm::vec3 position = render.transform.toWorld(vertex.position);
 
             const float newProj = glm::dot(position, direction);

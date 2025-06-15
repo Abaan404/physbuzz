@@ -23,17 +23,15 @@ class Mesh {
   public:
     Mesh(const MeshInfo &info);
 
-    void build();
-    void destroy();
+    bool build();
+    bool destroy();
 
     void bind() const;
     void draw() const;
     void unbind() const;
 
     void update(const MeshInfo &info);
-
-    const std::vector<Vertex> &getVertices() const;
-    const std::vector<Index> &getIndices() const;
+    const MeshInfo &getInfo() const;
 
   private:
     GLuint VBO, VAO, EBO;

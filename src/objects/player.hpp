@@ -2,8 +2,7 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include "physbuzz/render/camera.hpp"
-#include <physbuzz/physics/dynamics.hpp>
+#include <physbuzz/render/camera.hpp>
 #include <physbuzz/render/transform.hpp>
 #include <physbuzz/window/bindings.hpp>
 
@@ -19,7 +18,7 @@ struct Player {
     Physbuzz::CameraComponent camera;
 
     // geometry
-    PlayerComponent player = {};
+    PlayerComponent player;
 
     // naming
     IdentifiableComponent identifier = {

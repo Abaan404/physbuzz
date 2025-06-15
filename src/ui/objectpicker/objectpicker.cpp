@@ -3,11 +3,20 @@
 #include "../../objects/builder.hpp"
 #include "../../objects/circle.hpp"
 #include "../../objects/quad.hpp"
+#include "../../objects/skybox.hpp"
+#include "../../resources/uniforms/camera.hpp"
+#include "physbuzz/render/camera.hpp"
+#include "physbuzz/render/uniforms.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/renderer.hpp>
+
+struct PickableComponent {
+    bool selected = false;
+    Physbuzz::Framebuffer framebuffer;
+};
 
 ObjectPicker::ObjectPicker() {
     Quad quad = {
@@ -19,11 +28,7 @@ ObjectPicker::ObjectPicker() {
         .transform = {
             .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
         },
-        .resources = {
-            .renderpasses = {
-                {"ui/ortho"},
-            },
-        },
+        .resources = {},
     };
 
     Circle circle = {
@@ -34,12 +39,10 @@ ObjectPicker::ObjectPicker() {
         .transform = {
             .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
         },
-        .resources = {
-            .renderpasses = {
-                {"ui/ortho"},
-            },
-        },
+        .resources = {},
     };
+
+    Skybox skybox;
 
     m_Scene.createSystem<Physbuzz::Renderer>(Physbuzz::RendererInfo{
         .framebuffer = {
@@ -48,9 +51,33 @@ ObjectPicker::ObjectPicker() {
         },
     });
 
+    m_Scene.createSystem<Physbuzz::Clock>();
+
     ObjectBuilder builder = ObjectBuilder(&m_Scene);
     builder.create(circle);
     builder.create(quad);
+
+    Physbuzz::CameraComponent camera = {{
+        .type = Physbuzz::CameraInfo::Projection::Orthographic,
+        .orthographic = {
+            .left = 0.0f,
+            .right = static_cast<float>(m_PreviewSize.x),
+            .bottom = static_cast<float>(m_PreviewSize.y),
+            .top = 0.0f,
+        },
+        .perspective = {},
+        .depth = {
+            .near = 1.0f,
+            .far = 1000.0f,
+        },
+        .view = {
+            .position = {0.0f, 0.0f, -100.0f},
+        },
+        .resolution = {m_PreviewSize.x, m_PreviewSize.y},
+    }};
+
+    Physbuzz::ObjectID object = m_Scene.createObject();
+    m_Scene.setComponent(object, camera);
 
     for (const auto &object : m_Scene.getObjects()) {
         PickableComponent pickable = {
@@ -64,18 +91,14 @@ ObjectPicker::ObjectPicker() {
         pickable.framebuffer.build();
         m_Scene.setComponent(object, pickable);
     }
-
-    // set orthographic projection for preview
-    m_Camera.setOrthographic2D({m_PreviewSize.x, m_PreviewSize.y});
 }
 
 ObjectPicker::~ObjectPicker() {
-    for (const auto &object : m_Scene.getObjects()) {
-        if (m_Scene.containsComponent<PickableComponent>(object)) {
-            const auto &[pickable] = m_Scene.getComponent<PickableComponent>(object);
-            pickable.framebuffer.destroy();
-        }
+    for (const auto &[pickable] : m_Scene.getComponents<PickableComponent>()) {
+        pickable.framebuffer.destroy();
     }
+
+    m_Scene.clear();
 }
 
 void ObjectPicker::draw() {
@@ -89,15 +112,24 @@ void ObjectPicker::draw() {
         return;
     }
 
-    // TODO buttons
+    for (const auto &[camera] : m_Scene.getComponents<Physbuzz::CameraComponent>()) {
+        Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->update({
+            .position = camera.getInfo().view.position,
+            ._padding0 = 0.0f,
+            .view = camera.getView(),
+            .projection = camera.getProjection(),
+        });
+    }
+
+    // TODO this doesnt work
     for (const auto &object : m_Scene.getObjects()) {
-        const auto &[pickable] = m_Scene.getComponent<PickableComponent>(object);
+        const auto [pickable] = m_Scene.getComponent<PickableComponent>(object);
 
         // render to framebuffer
         m_Scene.getSystem<Physbuzz::Renderer>()->target(&pickable.framebuffer);
         m_Scene.tickSystem<Physbuzz::Renderer>();
 
-        ImGui::Image((void *)(std::intptr_t)pickable.framebuffer.getColor(), m_PreviewSize);
+        ImGui::Image(reinterpret_cast<void *>(static_cast<uintptr_t>(pickable.framebuffer.getColor())), m_PreviewSize);
     }
 
     ImGui::End();

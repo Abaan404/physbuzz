@@ -2,9 +2,7 @@
 
 #include "../../objects/player.hpp"
 #include <physbuzz/render/lighting.hpp>
-#include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
-#include <physbuzz/render/shaders.hpp>
 
 inline Physbuzz::ShaderPipelineResource shaderDefault = {{
     .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},

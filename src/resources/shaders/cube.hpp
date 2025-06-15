@@ -1,6 +1,7 @@
 #pragma once
 
 #include <physbuzz/render/renderer.hpp>
+#include <physbuzz/ecs/scene.hpp>
 
 inline Physbuzz::ShaderPipelineResource shaderCube = {{
     .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},

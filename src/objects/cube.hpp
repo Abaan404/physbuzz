@@ -11,9 +11,6 @@ struct CubeComponent {
 };
 
 struct Cube {
-    // physics info
-    // Physbuzz::RigidBodyComponent body; // TODO implement me
-
     // geometry
     CubeComponent cube;
     Physbuzz::Transform transform;

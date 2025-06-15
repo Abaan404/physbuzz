@@ -1,13 +1,8 @@
 #pragma once
 
 #include "../../objects/skybox.hpp"
-#include <physbuzz/render/cubemap.hpp>
 #include <physbuzz/render/gl/depth.hpp>
-#include <physbuzz/render/model.hpp>
-#include <physbuzz/render/shaders.hpp>
-#include <physbuzz/render/texture.hpp>
-#include <physbuzz/render/uniforms.hpp>
-#include <physbuzz/resources/manager.hpp>
+#include <physbuzz/render/renderer.hpp>
 
 inline Physbuzz::ShaderPipelineResource shaderSkybox = {{
     .vertex = {.file = {.path = "resources/shaders/skybox/skybox.vert"}},

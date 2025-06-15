@@ -3,7 +3,6 @@
 #include "builder.hpp"
 #include "common.hpp"
 #include <physbuzz/render/cubemap.hpp>
-#include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/transform.hpp>
 
 struct SkyboxComponent {
@@ -16,7 +15,11 @@ struct Skybox {
     Physbuzz::Transform transform;
 
     // rendering
-    ResourceComponent resources;
+    ResourceComponent resources = {
+        .renderpasses = {
+            {"skybox"},
+        },
+    };
 };
 
 template <>

@@ -1,15 +1,19 @@
 #pragma once
 
-#include "../ecs/scene.hpp"
+#include "../debug/logging.hpp"
+#include "../ecs/defines.hpp"
 #include "../io/file.hpp"
 #include "../resources/defines.hpp"
+#include <format>
 #include <glad/gl.h>
 #include <glm/glm.hpp>
+#include <set>
 #include <string>
 
 namespace Physbuzz {
 
 class ShaderPipelineResource;
+class Scene;
 
 template <typename T>
 concept UniformType =

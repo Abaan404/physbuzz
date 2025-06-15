@@ -52,39 +52,38 @@ void Game::build() {
             glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * player.sensitivity;
             lastPosition = event.position;
 
-            const Physbuzz::CameraInfo &cameraInfo = camera.getInfo();
-
-            if (player.captureMouse || interface.draw || cameraInfo.type == Physbuzz::CameraInfo::Type::Orthographic2D) {
+            if (player.captureMouse || interface.draw) {
                 return;
             }
 
             window.setCursorCapture(true);
 
+            const Physbuzz::CameraInfo &info = camera.getInfo();
             glm::quat pitch = glm::angleAxis(glm::radians(offset.x), glm::vec3(0.0f, -1.0f, 0.0f));
             glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.getUp(), camera.getFacing()));
 
-            camera.setOrientation(pitch * yaw * cameraInfo.view.orientation);
+            camera.setOrientation(pitch * yaw * info.view.orientation);
         }
     });
 
     // change prespective camera fov when scrolling
     window.addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
         for (const auto &[player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
-            const Physbuzz::CameraInfo &cameraInfo = camera.getInfo();
+            Physbuzz::CameraInfo info = camera.getInfo();
 
-            if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || cameraInfo.type != Physbuzz::CameraInfo::Type::Prespective) {
+            if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || info.type != Physbuzz::CameraInfo::Projection::Perspective) {
                 return;
             }
 
-            Physbuzz::CameraInfo::Prespective prespective = cameraInfo.prespective;
-            prespective.fovy = glm::clamp(prespective.fovy + glm::radians<float>(event.offset.y), glm::radians(30.0f), glm::radians(135.0f));
+            info.perspective.fovy = glm::clamp(info.perspective.fovy + glm::radians<float>(event.offset.y), glm::radians(30.0f), glm::radians(135.0f));
 
-            camera.setPrespective(prespective);
+            camera.update(info);
         }
     });
 
-    // enable backface culling
+    // enable backface culling and depth testing
     Physbuzz::GL::setCapability(Physbuzz::GL::Capabilities::CullFace, true);
+    Physbuzz::GL::setCapability(Physbuzz::GL::Capabilities::DepthTest, true);
 
     // Create a default scene
     rebuild();
@@ -114,9 +113,9 @@ void Game::rebuild() {
     {
         Player player = {
             .camera = {{
-                .type = Physbuzz::CameraInfo::Type::Prespective,
+                .type = Physbuzz::CameraInfo::Projection::Perspective,
                 .orthographic = {},
-                .prespective = {
+                .perspective = {
                     .fovy = glm::radians(45.0f),
                 },
                 .depth = {
@@ -126,33 +125,23 @@ void Game::rebuild() {
                 .view = {
                     .position = {0.0f, 50.0f, 0.0f},
                 },
-                .resolution = {window.getResolution()},
+                .resolution = window.getResolution(),
             }},
+            .player = {},
         };
-        Physbuzz::GL::setCapability(Physbuzz::GL::Capabilities::DepthTest, true);
 
         builder.create(player);
     }
 
     // skybox
     {
-        Skybox skybox = {
-            .skybox = {},
-            .transform = {},
-            .resources = {
-                .renderpasses = {
-                    {"skybox"},
-                },
-            },
-        };
-
+        Skybox skybox;
         builder.create(skybox);
     }
 
     // backpack
     {
         Model backpack = {
-            .body = {},
             .model = {
                 .resource = {"backpack"},
             },
@@ -183,7 +172,6 @@ void Game::rebuild() {
                     {"floor"},
                     {"default/specular"},
                 },
-                .renderpasses = {{"default"}},
             },
         };
 
@@ -291,10 +279,10 @@ void Game::loop() {
             .timedelta = clock->getDelta(),
         });
 
-        for (const auto &[player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
+        for (const auto &[_, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
             Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->update({
                 .position = camera.getInfo().view.position,
-                ._padding0 = {},
+                ._padding0 = 0.0f,
                 .view = camera.getView(),
                 .projection = camera.getProjection(),
             });

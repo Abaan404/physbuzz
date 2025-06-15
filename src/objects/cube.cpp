@@ -70,7 +70,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
                 return;
             }
 
-            const auto &[cube, identifier, resources, render] = builder.scene->getComponent<CubeComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
+            const auto [cube, identifier, resources, render] = builder.scene->getComponent<CubeComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
 
             Cube info = {
                 // .body = object.getComponent<Physbuzz::RigidBodyComponent>(),

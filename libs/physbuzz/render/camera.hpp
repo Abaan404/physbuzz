@@ -6,12 +6,11 @@
 namespace Physbuzz {
 
 struct CameraInfo {
-    enum class Type {
-        Prespective,
+    enum class Projection {
+        Perspective,
         Orthographic,
-        Orthographic2D,
         Unknown,
-    } type;
+    } type = Projection::Unknown;
 
     struct Orthographic {
         float left = 0.0f;
@@ -20,10 +19,10 @@ struct CameraInfo {
         float top = 0.0f;
     } orthographic;
 
-    struct Prespective {
+    struct Perspective {
         float fovy = glm::radians(45.0f);
         float aspect = 1.0f;
-    } prespective;
+    } perspective;
 
     struct Depth {
         float near = -1.0f;
@@ -35,7 +34,7 @@ struct CameraInfo {
         glm::quat orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
     } view;
 
-    glm::ivec2 resolution;
+    glm::ivec2 resolution = {1, 1};
 };
 
 class CameraComponent {
@@ -43,37 +42,32 @@ class CameraComponent {
     CameraComponent(const CameraInfo &info);
 
     void resize(const glm::ivec2 &resolution);
-
-    void setOrthographic2D(const glm::ivec2 &resolution);
-    void setOrthographic(const CameraInfo::Orthographic &orthographic);
-    void setPrespective(const CameraInfo::Prespective &prespective);
-    void setDepth(const CameraInfo::Depth &depth);
-
-    const glm::mat4 &getProjection() const;
-
     void reset();
 
-    void setFacing(const glm::vec3 &facing);
-    const glm::vec3 getFacing() const;
-
-    void setUp(const glm::vec3 &up);
-    const glm::vec3 getUp() const;
-
-    void setRight(const glm::vec3 &right);
-    const glm::vec3 getRight() const;
+    void setType(CameraInfo::Projection type);
+    void update(const CameraInfo &info);
 
     void setPosition(const glm::vec3 &position);
     void setOrientation(const glm::quat &orientation);
 
-    const glm::mat4 &getView() const;
+    void setFacing(const glm::vec3 &facing);
+    void setUp(const glm::vec3 &up);
+    void setRight(const glm::vec3 &right);
 
+    glm::vec3 getFacing() const;
+    glm::vec3 getUp() const;
+    glm::vec3 getRight() const;
+
+    const glm::mat4 &getProjection() const;
+    const glm::mat4 &getView() const;
     const CameraInfo &getInfo() const;
 
   private:
-    void update();
+    void updateProjection();
+    void updateView();
 
-    glm::mat4 m_Projection = glm::mat4(1.0f);
-    glm::mat4 m_View = glm::mat4(1.0f);
+    glm::mat4 m_Projection{1.0f};
+    glm::mat4 m_View{1.0f};
 
     CameraInfo m_Info;
 };

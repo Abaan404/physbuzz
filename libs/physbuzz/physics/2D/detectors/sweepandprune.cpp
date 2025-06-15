@@ -1,5 +1,7 @@
 #include "sweepandprune.hpp"
 
+#include "../../../ecs/scene.hpp"
+
 namespace Physbuzz {
 
 SweepAndPrune2D::SweepAndPrune2D(Scene *scene, std::set<ObjectID> *objects)

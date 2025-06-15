@@ -8,6 +8,7 @@ namespace Physbuzz {
 
 class Scene : public EventSubject {
   public:
+    ObjectID createObject();
     ObjectID createObject(ObjectID id);
     bool eraseObject(ObjectID id);
     bool containsObject(ObjectID id) const;
@@ -112,6 +113,7 @@ class Scene : public EventSubject {
     SystemManager m_SystemManager;
 
     std::set<ObjectID> m_Objects;
+    ObjectID m_ObjectCounter = 0;
 };
 
 } // namespace Physbuzz

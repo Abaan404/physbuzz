@@ -9,9 +9,6 @@ struct ModelComponent {
 };
 
 struct Model {
-    // physics info
-    Physbuzz::RigidBodyComponent body;
-
     // geometry
     ModelComponent model;
     Physbuzz::Transform transform;
@@ -24,8 +21,6 @@ struct Model {
 
     // rendering
     ResourceComponent resources;
-
-    bool hasPhysics = false;
 };
 
 template <>

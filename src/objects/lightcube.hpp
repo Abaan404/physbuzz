@@ -6,7 +6,6 @@
 struct LightCube {
     Cube cube;
 
-    // position WILL be overriden
     Physbuzz::PointLightComponent pointLight;
 };
 

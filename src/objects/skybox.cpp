@@ -1,5 +1,6 @@
 #include "skybox.hpp"
 
+#include <physbuzz/render/renderer.hpp>
 #include <physbuzz/resources/manager.hpp>
 
 template <>

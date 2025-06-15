@@ -29,6 +29,15 @@ ObjectID Scene::createObject(ObjectID id) {
     return id;
 }
 
+ObjectID Scene::createObject() {
+    // keep counting until an unclaimed object is found
+    while (containsObject(m_ObjectCounter)) {
+        m_ObjectCounter++;
+    }
+
+    return createObject(m_ObjectCounter++);
+}
+
 bool Scene::eraseObject(ObjectID id) {
     if (!containsObject(id)) {
         return false;

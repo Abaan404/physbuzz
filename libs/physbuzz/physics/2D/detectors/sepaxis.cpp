@@ -1,5 +1,7 @@
 #include "sepaxis.hpp"
 
+#include "../../../ecs/scene.hpp"
+
 namespace Physbuzz {
 
 SeperatingAxis2D::SeperatingAxis2D(Scene *scene)
@@ -43,7 +45,7 @@ float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const RenderCompon
         } ret;
 
         for (const auto &[mesh, _] : render.model->getMeshs()) {
-            for (const auto &vertex : mesh.getVertices()) {
+            for (const auto &vertex : mesh.getInfo().vertices) {
                 float projection = glm::dot(vertex.position, axis);
 
                 ret.min = glm::min(projection, ret.min);
@@ -73,7 +75,7 @@ void SeperatingAxis2D::addMeshNormals(const RenderComponent &render, std::vector
 
     // TODO do a perf test on n^2 normal check or running on every normal based on no. of vertices
     for (const auto &[mesh, _] : render.model->getMeshs()) {
-        for (const auto &vertex : mesh.getVertices()) {
+        for (const auto &vertex : mesh.getInfo().vertices) {
             bool parallelFound = false;
             for (const auto &axis : axes) {
                 if (glm::length(glm::cross(axis, vertex.normal)) < PARALLEL_AXIS_THRESHOLD) {

@@ -1,6 +1,5 @@
 #include "circle.hpp"
 
-#include <glm/ext/scalar_constants.hpp>
 #include <physbuzz/physics/collision.hpp>
 #include <physbuzz/resources/manager.hpp>
 
@@ -52,7 +51,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
-            const auto &[circle, identifier, resources, render] = builder.scene->getComponent<CircleComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
+            const auto [circle, identifier, resources, render] = builder.scene->getComponent<CircleComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
 
             Circle info = {
                 .body = {},
@@ -64,7 +63,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
             };
 
             if (info.hasPhysics) {
-                const auto &[body] = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object);
+                const auto [body] = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object);
                 info.body = body;
             }
 

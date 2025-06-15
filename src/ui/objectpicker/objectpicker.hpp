@@ -6,11 +6,6 @@
 #include <physbuzz/render/camera.hpp>
 #include <physbuzz/render/framebuffer.hpp>
 
-struct PickableComponent {
-    bool selected = false;
-    Physbuzz::Framebuffer framebuffer;
-};
-
 class ObjectPicker : public IUserInterface {
   public:
     ObjectPicker();
@@ -20,7 +15,5 @@ class ObjectPicker : public IUserInterface {
 
   private:
     Physbuzz::Scene m_Scene;
-    Physbuzz::CameraComponent m_Camera;
-
     ImVec2 m_PreviewSize = {120, 120};
 };

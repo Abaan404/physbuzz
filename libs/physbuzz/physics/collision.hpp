@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../ecs/scene.hpp"
 #include "../events/handler.hpp"
 #include "../render/renderer.hpp"
 #include <list>

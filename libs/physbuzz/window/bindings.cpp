@@ -2,6 +2,7 @@
 
 #include "../debug/logging.hpp"
 #include "../ecs/scene.hpp"
+#include "../window/window.hpp"
 
 namespace Physbuzz {
 
@@ -54,7 +55,7 @@ void Bindings::tick(Scene &scene) {
     m_Window->poll();
 
     for (const auto &object : m_Objects) {
-        const auto &[input] = scene.getComponent<BindingComponent>(object);
+        const auto [input] = scene.getComponent<BindingComponent>(object);
 
         for (const auto &input : input.keyboardCallbacks) {
             if (m_HeldKeys.contains(input.key)) {

@@ -50,7 +50,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
                 return;
             }
 
-            const auto &[line, identifier, resources, render] = builder.scene->getComponent<LineComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
+            const auto [line, identifier, resources, render] = builder.scene->getComponent<LineComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
 
             Line info = {
                 .line = line,

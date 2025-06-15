@@ -1,10 +1,12 @@
 #pragma once
 
-#include "../events/window.hpp"
-#include "../window/window.hpp"
 #include "../ecs/system.hpp"
+#include "../events/handler.hpp"
+#include "../events/window.hpp"
 
 namespace Physbuzz {
+
+class Window;
 
 enum class CallbackType {
     OneShot,

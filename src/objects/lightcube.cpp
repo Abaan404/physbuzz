@@ -10,20 +10,10 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, LightCube &i
     create(object, info.cube);
 
     // add a point light to the center of the cube
-    Physbuzz::PointLightComponent pointLight = {
-        .position = {
-            info.cube.transform.position.x,
-            info.cube.transform.position.y,
-            info.cube.transform.position.z,
-        },
-
-        .ambient = info.pointLight.ambient,
-        .diffuse = info.pointLight.diffuse,
-        .specular = info.pointLight.specular,
-
-        .constant = info.pointLight.constant,
-        .linear = info.pointLight.linear,
-        .quadratic = info.pointLight.quadratic,
+    info.pointLight.position = {
+        info.cube.transform.position.x,
+        info.cube.transform.position.y,
+        info.cube.transform.position.z,
     };
 
     // create a rebuild callback
@@ -34,7 +24,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, LightCube &i
                 return;
             }
 
-            const auto &[cube, identifier, resources, pointlight, render] = builder.scene->getComponent<CubeComponent, IdentifiableComponent, ResourceComponent, Physbuzz::PointLightComponent, Physbuzz::RenderComponent>(object);
+            const auto [cube, identifier, resources, pointlight, render] = builder.scene->getComponent<CubeComponent, IdentifiableComponent, ResourceComponent, Physbuzz::PointLightComponent, Physbuzz::RenderComponent>(object);
 
             // NOTE: rebuilder framework may need a rewrite
             LightCube info = {
@@ -53,7 +43,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, LightCube &i
         },
     };
 
-    scene->setComponent(object, pointLight, rebuilder);
+    scene->setComponent(object, info.pointLight, rebuilder);
 
     return object;
 }

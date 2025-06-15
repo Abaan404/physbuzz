@@ -5,7 +5,7 @@ namespace Physbuzz {
 Mesh::Mesh(const MeshInfo &info)
     : m_Info(info) {}
 
-void Mesh::build() {
+bool Mesh::build() {
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
     glGenVertexArrays(1, &VAO);
@@ -20,12 +20,16 @@ void Mesh::build() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(offsetof(Vertex, texCoords)));
     glEnableVertexAttribArray(2);
     unbind();
+
+    return true;
 }
 
-void Mesh::destroy() {
+bool Mesh::destroy() {
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     glDeleteVertexArrays(1, &VAO);
+
+    return true;
 }
 
 void Mesh::bind() const {
@@ -53,12 +57,8 @@ void Mesh::update(const MeshInfo &info) {
     m_Info = info;
 }
 
-const std::vector<Vertex> &Mesh::getVertices() const {
-    return m_Info.vertices;
-}
-
-const std::vector<Index> &Mesh::getIndices() const {
-    return m_Info.indices;
+const MeshInfo &Mesh::getInfo() const {
+    return m_Info;
 }
 
 } // namespace Physbuzz

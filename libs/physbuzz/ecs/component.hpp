@@ -2,11 +2,10 @@
 
 #include "../containers/contigiousmap.hpp"
 #include "../misc/signature.hpp"
+#include "defines.hpp"
 #include <memory>
 
 namespace Physbuzz {
-
-using ObjectID = std::uint32_t;
 
 class IComponentArray {
   public:

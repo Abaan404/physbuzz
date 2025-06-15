@@ -3,6 +3,7 @@
 #include "../debug/callbacks.hpp"
 #include "../debug/logging.hpp"
 #include "../events/window.hpp"
+#include "../render/gl/capabilities.hpp"
 #include <GLFW/glfw3.h>
 #include <string>
 
@@ -35,7 +36,7 @@ void Window::build(const glm::ivec2 &resolution) {
     gladLoadGL(glfwGetProcAddress);
 
     // debug context setup
-    glEnable(GL_DEBUG_OUTPUT);
+    GL::setCapability(GL::Capabilities::DebugOutput, true);
     glDebugMessageCallback(OpenGLDebugCallback, 0);
 
     // static context for callbacks

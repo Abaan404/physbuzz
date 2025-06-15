@@ -1,10 +1,7 @@
 #include "renderer.hpp"
 
-#include "../render/model.hpp"
-#include "../render/shaders.hpp"
-#include "../resources/handle.hpp"
-#include "physbuzz/render/gl/capabilities.hpp"
-#include <glad/gl.h>
+#include "../ecs/scene.hpp"
+#include "gl/capabilities.hpp"
 
 namespace Physbuzz {
 
