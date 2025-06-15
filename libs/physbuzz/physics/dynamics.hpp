@@ -2,8 +2,7 @@
 
 #include "../ecs/scene.hpp"
 #include "../misc/clock.hpp"
-#include "../render/model.hpp"
-#include "../render/transform.hpp"
+#include "../render/renderer.hpp"
 #include <glm/glm.hpp>
 
 namespace Physbuzz {
@@ -43,13 +42,12 @@ struct RigidBodyComponent {
     }
 };
 
-class Dynamics : public System<TransformComponent, ModelComponent, RigidBodyComponent> {
+class Dynamics : public System<RenderComponent, RigidBodyComponent> {
   public:
     Dynamics(float dtime);
     ~Dynamics();
 
     void tick(Scene &scene);
-    const Clock &getClock() const;
 
     const bool &isRunning() const;
     void start();
@@ -61,7 +59,6 @@ class Dynamics : public System<TransformComponent, ModelComponent, RigidBodyComp
 
     float m_DeltaTime = 0.0f;
     bool m_IsRunning = false;
-    Clock m_Clock;
 };
 
 } // namespace Physbuzz

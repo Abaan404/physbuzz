@@ -21,13 +21,7 @@ void SystemManager::objectDestroyed(ObjectID id) {
     }
 }
 
-void SystemManager::buildSystems() {
-    for (auto &[_, system] : m_Systems) {
-        system->build();
-    }
-}
-
-void SystemManager::destroySystems() {
+void SystemManager::clear() {
     for (auto &[_, system] : m_Systems) {
         system->destroy();
     }

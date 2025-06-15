@@ -5,7 +5,7 @@
 #include <physbuzz/render/transform.hpp>
 
 struct ModelComponent {
-    std::string resource;
+    Physbuzz::ResourceHandle<Physbuzz::ModelResource> resource;
 };
 
 struct Model {
@@ -14,7 +14,7 @@ struct Model {
 
     // geometry
     ModelComponent model;
-    Physbuzz::TransformComponent transform;
+    Physbuzz::Transform transform;
 
     // naming
     IdentifiableComponent identifier = {

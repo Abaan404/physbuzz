@@ -36,8 +36,8 @@ struct SpotLightComponent {
     float linear = 1.0f;
     float quadratic = 1.0f;
 
-    float cutOff = glm::cos(glm::radians(12.5f));
-    float outerCutOff = glm::cos(glm::radians(17.5f));
+    float cutOff = glm::radians(12.5f);
+    float outerCutOff = glm::radians(17.5f);
 };
 
 } // namespace Physbuzz

@@ -26,6 +26,10 @@ template <typename... Signature>
 class System : public ISystem {
   private:
     inline bool containsSignature(ComponentManager &componentManager, ObjectID id) override {
+        if (sizeof...(Signature) == 0) {
+            return false;
+        }
+
         return componentManager.contains<Signature...>(id);
     }
 };
@@ -42,15 +46,13 @@ concept SystemTickable =
 
 class SystemManager {
   public:
-    void buildSystems();
-    void destroySystems();
-
     template <SystemType T, typename... Args>
     inline std::shared_ptr<T> emplace(Args &&...system) {
         SignatureID id = Signature::ID<T>();
 
         if (!m_Systems.contains(id)) {
             m_Systems[id] = std::make_shared<T>(std::forward<Args>(system)...);
+            m_Systems[id]->build();
         }
 
         return get<T>();
@@ -62,6 +64,7 @@ class SystemManager {
             return false;
         }
 
+        (m_Systems[Signature::ID<T>()]->destroy(), ...);
         return (m_Systems.erase(Signature::ID<T>()) && ...);
     }
 
@@ -83,6 +86,7 @@ class SystemManager {
         }
     }
 
+    void clear();
     void objectUpdate(ComponentManager &componentManager, ObjectID id);
     void objectDestroyed(ObjectID id);
 

@@ -1,6 +1,7 @@
 #include "builder.hpp"
 
 #include <physbuzz/render/cubemap.hpp>
+#include <physbuzz/render/model.hpp>
 #include <physbuzz/render/texture.hpp>
 #include <physbuzz/resources/manager.hpp>
 
@@ -9,30 +10,35 @@ void ResourceBuilder::buildTextures() {
         "default/diffuse",
         {{
             .image = {.file = {.path = "resources/textures/default/diffuse.png"}},
+            .type = Physbuzz::TextureType::Diffuse,
         }});
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::insert(
         "default/specular",
         {{
             .image = {.file = {.path = "resources/textures/default/specular.png"}},
+            .type = Physbuzz::TextureType::Specular,
         }});
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::insert(
         "floor",
         {{
             .image = {.file = {.path = "resources/textures/floor.png"}},
+            .type = Physbuzz::TextureType::Diffuse,
         }});
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::insert(
         "crate/diffuse",
         {{
             .image = {.file = {.path = "resources/textures/crate/diffuse.png"}},
+            .type = Physbuzz::TextureType::Diffuse,
         }});
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture2DResource>::insert(
         "crate/specular",
         {{
             .image = {.file = {.path = "resources/textures/crate/specular.png"}},
+            .type = Physbuzz::TextureType::Specular,
         }});
 }
 

@@ -12,7 +12,7 @@ struct LineComponent {
 struct Line {
     // geometry
     LineComponent line;
-    Physbuzz::TransformComponent transform;
+    Physbuzz::Transform transform;
 
     // naming
     IdentifiableComponent identifier = {

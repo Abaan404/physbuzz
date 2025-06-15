@@ -1,7 +1,5 @@
 #include "sweepandprune.hpp"
 
-#include <algorithm>
-
 namespace Physbuzz {
 
 SweepAndPrune2D::SweepAndPrune2D(Scene *scene, std::set<ObjectID> *objects)
@@ -52,7 +50,7 @@ std::list<SweepEdge> SweepAndPrune2D::getEdges() {
     };
 
     for (const auto &object : *m_Objects) {
-        const AABBComponent &aabb = m_Scene->getComponent<AABBComponent>(object);
+        const auto [aabb] = m_Scene->getComponent<AABBComponent>(object);
 
         const SweepEdge edgeLeft = {
             .object = object,
@@ -77,8 +75,8 @@ std::list<SweepEdge> SweepAndPrune2D::getEdges() {
 }
 
 bool SweepAndPrune2D::check(Contact &contact) {
-    const AABBComponent &aabb1 = m_Scene->getComponent<AABBComponent>(contact.object1);
-    const AABBComponent &aabb2 = m_Scene->getComponent<AABBComponent>(contact.object2);
+    const auto [aabb1] = m_Scene->getComponent<AABBComponent>(contact.object1);
+    const auto [aabb2] = m_Scene->getComponent<AABBComponent>(contact.object2);
 
     return aabb1.max.x > aabb2.min.x && aabb2.max.x > aabb1.min.x && aabb1.max.y > aabb2.min.y && aabb2.max.y > aabb1.min.y;
 }

@@ -2,6 +2,7 @@
 
 #include "../events/window.hpp"
 #include "../window/window.hpp"
+#include "../ecs/system.hpp"
 
 namespace Physbuzz {
 
@@ -10,41 +11,42 @@ enum class CallbackType {
     Continous,
 };
 
-template <typename T>
-concept BindingInputEventType =
-    std::same_as<T, Physbuzz::KeyEvent> ||
-    std::same_as<T, Physbuzz::MouseButtonEvent>;
+struct BindingComponent {
+    struct Keyboard {
+        Key key;
+        CallbackType type = CallbackType::Continous;
+        std::function<void(const KeyEvent &)> callback;
+    };
 
-template <typename T>
-    requires BindingInputEventType<T>
-struct BindingInfo {
-    std::function<void(const T &)> callback;
-    CallbackType type = CallbackType::Continous;
+    struct MouseButton {
+        Button button;
+        CallbackType type = CallbackType::Continous;
+        std::function<void(const MouseButtonEvent &)> callback;
+    };
+
+    std::vector<Keyboard> keyboardCallbacks;
+    std::vector<MouseButton> mouseCallbacks;
 };
 
-class Bindings {
+class Bindings : public System<BindingComponent> {
   public:
-    Bindings(Physbuzz::Window *window);
-    ~Bindings();
+    Bindings(Window *window);
 
     void build();
-    void destory();
+    void destroy();
 
-    void poll();
-
-    std::unordered_map<Physbuzz::Key, BindingInfo<Physbuzz::KeyEvent>> keyboardCallbacks;
-    std::unordered_map<Physbuzz::Mouse, BindingInfo<Physbuzz::MouseButtonEvent>> mouseButtonCallbacks;
+    void tick(Scene &scene);
 
   private:
-    Physbuzz::Window *m_Window = nullptr;
+    Window *m_Window = nullptr;
 
     struct {
-        Physbuzz::EventID key;
-        Physbuzz::EventID mouse;
+        EventID key;
+        EventID mouse;
     } m_Events;
 
-    std::unordered_map<Physbuzz::Key, Physbuzz::KeyEvent> m_HeldKeys;
-    std::unordered_map<Physbuzz::Mouse, Physbuzz::MouseButtonEvent> m_HeldMouseButtons;
+    std::unordered_map<Key, KeyEvent> m_HeldKeys;
+    std::unordered_map<Button, MouseButtonEvent> m_HeldMouseButtons;
 };
 
 } // namespace Physbuzz

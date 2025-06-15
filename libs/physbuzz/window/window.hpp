@@ -39,7 +39,6 @@ class Window : public EventSubject {
     void poll();
 
   private:
-    static std::unordered_map<GLFWwindow *, Window *> m_CallbackContexts;
     GLFWwindow *m_Window;
 };
 

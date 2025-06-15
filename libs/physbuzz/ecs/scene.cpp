@@ -9,7 +9,7 @@ void Scene::clear() {
         .scene = this,
     });
 
-    m_SystemManager.destroySystems();
+    m_SystemManager.clear();
     m_ComponentManager.clear();
     m_Objects.clear();
     clearCallbacks();
@@ -52,14 +52,6 @@ bool Scene::containsObject(ObjectID id) const {
 
 const std::set<ObjectID> &Scene::getObjects() {
     return m_Objects;
-}
-
-void Scene::buildSystems() {
-    m_SystemManager.buildSystems();
-}
-
-void Scene::destroySystems() {
-    m_SystemManager.destroySystems();
 }
 
 } // namespace Physbuzz

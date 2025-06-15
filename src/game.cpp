@@ -5,46 +5,86 @@
 #include "objects/cube.hpp"
 #include "objects/lightcube.hpp"
 #include "objects/model.hpp"
+#include "objects/player.hpp"
 #include "objects/quad.hpp"
 #include "objects/skybox.hpp"
-#include "renderer.hpp"
 #include "resources/builder.hpp"
-#include <glm/ext/vector_float3.hpp>
-#include <physbuzz/events/scene.hpp>
+#include "resources/uniforms/camera.hpp"
+#include "resources/uniforms/time.hpp"
+#include "resources/uniforms/window.hpp"
+#include <imgui.h>
 #include <physbuzz/misc/context.hpp>
-#include <physbuzz/render/cubemap.hpp>
-#include <physbuzz/render/mesh.hpp>
-#include <physbuzz/render/shaders.hpp>
-#include <physbuzz/render/texture.hpp>
+#include <physbuzz/render/gl/capabilities.hpp>
+#include <physbuzz/render/uniforms.hpp>
 #include <random>
 
 Game::Game()
-    : builder(&scene), bindings(&window), player(this) {}
-
-Game::~Game() {}
+    : builder(&scene) {}
 
 void Game::build() {
     Physbuzz::Context::set(this);
     Physbuzz::Logger::build();
 
-    glm::ivec2 resolution = glm::ivec2(1280, 720);
-
-    window.build(resolution);
-    player.build();
-    bindings.build();
+    window.build({1280, 720});
     interface.build(window);
 
-    ResourceBuilder builder;
-    builder.build();
+    ResourceBuilder resources;
+    resources.build();
 
+    // notify resources and cameras when the window resizes
     window.addCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) {
-        player.resize(event.resolution);
-        scene.getSystem<Renderer>()->resize(event.resolution);
+        Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformWindow>>("window")->update({
+            .resolution = event.resolution,
+        });
+
+        for (const auto &[camera] : scene.getComponents<Physbuzz::CameraComponent>()) {
+            camera.resize(event.resolution);
+        }
+
+        scene.getSystem<Physbuzz::Renderer>()->resize(event.resolution);
     });
 
-    window.addCallback<Physbuzz::WindowCloseEvent>([&](const Physbuzz::WindowCloseEvent &) {
-        window.close();
+    // track cursor captures
+    window.addCallback<Physbuzz::MousePositionEvent>([&](const Physbuzz::MousePositionEvent &event) {
+        static glm::vec2 lastPosition = event.window->getResolution() >> 1;
+
+        for (const auto &[player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
+            glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * player.sensitivity;
+            lastPosition = event.position;
+
+            const Physbuzz::CameraInfo &cameraInfo = camera.getInfo();
+
+            if (player.captureMouse || interface.draw || cameraInfo.type == Physbuzz::CameraInfo::Type::Orthographic2D) {
+                return;
+            }
+
+            window.setCursorCapture(true);
+
+            glm::quat pitch = glm::angleAxis(glm::radians(offset.x), glm::vec3(0.0f, -1.0f, 0.0f));
+            glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.getUp(), camera.getFacing()));
+
+            camera.setOrientation(pitch * yaw * cameraInfo.view.orientation);
+        }
     });
+
+    // change prespective camera fov when scrolling
+    window.addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
+        for (const auto &[player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
+            const Physbuzz::CameraInfo &cameraInfo = camera.getInfo();
+
+            if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || cameraInfo.type != Physbuzz::CameraInfo::Type::Prespective) {
+                return;
+            }
+
+            Physbuzz::CameraInfo::Prespective prespective = cameraInfo.prespective;
+            prespective.fovy = glm::clamp(prespective.fovy + glm::radians<float>(event.offset.y), glm::radians(30.0f), glm::radians(135.0f));
+
+            camera.setPrespective(prespective);
+        }
+    });
+
+    // enable backface culling
+    Physbuzz::GL::setCapability(Physbuzz::GL::Capabilities::CullFace, true);
 
     // Create a default scene
     rebuild();
@@ -55,37 +95,44 @@ void Game::rebuild() {
 
     // ticking systems
     {
-        scene.emplaceSystem<Collision>(&scene, 0.9);
-        scene.emplaceSystem<Physbuzz::Dynamics>(0.0005);
-
-        std::shared_ptr<Renderer> renderer = scene.emplaceSystem<Renderer>(&window);
-        renderer->activeCamera = &player.camera;
-
-        scene.buildSystems();
-    }
-
-    // callbacks for cleaning up meshes
-    {
-        scene.addCallback<Physbuzz::OnComponentEraseEvent<Physbuzz::Mesh>>([](const Physbuzz::OnComponentEraseEvent<Physbuzz::Mesh> &event) {
-            event.component->destroy();
-        });
-
-        scene.addCallback<Physbuzz::OnObjectEraseEvent>([](const Physbuzz::OnObjectEraseEvent &event) {
-            if (event.scene->containsComponent<Physbuzz::Mesh>(event.object)) {
-                event.scene->getComponent<Physbuzz::Mesh>(event.object).destroy();
-            }
-        });
-
-        scene.addCallback<Physbuzz::OnSceneClear>([](const Physbuzz::OnSceneClear &event) {
-            for (const auto id : event.scene->getObjects()) {
-                if (event.scene->containsComponent<Physbuzz::Mesh>(id)) {
-                    event.scene->getComponent<Physbuzz::Mesh>(id).destroy();
-                }
-            }
+        scene.createSystem<Collision>(&scene, 0.9);
+        scene.createSystem<Physbuzz::Dynamics>(0.0005);
+        scene.createSystem<Physbuzz::Bindings>(&window);
+        scene.createSystem<Physbuzz::Clock>();
+        scene.createSystem<Physbuzz::Renderer>(Physbuzz::RendererInfo{
+            .framebuffer = {
+                .resolution = window.getResolution(),
+                .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
+            },
         });
     }
+
     std::random_device rd;
     std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-250, 250);
+
+    // player
+    {
+        Player player = {
+            .camera = {{
+                .type = Physbuzz::CameraInfo::Type::Prespective,
+                .orthographic = {},
+                .prespective = {
+                    .fovy = glm::radians(45.0f),
+                },
+                .depth = {
+                    .near = 1.0f,
+                    .far = 10000.0f,
+                },
+                .view = {
+                    .position = {0.0f, 50.0f, 0.0f},
+                },
+                .resolution = {window.getResolution()},
+            }},
+        };
+        Physbuzz::GL::setCapability(Physbuzz::GL::Capabilities::DepthTest, true);
+
+        builder.create(player);
+    }
 
     // skybox
     {
@@ -93,9 +140,12 @@ void Game::rebuild() {
             .skybox = {},
             .transform = {},
             .resources = {
-                .pipeline = {"skybox"},
+                .renderpasses = {
+                    {"skybox"},
+                },
             },
         };
+
         builder.create(skybox);
     }
 
@@ -104,7 +154,7 @@ void Game::rebuild() {
         Model backpack = {
             .body = {},
             .model = {
-                .resource = "backpack",
+                .resource = {"backpack"},
             },
             .transform = {
                 .position = glm::vec3(0.0f, 50.0f, 0.0f),
@@ -130,10 +180,10 @@ void Game::rebuild() {
             },
             .resources = {
                 .textures = {
-                    {Physbuzz::TextureType::Diffuse, {{"floor"}}},
-                    {Physbuzz::TextureType::Specular, {{"default/specular"}}},
+                    {"floor"},
+                    {"default/specular"},
                 },
-                .pipeline = {"default"},
+                .renderpasses = {{"default"}},
             },
         };
 
@@ -155,10 +205,12 @@ void Game::rebuild() {
                 },
                 .resources = {
                     .textures = {
-                        {Physbuzz::TextureType::Diffuse, {{"crate/diffuse"}}},
-                        {Physbuzz::TextureType::Specular, {{"crate/specular"}}},
+                        {"crate/diffuse"},
+                        {"crate/specular"},
                     },
-                    .pipeline = {"default"},
+                    .renderpasses = {
+                        {"default"},
+                    },
                 },
                 .hasPhysics = false,
             };
@@ -181,15 +233,12 @@ void Game::rebuild() {
                         .position = {distribution(rd), distribution(rd) + 250, distribution(rd)},
                         .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
                     },
-                    .identifier = {
-                        .name = "LightCube",
-                    },
+                    .identifier = {},
                     .resources = {
                         .textures = {
-                            {Physbuzz::TextureType::Diffuse, {{"default/specular"}}},
-                            {Physbuzz::TextureType::Specular, {{"default/specular"}}},
+                            {"default/diffuse"},
+                            {"default/specular"},
                         },
-                        .pipeline = {"default"},
                     },
                 },
                 .pointLight = {
@@ -219,10 +268,12 @@ void Game::rebuild() {
             },
             .resources = {
                 .textures = {
-                    {Physbuzz::TextureType::Diffuse, {{"default/diffuse"}}},
-                    {Physbuzz::TextureType::Specular, {{"default/specular"}}},
+                    {"default/diffuse"},
+                    {"default/specular"},
                 },
-                .pipeline = {"circle"},
+                .renderpasses = {
+                    {"circle"},
+                },
             },
         };
 
@@ -234,10 +285,25 @@ void Game::loop() {
     m_IsRunning = true;
 
     while (m_IsRunning && !window.shouldClose()) {
-        bindings.poll();
+        const std::shared_ptr<Physbuzz::Clock> clock = scene.getSystem<Physbuzz::Clock>();
+        Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformTime>>("time")->update({
+            .time = clock->getTime(),
+            .timedelta = clock->getDelta(),
+        });
+
+        for (const auto &[player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
+            Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->update({
+                .position = camera.getInfo().view.position,
+                ._padding0 = {},
+                .view = camera.getView(),
+                .projection = camera.getProjection(),
+            });
+        }
 
         // scene.tickSystem<Physbuzz::Dynamics, Collision>();
-        scene.tickSystem<Renderer>();
+        scene.tickSystem<Physbuzz::Bindings>();
+        scene.tickSystem<Physbuzz::Clock>();
+        scene.tickSystem<Physbuzz::Renderer>();
 
         interface.render();
         window.flip();
@@ -245,21 +311,15 @@ void Game::loop() {
 }
 
 void Game::destroy() {
-    ResourceBuilder builder;
-    builder.destroy();
+    ResourceBuilder resources;
+    resources.destroy();
+
+    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::clear(); // clean up generated models
 
     m_IsRunning = false;
 
-    for (const auto &object : scene.getObjects()) {
-        if (scene.containsComponent<Physbuzz::Mesh>(object)) {
-            scene.getComponent<Physbuzz::Mesh>(object).destroy();
-        }
-    }
-
     interface.destroy();
-    bindings.destory();
     scene.clear();
-    player.destroy();
     window.destroy();
 }
 

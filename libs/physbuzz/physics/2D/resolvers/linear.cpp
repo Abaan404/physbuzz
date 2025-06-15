@@ -13,8 +13,8 @@ LinearResolver2D::LinearResolver2D(Scene *scene, float restitution)
 }
 
 void LinearResolver2D::solve(const Contact &contact) {
-    RigidBodyComponent &body1 = m_Scene->getComponent<RigidBodyComponent>(contact.object1);
-    RigidBodyComponent &body2 = m_Scene->getComponent<RigidBodyComponent>(contact.object2);
+    const auto [body1] = m_Scene->getComponent<RigidBodyComponent>(contact.object1);
+    const auto [body2] = m_Scene->getComponent<RigidBodyComponent>(contact.object2);
 
     const glm::vec3 impulse = calcImpulse(body1, body2, contact);
 

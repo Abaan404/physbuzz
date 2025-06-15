@@ -5,10 +5,14 @@
 
 namespace Physbuzz {
 
+struct FramebufferInfo {
+    glm::ivec2 resolution = {1280, 720};
+    glm::vec4 colorClear = {0.0f, 0.0f, 0.0f, 0.0f};
+};
+
 class Framebuffer {
   public:
-    Framebuffer(const glm::ivec2 &resolution);
-    ~Framebuffer();
+    Framebuffer(const FramebufferInfo &info);
 
     void build();
     void destroy();
@@ -17,19 +21,19 @@ class Framebuffer {
     void unbind() const;
 
     void resize(const glm::ivec2 &resolution);
-    void clear(const glm::vec4 &color);
+    void clear();
 
     GLuint getColor() const;
     GLuint getDepth() const;
     GLuint getFramebuffer() const;
-    const glm::ivec2 getResolution() const;
+    const glm::ivec2 &getResolution() const;
 
   private:
     GLuint m_Framebuffer;
     GLuint m_Depth;
     GLuint m_Color;
 
-    glm::ivec2 m_Resolution;
+    FramebufferInfo m_Info;
 };
 
 } // namespace Physbuzz

@@ -1,76 +1,78 @@
 #include "bindings.hpp"
 
 #include "../debug/logging.hpp"
+#include "../ecs/scene.hpp"
 
 namespace Physbuzz {
 
-Bindings::Bindings(Physbuzz::Window *window)
+Bindings::Bindings(Window *window)
     : m_Window(window) {}
-
-Bindings::~Bindings() {}
 
 void Bindings::build() {
     if (!m_Window) {
-        Physbuzz::Logger::ERROR("[Binding] Building with a missing window");
+        Logger::ERROR("[Binding] Building with a missing window");
         return;
     }
 
-    m_Events.key = m_Window->addCallback<Physbuzz::KeyEvent>([&](const Physbuzz::KeyEvent &event) {
-        if (event.action == Physbuzz::Action::Press) {
+    m_Events.key = m_Window->addCallback<KeyEvent>([&](const KeyEvent &event) {
+        if (event.action == Action::Press) {
             m_HeldKeys[event.key] = event;
-        } else if (event.action == Physbuzz::Action::Release) {
+        } else if (event.action == Action::Release) {
             m_HeldKeys.erase(event.key);
         }
     });
 
-    m_Events.mouse = m_Window->addCallback<Physbuzz::MouseButtonEvent>([&](const Physbuzz::MouseButtonEvent &event) {
-        if (event.action == Physbuzz::Action::Press) {
+    m_Events.mouse = m_Window->addCallback<MouseButtonEvent>([&](const MouseButtonEvent &event) {
+        if (event.action == Action::Press) {
             m_HeldMouseButtons[event.button] = event;
-        } else if (event.action == Physbuzz::Action::Release) {
+        } else if (event.action == Action::Release) {
             m_HeldMouseButtons.erase(event.button);
         }
     });
 }
 
-void Bindings::destory() {
+void Bindings::destroy() {
     if (m_Window == nullptr) {
-        Physbuzz::Logger::ERROR("[Binding] Destroying with a missing window");
+        Logger::ERROR("[Inputs] Cant destroy with a missing window");
         return;
     }
 
-    m_Window->eraseCallback<Physbuzz::KeyEvent>(m_Events.key);
-    m_Window->eraseCallback<Physbuzz::KeyEvent>(m_Events.mouse);
+    m_Window->eraseCallback<KeyEvent>(m_Events.key);
+    m_Window->eraseCallback<MouseButtonEvent>(m_Events.mouse);
 
-    keyboardCallbacks.clear();
-    mouseButtonCallbacks.clear();
+    m_Window = nullptr;
     m_HeldMouseButtons.clear();
     m_HeldKeys.clear();
 }
 
-void Bindings::poll() {
+void Bindings::tick(Scene &scene) {
     if (m_Window == nullptr) {
-        Physbuzz::Logger::ERROR("[Binding] Ticking with a missing window");
+        Logger::ERROR("[Inputs] Cant tick with a missing window");
         return;
     }
 
     m_Window->poll();
 
-    for (const auto &[key, info] : keyboardCallbacks) {
-        if (m_HeldKeys.contains(key)) {
-            info.callback(m_HeldKeys[key]);
+    for (const auto &object : m_Objects) {
+        const auto &[input] = scene.getComponent<BindingComponent>(object);
 
-            if (info.type == CallbackType::OneShot) {
-                m_HeldKeys.erase(key);
+        for (const auto &input : input.keyboardCallbacks) {
+            if (m_HeldKeys.contains(input.key)) {
+                input.callback(m_HeldKeys[input.key]);
+
+                if (input.type == CallbackType::OneShot) {
+                    m_HeldKeys.erase(input.key);
+                }
             }
         }
-    }
 
-    for (const auto &[button, info] : mouseButtonCallbacks) {
-        if (m_HeldMouseButtons.contains(button)) {
-            info.callback(m_HeldMouseButtons[button]);
+        for (const auto &input : input.mouseCallbacks) {
+            if (m_HeldMouseButtons.contains(input.button)) {
+                input.callback(m_HeldMouseButtons[input.button]);
 
-            if (info.type == CallbackType::OneShot) {
-                m_HeldMouseButtons.erase(button);
+                if (input.type == CallbackType::OneShot) {
+                    m_HeldMouseButtons.erase(input.button);
+                }
             }
         }
     }

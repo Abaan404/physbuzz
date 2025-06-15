@@ -3,6 +3,8 @@
 #include "builder.hpp"
 #include <functional>
 #include <physbuzz/render/shaders.hpp>
+#include <physbuzz/render/texture.hpp>
+#include <physbuzz/resources/handle.hpp>
 
 struct IdentifiableComponent {
     std::string name = "Unknown";
@@ -14,9 +16,11 @@ struct RebuildableComponent {
 };
 
 struct ResourceComponent {
-    std::unordered_map<Physbuzz::TextureType, std::vector<Physbuzz::ResourceHandle<Physbuzz::Texture2DResource>>> textures = {
-        {Physbuzz::TextureType::Diffuse, {{"default/diffuse"}}},
-        {Physbuzz::TextureType::Specular, {{"default/specular"}}},
+    std::vector<Physbuzz::ResourceHandle<Physbuzz::Texture2DResource>> textures = {
+        {"default/diffuse"},
+        {"default/specular"},
     };
-    Physbuzz::ResourceHandle<Physbuzz::ShaderPipelineResource> pipeline = {"default"};
+    std::vector<Physbuzz::ResourceHandle<Physbuzz::ShaderPipelineResource>> renderpasses = {
+        {"default"},
+    };
 };

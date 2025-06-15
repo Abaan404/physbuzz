@@ -16,7 +16,7 @@ struct Quad {
 
     // geometry
     QuadComponent quad;
-    Physbuzz::TransformComponent transform;
+    Physbuzz::Transform transform;
 
     // naming
     IdentifiableComponent identifier = {

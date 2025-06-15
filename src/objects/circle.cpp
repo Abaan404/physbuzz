@@ -9,10 +9,10 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
     constexpr Physbuzz::Index MAX_VERTICES = 50;
     constexpr const float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
 
-    Physbuzz::Mesh mesh;
-    mesh.vertices.resize(MAX_VERTICES);
+    Physbuzz::MeshInfo mesh;
 
     // calc positions
+    mesh.vertices.resize(MAX_VERTICES);
     for (Physbuzz::Index i = 0; i < MAX_VERTICES; i++) {
         float angle = i * angleIncrement;
         mesh.vertices[i].position = info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f);
@@ -28,46 +28,51 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
     generateTexCoords(mesh);
     generateNormals(mesh);
 
-    // add textures
-    mesh.textures = info.resources.textures;
-
     // create model
-    std::string model = std::format("circle_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(model, {{mesh}});
+    std::string modelName = std::format("circle_{}", object);
+    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(
+        modelName,
+        {{
+            .meshes = {{mesh, {}}},
+            .textures = info.resources.textures,
+        }});
 
     // setup rendering
-    Physbuzz::ModelComponent render = {
-        .model = model,
-    };
-
     info.transform.update();
+    Physbuzz::RenderComponent render = {
+        .transform = info.transform,
+        .model = {modelName},
+        .renderpasses = info.resources.renderpasses,
+    };
 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<CircleComponent, Physbuzz::TransformComponent, IdentifiableComponent, ResourceComponent, Physbuzz::ModelComponent>(object)) {
+            if (!builder.scene->containsComponent<CircleComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
+            const auto &[circle, identifier, resources, render] = builder.scene->getComponent<CircleComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
 
             Circle info = {
                 .body = {},
-                .circle = builder.scene->getComponent<CircleComponent>(object),
-                .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
-                .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                .resources = builder.scene->getComponent<ResourceComponent>(object),
+                .circle = circle,
+                .transform = render.transform,
+                .identifier = identifier,
+                .resources = resources,
                 .hasPhysics = builder.scene->containsComponent<Physbuzz::RigidBodyComponent>(object),
             };
 
             if (info.hasPhysics) {
-                info.body = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object);
+                const auto &[body] = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object);
+                info.body = body;
             }
 
             builder.create(object, info);
         },
     };
 
-    scene->setComponent(object, info.circle, info.identifier, info.resources, info.transform, render, rebuilder);
+    scene->setComponent(object, info.circle, info.identifier, info.resources, render, rebuilder);
 
     // generate physics info
     if (info.hasPhysics) {
@@ -77,7 +82,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
         info.body.angular.inertia = info.body.mass * glm::pow(info.circle.radius, 2) / 2.0f;
 
         // generate bounding box
-        Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(mesh, info.transform);
+        Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(render);
 
         scene->setComponent(object, info.body, aabb);
     }

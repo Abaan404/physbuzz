@@ -9,72 +9,69 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
     glm::vec3 min = glm::vec3(-info.quad.width / 2.0f, -info.quad.height / 2.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
 
-    Physbuzz::Mesh mesh;
-
-    // calc positions
-    std::vector<glm::vec3> positions = {
-        {min.x, min.y, 0.0f}, // top-left
-        {min.x, max.y, 0.0f}, // top-right
-        {max.x, max.y, 0.0f}, // bottom-right
-        {max.x, min.y, 0.0f}, // bottom-left
+    Physbuzz::MeshInfo mesh = {
+        .vertices = {
+            {{min.x, min.y, 0.0f}, {}, {}}, // top-left
+            {{min.x, max.y, 0.0f}, {}, {}}, // top-right
+            {{max.x, max.y, 0.0f}, {}, {}}, // bottom-right
+            {{max.x, min.y, 0.0f}, {}, {}}, // bottom-left
+        },
+        .indices = {0, 1, 2, 2, 3, 0},
     };
 
-    // calc indices
-    mesh.indices = {0, 1, 2, 2, 3, 0};
-
-    // add textures
-    mesh.textures = info.resources.textures;
-
-    mesh.vertices.resize(positions.size());
-    for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
-        mesh.vertices[i].position = positions[i];
-    }
-
-    // calc vertices
     generateTexCoords(mesh);
     generateNormals(mesh);
 
     // create model
-    std::string model = std::format("quad_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(model, {{mesh}});
+    std::string modelName = std::format("quad_{}", object);
+    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(
+        modelName,
+        {{
+            .meshes = {{mesh, {}}},
+            .textures = info.resources.textures,
+        }});
 
     // setup rendering
-    Physbuzz::ModelComponent render = {
-        .model = model,
-    };
-
     info.transform.update();
+    Physbuzz::RenderComponent render = {
+        .transform = info.transform,
+        .model = modelName,
+        .renderpasses = info.resources.renderpasses,
+    };
 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<QuadComponent, Physbuzz::TransformComponent, IdentifiableComponent, Physbuzz::ModelComponent>(object)) {
+            if (!builder.scene->containsComponent<QuadComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
 
+            const auto [quad, identifier, resources, render] = builder.scene->getComponent<QuadComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
+
             Quad info = {
                 .body = {},
-                .quad = builder.scene->getComponent<QuadComponent>(object),
-                .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
-                .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                .resources = builder.scene->getComponent<ResourceComponent>(object),
+                .quad = quad,
+                .transform = render.transform,
+                .identifier = identifier,
+                .resources = resources,
                 .hasPhysics = builder.scene->containsComponent<Physbuzz::RigidBodyComponent>(object),
             };
 
             if (info.hasPhysics) {
-                info.body = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object);
+                const auto [body] = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object);
+                info.body = body;
             }
 
             builder.create(object, info);
         },
     };
 
-    scene->setComponent(object, info.quad, info.identifier, info.resources, info.transform, render, rebuilder);
+    scene->setComponent(object, info.quad, info.identifier, info.resources, render, rebuilder);
 
     // generate bounding box
     if (info.hasPhysics) {
-        Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(mesh, info.transform);
+        Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(render);
         scene->setComponent(object, aabb);
     }
 

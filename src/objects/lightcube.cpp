@@ -29,22 +29,24 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, LightCube &i
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<CubeComponent, Physbuzz::TransformComponent, IdentifiableComponent, Physbuzz::ModelComponent, ResourceComponent>(object)) {
+            if (!builder.scene->containsComponent<CubeComponent, IdentifiableComponent, ResourceComponent, Physbuzz::PointLightComponent, Physbuzz::RenderComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
+
+            const auto &[cube, identifier, resources, pointlight, render] = builder.scene->getComponent<CubeComponent, IdentifiableComponent, ResourceComponent, Physbuzz::PointLightComponent, Physbuzz::RenderComponent>(object);
 
             // NOTE: rebuilder framework may need a rewrite
             LightCube info = {
                 .cube = {
                     // .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
-                    .cube = builder.scene->getComponent<CubeComponent>(object),
-                    .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
-                    .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                    .resources = builder.scene->getComponent<ResourceComponent>(object),
+                    .cube = cube,
+                    .transform = render.transform,
+                    .identifier = identifier,
+                    .resources = resources,
                     .hasPhysics = false,
                 },
-                .pointLight = builder.scene->getComponent<Physbuzz::PointLightComponent>(object),
+                .pointLight = pointlight,
             };
 
             builder.create(object, info);

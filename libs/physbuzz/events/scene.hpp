@@ -38,7 +38,7 @@ struct OnComponentEraseEvent {
 };
 
 template <typename T>
-struct OnSystemEmplaceEvent {
+struct OnSystemCreateEvent {
     Scene *scene;
 
     std::shared_ptr<T> system;

@@ -5,7 +5,7 @@
 
 namespace Physbuzz {
 
-struct TransformComponent {
+struct Transform {
     void update();
     void reset();
 

@@ -10,8 +10,8 @@ namespace Physbuzz {
 ModelResource::ModelResource(const std::filesystem::path &path)
     : m_Path(path) {}
 
-ModelResource::ModelResource(const std::vector<Mesh> &meshes)
-    : m_Meshes(meshes) {}
+ModelResource::ModelResource(const ModelInfo &info)
+    : m_Info(info) {}
 
 ModelResource::~ModelResource() {}
 
@@ -21,7 +21,7 @@ bool ModelResource::build() {
         load();
     }
 
-    for (auto &mesh : m_Meshes) {
+    for (auto &[mesh, _] : m_Info.meshes) {
         mesh.build();
     }
 
@@ -29,15 +29,11 @@ bool ModelResource::build() {
 }
 
 bool ModelResource::destroy() {
-    for (auto &mesh : m_Meshes) {
+    for (auto &[mesh, _] : m_Info.meshes) {
         mesh.destroy();
     }
 
     return true;
-}
-
-const std::vector<Mesh> &ModelResource::getMeshs() const {
-    return m_Meshes;
 }
 
 bool ModelResource::load() {
@@ -52,7 +48,7 @@ bool ModelResource::load() {
     return processNode(scene->mRootNode, scene);
 }
 
-bool ModelResource::processNode(aiNode *ainode, const aiScene *aiscene) {
+bool ModelResource::processNode(const aiNode *ainode, const aiScene *aiscene) {
     for (std::size_t i = 0; i < ainode->mNumMeshes; ++i) {
         aiMesh *mesh = aiscene->mMeshes[ainode->mMeshes[i]];
         processMesh(mesh, aiscene);
@@ -65,14 +61,22 @@ bool ModelResource::processNode(aiNode *ainode, const aiScene *aiscene) {
     return true;
 }
 
-bool ModelResource::processMesh(aiMesh *aimesh, const aiScene *scene) {
-    Mesh mesh;
-    mesh.vertices.resize(aimesh->mNumVertices);
+bool ModelResource::processMesh(const aiMesh *aimesh, const aiScene *scene) {
+    MeshInfo mesh;
+    MeshMeta meta;
 
     // pos and norm
+    mesh.vertices.resize(aimesh->mNumVertices);
     for (std::size_t i = 0; i < mesh.vertices.size(); ++i) {
         mesh.vertices[i].position = {aimesh->mVertices[i].x, aimesh->mVertices[i].y, aimesh->mVertices[i].z};
         mesh.vertices[i].normal = {aimesh->mNormals[i].x, aimesh->mNormals[i].y, aimesh->mNormals[i].z};
+    }
+
+    // texcoords
+    if (aimesh->mTextureCoords[0]) {
+        for (std::size_t i = 0; i < aimesh->mNumVertices; ++i) {
+            mesh.vertices[i].texCoords = {aimesh->mTextureCoords[0][i].x, aimesh->mTextureCoords[0][i].y};
+        }
     }
 
     // indices
@@ -89,33 +93,27 @@ bool ModelResource::processMesh(aiMesh *aimesh, const aiScene *scene) {
         }
     }
 
-    // texcoords
-    if (aimesh->mTextureCoords[0]) {
-        for (std::size_t i = 0; i < aimesh->mNumVertices; ++i) {
-            mesh.vertices[i].texCoords = {aimesh->mTextureCoords[0][i].x, aimesh->mTextureCoords[0][i].y};
-        }
-    }
-
     // material
     if (aimesh->mMaterialIndex >= 0) {
         aiMaterial *material = scene->mMaterials[aimesh->mMaterialIndex];
 
-        mesh.textures[TextureType::Diffuse] = loadTextures(material, aiTextureType_DIFFUSE);
-        mesh.textures[TextureType::Specular] = loadTextures(material, aiTextureType_SPECULAR);
+        loadTextures(material, aiTextureType_DIFFUSE);
+        loadTextures(material, aiTextureType_SPECULAR);
 
-        material->Get(AI_MATKEY_SHININESS, mesh.shininess);
+        float shininiess;
+        material->Get(AI_MATKEY_SHININESS, shininiess);
+        if (shininiess != 0.0f) {
+            meta.shininess = shininiess;
+        }
     }
 
-    m_Meshes.push_back(mesh);
+    m_Info.meshes.emplace_back(mesh, meta);
 
     return true;
 }
 
-std::vector<ResourceHandle<Texture2DResource>> ModelResource::loadTextures(aiMaterial *aimaterial, aiTextureType type) {
+void ModelResource::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
     std::uint32_t size = aimaterial->GetTextureCount(type);
-
-    std::vector<ResourceHandle<Texture2DResource>> textures;
-    textures.reserve(size);
 
     for (std::uint32_t i = 0; i < size; i++) {
         aiString aiPath;
@@ -129,16 +127,22 @@ std::vector<ResourceHandle<Texture2DResource>> ModelResource::loadTextures(aiMat
                     .path = path,
                 },
             },
+            .type = static_cast<TextureType>(type),
         };
 
         if (!ResourceRegistry<Texture2DResource>::contains(path)) {
             ResourceRegistry<Texture2DResource>::insert(path, info);
+            m_Info.textures.emplace_back(path);
         }
-
-        textures.emplace_back(path);
     }
+}
 
-    return textures;
+const std::vector<std::tuple<Mesh, MeshMeta>> &ModelResource::getMeshs() const {
+    return m_Info.meshes;
+}
+
+const std::vector<ResourceHandle<Texture2DResource>> &ModelResource::getTextures() const {
+    return m_Info.textures;
 }
 
 } // namespace Physbuzz

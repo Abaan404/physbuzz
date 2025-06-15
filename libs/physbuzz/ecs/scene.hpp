@@ -21,17 +21,19 @@ class Scene : public EventSubject {
         (notifyCallbacks<OnComponentSetEvent<T>>(OnComponentSetEvent<T>{
              .scene = this,
              .object = id,
-             .component = &getComponent<T>(id)}),
+             .component = &std::get<0>(getComponent<T>(id)),
+         }),
          ...);
     }
 
     template <typename... T>
     inline bool eraseComponent(ObjectID id) {
         if (containsComponent<T...>(id)) {
-            (notifyCallbacks<OnComponentEraseEvent<T>>(OnComponentEraseEvent<T>{
+            (notifyCallbacks<OnComponentEraseEvent<T>>({
                  .scene = this,
                  .object = id,
-                 .component = &getComponent<T>(id)}),
+                 .component = &std::get<0>(getComponent<T>(id)),
+             }),
              ...);
         }
 
@@ -43,14 +45,14 @@ class Scene : public EventSubject {
         return true;
     }
 
-    template <typename T>
-    inline T &getComponent(ObjectID id) {
-        return m_ComponentManager.get<T>(id);
+    template <typename... T>
+    inline std::tuple<T &...> getComponent(ObjectID id) {
+        return m_ComponentManager.get<T...>(id);
     }
 
-    template <typename T>
-    inline const std::vector<T> &getComponents() {
-        return m_ComponentManager.getArray<T>();
+    template <typename... T>
+    std::vector<std::tuple<T &...>> getComponents() {
+        return m_ComponentManager.getArray<T...>();
     }
 
     template <typename... T>
@@ -59,13 +61,15 @@ class Scene : public EventSubject {
     }
 
     template <typename T, typename... Args>
-    inline std::shared_ptr<T> emplaceSystem(Args &&...args) {
+    inline std::shared_ptr<T> createSystem(Args &&...args) {
         std::shared_ptr<T> system = m_SystemManager.emplace<T>(std::forward<Args>(args)...);
 
-        notifyCallbacks<OnSystemEmplaceEvent<T>>({
-            .scene = this,
-            .system = system,
-        });
+        if (system) {
+            notifyCallbacks<OnSystemCreateEvent<T>>({
+                .scene = this,
+                .system = system,
+            });
+        }
 
         return system;
     }

@@ -9,7 +9,7 @@ namespace Physbuzz {
 namespace {
 
 template <typename T>
-concept ResourceCustomWatched = requires(T a) {
+concept ResourceWatched = requires(T a) {
     requires std::same_as<decltype(a.m_ReloadCallback), std::function<void(const ResourceWatcherInfo &)>>;
 } && ResourceType<T>;
 
@@ -18,7 +18,7 @@ class ResourceFileWatcher : public efsw::FileWatchListener {
   public:
     std::unordered_map<ResourceID, std::function<void(const ResourceWatcherInfo &)>> callbacks;
 
-    void handleFileAction([[maybe_unused]] efsw::WatchID id, const std::string &directory, const std::string &filename, efsw::Action action, [[maybe_unused]] std::string oldFileName) override {
+    void handleFileAction(efsw::WatchID, const std::string &directory, const std::string &filename, efsw::Action action, std::string) override {
         for (const auto &[id, callback] : callbacks) {
             callback({
                 .action = static_cast<WatchAction>(action),
@@ -47,7 +47,7 @@ class ResourceRegistry {
 
         m_Container.insert(identifier, std::move(resource));
 
-        if constexpr (ResourceCustomWatched<T>) {
+        if constexpr (ResourceWatched<T>) {
             m_Listener.callbacks[identifier] = m_Container.get(identifier).m_ReloadCallback;
         }
 
@@ -83,6 +83,14 @@ class ResourceRegistry {
 
     inline static bool contains(const ResourceID &identifier) {
         return m_Container.contains(identifier);
+    }
+
+    inline static void clear() {
+        for (const auto &id : m_Container.getKeys()) {
+            erase(id);
+        }
+        m_Container.clear();
+        Events.clearCallbacks();
     }
 
     static void watch() {

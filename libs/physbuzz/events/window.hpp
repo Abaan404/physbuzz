@@ -1,15 +1,16 @@
 #pragma once
 
 #include "../window/input.hpp"
-#include <GLFW/glfw3.h>
+#include <filesystem>
 #include <glm/glm.hpp>
-#include <string>
 #include <vector>
 
 namespace Physbuzz {
 
+class Window;
+
 struct KeyEvent {
-    GLFWwindow *window;
+    Window *window;
 
     Key key;
     int scancode;
@@ -18,77 +19,77 @@ struct KeyEvent {
 };
 
 struct CharEvent {
-    GLFWwindow *window;
+    Window *window;
 
     unsigned int codepoint;
 };
 
 struct MouseButtonEvent {
-    GLFWwindow *window;
+    Window *window;
 
-    Mouse button;
+    Button button;
     Action action;
     Modifier mods;
 };
 
 struct MousePositionEvent {
-    GLFWwindow *window;
+    Window *window;
 
     glm::dvec2 position;
 };
 
 struct MouseEnteredEvent {
-    GLFWwindow *window;
+    Window *window;
 
     bool entered;
 };
 
 struct MouseScrollEvent {
-    GLFWwindow *window;
+    Window *window;
 
     glm::dvec2 offset;
 };
 
 struct MouseDropEvent {
-    GLFWwindow *window;
+    Window *window;
 
-    std::vector<std::string> paths;
+    std::vector<std::filesystem::path> paths;
 };
 
 struct WindowPositionEvent {
-    GLFWwindow *window;
+    Window *window;
 
     glm::ivec2 position;
 };
 
 struct WindowResizeEvent {
-    GLFWwindow *window;
+    Window *window;
 
     glm::ivec2 resolution;
 };
 
 struct WindowCloseEvent {
-    GLFWwindow *window;
+    Window *window;
 };
 
 struct WindowRefreshEvent {
-    GLFWwindow *window;
+    Window *window;
 };
 
 struct WindowFocusEvent {
-    GLFWwindow *window;
+    Window *window;
 
     bool focused;
 };
 
 struct WindowIconifyEvent {
-    GLFWwindow *window;
+    Window *window;
 
     bool iconified;
 };
 
 struct WindowMaximizeEvent {
-    GLFWwindow *window;
+    Window *window;
 
     bool maximized;
 };

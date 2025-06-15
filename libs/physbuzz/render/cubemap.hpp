@@ -22,8 +22,8 @@ class CubemapResource {
     bool build();
     bool destroy();
 
-    bool bind(bool depthMask = false) const;
-    bool unbind(bool depthMask = false) const;
+    bool bind() const;
+    bool unbind() const;
 
     const GLint &getUnit() const;
 

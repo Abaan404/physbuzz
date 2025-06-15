@@ -20,6 +20,7 @@ class ObjectPicker : public IUserInterface {
 
   private:
     Physbuzz::Scene m_Scene;
-    Physbuzz::Camera m_Camera;
+    Physbuzz::CameraComponent m_Camera;
+
     ImVec2 m_PreviewSize = {120, 120};
 };

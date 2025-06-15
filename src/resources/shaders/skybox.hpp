@@ -2,6 +2,7 @@
 
 #include "../../objects/skybox.hpp"
 #include <physbuzz/render/cubemap.hpp>
+#include <physbuzz/render/gl/depth.hpp>
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/texture.hpp>
@@ -15,17 +16,25 @@ inline Physbuzz::ShaderPipelineResource shaderSkybox = {{
     .geometry = {},
     .fragment = {.file = {.path = "resources/shaders/skybox/skybox.frag"}},
     .compute = {},
-    .draw = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
-        const SkyboxComponent &skybox = scene.getComponent<SkyboxComponent>(object);
-        const Physbuzz::ModelComponent &render = scene.getComponent<Physbuzz::ModelComponent>(object);
-        skybox.cubemap->bind(true);
+    .draw = [](const Physbuzz::ShaderPipelineResource *pipeline, Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
+        const auto [render, skybox] = scene.getComponent<Physbuzz::RenderComponent, SkyboxComponent>(object);
 
-        for (const Physbuzz::Mesh &mesh : render.model->getMeshs()) {
-            mesh.bind();
+        Physbuzz::GL::DepthFunc depthFunc = Physbuzz::GL::getDepthFunc();
+
+        Physbuzz::GL::setDepthMask(false);
+        Physbuzz::GL::setDepthFunc(Physbuzz::GL::DepthFunc::LEqual);
+
+        pipeline->setUniform("u_Skybox", skybox.cubemap->getUnit());
+
+        skybox.cubemap->bind();
+
+        for (const auto &[mesh, _] : render.model->getMeshs()) {
             mesh.draw();
-            mesh.unbind();
         }
 
-        skybox.cubemap->unbind(true);
+        skybox.cubemap->unbind();
+
+        Physbuzz::GL::setDepthMask(true);
+        Physbuzz::GL::setDepthFunc(depthFunc);
     },
 }};

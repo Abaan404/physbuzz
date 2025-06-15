@@ -10,7 +10,7 @@ namespace Physbuzz {
 template <ResourceType T>
 class ResourceHandle {
   public:
-    ResourceHandle(const std::string &identifier)
+    ResourceHandle(const ResourceID &identifier)
         : m_Identifier(identifier) {}
 
     T *operator->() const {

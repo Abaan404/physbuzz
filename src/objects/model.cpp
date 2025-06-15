@@ -7,13 +7,14 @@
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Model &info) {
     // setup rendering
-    Physbuzz::ModelComponent render = {
+    info.transform.update();
+    Physbuzz::RenderComponent render = {
+        .transform = info.transform,
         .model = info.model.resource,
+        .renderpasses = info.resources.renderpasses,
     };
 
-    info.transform.update();
-
-    scene->setComponent(object, info.model, info.identifier, info.transform, info.resources, render);
+    scene->setComponent(object, info.model, info.identifier, info.resources, render);
 
     return object;
 }

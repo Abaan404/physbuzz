@@ -10,16 +10,16 @@ bool SeperatingAxis2D::check(Contact &contact) {
         return false;
     }
 
-    const Mesh &mesh1 = m_Scene->getComponent<Mesh>(contact.object1);
-    const Mesh &mesh2 = m_Scene->getComponent<Mesh>(contact.object2);
+    const auto [render1] = m_Scene->getComponent<RenderComponent>(contact.object1);
+    const auto [render2] = m_Scene->getComponent<RenderComponent>(contact.object2);
 
     std::vector<glm::vec3> axes;
 
-    addMeshNormals(mesh1, axes);
-    addMeshNormals(mesh2, axes);
+    addMeshNormals(render1, axes);
+    addMeshNormals(render2, axes);
 
     for (const auto &axis : axes) {
-        float axisOverlap = getAxisOverlap(axis, mesh1, mesh2);
+        float axisOverlap = getAxisOverlap(axis, render1, render2);
 
         if (axisOverlap <= 0.0f) {
             return false;
@@ -35,26 +35,28 @@ bool SeperatingAxis2D::check(Contact &contact) {
 }
 
 // get the depth of overlap
-float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const Mesh &mesh1, const Mesh &mesh2) {
-    auto getMinMax = [](const Mesh &mesh, const glm::vec3 &axis) {
+float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const RenderComponent &render1, const RenderComponent &render2) {
+    auto getMinMax = [](const RenderComponent &render, const glm::vec3 &axis) {
         struct {
             float min = std::numeric_limits<float>::max();
             float max = std::numeric_limits<float>::lowest();
         } ret;
 
-        for (const auto &vertex : mesh.vertices) {
-            float projection = glm::dot(vertex.position, axis);
+        for (const auto &[mesh, _] : render.model->getMeshs()) {
+            for (const auto &vertex : mesh.getVertices()) {
+                float projection = glm::dot(vertex.position, axis);
 
-            ret.min = glm::min(projection, ret.min);
-            ret.max = glm::max(projection, ret.max);
+                ret.min = glm::min(projection, ret.min);
+                ret.max = glm::max(projection, ret.max);
+            }
         }
 
         return ret;
     };
 
     // auto is truly cpp magic
-    const auto proj1 = getMinMax(mesh1, axis);
-    const auto proj2 = getMinMax(mesh2, axis);
+    const auto proj1 = getMinMax(render1, axis);
+    const auto proj2 = getMinMax(render2, axis);
 
     if (proj1.max < proj2.min || proj1.min > proj2.max) {
         return 0.0f;
@@ -66,24 +68,26 @@ float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const Mesh &mesh1,
     return glm::min(overlap1, overlap2);
 }
 
-void SeperatingAxis2D::addMeshNormals(const Mesh &mesh, std::vector<glm::vec3> &axes) {
+void SeperatingAxis2D::addMeshNormals(const RenderComponent &render, std::vector<glm::vec3> &axes) {
     constexpr float PARALLEL_AXIS_THRESHOLD = 1e-3f;
 
     // TODO do a perf test on n^2 normal check or running on every normal based on no. of vertices
-    for (const auto &vertex : mesh.vertices) {
-        bool parallelFound = false;
-        for (const auto &axis : axes) {
-            if (glm::length(glm::cross(axis, vertex.normal)) < PARALLEL_AXIS_THRESHOLD) {
-                parallelFound = true;
-                break;
+    for (const auto &[mesh, _] : render.model->getMeshs()) {
+        for (const auto &vertex : mesh.getVertices()) {
+            bool parallelFound = false;
+            for (const auto &axis : axes) {
+                if (glm::length(glm::cross(axis, vertex.normal)) < PARALLEL_AXIS_THRESHOLD) {
+                    parallelFound = true;
+                    break;
+                }
             }
-        }
 
-        if (parallelFound) {
-            continue;
-        }
+            if (parallelFound) {
+                continue;
+            }
 
-        axes.emplace_back(vertex.normal);
+            axes.emplace_back(vertex.normal);
+        }
     }
 }
 

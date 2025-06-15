@@ -130,7 +130,7 @@ enum class Key {
     Unknown = GLFW_KEY_UNKNOWN,
 };
 
-enum class Mouse {
+enum class Button {
     Button1 = GLFW_MOUSE_BUTTON_1,
     Button2 = GLFW_MOUSE_BUTTON_2,
     Button3 = GLFW_MOUSE_BUTTON_3,

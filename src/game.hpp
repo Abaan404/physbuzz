@@ -1,7 +1,6 @@
 #pragma once
 
 #include "objects/builder.hpp"
-#include "player.hpp"
 #include "ui/handler.hpp"
 #include <physbuzz/resources/manager.hpp>
 #include <physbuzz/window/bindings.hpp>
@@ -10,7 +9,6 @@
 class Game {
   public:
     Game();
-    ~Game();
 
     void build();
     void destroy();
@@ -29,10 +27,6 @@ class Game {
 
     // ImGui
     InterfaceManager interface;
-
-    // player controls
-    Physbuzz::Bindings bindings;
-    Player player;
 
   private:
     bool m_IsRunning = false;

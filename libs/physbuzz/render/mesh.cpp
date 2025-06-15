@@ -2,9 +2,8 @@
 
 namespace Physbuzz {
 
-Mesh::Mesh() {}
-
-Mesh::~Mesh() {}
+Mesh::Mesh(const MeshInfo &info)
+    : m_Info(info) {}
 
 void Mesh::build() {
     glGenBuffers(1, &VBO);
@@ -34,18 +33,32 @@ void Mesh::bind() const {
     glBindVertexArray(VAO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertices.size(), vertices.data(), GL_STREAM_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Index) * indices.size(), indices.data(), GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * m_Info.vertices.size(), m_Info.vertices.data(), GL_STREAM_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Index) * m_Info.indices.size(), m_Info.indices.data(), GL_STREAM_DRAW);
 }
 
 void Mesh::draw() const {
-    glDrawElements(GL_TRIANGLES, sizeof(Index) * indices.size(), GL_UNSIGNED_INT, 0);
+    bind();
+    glDrawElements(GL_TRIANGLES, sizeof(Index) * m_Info.indices.size(), GL_UNSIGNED_INT, 0);
+    unbind();
 }
 
 void Mesh::unbind() const {
     glBindVertexArray(0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Mesh::update(const MeshInfo &info) {
+    m_Info = info;
+}
+
+const std::vector<Vertex> &Mesh::getVertices() const {
+    return m_Info.vertices;
+}
+
+const std::vector<Index> &Mesh::getIndices() const {
+    return m_Info.indices;
 }
 
 } // namespace Physbuzz

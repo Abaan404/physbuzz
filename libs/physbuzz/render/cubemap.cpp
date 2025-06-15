@@ -59,24 +59,14 @@ bool CubemapResource::destroy() {
     return true;
 }
 
-bool CubemapResource::bind(bool disableDepth) const {
-    if (disableDepth) {
-        glDepthMask(GL_FALSE);
-        glDepthFunc(GL_LEQUAL);
-    }
-
+bool CubemapResource::bind() const {
     glActiveTexture(GL_TEXTURE0 + m_Unit);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_Texture);
     return true;
 }
 
-bool CubemapResource::unbind(bool enableDepth) const {
+bool CubemapResource::unbind() const {
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-
-    if (enableDepth) {
-        glDepthMask(GL_TRUE);
-        glDepthFunc(GL_LESS);
-    }
     return true;
 }
 

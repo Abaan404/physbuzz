@@ -86,7 +86,9 @@ struct ShaderPipelineInfo {
     ShaderInfo fragment;
     ShaderInfo compute;
 
-    std::function<void(Scene &, ObjectID)> draw;
+    void (*draw)(const ShaderPipelineResource *resource, Scene &, ObjectID) = [](const ShaderPipelineResource *, Scene &, ObjectID id) {
+        Logger::WARNING(std::format("[ShaderPipelineResource] Uninitialized draw calls for object '{}'", id));
+    };
 };
 
 class ShaderPipelineResource {
@@ -98,6 +100,7 @@ class ShaderPipelineResource {
     bool destroy();
 
     bool reload();
+    void draw(Scene &scene, ObjectID object) const;
 
     bool bind() const;
     bool unbind() const;
@@ -108,8 +111,6 @@ class ShaderPipelineResource {
     }
 
     const GLuint &getProgram() const;
-
-    std::function<void(Scene &, ObjectID)> draw;
 
   private:
     void setUniformInternal(const GLint location, const float &data) const;

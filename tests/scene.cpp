@@ -156,7 +156,10 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(scene.getComponents<TestComponent2>().size() == 0);
 
         scene.setComponent(id1, component1);
-        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
+        {
+            const auto [component1_1] = scene.getComponent<TestComponent1>(id1);
+            CHECK(component1_1.x == component1.x);
+        }
 
         // state check
         CHECK(scene.containsComponent<TestComponent1>(id1));
@@ -167,8 +170,12 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(scene.getComponents<TestComponent2>().size() == 0);
 
         scene.setComponent(id2, component1);
-        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
-        CHECK(scene.getComponent<TestComponent1>(id2).x == component1.x);
+        {
+            const auto [component1_1] = scene.getComponent<TestComponent1>(id1);
+            const auto [component2_1] = scene.getComponent<TestComponent1>(id2);
+            CHECK(component1_1.x == component1.x);
+            CHECK(component2_1.x == component1.x);
+        }
 
         // state check
         CHECK(scene.containsComponent<TestComponent1>(id1));
@@ -179,9 +186,24 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(scene.getComponents<TestComponent2>().size() == 0);
 
         scene.setComponent(id1, component2);
-        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
-        CHECK(scene.getComponent<TestComponent1>(id2).x == component1.x);
-        CHECK(scene.getComponent<TestComponent2>(id1).x == component2.x);
+        {
+            const auto [component1_1] = scene.getComponent<TestComponent1>(id1);
+            const auto [component2_1] = scene.getComponent<TestComponent1>(id2);
+            const auto [component1_2] = scene.getComponent<TestComponent2>(id1);
+            CHECK(component1_1.x == component1.x);
+            CHECK(component2_1.x == component1.x);
+            CHECK(component1_2.x == component2.x);
+        }
+
+        {
+            const auto [component1_1] = scene.getComponent<TestComponent1>(id1);
+            const auto [component2_1] = scene.getComponent<TestComponent1>(id2);
+            const auto [component1_2] = scene.getComponent<TestComponent2>(id1);
+
+            CHECK(component1_1.x == component1.x);
+            CHECK(component2_1.x == component1.x);
+            CHECK(component1_2.x == component2.x);
+        }
 
         // state check
         CHECK(scene.containsComponent<TestComponent1>(id1));
@@ -192,10 +214,17 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(scene.getComponents<TestComponent2>().size() == 1);
 
         scene.setComponent(id2, component2);
-        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
-        CHECK(scene.getComponent<TestComponent1>(id2).x == component1.x);
-        CHECK(scene.getComponent<TestComponent2>(id1).x == component2.x);
-        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+        {
+            const auto [component1_1] = scene.getComponent<TestComponent1>(id1);
+            const auto [component2_1] = scene.getComponent<TestComponent1>(id2);
+            const auto [component1_2] = scene.getComponent<TestComponent2>(id1);
+            const auto [component2_2] = scene.getComponent<TestComponent2>(id2);
+
+            CHECK(component1_1.x == component1.x);
+            CHECK(component2_1.x == component1.x);
+            CHECK(component1_2.x == component2.x);
+            CHECK(component2_2.x == component2.x);
+        }
 
         // state check
         CHECK(scene.containsComponent<TestComponent1>(id1));
@@ -210,10 +239,17 @@ TEST_CASE("Physbuzz::Scene") {
         };
 
         scene.setComponent(id2, component3);
-        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
-        CHECK(scene.getComponent<TestComponent1>(id2).x == component3.x);
-        CHECK(scene.getComponent<TestComponent2>(id1).x == component2.x);
-        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+        {
+            const auto [component1_1] = scene.getComponent<TestComponent1>(id1);
+            const auto [component2_1] = scene.getComponent<TestComponent1>(id2);
+            const auto [component1_2] = scene.getComponent<TestComponent2>(id1);
+            const auto [component2_2] = scene.getComponent<TestComponent2>(id2);
+
+            CHECK(component1_1.x == component1.x);
+            CHECK(component2_1.x == component3.x);
+            CHECK(component1_2.x == component2.x);
+            CHECK(component2_2.x == component2.x);
+        }
 
         // state check (unchanged as previous)
         CHECK(scene.containsComponent<TestComponent1>(id1));
@@ -227,11 +263,19 @@ TEST_CASE("Physbuzz::Scene") {
 
         // set variadic components
         scene.setComponent(id3, component1, component3);
-        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
-        CHECK(scene.getComponent<TestComponent1>(id2).x == component3.x);
-        CHECK(scene.getComponent<TestComponent2>(id1).x == component2.x);
-        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
-        CHECK(scene.getComponent<TestComponent1>(id3).x == component3.x); // rightmost priority
+        {
+            const auto [component1_1] = scene.getComponent<TestComponent1>(id1);
+            const auto [component2_1] = scene.getComponent<TestComponent1>(id2);
+            const auto [component1_2] = scene.getComponent<TestComponent2>(id1);
+            const auto [component2_2] = scene.getComponent<TestComponent2>(id2);
+            const auto [component3_1] = scene.getComponent<TestComponent1>(id3);
+
+            CHECK(component1_1.x == component1.x);
+            CHECK(component2_1.x == component3.x);
+            CHECK(component1_2.x == component2.x);
+            CHECK(component2_2.x == component2.x);
+            CHECK(component3_1.x == component3.x); // rightmost priority
+        }
 
         // state check
         CHECK(scene.containsComponent<TestComponent1>(id1));
@@ -245,11 +289,19 @@ TEST_CASE("Physbuzz::Scene") {
 
         // overwrite variadic
         scene.setComponent(id1, component1, component2, component3);
-        CHECK(scene.getComponent<TestComponent1>(id1).x == component3.x); // rightmost priority
-        CHECK(scene.getComponent<TestComponent1>(id2).x == component3.x);
-        CHECK(scene.getComponent<TestComponent2>(id1).x == component2.x);
-        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
-        CHECK(scene.getComponent<TestComponent1>(id3).x == component3.x);
+        {
+            const auto [component1_1] = scene.getComponent<TestComponent1>(id1);
+            const auto [component2_1] = scene.getComponent<TestComponent1>(id2);
+            const auto [component1_2] = scene.getComponent<TestComponent2>(id1);
+            const auto [component2_2] = scene.getComponent<TestComponent2>(id2);
+            const auto [component3_1] = scene.getComponent<TestComponent1>(id3);
+
+            CHECK(component1_1.x == component3.x); // rightmost priority
+            CHECK(component2_1.x == component3.x);
+            CHECK(component1_2.x == component2.x);
+            CHECK(component2_2.x == component2.x);
+            CHECK(component3_1.x == component3.x);
+        }
 
         // state check (no change)
         CHECK(scene.containsComponent<TestComponent1>(id1));
@@ -260,6 +312,87 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(!scene.containsComponent<TestComponent2>(id3));
         CHECK(scene.getComponents<TestComponent1>().size() == 3);
         CHECK(scene.getComponents<TestComponent2>().size() == 2);
+    }
+
+    SECTION("getComponent()") {
+        Physbuzz::Scene scene;
+
+        Physbuzz::ObjectID id1 = scene.createObject(5);
+        Physbuzz::ObjectID id2 = scene.createObject(4);
+        Physbuzz::ObjectID id3 = scene.createObject(7);
+
+        TestComponent1 component1 = {
+            .x = 12,
+        };
+
+        TestComponent2 component2 = {
+            .x = -10,
+        };
+
+        TestComponent3 component3 = {
+            .z = 15,
+        };
+
+        scene.setComponent(id1, component1, component2, component3);
+        scene.setComponent(id2, component1, component3);
+        scene.setComponent(id3, component2, component3);
+
+        {
+            const auto components = scene.getComponents<TestComponent1>();
+            CHECK(components.size() == 2);
+
+            for (const auto [comp1] : components) {
+                CHECK(comp1.x == 12);
+            }
+        }
+
+        {
+            const auto components = scene.getComponents<TestComponent1, TestComponent2>();
+            CHECK(components.size() == 1);
+
+            for (const auto [comp1, comp2] : components) {
+                CHECK(comp1.x == 12);
+                CHECK(comp2.x == -10);
+            }
+        }
+
+        {
+            const auto components = scene.getComponents<TestComponent1, TestComponent3>();
+            CHECK(components.size() == 2);
+
+            for (const auto [comp1, comp3] : components) {
+                CHECK(comp1.x == 12);
+                CHECK(comp3.z == 15);
+            }
+        }
+
+        {
+            const auto components = scene.getComponents<TestComponent2, TestComponent3>();
+            CHECK(components.size() == 2);
+
+            for (const auto [comp2, comp3] : components) {
+                CHECK(comp2.x == -10);
+                CHECK(comp3.z == 15);
+            }
+        }
+
+        {
+            const auto [comp1, comp2, comp3] = scene.getComponent<TestComponent1, TestComponent2, TestComponent3>(id1);
+            CHECK(comp1.x == 12);
+            CHECK(comp2.x == -10);
+            CHECK(comp3.z == 15);
+        }
+
+        {
+            const auto [comp1] = scene.getComponent<TestComponent1>(id2);
+            CHECK(comp1.x == 12);
+        }
+
+        {
+            const auto [comp2, comp3] = scene.getComponent<TestComponent2, TestComponent3>(id3);
+            CHECK(comp2.x == -10);
+            CHECK(comp3.z == 15);
+        }
     }
 
     SECTION("eraseComponent()") {
@@ -291,8 +424,14 @@ TEST_CASE("Physbuzz::Scene") {
         // remove not empty container
         CHECK(scene.eraseComponent<TestComponent1>(id2));
         CHECK(!scene.eraseComponent<TestComponent1>(id2));
-        CHECK(scene.getComponent<TestComponent1>(id1).x == component1.x);
-        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+
+        {
+            const auto [component1_1] = scene.getComponent<TestComponent1>(id1);
+            const auto [component2_2] = scene.getComponent<TestComponent2>(id2);
+
+            CHECK(component1_1.x == component1.x);
+            CHECK(component2_2.x == component2.x);
+        }
 
         // state check
         CHECK(scene.containsComponent<TestComponent1>(id1));
@@ -305,7 +444,10 @@ TEST_CASE("Physbuzz::Scene") {
         // remove until empty
         CHECK(scene.eraseComponent<TestComponent1>(id1));
         CHECK(!scene.eraseComponent<TestComponent1>(id1));
-        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+        {
+            const auto [component2_2] = scene.getComponent<TestComponent2>(id2);
+            CHECK(component2_2.x == component2.x);
+        }
 
         // state check
         CHECK(!scene.containsComponent<TestComponent1>(id1));
@@ -317,8 +459,13 @@ TEST_CASE("Physbuzz::Scene") {
 
         // check if setting component at a previously removed location works
         scene.setComponent(id1, component3);
-        CHECK(scene.getComponent<TestComponent1>(id1).x == component3.x);
-        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+        {
+            const auto [component1_1] = scene.getComponent<TestComponent1>(id1);
+            const auto [component2_2] = scene.getComponent<TestComponent2>(id2);
+
+            CHECK(component1_1.x == component3.x);
+            CHECK(component2_2.x == component2.x);
+        }
 
         // state check
         CHECK(scene.containsComponent<TestComponent1>(id1));
@@ -331,7 +478,10 @@ TEST_CASE("Physbuzz::Scene") {
         // remove until empty
         CHECK(scene.eraseComponent<TestComponent1>(id1));
         CHECK(!scene.eraseComponent<TestComponent1>(id1));
-        CHECK(scene.getComponent<TestComponent2>(id2).x == component2.x);
+        {
+            const auto [component2_2] = scene.getComponent<TestComponent2>(id2);
+            CHECK(component2_2.x == component2.x);
+        }
 
         CHECK(scene.eraseComponent<TestComponent2>(id2));
         CHECK(!scene.eraseComponent<TestComponent2>(id2));
@@ -358,7 +508,10 @@ TEST_CASE("Physbuzz::Scene") {
         // removes only exclusively these components if exists
         CHECK(scene.eraseComponent<TestComponent1, TestComponent2>(id1));
         CHECK(!scene.eraseComponent<TestComponent1, TestComponent2>(id1));
-        CHECK(scene.getComponent<TestComponent1>(id2).x == component1.x);
+        {
+            const auto [component2_1] = scene.getComponent<TestComponent1>(id2);
+            CHECK(component2_1.x == component1.x);
+        }
 
         // state check
         CHECK(!scene.containsComponent<TestComponent1>(id1));
@@ -370,7 +523,10 @@ TEST_CASE("Physbuzz::Scene") {
 
         // id2 doesnt not contain the exclusive component pair
         CHECK(!scene.eraseComponent<TestComponent2, TestComponent1>(id2));
-        CHECK(scene.getComponent<TestComponent1>(id2).x == component1.x);
+        {
+            const auto [component2_1] = scene.getComponent<TestComponent1>(id2);
+            CHECK(component2_1.x == component1.x);
+        }
 
         // state check (unchanged)
         CHECK(!scene.containsComponent<TestComponent1>(id1));
@@ -469,31 +625,18 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(!scene.containsSystem<TestSystem1>());
         CHECK(!scene.containsSystem<TestSystem2>());
 
-        scene.emplaceSystem<TestSystem1>();
-        scene.emplaceSystem<TestSystem2>();
+        scene.createSystem<TestSystem1>();
+        scene.createSystem<TestSystem2>();
 
         CHECK(scene.containsSystem<TestSystem1>());
         CHECK(scene.containsSystem<TestSystem2>());
     }
 
-    SECTION("emplaceSystem()") {
+    SECTION("eraseSystem()") {
         Physbuzz::Scene scene;
 
-        CHECK(!scene.containsSystem<TestSystem1>());
-        CHECK(!scene.containsSystem<TestSystem2>());
-
-        scene.emplaceSystem<TestSystem1>();
-        scene.emplaceSystem<TestSystem2>();
-
-        CHECK(scene.containsSystem<TestSystem1>());
-        CHECK(scene.containsSystem<TestSystem2>());
-    }
-
-    SECTION("removeSystem()") {
-        Physbuzz::Scene scene;
-
-        scene.emplaceSystem<TestSystem1>();
-        scene.emplaceSystem<TestSystem2>();
+        scene.createSystem<TestSystem1>();
+        scene.createSystem<TestSystem2>();
 
         CHECK(scene.containsSystem<TestSystem1>());
         CHECK(scene.containsSystem<TestSystem2>());
@@ -507,8 +650,12 @@ TEST_CASE("Physbuzz::Scene") {
 
     SECTION("tickSystem()") {
         Physbuzz::Scene scene;
-        scene.emplaceSystem<TestSystem1>();
-        scene.emplaceSystem<TestSystem2>();
+
+        scene.createSystem<TestSystem1>();
+        scene.createSystem<TestSystem2>();
+
+        std::shared_ptr<TestSystem1> system1 = scene.getSystem<TestSystem1>();
+        std::shared_ptr<TestSystem2> system2 = scene.getSystem<TestSystem2>();
 
         Physbuzz::ObjectID id1 = scene.createObject(1);
         Physbuzz::ObjectID id2 = scene.createObject(2);
@@ -550,12 +697,6 @@ TEST_CASE("Physbuzz::Scene") {
 
         scene.tickSystem<TestSystem1>();
         scene.tickSystem<TestSystem2>();
-
-        std::shared_ptr<TestSystem1> system1 = nullptr;
-        std::shared_ptr<TestSystem2> system2 = nullptr;
-
-        system1 = scene.getSystem<TestSystem1>();
-        system2 = scene.getSystem<TestSystem2>();
 
         CHECK(system1->tickedIds.size() == 3);
         CHECK(!system1->tickedIds.contains(id1));
@@ -599,15 +740,5 @@ TEST_CASE("Physbuzz::Scene") {
 
         scene.eraseSystem<TestSystem1>();
         scene.eraseSystem<TestSystem2>();
-    }
-
-    SECTION("IEventSubject()") {
-        Physbuzz::Scene scene;
-
-        static int ticks = 0;
-
-        // scene.addCallback(std::function<void (const T &)> callback)
-
-        // scene.addCallback
     }
 }

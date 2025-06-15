@@ -1,10 +1,6 @@
 #pragma once
 
-#include <physbuzz/render/model.hpp>
-#include <physbuzz/render/shaders.hpp>
-#include <physbuzz/render/texture.hpp>
-#include <physbuzz/render/uniforms.hpp>
-#include <physbuzz/resources/manager.hpp>
+#include <physbuzz/render/renderer.hpp>
 
 inline Physbuzz::ShaderPipelineResource shaderCube = {{
     .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
@@ -13,14 +9,14 @@ inline Physbuzz::ShaderPipelineResource shaderCube = {{
     .geometry = {},
     .fragment = {.file = {.path = "resources/shaders/cube/cube.frag"}},
     .compute = {},
-    .draw = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
-        const Physbuzz::ModelComponent &render = scene.getComponent<Physbuzz::ModelComponent>(object);
+    .draw = [](const Physbuzz::ShaderPipelineResource *pipeline, Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
+        const auto [render] = scene.getComponent<Physbuzz::RenderComponent>(object);
+
+        pipeline->setUniform("u_Model", render.transform.matrix);
 
         // draw meshes
-        for (const Physbuzz::Mesh &mesh : render.model->getMeshs()) {
-            mesh.bind();
+        for (const auto &[mesh, _] : render.model->getMeshs()) {
             mesh.draw();
-            mesh.unbind();
         }
     },
 }};

@@ -4,19 +4,12 @@
 
 namespace Physbuzz {
 
-AABBComponent::AABBComponent(const Mesh &mesh, const TransformComponent &transform) {
-    for (const auto &vertex : mesh.vertices) {
-        min = glm::min(min, transform.toWorld(vertex.position));
-        max = glm::max(max, transform.toWorld(vertex.position));
-    }
-}
-
-AABBComponent::AABBComponent(const std::vector<Mesh> &meshes, const TransformComponent &transform) {
-    for (const auto &mesh : meshes) {
-        AABBComponent aabb = AABBComponent(mesh, transform);
-
-        min = glm::min(min, aabb.min);
-        max = glm::max(max, aabb.max);
+AABBComponent::AABBComponent(const RenderComponent &render) {
+    for (const auto &[mesh, _] : render.model->getMeshs()) {
+        for (const auto &vertex : mesh.getVertices()) {
+            min = glm::min(min, render.transform.toWorld(vertex.position));
+            max = glm::max(max, render.transform.toWorld(vertex.position));
+        }
     }
 }
 

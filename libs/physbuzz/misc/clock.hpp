@@ -1,15 +1,18 @@
 #pragma once
 
+#include "../ecs/system.hpp"
 #include <chrono>
 
 namespace Physbuzz {
 
-class Clock {
+class Scene;
+
+class Clock : public System<> {
   public:
     Clock();
     ~Clock();
 
-    void tick();
+    void tick(const Scene &scene);
     std::uint32_t getDelta() const;
     std::uint32_t getTime() const;
 

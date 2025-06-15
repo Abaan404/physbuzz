@@ -6,8 +6,11 @@
 
 namespace Physbuzz {
 
+enum class TextureType;
+
 struct Texture2DInfo {
     ImageInfo image;
+    TextureType type;
 };
 
 class Texture2DResource {
@@ -22,6 +25,7 @@ class Texture2DResource {
     bool unbind() const;
 
     const GLint &getUnit() const;
+    TextureType getType() const;
 
   private:
     Texture2DInfo m_Info;

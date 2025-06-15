@@ -15,7 +15,7 @@ void Collision::destroy() {
     m_DetectorNarrow.destroy();
 }
 
-void Collision::tick([[maybe_unused]] Physbuzz::Scene &scene) {
+void Collision::tick(Physbuzz::Scene &) {
     std::list<Physbuzz::Contact> contacts = m_DetectorBroad.find();
     m_DetectorNarrow.find(contacts);
 

@@ -1,14 +1,13 @@
 #include "objectpicker.hpp"
 
-#include "../../game.hpp"
 #include "../../objects/builder.hpp"
 #include "../../objects/circle.hpp"
 #include "../../objects/quad.hpp"
-#include "../../renderer.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
+#include <physbuzz/render/renderer.hpp>
 
 ObjectPicker::ObjectPicker() {
     Quad quad = {
@@ -20,7 +19,11 @@ ObjectPicker::ObjectPicker() {
         .transform = {
             .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
         },
-        .resources = {},
+        .resources = {
+            .renderpasses = {
+                {"ui/ortho"},
+            },
+        },
     };
 
     Circle circle = {
@@ -31,18 +34,31 @@ ObjectPicker::ObjectPicker() {
         .transform = {
             .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
         },
-        .resources = {},
+        .resources = {
+            .renderpasses = {
+                {"ui/ortho"},
+            },
+        },
     };
 
-    ObjectBuilder builder = ObjectBuilder(&m_Scene);
+    m_Scene.createSystem<Physbuzz::Renderer>(Physbuzz::RendererInfo{
+        .framebuffer = {
+            .resolution = {m_PreviewSize.x, m_PreviewSize.y},
+            .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
+        },
+    });
 
+    ObjectBuilder builder = ObjectBuilder(&m_Scene);
     builder.create(circle);
     builder.create(quad);
 
     for (const auto &object : m_Scene.getObjects()) {
         PickableComponent pickable = {
             .selected = false,
-            .framebuffer = Physbuzz::Framebuffer({m_PreviewSize.x, m_PreviewSize.y}),
+            .framebuffer = {{
+                .resolution = {m_PreviewSize.x, m_PreviewSize.y},
+                .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
+            }},
         };
 
         pickable.framebuffer.build();
@@ -50,13 +66,14 @@ ObjectPicker::ObjectPicker() {
     }
 
     // set orthographic projection for preview
-    m_Camera.setOrthographic({m_PreviewSize.x, m_PreviewSize.y});
+    m_Camera.setOrthographic2D({m_PreviewSize.x, m_PreviewSize.y});
 }
 
 ObjectPicker::~ObjectPicker() {
     for (const auto &object : m_Scene.getObjects()) {
         if (m_Scene.containsComponent<PickableComponent>(object)) {
-            m_Scene.getComponent<PickableComponent>(object).framebuffer.destroy();
+            const auto &[pickable] = m_Scene.getComponent<PickableComponent>(object);
+            pickable.framebuffer.destroy();
         }
     }
 }
@@ -72,30 +89,16 @@ void ObjectPicker::draw() {
         return;
     }
 
-    static glm::vec4 bgColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-
-    Game *game = Physbuzz::Context::get<Game>();
-
-    const std::shared_ptr<Renderer> renderer = game->scene.getSystem<Renderer>();
-
-    renderer->activeCamera = &m_Camera;
-
     // TODO buttons
     for (const auto &object : m_Scene.getObjects()) {
-        PickableComponent &pickable = m_Scene.getComponent<PickableComponent>(object);
+        const auto &[pickable] = m_Scene.getComponent<PickableComponent>(object);
 
         // render to framebuffer
-        renderer->target(&pickable.framebuffer);
-        renderer->clear(bgColor);
-        renderer->render(m_Scene, object);
+        m_Scene.getSystem<Physbuzz::Renderer>()->target(&pickable.framebuffer);
+        m_Scene.tickSystem<Physbuzz::Renderer>();
 
-        // imgui fuckery
-        ImGui::Image((void *)(intptr_t)pickable.framebuffer.getColor(), m_PreviewSize);
+        ImGui::Image((void *)(std::intptr_t)pickable.framebuffer.getColor(), m_PreviewSize);
     }
-
-    // release target
-    renderer->target(nullptr);
-    renderer->activeCamera = &game->player.camera;
 
     ImGui::End();
 }

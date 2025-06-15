@@ -16,7 +16,7 @@ struct Cube {
 
     // geometry
     CubeComponent cube;
-    Physbuzz::TransformComponent transform;
+    Physbuzz::Transform transform;
 
     // naming
     IdentifiableComponent identifier = {

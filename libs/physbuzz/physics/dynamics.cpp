@@ -9,18 +9,13 @@ Dynamics::Dynamics(float dtime)
 
 Dynamics::~Dynamics() {}
 
-const Clock &Dynamics::getClock() const {
-    return m_Clock;
-}
-
 void Dynamics::tick(Scene &scene) {
     if (!m_IsRunning) {
         return;
     }
 
-    m_Clock.tick();
     static float time = 0.0f;
-    const float &delta = m_Clock.getDelta();
+    const float &delta = scene.getSystem<Clock>()->getDelta();
 
     if (delta > 10.0f) {
         Logger::WARNING("[Dynamics] Max Timeout exceeded, skipping frame. ({:.3f}ms since last tick)", delta);
@@ -39,7 +34,7 @@ void Dynamics::tick(Scene &scene) {
 }
 
 void Dynamics::tickMotion(Scene &scene, ObjectID id) const {
-    RigidBodyComponent &body = scene.getComponent<RigidBodyComponent>(id);
+    const auto [body, render] = scene.getComponent<RigidBodyComponent, RenderComponent>(id);
 
     // apply gravity
     {
@@ -64,17 +59,15 @@ void Dynamics::tickMotion(Scene &scene, ObjectID id) const {
     // rotate object wrt axis and length of angular velocity vector
     // Note: t**2 is approx 0 for t << 0 (at high framerate)
     {
-        TransformComponent &transform = scene.getComponent<TransformComponent>(id);
-        transform.position += body.velocity * m_DeltaTime;
+        render.transform.position += body.velocity * m_DeltaTime;
         if (glm::length(body.angular.velocity) > 0.0f) {
-            transform.orientation = glm::angleAxis(glm::length(body.angular.velocity) * m_DeltaTime, glm::normalize(body.angular.velocity)) * transform.orientation;
+            render.transform.orientation = glm::angleAxis(glm::length(body.angular.velocity) * m_DeltaTime, glm::normalize(body.angular.velocity)) * render.transform.orientation;
         }
 
-        transform.update();
+        render.transform.update();
 
         // adjust collision bounding box
-        const ModelComponent &model = scene.getComponent<ModelComponent>(id);
-        AABBComponent aabb = AABBComponent(ResourceHandle<ModelResource>(model.model)->getMeshs(), transform);
+        AABBComponent aabb = AABBComponent(render);
         scene.setComponent(id, aabb);
     }
 
@@ -88,7 +81,6 @@ void Dynamics::tickMotion(Scene &scene, ObjectID id) const {
 }
 
 void Dynamics::start() {
-    m_Clock.tick();
     m_IsRunning = true;
 }
 
@@ -97,7 +89,6 @@ void Dynamics::stop() {
 }
 
 const bool &Dynamics::toggle() {
-    m_Clock.tick();
     return m_IsRunning ^= true;
 }
 

@@ -91,7 +91,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            const WallComponent &wall = builder.scene->getComponent<WallComponent>(object);
+            const auto [wall, identifier] = builder.scene->getComponent<WallComponent, IdentifiableComponent>(object);
 
             bool isCollidable = false;
             bool isRenderable = false;
@@ -105,7 +105,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
 
             Wall info = {
                 .wall = wall,
-                .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
+                .identifier = identifier,
                 .isCollidable = isCollidable,
                 .isRenderable = isRenderable,
             };
@@ -119,7 +119,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info) 
     // TODO imposter syndrome has bested me
     // calling create within this scope nukes object's internal state for some obscure reason
     // ideally doing info.wall.left = create(left); and object.setComponent(info.wall); should be the better way
-    WallComponent &wall = scene->getComponent<WallComponent>(object);
+    auto [wall] = scene->getComponent<WallComponent>(object);
     wall.left = create(left);
     wall.right = create(right);
     wall.up = create(up);

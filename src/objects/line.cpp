@@ -1,6 +1,7 @@
 #include "line.hpp"
 
 #include <physbuzz/render/model.hpp>
+#include <physbuzz/render/renderer.hpp>
 #include <physbuzz/resources/manager.hpp>
 
 template <>
@@ -9,38 +10,34 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
     glm::vec3 min = glm::vec3(-info.line.thickness / 2.0f, 0.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.line.thickness / 2.0f, info.line.length, 0.0f);
 
-    Physbuzz::Mesh mesh;
-    mesh.vertices.resize(4);
-
-    // calc positions
-    std::vector<glm::vec3> positions = {
-        {min.x, min.y, 0.0f}, // top-left
-        {min.x, max.y, 0.0f}, // top-right
-        {max.x, max.y, 0.0f}, // bottom-right
-        {max.x, min.y, 0.0f}, // bottom-left
+    Physbuzz::MeshInfo mesh = {
+        .vertices = {
+            {{min.x, min.y, 0.0f}, {}, {}}, // top-left
+            {{min.x, max.y, 0.0f}, {}, {}}, // top-right
+            {{max.x, max.y, 0.0f}, {}, {}}, // bottom-right
+            {{max.x, min.y, 0.0f}, {}, {}}, // bottom-left
+        },
+        .indices = {0, 1, 2, 0, 3, 2},
     };
 
-    // calc indices
-    mesh.indices = {0, 1, 2, 0, 3, 2};
-
-    for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
-        mesh.vertices[i].position = positions[i];
-    }
-
-    // calc vertices
     generateTexCoords(mesh);
     generateNormals(mesh);
 
-    // add textures
-    mesh.textures = info.resources.textures;
-
     // create model
-    std::string model = std::format("quad_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(model, {{mesh}});
+    std::string modelName = std::format("line_{}", object);
+    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(
+        modelName,
+        {{
+            .meshes = {{mesh, {}}},
+            .textures = info.resources.textures,
+        }});
 
     // setup rendering
-    Physbuzz::ModelComponent render = {
-        .model = model,
+    info.transform.update();
+    Physbuzz::RenderComponent render = {
+        .transform = info.transform,
+        .model = modelName,
+        .renderpasses = info.resources.renderpasses,
     };
 
     info.transform.update();
@@ -48,23 +45,25 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<LineComponent, Physbuzz::TransformComponent, IdentifiableComponent, Physbuzz::ModelComponent>(object)) {
+            if (!builder.scene->containsComponent<LineComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
 
+            const auto &[line, identifier, resources, render] = builder.scene->getComponent<LineComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
+
             Line info = {
-                .line = builder.scene->getComponent<LineComponent>(object),
-                .transform = builder.scene->getComponent<Physbuzz::TransformComponent>(object),
-                .identifier = builder.scene->getComponent<IdentifiableComponent>(object),
-                .resources = builder.scene->getComponent<ResourceComponent>(object),
+                .line = line,
+                .transform = render.transform,
+                .identifier = identifier,
+                .resources = resources,
             };
 
             builder.create(object, info);
         },
     };
 
-    scene->setComponent(object, info.line, info.identifier, info.resources, info.transform, render, rebuilder);
+    scene->setComponent(object, info.line, info.identifier, info.resources, render, rebuilder);
 
     return object;
 }

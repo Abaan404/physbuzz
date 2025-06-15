@@ -13,7 +13,7 @@ struct SkyboxComponent {
 struct Skybox {
     // geometry
     SkyboxComponent skybox;
-    Physbuzz::TransformComponent transform;
+    Physbuzz::Transform transform;
 
     // rendering
     ResourceComponent resources;

@@ -38,6 +38,10 @@ class ComponentArray : public IComponentArray {
         return m_Map.getArray();
     }
 
+    inline const std::set<ObjectID> &getKeys() {
+        return m_Map.getKeys();
+    }
+
     void objectDestroyed(ObjectID id) override {
         erase(id);
     }
@@ -77,14 +81,23 @@ class ComponentManager {
         return (getComponents<T>()->contains(id) && ...);
     }
 
-    template <ComponentArrayType T>
-    inline T &get(ObjectID id) {
-        return getComponents<T>()->get(id);
+    template <ComponentArrayType... T>
+    inline std::tuple<T &...> get(ObjectID id) {
+        return std::tie(getComponents<T>()->get(id)...);
     }
 
-    template <ComponentArrayType T>
-    inline const std::vector<T> &getArray() {
-        return getComponents<T>()->getArray();
+    template <ComponentArrayType... T>
+    std::vector<std::tuple<T &...>> getArray() {
+        std::set<ObjectID> ids;
+        (ids.insert(getComponents<T>()->getKeys().begin(), getComponents<T>()->getKeys().end()), ...);
+
+        std::vector<std::tuple<T &...>> result;
+        for (const auto &id : ids) {
+            if (contains<T...>(id)) {
+                result.push_back(get<T...>(id));
+            }
+        }
+        return result;
     }
 
     void objectDestroyed(ObjectID id);

@@ -15,7 +15,7 @@ struct Circle {
 
     // geometry
     CircleComponent circle;
-    Physbuzz::TransformComponent transform;
+    Physbuzz::Transform transform;
 
     // naming
     IdentifiableComponent identifier = {

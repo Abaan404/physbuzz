@@ -229,7 +229,7 @@ inline void destroyShaders(std::array<Shader, N> &shaders, const GLuint &program
 }
 
 ShaderPipelineResource::ShaderPipelineResource(const ShaderPipelineInfo &info)
-    : m_Info(info), draw(info.draw) {}
+    : m_Info(info) {}
 
 ShaderPipelineResource::~ShaderPipelineResource() {}
 
@@ -341,6 +341,12 @@ bool ShaderPipelineResource::reload() {
     }
 
     return true;
+}
+
+void ShaderPipelineResource::draw(Scene &scene, ObjectID object) const {
+    bind();
+    m_Info.draw(this, scene, object);
+    unbind();
 }
 
 bool ShaderPipelineResource::bind() const {

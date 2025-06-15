@@ -123,4 +123,9 @@ std::vector<bool> &getClaimedUnits() {
 
     return claimedUnits;
 }
+
+TextureType Texture2DResource::getType() const {
+    return m_Info.type;
+}
+
 } // namespace Physbuzz
