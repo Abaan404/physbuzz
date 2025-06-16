@@ -1,7 +1,7 @@
 #include "texture.hpp"
 
 #include "../debug/logging.hpp"
-#include <mutex>
+#include "gl/units.hpp"
 
 namespace Physbuzz {
 
@@ -11,28 +11,7 @@ Texture2DResource::Texture2DResource(const Texture2DInfo &texture2D)
 Texture2DResource::~Texture2DResource() {}
 
 bool Texture2DResource::build() {
-    std::vector<bool> &claimedUnits = getClaimedUnits();
-
-    for (; m_Unit < claimedUnits.size(); m_Unit++) {
-        if (!claimedUnits[m_Unit]) {
-            claimedUnits[m_Unit] = true;
-            break;
-        }
-    }
-
-    if (m_Unit >= claimedUnits.size()) {
-        Logger::ERROR("[Texture2DResource] TextureArray is full, cannot allocate.");
-        return false;
-    }
-
     if (m_Info.image.file.path.empty()) {
-        return false;
-    }
-
-    GLint maxUnits;
-    glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &maxUnits);
-    if (m_Unit > maxUnits) {
-        Logger::ERROR("[Texture2DResource] TextureUnit is out of range, supported ranges: {}", maxUnits);
         return false;
     }
 
@@ -51,7 +30,7 @@ bool Texture2DResource::build() {
     }
 
     glGenTextures(1, &m_Texture);
-    glActiveTexture(GL_TEXTURE0 + m_Unit);
+    GL::TextureUnits::activate(0);
     glBindTexture(GL_TEXTURE_2D, m_Texture);
 
     // Texture Wrapping (Repeat)
@@ -85,19 +64,19 @@ bool Texture2DResource::build() {
     glTexImage2D(GL_TEXTURE_2D, 0, format, resolution.x, resolution.y, 0, format, GL_UNSIGNED_BYTE, image.buffer);
     glGenerateMipmap(GL_TEXTURE_2D);
 
+    GL::TextureUnits::deactivate(0);
+
     image.destroy();
     return true;
 }
 
 bool Texture2DResource::destroy() {
     glDeleteTextures(1, &m_Texture);
-    getClaimedUnits()[m_Unit] = false;
 
     return true;
 }
 
 bool Texture2DResource::bind() const {
-    glActiveTexture(GL_TEXTURE0 + m_Unit);
     glBindTexture(GL_TEXTURE_2D, m_Texture);
     return true;
 }
@@ -105,23 +84,6 @@ bool Texture2DResource::bind() const {
 bool Texture2DResource::unbind() const {
     glBindTexture(GL_TEXTURE_2D, 0);
     return true;
-}
-
-const GLint &Texture2DResource::getUnit() const {
-    return m_Unit;
-}
-
-std::vector<bool> &getClaimedUnits() {
-    static std::vector<bool> claimedUnits;
-
-    static std::once_flag onceFlag;
-    std::call_once(onceFlag, [] {
-        GLint maxUnits;
-        glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &maxUnits);
-        claimedUnits.resize(maxUnits, false);
-    });
-
-    return claimedUnits;
 }
 
 TextureType Texture2DResource::getType() const {

@@ -25,12 +25,9 @@ class CubemapResource {
     bool bind() const;
     bool unbind() const;
 
-    const GLint &getUnit() const;
-
   private:
     CubemapInfo m_Info;
     GLuint m_Texture = 0;
-    GLint m_Unit = 0;
 
     bool loadImage(ImageInfo &imageInfo, GLenum target);
 };

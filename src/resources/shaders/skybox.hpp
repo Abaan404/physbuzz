@@ -2,6 +2,7 @@
 
 #include "../../objects/skybox.hpp"
 #include <physbuzz/render/gl/depth.hpp>
+#include <physbuzz/render/gl/units.hpp>
 #include <physbuzz/render/renderer.hpp>
 
 inline Physbuzz::ShaderPipelineResource shaderSkybox = {{
@@ -19,7 +20,7 @@ inline Physbuzz::ShaderPipelineResource shaderSkybox = {{
         Physbuzz::GL::setDepthMask(false);
         Physbuzz::GL::setDepthFunc(Physbuzz::GL::DepthFunc::LEqual);
 
-        pipeline->setUniform("u_Skybox", skybox.cubemap->getUnit());
+        pipeline->setUniform("u_Skybox", Physbuzz::GL::TextureUnits::activate());
 
         skybox.cubemap->bind();
 
@@ -28,6 +29,7 @@ inline Physbuzz::ShaderPipelineResource shaderSkybox = {{
         }
 
         skybox.cubemap->unbind();
+        Physbuzz::GL::TextureUnits::reset();
 
         Physbuzz::GL::setDepthMask(true);
         Physbuzz::GL::setDepthFunc(depthFunc);

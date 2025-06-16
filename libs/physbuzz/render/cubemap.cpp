@@ -1,7 +1,7 @@
 #include "cubemap.hpp"
 
 #include "../debug/logging.hpp"
-#include "texture.hpp"
+#include "physbuzz/render/gl/units.hpp"
 
 namespace Physbuzz {
 
@@ -11,22 +11,8 @@ CubemapResource::CubemapResource(const CubemapInfo &info)
 CubemapResource::~CubemapResource() {}
 
 bool CubemapResource::build() {
-    std::vector<bool> &claimedUnits = getClaimedUnits();
-
-    for (; m_Unit < claimedUnits.size(); m_Unit++) {
-        if (!claimedUnits[m_Unit]) {
-            claimedUnits[m_Unit] = true;
-            break;
-        }
-    }
-
-    if (m_Unit >= claimedUnits.size()) {
-        Logger::ERROR("[CubemapResource] TextureArray is full, cannot allocate.");
-        return false;
-    }
-
     glGenTextures(1, &m_Texture);
-    glActiveTexture(GL_TEXTURE0 + m_Unit);
+    GL::TextureUnits::activate(0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_Texture);
 
     bool success = true;
@@ -49,18 +35,18 @@ bool CubemapResource::build() {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
+    GL::TextureUnits::deactivate(0);
+
     return true;
 }
 
 bool CubemapResource::destroy() {
     glDeleteTextures(1, &m_Texture);
-    getClaimedUnits()[m_Unit] = false;
 
     return true;
 }
 
 bool CubemapResource::bind() const {
-    glActiveTexture(GL_TEXTURE0 + m_Unit);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_Texture);
     return true;
 }
@@ -68,10 +54,6 @@ bool CubemapResource::bind() const {
 bool CubemapResource::unbind() const {
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     return true;
-}
-
-const GLint &CubemapResource::getUnit() const {
-    return m_Unit;
 }
 
 bool CubemapResource::loadImage(ImageInfo &imageInfo, GLenum target) {

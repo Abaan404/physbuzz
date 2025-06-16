@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../objects/player.hpp"
+#include <physbuzz/render/gl/units.hpp>
 #include <physbuzz/render/lighting.hpp>
 #include <physbuzz/render/renderer.hpp>
 
@@ -82,11 +83,11 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
             const Physbuzz::TextureType type = texture->getType();
             switch (type) {
             case Physbuzz::TextureType::Diffuse:
-                pipeline->setUniform(std::format("u_MaterialDiffuse[{}]", textureLengths[type]), texture->getUnit());
+                pipeline->setUniform(std::format("u_MaterialDiffuse[{}]", textureLengths[type]), Physbuzz::GL::TextureUnits::activate());
                 break;
 
             case Physbuzz::TextureType::Specular:
-                pipeline->setUniform(std::format("u_MaterialSpecular[{}]", textureLengths[type]), texture->getUnit());
+                pipeline->setUniform(std::format("u_MaterialSpecular[{}]", textureLengths[type]), Physbuzz::GL::TextureUnits::activate());
                 break;
 
             default:
@@ -109,5 +110,7 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
         for (const auto &texture : render.model->getTextures()) {
             texture->unbind();
         }
+
+        Physbuzz::GL::TextureUnits::reset();
     },
 }};

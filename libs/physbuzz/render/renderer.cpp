@@ -2,6 +2,7 @@
 
 #include "../ecs/scene.hpp"
 #include "gl/capabilities.hpp"
+#include "gl/units.hpp"
 
 namespace Physbuzz {
 
@@ -50,15 +51,15 @@ void Renderer::build() {
                     bool depthTest = GL::getCapability(GL::Capabilities::DepthTest);
                     GL::setCapability(GL::Capabilities::DepthTest, false);
 
-                    glActiveTexture(GL_TEXTURE0);
+                    pipeline->setUniform("u_ScreenTexture", GL::TextureUnits::activate(0));
                     glBindTexture(GL_TEXTURE_2D, scene.getSystem<Renderer>()->getFramebuffer().getColor());
-                    pipeline->setUniform("u_ScreenTexture", 0);
 
                     for (const auto &[mesh, _] : ResourceHandle<ModelResource>(passthroughID)->getMeshs()) {
                         mesh.draw();
                     }
 
                     glBindTexture(GL_TEXTURE_2D, 0);
+                    GL::TextureUnits::deactivate(0);
 
                     GL::setCapability(GL::Capabilities::DepthTest, depthTest);
                 },
@@ -79,13 +80,13 @@ void Renderer::tick(Scene &scene) {
     }
 
     if (m_TargetBuffer) {
+        // target framebuffer
         m_TargetBuffer->bind();
     } else {
-        // unbound framebuffer targets screen
+        // target screen
         m_Framebuffer.unbind();
     }
 
-    // render to screen
     ResourceHandle<ShaderPipelineResource>(passthroughID)->draw(scene, -1);
 
     if (m_TargetBuffer) {
