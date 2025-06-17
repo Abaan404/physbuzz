@@ -64,7 +64,4 @@ void main() {
     }
 
     fragColor = result;
-
-    float gamma = 2.2f;
-    fragColor.rgb = pow(fragColor.rgb, vec3(1.0f / gamma));
 }

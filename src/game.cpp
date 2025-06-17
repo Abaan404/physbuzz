@@ -103,6 +103,9 @@ void Game::rebuild() {
                 .resolution = window.getResolution(),
                 .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
             },
+            .postProcessing = {
+                {"gamma"},
+            },
         });
     }
 
@@ -196,9 +199,6 @@ void Game::rebuild() {
                         {"crate/diffuse"},
                         {"crate/specular"},
                     },
-                    .renderpasses = {
-                        {"default"},
-                    },
                 },
                 .hasPhysics = false,
             };
@@ -259,9 +259,7 @@ void Game::rebuild() {
                     {"default/diffuse"},
                     {"default/specular"},
                 },
-                .renderpasses = {
-                    {"circle"},
-                },
+                .pipeline = {"circle"},
             },
         };
 

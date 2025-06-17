@@ -57,7 +57,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Skybox &info
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = modelName,
-        .renderpasses = info.resources.renderpasses,
+        .pipeline = info.resources.pipeline,
     };
 
     // setup rendering

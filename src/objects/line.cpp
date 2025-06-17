@@ -37,7 +37,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = modelName,
-        .renderpasses = info.resources.renderpasses,
+        .pipeline = info.resources.pipeline,
     };
 
     info.transform.update();

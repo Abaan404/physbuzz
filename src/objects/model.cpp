@@ -11,7 +11,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Model &info)
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = info.model.resource,
-        .renderpasses = info.resources.renderpasses,
+        .pipeline = info.resources.pipeline,
     };
 
     scene->setComponent(object, info.model, info.identifier, info.resources, render);

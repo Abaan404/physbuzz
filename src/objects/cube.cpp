@@ -59,7 +59,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = modelName,
-        .renderpasses = info.resources.renderpasses,
+        .pipeline = info.resources.pipeline,
     };
 
     // create a rebuild callback

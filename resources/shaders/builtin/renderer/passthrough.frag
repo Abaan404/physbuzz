@@ -1,6 +1,6 @@
 #version 460 core
 
-uniform sampler2D u_ScreenTexture;
+uniform sampler2D PBZ_Framebuffer;
 
 in VS_OUT {
     vec2 texCoord;
@@ -9,5 +9,5 @@ in VS_OUT {
 out vec4 fragColor;
 
 void main() {
-    fragColor = vec4(texture(u_ScreenTexture, fs_in.texCoord).rgb, 1.0f);
+    fragColor = vec4(texture(PBZ_Framebuffer, fs_in.texCoord).rgb, 1.0f);
 }

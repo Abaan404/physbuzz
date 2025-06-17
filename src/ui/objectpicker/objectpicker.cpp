@@ -49,6 +49,7 @@ ObjectPicker::ObjectPicker() {
             .resolution = {m_PreviewSize.x, m_PreviewSize.y},
             .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
         },
+        .postProcessing = {},
     });
 
     m_Scene.createSystem<Physbuzz::Clock>();

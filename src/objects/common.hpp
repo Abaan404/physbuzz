@@ -20,7 +20,5 @@ struct ResourceComponent {
         {"default/diffuse"},
         {"default/specular"},
     };
-    std::vector<Physbuzz::ResourceHandle<Physbuzz::ShaderPipelineResource>> renderpasses = {
-        {"default"},
-    };
+    Physbuzz::ResourceHandle<Physbuzz::ShaderPipelineResource> pipeline = {"default"};
 };

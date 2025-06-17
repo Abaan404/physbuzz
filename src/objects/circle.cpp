@@ -40,8 +40,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
     info.transform.update();
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
-        .model = {modelName},
-        .renderpasses = info.resources.renderpasses,
+        .model = modelName,
+        .pipeline = info.resources.pipeline,
     };
 
     // create a rebuild callback

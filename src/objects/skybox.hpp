@@ -16,9 +16,7 @@ struct Skybox {
 
     // rendering
     ResourceComponent resources = {
-        .renderpasses = {
-            {"skybox"},
-        },
+        .pipeline = {"skybox"},
     };
 };
 

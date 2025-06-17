@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ecs/system.hpp"
+#include "../resources/handle.hpp"
 #include "framebuffer.hpp"
 #include "model.hpp"
 #include "shaders.hpp"
@@ -10,14 +11,17 @@ namespace Physbuzz {
 
 class Framebuffer;
 
+inline ResourceHandle<ModelResource> ScreenQuad = {"builtin/renderer/screenquad"};
+
 struct RenderComponent {
     Transform transform;
     ResourceHandle<ModelResource> model;
-    std::vector<ResourceHandle<ShaderPipelineResource>> renderpasses;
+    ResourceHandle<ShaderPipelineResource> pipeline;
 };
 
 struct RendererInfo {
     FramebufferInfo framebuffer;
+    std::vector<ResourceHandle<ShaderPipelineResource>> postProcessing;
 };
 
 class Renderer : public System<RenderComponent> {

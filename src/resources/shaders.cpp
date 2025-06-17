@@ -4,6 +4,7 @@
 #include "shaders/cube.hpp"
 #include "shaders/debugnormal.hpp"
 #include "shaders/default.hpp"
+#include "shaders/gamma.hpp"
 #include "shaders/quad.hpp"
 #include "shaders/skybox.hpp"
 #include "uniforms/camera.hpp"
@@ -26,6 +27,7 @@ void ResourceBuilder::buildShaders() {
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("cube", std::move(shaderCube));
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("skybox", std::move(shaderSkybox));
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("debug/normal", std::move(shaderDebugNormal));
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("gamma", std::move(shaderGamma));
 
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::watch();
 }
@@ -37,6 +39,7 @@ void ResourceBuilder::destroyShaders() {
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("cube");
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("skybox");
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("debug/normal");
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("gamma");
 
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::Events.eraseCallback<Physbuzz::OnResourceBuild>(eventBuild);
 }
