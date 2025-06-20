@@ -5,14 +5,22 @@ Collision::Collision(Physbuzz::Scene *scene, const float restitution)
 
 Collision::~Collision() {}
 
-void Collision::build() {
-    m_DetectorBroad.build();
-    m_DetectorNarrow.build();
+bool Collision::build() {
+    bool success = true;
+
+    success &= m_DetectorBroad.build();
+    success &= m_DetectorNarrow.build();
+
+    return success;
 }
 
-void Collision::destroy() {
-    m_DetectorBroad.destroy();
-    m_DetectorNarrow.destroy();
+bool Collision::destroy() {
+    bool success = true;
+
+    success &= m_DetectorBroad.destroy();
+    success &= m_DetectorNarrow.destroy();
+
+    return success;
 }
 
 void Collision::tick(Physbuzz::Scene &) {

@@ -29,8 +29,8 @@ class ICollisionDetector : public EventSubject {
     ICollisionDetector(Scene *scene);
     virtual ~ICollisionDetector() = default;
 
-    virtual void build();
-    virtual void destroy();
+    virtual bool build();
+    virtual bool destroy();
 
     virtual bool check(Contact &contact) = 0;
     virtual std::list<Contact> find();
@@ -45,8 +45,8 @@ class ICollisionResolver : public EventSubject {
     ICollisionResolver(Scene *scene);
     virtual ~ICollisionResolver() = default;
 
-    virtual void build();
-    virtual void destroy();
+    virtual bool build();
+    virtual bool destroy();
 
     virtual void solve(std::list<Contact> &contacts);
     virtual void solve(const Contact &contact) = 0;

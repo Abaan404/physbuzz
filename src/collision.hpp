@@ -9,8 +9,8 @@ class Collision : public Physbuzz::System<Physbuzz::AABBComponent, Physbuzz::Ren
     Collision(Physbuzz::Scene *scene, const float restitution);
     ~Collision();
 
-    void build() override;
-    void destroy() override;
+    bool build() override;
+    bool destroy() override;
 
     void tick(Physbuzz::Scene &scene);
 

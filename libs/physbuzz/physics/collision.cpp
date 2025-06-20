@@ -54,8 +54,8 @@ void ICollisionDetector::find(std::list<Contact> &contacts) {
     }
 }
 
-void ICollisionDetector::build() { return; }
-void ICollisionDetector::destroy() { return; }
+bool ICollisionDetector::build() { return true; }
+bool ICollisionDetector::destroy() { return true; }
 
 ICollisionResolver::ICollisionResolver(Scene *scene)
     : m_Scene(scene) {}
@@ -71,7 +71,7 @@ void ICollisionResolver::solve(std::list<Contact> &contacts) {
     }
 }
 
-void ICollisionResolver::build() { return; }
-void ICollisionResolver::destroy() { return; }
+bool ICollisionResolver::build() { return true; }
+bool ICollisionResolver::destroy() { return true; }
 
 } // namespace Physbuzz

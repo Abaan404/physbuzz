@@ -6,7 +6,7 @@ in VS_OUT {
     vec3 texCoord;
 } fs_in;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main()
 {

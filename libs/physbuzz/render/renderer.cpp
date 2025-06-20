@@ -11,8 +11,10 @@ inline ResourceHandle<ShaderPipelineResource> Passthrough = {"builtin/renderer/p
 Renderer::Renderer(const RendererInfo &info)
     : m_Info(info), m_Framebuffer(info.framebuffer) {}
 
-void Renderer::build() {
-    m_Framebuffer.build();
+bool Renderer::build() {
+    bool success = true;
+
+    success &= m_Framebuffer.build();
 
     if (!ResourceRegistry<ModelResource>::contains(ScreenQuad.getIdentifier())) {
         ResourceRegistry<ModelResource>::insert(
@@ -52,15 +54,23 @@ void Renderer::build() {
                 },
             }});
     }
+
+    return true;
 }
 
-void Renderer::destroy() {
-    m_Framebuffer.destroy();
+bool Renderer::destroy() {
+    return m_Framebuffer.destroy();
 }
 
-void Renderer::tick(Scene &scene) {
-    m_Framebuffer.bind();
-    m_Framebuffer.clear();
+void Renderer::tick(Scene &scene) const {
+    const Framebuffer *framebuffer = &m_Framebuffer;
+
+    if (m_TargetBuffer) {
+        framebuffer = m_TargetBuffer;
+    }
+
+    framebuffer->clear();
+    framebuffer->bind();
 
     for (const auto &object : m_Objects) {
         render(scene, object);
@@ -69,8 +79,8 @@ void Renderer::tick(Scene &scene) {
     bool depthTest = GL::getCapability(GL::Capabilities::DepthTest);
     GL::setCapability(GL::Capabilities::DepthTest, false);
 
-    GLint unit = GL::TextureUnits::activate();
-    glBindTexture(GL_TEXTURE_2D, m_Framebuffer.getColor());
+    GL::TextureUnits::reset();
+    framebuffer->bindOutputTexture(m_Info.screenIndex);
 
     for (const auto &postProcessing : m_Info.postProcessing) {
         // check for reload before binding
@@ -79,33 +89,23 @@ void Renderer::tick(Scene &scene) {
         }
 
         postProcessing->bind();
-        postProcessing->setUniform("PBZ_Framebuffer", unit);
+        postProcessing->setUniform("PBZ_Framebuffer", m_Info.screenIndex);
         postProcessing->draw(scene, -1);
     }
 
-    if (m_TargetBuffer) {
-        // target framebuffer
-        m_TargetBuffer->bind();
-    } else {
-        // target screen
-        m_Framebuffer.unbind();
+    framebuffer->unbind();
+
+    if (m_TargetBuffer != &m_Framebuffer) {
+        Passthrough->bind();
+        Passthrough->setUniform("PBZ_Framebuffer", m_Info.screenIndex);
+        Passthrough->draw(scene, -1);
     }
 
-    Passthrough->bind();
-    Passthrough->setUniform("PBZ_Framebuffer", unit);
-    Passthrough->draw(scene, -1);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    GL::TextureUnits::reset();
-
+    framebuffer->unbindOutputTexture();
     GL::setCapability(GL::Capabilities::DepthTest, depthTest);
-
-    if (m_TargetBuffer) {
-        m_TargetBuffer->unbind();
-    }
 }
 
-void Renderer::render(Scene &scene, ObjectID object) {
+void Renderer::render(Scene &scene, ObjectID object) const {
     const auto [render] = scene.getComponent<RenderComponent>(object);
 
     // check for reload before binding
@@ -113,6 +113,7 @@ void Renderer::render(Scene &scene, ObjectID object) {
         return;
     }
 
+    Physbuzz::GL::TextureUnits::reset();
     render.pipeline->draw(scene, object);
 }
 

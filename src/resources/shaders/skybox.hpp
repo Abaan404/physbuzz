@@ -29,7 +29,6 @@ inline Physbuzz::ShaderPipelineResource shaderSkybox = {{
         }
 
         skybox.cubemap->unbind();
-        Physbuzz::GL::TextureUnits::reset();
 
         Physbuzz::GL::setDepthMask(true);
         Physbuzz::GL::setDepthFunc(depthFunc);

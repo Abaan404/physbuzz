@@ -40,8 +40,7 @@ GLint TextureUnits::activate() {
     setup();
 
     std::size_t unit;
-    // 0 cant be activated automatically, only manually
-    for (unit = 1; unit < units.size(); unit++) {
+    for (unit = 0; unit < units.size(); unit++) {
         if (!units[unit]) {
             break;
         }

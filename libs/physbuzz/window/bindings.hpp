@@ -34,8 +34,8 @@ class Bindings : public System<BindingComponent> {
   public:
     Bindings(Window *window);
 
-    void build();
-    void destroy();
+    bool build();
+    bool destroy();
 
     void tick(Scene &scene);
 

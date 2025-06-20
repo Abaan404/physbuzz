@@ -16,9 +16,9 @@ inline Physbuzz::ShaderPipelineResource shaderCircle = {{
         Physbuzz::ResourceHandle<Physbuzz::Texture2DResource> texture = {"default/diffuse"};
 
         pipeline->setUniform("u_Model", render.transform.matrix);
+        pipeline->setUniform("u_Texture", Physbuzz::GL::TextureUnits::activate());
 
         texture->bind();
-        pipeline->setUniform("u_Texture", Physbuzz::GL::TextureUnits::activate());
 
         // draw meshes
         for (const auto &[mesh, _] : render.model->getMeshs()) {
@@ -26,7 +26,5 @@ inline Physbuzz::ShaderPipelineResource shaderCircle = {{
         }
 
         texture->unbind();
-
-        Physbuzz::GL::TextureUnits::reset();
     },
 }};

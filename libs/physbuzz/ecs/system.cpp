@@ -2,9 +2,6 @@
 
 namespace Physbuzz {
 
-void ISystem::build() { return; }
-void ISystem::destroy() { return; }
-
 void SystemManager::objectUpdate(ComponentManager &componentManager, ObjectID id) {
     for (auto &[_, system] : m_Systems) {
         if (system->containsSignature(componentManager, id)) {
@@ -23,7 +20,9 @@ void SystemManager::objectDestroyed(ObjectID id) {
 
 void SystemManager::clear() {
     for (auto &[_, system] : m_Systems) {
-        system->destroy();
+        if (!system) {
+            Logger::ERROR("[Scene/Systems] Failed to destroy a system.");
+        }
     }
 
     m_Systems.clear();

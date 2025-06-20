@@ -9,10 +9,10 @@ namespace Physbuzz {
 Bindings::Bindings(Window *window)
     : m_Window(window) {}
 
-void Bindings::build() {
+bool Bindings::build() {
     if (!m_Window) {
         Logger::ERROR("[Binding] Building with a missing window");
-        return;
+        return false;
     }
 
     m_Events.key = m_Window->addCallback<KeyEvent>([&](const KeyEvent &event) {
@@ -30,12 +30,14 @@ void Bindings::build() {
             m_HeldMouseButtons.erase(event.button);
         }
     });
+
+    return true;
 }
 
-void Bindings::destroy() {
+bool Bindings::destroy() {
     if (m_Window == nullptr) {
         Logger::ERROR("[Inputs] Cant destroy with a missing window");
-        return;
+        return false;
     }
 
     m_Window->eraseCallback<KeyEvent>(m_Events.key);
@@ -44,6 +46,8 @@ void Bindings::destroy() {
     m_Window = nullptr;
     m_HeldMouseButtons.clear();
     m_HeldKeys.clear();
+
+    return true;
 }
 
 void Bindings::tick(Scene &scene) {

@@ -11,8 +11,8 @@ class Scene;
 
 class ISystem {
   public:
-    virtual void build();
-    virtual void destroy();
+    virtual bool build() { return true; }
+    virtual bool destroy() { return true; }
 
   protected:
     std::set<ObjectID> m_Objects;
@@ -52,7 +52,9 @@ class SystemManager {
 
         if (!m_Systems.contains(id)) {
             m_Systems[id] = std::make_shared<T>(std::forward<Args>(system)...);
-            m_Systems[id]->build();
+            if (!m_Systems[id]->build()) {
+                Logger::ERROR("[Scene/Systems] Failed to build a system.");
+            }
         }
 
         return get<T>();

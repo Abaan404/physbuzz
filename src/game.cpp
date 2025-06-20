@@ -102,6 +102,16 @@ void Game::rebuild() {
             .framebuffer = {
                 .resolution = window.getResolution(),
                 .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
+                .colors = {
+                    {
+                        .storage = Physbuzz::ColorAttachmentInfo::Storage::Texture,
+                        .isDrawn = true,
+                    },
+                },
+                .depth = {
+                    .storage = Physbuzz::DepthAttachmentInfo::Storage::Renderbuffer,
+                    .hasStencil = true,
+                },
             },
             .postProcessing = {
                 {"gamma"},

@@ -110,7 +110,5 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
         for (const auto &texture : render.model->getTextures()) {
             texture->unbind();
         }
-
-        Physbuzz::GL::TextureUnits::reset();
     },
 }};

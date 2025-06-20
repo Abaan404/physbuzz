@@ -17,7 +17,7 @@ in VS_OUT {
     vec2 texCoord;
 } fs_in;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main() {
     vec2 uv = ((fs_in.fragPosition.xy / window.resolution) + 1.0) / 2.0;

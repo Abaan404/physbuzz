@@ -48,6 +48,15 @@ ObjectPicker::ObjectPicker() {
         .framebuffer = {
             .resolution = {m_PreviewSize.x, m_PreviewSize.y},
             .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
+            .colors = {
+                {
+                    .storage = Physbuzz::ColorAttachmentInfo::Storage::Texture,
+                    .isDrawn = true,
+                },
+            },
+            .depth = {
+                .storage = Physbuzz::DepthAttachmentInfo::Storage::Renderbuffer,
+            },
         },
         .postProcessing = {},
     });
@@ -83,10 +92,19 @@ ObjectPicker::ObjectPicker() {
     for (const auto &object : m_Scene.getObjects()) {
         PickableComponent pickable = {
             .selected = false,
-            .framebuffer = {{
-                .resolution = {m_PreviewSize.x, m_PreviewSize.y},
-                .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
-            }},
+            .framebuffer = {
+                {
+                    .resolution = {m_PreviewSize.x, m_PreviewSize.y},
+                    .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
+                    .colors = {
+                        {
+                            .storage = Physbuzz::ColorAttachmentInfo::Storage::Texture,
+                            .isDrawn = true,
+                        },
+                    },
+                    .depth = {},
+                },
+            },
         };
 
         pickable.framebuffer.build();
@@ -130,7 +148,8 @@ void ObjectPicker::draw() {
         m_Scene.getSystem<Physbuzz::Renderer>()->target(&pickable.framebuffer);
         m_Scene.tickSystem<Physbuzz::Renderer>();
 
-        ImGui::Image(reinterpret_cast<void *>(static_cast<uintptr_t>(pickable.framebuffer.getColor())), m_PreviewSize);
+        const auto [_, image] = pickable.framebuffer.getColor(0);
+        ImGui::Image(reinterpret_cast<void *>(static_cast<uintptr_t>(image)), m_PreviewSize);
     }
 
     ImGui::End();

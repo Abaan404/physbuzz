@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../ecs/system.hpp"
-#include "../resources/handle.hpp"
 #include "framebuffer.hpp"
 #include "model.hpp"
 #include "shaders.hpp"
@@ -22,19 +21,20 @@ struct RenderComponent {
 struct RendererInfo {
     FramebufferInfo framebuffer;
     std::vector<ResourceHandle<ShaderPipelineResource>> postProcessing;
+    int screenIndex = 0;
 };
 
 class Renderer : public System<RenderComponent> {
   public:
     Renderer(const RendererInfo &info);
 
-    void build() override;
-    void destroy() override;
+    bool build() override;
+    bool destroy() override;
 
     void resize(const glm::ivec2 &resolution);
 
-    void tick(Scene &scene);
-    void render(Scene &scene, ObjectID id);
+    void tick(Scene &scene) const;
+    void render(Scene &scene, ObjectID id) const;
 
     void target(const Framebuffer *framebuffer);
 
