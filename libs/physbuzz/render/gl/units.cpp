@@ -22,7 +22,7 @@ void setup() {
 bool TextureUnits::deactivate(GLint unit) {
     setup();
 
-    if (unit > units.size() - 1) {
+    if (unit >= units.size()) {
         return false;
     }
 
@@ -52,7 +52,7 @@ GLint TextureUnits::activate() {
 GLint TextureUnits::activate(GLint unit) {
     setup();
 
-    if (unit > units.size() - 1 || units[unit]) {
+    if (unit >= units.size() || units[unit]) {
         return -1;
     }
 

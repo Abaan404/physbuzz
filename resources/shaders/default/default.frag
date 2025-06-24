@@ -7,6 +7,7 @@
 #define MAX_DIFFUSE_SAMPLERS 5
 #define MAX_SPECULAR_SAMPLERS 5
 #define MAX_POINT_LIGHTS 100
+#define MAX_DIRECTIONAL_LIGHTS 100
 
 layout(std140, binding = 1) uniform Camera {
     vec3 position;
@@ -22,7 +23,8 @@ uniform float u_MaterialShininess;
 uniform uint u_PointLightLength;
 uniform PointLight u_PointLight[MAX_POINT_LIGHTS];
 
-uniform DirectionalLight u_DirectionalLight;
+uniform uint u_DirectionalLightLength;
+uniform DirectionalLight u_DirectionalLight[MAX_DIRECTIONAL_LIGHTS];
 uniform SpotLight u_SpotLight;
 
 uniform samplerCube u_Skybox;
@@ -52,12 +54,15 @@ void main() {
     }
     specular /= float(u_Material.specularLength);
 
-    result += calcDirectionalLight(u_DirectionalLight, u_MaterialShininess, fs_in.fragPosition, fs_in.normal, camera.position, diffuse, specular);
     result += calcSpotLight(u_SpotLight, u_MaterialShininess, fs_in.fragPosition, fs_in.normal, camera.position, diffuse, specular);
 
     // vec3 I = normalize(fs_in.fragPosition - camera.position);
     // vec3 R = refract(I, -normalize(fs_in.normal), 1.00 / 1.52);
     // result += vec4(texture(u_Skybox, R).rgb, 1.0);
+
+    for (int i = 0; i < u_DirectionalLightLength; i++) {
+        result += calcDirectionalLight(u_DirectionalLight[i], u_MaterialShininess, fs_in.fragPosition, fs_in.normal, camera.position, diffuse, specular);
+    }
 
     for (int i = 0; i < u_PointLightLength; i++) {
         result += calcPointLight(u_PointLight[i], u_MaterialShininess, fs_in.fragPosition, fs_in.normal, camera.position, diffuse, specular);

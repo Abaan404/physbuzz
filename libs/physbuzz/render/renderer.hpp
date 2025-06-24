@@ -10,8 +10,6 @@ namespace Physbuzz {
 
 class Framebuffer;
 
-inline ResourceHandle<ModelResource> ScreenQuad = {"builtin/renderer/screenquad"};
-
 struct RenderComponent {
     Transform transform;
     ResourceHandle<ModelResource> model;
@@ -38,7 +36,7 @@ class Renderer : public System<RenderComponent> {
 
     void target(const Framebuffer *framebuffer);
 
-    const Framebuffer &getFramebuffer();
+    const Framebuffer &getFramebuffer() const;
 
   private:
     RendererInfo m_Info;

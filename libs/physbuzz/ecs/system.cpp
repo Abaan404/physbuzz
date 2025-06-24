@@ -20,7 +20,7 @@ void SystemManager::objectDestroyed(ObjectID id) {
 
 void SystemManager::clear() {
     for (auto &[_, system] : m_Systems) {
-        if (!system) {
+        if (!system->destroy()) {
             Logger::ERROR("[Scene/Systems] Failed to destroy a system.");
         }
     }

@@ -17,7 +17,7 @@ static inline std::unordered_map<GLFWwindow *, Window *> sWindowMap = {};
 
 void Window::build(const glm::ivec2 &resolution) {
     // error callback
-    glfwSetErrorCallback(glfwErrorCallback);
+    glfwSetErrorCallback(detail::glfwErrorCallback);
 
     // init glfw
     int isInit = glfwInit();
@@ -37,7 +37,7 @@ void Window::build(const glm::ivec2 &resolution) {
 
     // debug context setup
     GL::setCapability(GL::Capabilities::DebugOutput, true);
-    glDebugMessageCallback(OpenGLDebugCallback, 0);
+    glDebugMessageCallback(detail::OpenGLDebugCallback, 0);
 
     // static context for callbacks
     sWindowMap[m_Window] = this;

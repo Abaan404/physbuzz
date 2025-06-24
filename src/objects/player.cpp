@@ -177,7 +177,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Player &info
         },
     };
 
-    scene->setComponent(object, inputs, info.player, info.camera, info.identifier);
+    scene->setComponent(object, inputs, info.player, info.camera, info.identifier, info.flashlight);
 
     return object;
 }

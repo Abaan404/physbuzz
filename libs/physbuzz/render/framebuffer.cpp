@@ -24,7 +24,7 @@ bool Framebuffer::build() {
 
     switch (m_Info.output.type) {
     case OutputAttachmentInfo::Type::Color:
-        if (m_Info.output.colorIndex > m_Info.colors.size() - 1) {
+        if (m_Info.output.colorIndex >= m_Info.colors.size()) {
             Logger::ERROR(std::format("[Framebuffer] Invalid output color index {}", m_Info.output.colorIndex));
             return false;
         }
@@ -290,7 +290,7 @@ bool Framebuffer::bindOutputTexture(GLint unit) const {
         break;
     }
 
-    GL::TextureUnits::activate();
+    GL::TextureUnits::activate(unit);
     glBindTexture(GL_TEXTURE_2D, texture);
     return true;
 }

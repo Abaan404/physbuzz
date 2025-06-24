@@ -344,9 +344,7 @@ bool ShaderPipelineResource::reload() {
 }
 
 void ShaderPipelineResource::draw(Scene &scene, ObjectID object) const {
-    bind();
     m_Info.draw(this, scene, object);
-    unbind();
 }
 
 bool ShaderPipelineResource::bind() const {

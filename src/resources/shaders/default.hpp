@@ -17,32 +17,18 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
 
         pipeline->setUniform("u_Model", render.transform.matrix);
 
-        static Physbuzz::DirectionalLightComponent directionalLight = {
-            .direction = glm::normalize(glm::vec3(1.0f, 1.0f, -1.0f)),
-
-            .ambient = {0.2f, 0.2f, 0.2f},
-            .diffuse = {0.5f, 0.5f, 0.5f},
-            .specular = {0.5f, 0.5f, 0.5f},
-        };
-
-        static Physbuzz::SpotLightComponent spotLight = {
-            .ambient = {0.2f, 0.2f, 0.2f},
-            .diffuse = {0.5f, 0.5f, 0.5f},
-            .specular = {1.0f, 1.0f, 1.0f},
-
-            .constant = 1.0f,
-            .linear = 0.0009f,
-            .quadratic = 0.000032f,
-
-            .cutOff = glm::radians(12.5f),
-            .outerCutOff = glm::radians(17.5f),
-        };
-
         // Directional Lighting
-        pipeline->setUniform("u_DirectionalLight.direction", directionalLight.direction);
-        pipeline->setUniform("u_DirectionalLight.ambient", directionalLight.ambient);
-        pipeline->setUniform("u_DirectionalLight.diffuse", directionalLight.diffuse);
-        pipeline->setUniform("u_DirectionalLight.specular", directionalLight.specular);
+        const auto &directionalLights = scene.getComponents<Physbuzz::DirectionalLightComponent>();
+        pipeline->setUniform<unsigned int>("u_DirectionalLightLength", directionalLights.size());
+
+        for (std::size_t i = 0; i < directionalLights.size(); ++i) {
+            const auto &[directional] = directionalLights[i];
+
+            pipeline->setUniform(std::format("u_DirectionalLight[{}].direction", i), directional.direction);
+            pipeline->setUniform(std::format("u_DirectionalLight[{}].ambient", i), directional.ambient);
+            pipeline->setUniform(std::format("u_DirectionalLight[{}].diffuse", i), directional.diffuse);
+            pipeline->setUniform(std::format("u_DirectionalLight[{}].specular", i), directional.specular);
+        }
 
         // Point Lighting
         const auto &pointLights = scene.getComponents<Physbuzz::PointLightComponent>();
@@ -60,7 +46,7 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
             pipeline->setUniform(std::format("u_PointLight[{}].quadratic", i), pointLight.quadratic);
         }
 
-        for (const auto &[_, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
+        for (const auto &[_, camera, spotLight] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
             // Spotlight Lighting
             pipeline->setUniform("u_SpotLight.position", camera.getInfo().view.position);
             pipeline->setUniform("u_SpotLight.direction", camera.getFacing());

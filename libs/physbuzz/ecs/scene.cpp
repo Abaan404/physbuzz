@@ -12,6 +12,7 @@ void Scene::clear() {
     m_SystemManager.clear();
     m_ComponentManager.clear();
     m_Objects.clear();
+    m_ObjectCounter = 0;
     clearCallbacks();
 }
 

@@ -4,6 +4,7 @@
 #include "objects/circle.hpp"
 #include "objects/cube.hpp"
 #include "objects/lightcube.hpp"
+#include "objects/lightdirectional.hpp"
 #include "objects/model.hpp"
 #include "objects/player.hpp"
 #include "objects/quad.hpp"
@@ -15,6 +16,7 @@
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/gl/capabilities.hpp>
+#include <physbuzz/render/shadow.hpp>
 #include <physbuzz/render/uniforms.hpp>
 #include <random>
 
@@ -98,6 +100,10 @@ void Game::rebuild() {
         scene.createSystem<Physbuzz::Dynamics>(0.0005);
         scene.createSystem<Physbuzz::Bindings>(&window);
         scene.createSystem<Physbuzz::Clock>();
+        scene.createSystem<Physbuzz::Shadow>(Physbuzz::ShadowInfo{
+            .orthoSize = 1000.0f,
+            .depth = 1000.0f,
+        });
         scene.createSystem<Physbuzz::Renderer>(Physbuzz::RendererInfo{
             .framebuffer = {
                 .resolution = window.getResolution(),
@@ -254,6 +260,21 @@ void Game::rebuild() {
         }
     }
 
+    // directional light
+    {
+        LightDirectional directional = {
+            .directionalLight = {
+                .direction = {1.0f, 1.0f, -1.0f},
+
+                .ambient = {0.2f, 0.2f, 0.2f},
+                .diffuse = {0.5f, 0.5f, 0.5f},
+                .specular = {0.5f, 0.5f, 0.5f},
+            },
+        };
+
+        builder.create(directional);
+    }
+
     // a circle because why not?
     {
         Circle point = {
@@ -281,7 +302,7 @@ void Game::loop() {
     m_IsRunning = true;
 
     while (m_IsRunning && !window.shouldClose()) {
-        const std::shared_ptr<Physbuzz::Clock> clock = scene.getSystem<Physbuzz::Clock>();
+        auto clock = scene.getSystem<Physbuzz::Clock>();
         Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformTime>>("time")->update({
             .time = clock->getTime(),
             .timedelta = clock->getDelta(),
@@ -299,7 +320,8 @@ void Game::loop() {
         // scene.tickSystem<Physbuzz::Dynamics, Collision>();
         scene.tickSystem<Physbuzz::Bindings>();
         scene.tickSystem<Physbuzz::Clock>();
-        scene.tickSystem<Physbuzz::Renderer>();
+        scene.tickSystem<Physbuzz::Shadow>();
+        // scene.tickSystem<Physbuzz::Renderer>();
 
         interface.render();
         window.flip();

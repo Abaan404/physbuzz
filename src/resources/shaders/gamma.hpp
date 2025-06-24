@@ -5,6 +5,7 @@
 #include <physbuzz/render/gl/units.hpp>
 #include <physbuzz/render/lighting.hpp>
 #include <physbuzz/render/renderer.hpp>
+#include <physbuzz/resources/builtins/meshes.hpp>
 
 inline Physbuzz::ShaderPipelineResource shaderGamma = {{
     .vertex = {.file = {.path = "resources/shaders/gamma/gamma.vert"}},
@@ -14,7 +15,7 @@ inline Physbuzz::ShaderPipelineResource shaderGamma = {{
     .fragment = {.file = {.path = "resources/shaders/gamma/gamma.frag"}},
     .compute = {},
     .draw = [](const Physbuzz::ShaderPipelineResource *, Physbuzz::Scene &, Physbuzz::ObjectID) {
-        for (const auto &[mesh, _] : Physbuzz::ScreenQuad->getMeshs()) {
+        for (const auto &[mesh, _] : Physbuzz::Builtin::ScreenQuad::Resource->getMeshs()) {
             mesh.draw();
         }
     },

@@ -7,7 +7,7 @@
 
 namespace Physbuzz {
 
-namespace {
+namespace detail {
 
 template <typename T>
 concept Comparable = requires(T a, T b) {
@@ -16,7 +16,7 @@ concept Comparable = requires(T a, T b) {
 
 } // namespace
 
-template <Comparable K, typename T>
+template <detail::Comparable K, typename T>
 class ContiguousMap {
   public:
     K insert(const K &key, const T &object) {

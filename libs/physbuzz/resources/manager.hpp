@@ -6,7 +6,7 @@
 
 namespace Physbuzz {
 
-namespace {
+namespace detail {
 
 template <typename T>
 concept ResourceWatched = requires(T a) {
@@ -47,7 +47,7 @@ class ResourceRegistry {
 
         m_Container.insert(identifier, std::move(resource));
 
-        if constexpr (ResourceWatched<T>) {
+        if constexpr (detail::ResourceWatched<T>) {
             m_Listener.callbacks[identifier] = m_Container.get(identifier).m_ReloadCallback;
         }
 
@@ -86,14 +86,15 @@ class ResourceRegistry {
     }
 
     inline static void clear() {
-        for (const auto &id : m_Container.getKeys()) {
+        std::set<ResourceID> keys = m_Container.getKeys();
+        for (const auto &id : keys) {
             erase(id);
         }
         m_Container.clear();
         Events.clearCallbacks();
     }
 
-    static void watch() {
+    inline static void watch() {
         m_Watcher.allowOutOfScopeLinks(true);
         m_Watcher.followSymlinks(true);
 
@@ -104,7 +105,7 @@ class ResourceRegistry {
         m_Watcher.watch();
     }
 
-    static void setResourceDirectory(const std::filesystem::path &directory) {
+    inline static void setResourceDirectory(const std::filesystem::path &directory) {
         if (!std::filesystem::is_directory(directory)) {
             return;
         }
@@ -122,7 +123,7 @@ class ResourceRegistry {
   private:
     inline static ContiguousMap<ResourceID, T> m_Container;
 
-    inline static ResourceFileWatcher<T> m_Listener;
+    inline static detail::ResourceFileWatcher<T> m_Listener;
     inline static efsw::FileWatcher m_Watcher;
     inline static std::filesystem::path m_ResourceDirectory;
 
