@@ -19,7 +19,6 @@ struct RenderComponent {
 struct RendererInfo {
     FramebufferInfo framebuffer;
     std::vector<ResourceHandle<ShaderPipelineResource>> postProcessing;
-    int screenIndex = 0;
 };
 
 class Renderer : public System<RenderComponent> {

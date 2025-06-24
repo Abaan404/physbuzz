@@ -1,7 +1,6 @@
 #include "framebuffer.hpp"
 
 #include "../debug/logging.hpp"
-#include "gl/units.hpp"
 
 namespace Physbuzz {
 
@@ -110,8 +109,14 @@ bool Framebuffer::build() {
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_Depth, 0);
         }
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        {
+            float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+            glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+        }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glBindTexture(GL_TEXTURE_2D, 0);
         break;
 
@@ -276,7 +281,7 @@ const FramebufferInfo &Framebuffer::getInfo() const {
     return m_Info;
 }
 
-bool Framebuffer::bindOutputTexture(GLint unit) const {
+bool Framebuffer::bindOutputTexture() const {
     PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to get from an incomplete framebuffer.");
     GLuint texture;
 
@@ -290,7 +295,6 @@ bool Framebuffer::bindOutputTexture(GLint unit) const {
         break;
     }
 
-    GL::TextureUnits::activate(unit);
     glBindTexture(GL_TEXTURE_2D, texture);
     return true;
 }

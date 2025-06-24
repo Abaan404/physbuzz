@@ -4,6 +4,7 @@
 #include <physbuzz/render/gl/units.hpp>
 #include <physbuzz/render/lighting.hpp>
 #include <physbuzz/render/renderer.hpp>
+#include <physbuzz/render/shadow.hpp>
 
 inline Physbuzz::ShaderPipelineResource shaderDefault = {{
     .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
@@ -14,6 +15,7 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
     .compute = {},
     .draw = [](const Physbuzz::ShaderPipelineResource *pipeline, Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         const auto [render] = scene.getComponent<Physbuzz::RenderComponent>(object);
+        auto shadow = scene.getSystem<Physbuzz::Shadow>()->getFramebuffer();
 
         pipeline->setUniform("u_Model", render.transform.matrix);
 
@@ -28,6 +30,7 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
             pipeline->setUniform(std::format("u_DirectionalLight[{}].ambient", i), directional.ambient);
             pipeline->setUniform(std::format("u_DirectionalLight[{}].diffuse", i), directional.diffuse);
             pipeline->setUniform(std::format("u_DirectionalLight[{}].specular", i), directional.specular);
+            pipeline->setUniform(std::format("u_DirectionalLight[{}].matrix", i), directional.matrix);
         }
 
         // Point Lighting
@@ -86,6 +89,10 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
 
         pipeline->setUniform("u_Material.diffuseLength", textureLengths[Physbuzz::TextureType::Diffuse]);
         pipeline->setUniform("u_Material.specularLength", textureLengths[Physbuzz::TextureType::Specular]);
+
+        // shadow map
+        pipeline->setUniform("u_ShadowMap", Physbuzz::GL::TextureUnits::activate());
+        shadow.bindOutputTexture();
 
         for (const auto &[mesh, meta] : render.model->getMeshs()) {
             pipeline->setUniform("u_MaterialShininess", meta.shininess);

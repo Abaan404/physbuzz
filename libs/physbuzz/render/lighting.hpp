@@ -22,6 +22,8 @@ struct DirectionalLightComponent {
     glm::vec3 ambient = {1.0f, 1.0f, 1.0f};
     glm::vec3 diffuse = {1.0f, 1.0f, 1.0f};
     glm::vec3 specular = {1.0f, 1.0f, 1.0f};
+
+    glm::mat4 matrix = {1.0f};
 };
 
 struct SpotLightComponent {

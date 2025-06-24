@@ -15,6 +15,7 @@
 #include "resources/uniforms/window.hpp"
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
+#include <physbuzz/render/framebuffer.hpp>
 #include <physbuzz/render/gl/capabilities.hpp>
 #include <physbuzz/render/shadow.hpp>
 #include <physbuzz/render/uniforms.hpp>
@@ -44,6 +45,7 @@ void Game::build() {
         }
 
         scene.getSystem<Physbuzz::Renderer>()->resize(event.resolution);
+        scene.getSystem<Physbuzz::Shadow>()->resize(event.resolution);
     });
 
     // track cursor captures
@@ -102,7 +104,7 @@ void Game::rebuild() {
         scene.createSystem<Physbuzz::Clock>();
         scene.createSystem<Physbuzz::Shadow>(Physbuzz::ShadowInfo{
             .orthoSize = 1000.0f,
-            .depth = 1000.0f,
+            .depth = 10000.0f,
         });
         scene.createSystem<Physbuzz::Renderer>(Physbuzz::RendererInfo{
             .framebuffer = {
@@ -180,8 +182,8 @@ void Game::rebuild() {
         Quad quad = {
             .body = {},
             .quad = {
-                .width = 500.0f,
-                .height = 500.0f,
+                .width = 5000.0f,
+                .height = 5000.0f,
             },
             .transform = {
                 .orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
@@ -264,7 +266,7 @@ void Game::rebuild() {
     {
         LightDirectional directional = {
             .directionalLight = {
-                .direction = {1.0f, 1.0f, -1.0f},
+                .direction = {1.0f, -1.0f, -1.0f},
 
                 .ambient = {0.2f, 0.2f, 0.2f},
                 .diffuse = {0.5f, 0.5f, 0.5f},
@@ -320,8 +322,7 @@ void Game::loop() {
         // scene.tickSystem<Physbuzz::Dynamics, Collision>();
         scene.tickSystem<Physbuzz::Bindings>();
         scene.tickSystem<Physbuzz::Clock>();
-        scene.tickSystem<Physbuzz::Shadow>();
-        // scene.tickSystem<Physbuzz::Renderer>();
+        scene.tickSystem<Physbuzz::Shadow, Physbuzz::Renderer>();
 
         interface.render();
         window.flip();

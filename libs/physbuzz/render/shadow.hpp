@@ -6,7 +6,7 @@
 namespace Physbuzz {
 
 struct ShadowInfo {
-    glm::ivec2 resolution = {1000, 1000};
+    glm::ivec2 resolution = {1280, 720};
     float orthoSize = 100.0f;
     float depth = 100.0f;
 };
@@ -17,6 +17,8 @@ class Shadow : public System<RenderComponent> {
 
     bool build();
     bool destroy();
+
+    void resize(const glm::ivec2 &resolution);
 
     void tick(Scene &scene) const;
 

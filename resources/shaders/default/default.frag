@@ -27,9 +27,12 @@ uniform uint u_DirectionalLightLength;
 uniform DirectionalLight u_DirectionalLight[MAX_DIRECTIONAL_LIGHTS];
 uniform SpotLight u_SpotLight;
 
+uniform sampler2D u_ShadowMap;
+
 uniform samplerCube u_Skybox;
 
 in VS_OUT {
+    vec4 fragPositionLightSpace;
     vec3 normal;
     vec3 fragPosition;
     vec2 texCoord;
@@ -61,7 +64,7 @@ void main() {
     // result += vec4(texture(u_Skybox, R).rgb, 1.0);
 
     for (int i = 0; i < u_DirectionalLightLength; i++) {
-        result += calcDirectionalLight(u_DirectionalLight[i], u_MaterialShininess, fs_in.fragPosition, fs_in.normal, camera.position, diffuse, specular);
+        result += calcDirectionalLight(u_DirectionalLight[i], u_ShadowMap, fs_in.fragPositionLightSpace, u_MaterialShininess, fs_in.fragPosition, fs_in.normal, camera.position, diffuse, specular);
     }
 
     for (int i = 0; i < u_PointLightLength; i++) {

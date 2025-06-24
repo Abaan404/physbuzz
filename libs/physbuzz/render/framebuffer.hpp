@@ -56,7 +56,7 @@ class Framebuffer {
     void resize(const glm::ivec2 &resolution);
     void clear() const;
 
-    bool bindOutputTexture(GLint unit) const;
+    bool bindOutputTexture() const;
     bool unbindOutputTexture() const;
 
     std::tuple<ColorAttachmentInfo, GLuint> getColor(std::size_t index) const;

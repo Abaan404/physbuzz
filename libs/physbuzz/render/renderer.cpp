@@ -43,7 +43,8 @@ void Renderer::tick(Scene &scene) const {
     GL::setCapability(GL::Capabilities::DepthTest, false);
 
     GL::TextureUnits::reset();
-    framebuffer->bindOutputTexture(m_Info.screenIndex);
+    int screenUnit = GL::TextureUnits::activate();
+    framebuffer->bindOutputTexture();
 
     for (const auto &postProcessing : m_Info.postProcessing) {
         if (!postProcessing->reload()) {
@@ -51,7 +52,7 @@ void Renderer::tick(Scene &scene) const {
         }
 
         postProcessing->bind();
-        postProcessing->setUniform("PBZ_Framebuffer", m_Info.screenIndex);
+        postProcessing->setUniform("PBZ_Framebuffer", screenUnit);
         postProcessing->draw(scene, -1);
         postProcessing->unbind();
     }
@@ -60,7 +61,7 @@ void Renderer::tick(Scene &scene) const {
 
     if (framebuffer == &m_Framebuffer && Builtin::Passthrough::Resource->reload()) {
         Builtin::Passthrough::Resource->bind();
-        Builtin::Passthrough::Resource->setUniform("PBZ_Framebuffer", m_Info.screenIndex);
+        Builtin::Passthrough::Resource->setUniform("PBZ_Framebuffer", screenUnit);
         Builtin::Passthrough::Resource->draw(scene, -1);
         Builtin::Passthrough::Resource->unbind();
     }
@@ -84,9 +85,7 @@ void Renderer::render(Scene &scene, ObjectID object) const {
 }
 
 void Renderer::resize(const glm::ivec2 &resolution) {
-    m_Framebuffer.bind();
     m_Framebuffer.resize(resolution);
-    m_Framebuffer.unbind();
 }
 
 void Renderer::target(const Framebuffer *framebuffer) {
