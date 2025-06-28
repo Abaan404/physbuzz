@@ -68,7 +68,7 @@ ObjectPicker::ObjectPicker() {
     builder.create(quad);
 
     Physbuzz::CameraComponent camera = {{
-        .type = Physbuzz::CameraInfo::Projection::Orthographic,
+        .projection = Physbuzz::CameraInfo::Projection::Orthographic,
         .orthographic = {
             .left = 0.0f,
             .right = static_cast<float>(m_PreviewSize.x),

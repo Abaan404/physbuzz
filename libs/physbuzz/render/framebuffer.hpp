@@ -37,9 +37,9 @@ struct FramebufferInfo {
     glm::ivec2 resolution = {1280, 720};
     glm::vec4 colorClear = {0.0f, 0.0f, 0.0f, 0.0f};
 
-    std::vector<ColorAttachment> colors = {};
-    DepthAttachment depth = {};
-    OutputAttachment output = {};
+    std::vector<ColorAttachment> colors;
+    DepthAttachment depth;
+    OutputAttachment output;
 };
 
 class Framebuffer {

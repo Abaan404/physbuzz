@@ -13,22 +13,22 @@ CameraComponent::CameraComponent(const CameraInfo &info)
 void CameraComponent::resize(const glm::ivec2 &resolution) {
     m_Info.resolution = resolution;
 
-    if (m_Info.type == CameraInfo::Projection::Perspective && resolution.y != 0) {
+    if (m_Info.projection == CameraInfo::Projection::Perspective && resolution.y != 0) {
         m_Info.perspective.aspect = static_cast<float>(resolution.x) / resolution.y;
     }
 
     updateProjection();
 }
 
-void CameraComponent::setType(CameraInfo::Projection type) {
-    m_Info.type = type;
+void CameraComponent::setProjection(CameraInfo::Projection projection) {
+    m_Info.projection = projection;
     updateProjection();
 }
 
 void CameraComponent::update(const CameraInfo &info) {
     m_Info = info;
 
-    if (m_Info.type == CameraInfo::Projection::Perspective && m_Info.resolution.y != 0) {
+    if (m_Info.projection == CameraInfo::Projection::Perspective && m_Info.resolution.y != 0) {
         m_Info.perspective.aspect = static_cast<float>(m_Info.resolution.x) / m_Info.resolution.y;
     }
 
@@ -37,7 +37,7 @@ void CameraComponent::update(const CameraInfo &info) {
 }
 
 void CameraComponent::updateProjection() {
-    switch (m_Info.type) {
+    switch (m_Info.projection) {
     case CameraInfo::Projection::Perspective:
         m_Projection = glm::perspective(
             m_Info.perspective.fovy,

@@ -75,7 +75,7 @@ void Game::build() {
         for (const auto &[player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
             Physbuzz::CameraInfo info = camera.getInfo();
 
-            if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || info.type != Physbuzz::CameraInfo::Projection::Perspective) {
+            if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || info.projection != Physbuzz::CameraInfo::Projection::Perspective) {
                 return;
             }
 
@@ -94,6 +94,11 @@ void Game::build() {
 }
 
 void Game::rebuild() {
+    Physbuzz::CameraComponent restoreCamera = {{}};
+    for (const auto &[_, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
+        restoreCamera = camera;
+    }
+
     scene.clear();
 
     // ticking systems
@@ -135,7 +140,7 @@ void Game::rebuild() {
     {
         Player player = {
             .camera = {{
-                .type = Physbuzz::CameraInfo::Projection::Perspective,
+                .projection = Physbuzz::CameraInfo::Projection::Perspective,
                 .orthographic = {},
                 .perspective = {
                     .fovy = glm::radians(45.0f),
@@ -151,6 +156,10 @@ void Game::rebuild() {
             }},
             .player = {},
         };
+
+        if (restoreCamera.getInfo().projection != Physbuzz::CameraInfo::Projection::Unknown) {
+            player.camera = {restoreCamera};
+        }
 
         builder.create(player);
     }

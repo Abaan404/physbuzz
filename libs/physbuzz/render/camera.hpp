@@ -10,7 +10,7 @@ struct CameraInfo {
         Perspective,
         Orthographic,
         Unknown,
-    } type = Projection::Unknown;
+    } projection = Projection::Unknown;
 
     struct Orthographic {
         float left = 0.0f;
@@ -44,7 +44,7 @@ class CameraComponent {
     void resize(const glm::ivec2 &resolution);
     void reset();
 
-    void setType(CameraInfo::Projection type);
+    void setProjection(CameraInfo::Projection projection);
     void update(const CameraInfo &info);
 
     void setPosition(const glm::vec3 &position);

@@ -32,13 +32,13 @@ void Camera::draw() {
         Physbuzz::CameraInfo info = camera.getInfo();
 
         const char *projections[] = {"Prespective", "Orthographic", "Unknown"};
-        static int currentProjection = static_cast<int>(info.type);
+        static int currentProjection = static_cast<int>(info.projection);
 
-        if (ImGui::Combo("type", &currentProjection, projections, IM_ARRAYSIZE(projections))) {
+        if (ImGui::Combo("projection", &currentProjection, projections, IM_ARRAYSIZE(projections))) {
             glm::vec2 resolution = game->window.getResolution();
             switch (currentProjection) {
             case 0:
-                info.type = Physbuzz::CameraInfo::Projection::Perspective;
+                info.projection = Physbuzz::CameraInfo::Projection::Perspective;
                 info.perspective = {
                     .fovy = glm::radians(45.0f),
                     .aspect = resolution.x / resolution.y,
@@ -46,7 +46,7 @@ void Camera::draw() {
                 break;
 
             case 1: // Orthographic
-                info.type = Physbuzz::CameraInfo::Projection::Orthographic;
+                info.projection = Physbuzz::CameraInfo::Projection::Orthographic;
                 info.orthographic = {
                     .left = 0.0f,
                     .right = resolution.x,
