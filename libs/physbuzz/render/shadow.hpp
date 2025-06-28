@@ -5,14 +5,21 @@
 
 namespace Physbuzz {
 
+struct ShadowComponent {};
+
 struct ShadowInfo {
     glm::ivec2 resolution = {1280, 720};
     float orthoSize = 100.0f;
     float depth = 100.0f;
 };
 
-class Shadow : public System<RenderComponent> {
+class Shadow : public System<RenderComponent, ShadowComponent> {
   public:
+    struct Framebuffers {
+        Framebuffer directional;
+        Framebuffer point;
+    };
+
     Shadow(const ShadowInfo &info);
 
     bool build();
@@ -22,11 +29,15 @@ class Shadow : public System<RenderComponent> {
 
     void tick(Scene &scene) const;
 
-    const Framebuffer &getFramebuffer();
+    const Framebuffers &getFramebuffers() const;
+    const ShadowInfo &getInfo() const;
 
   private:
+    void tickDirectional(Scene &scene) const;
+    void tickPoint(Scene &scene) const;
+
     ShadowInfo m_Info;
-    Framebuffer m_Framebuffer;
+    Framebuffers m_Framebuffers;
 };
 
 } // namespace Physbuzz

@@ -7,7 +7,7 @@ namespace Physbuzz {
 
 CameraComponent::CameraComponent(const CameraInfo &info)
     : m_Info(info) {
-    resize(info.resolution);
+    update(info);
 }
 
 void CameraComponent::resize(const glm::ivec2 &resolution) {

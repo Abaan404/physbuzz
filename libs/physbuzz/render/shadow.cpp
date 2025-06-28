@@ -4,21 +4,36 @@
 #include "../resources/builtins/meshes.hpp"
 #include "../resources/builtins/shaders.hpp"
 #include "lighting.hpp"
+#include <array>
+#include <format>
 
 namespace Physbuzz {
 
 Shadow::Shadow(const ShadowInfo &info)
     : m_Info(info),
-      m_Framebuffer({
-          .resolution = info.resolution,
-          .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
-          .colors = {},
-          .depth = {
-              .storage = DepthAttachmentInfo::Storage::Texture,
-          },
-          .output = {
-              .type = OutputAttachmentInfo::Type::Depth,
-          },
+      m_Framebuffers({
+          .directional = {{
+              .resolution = info.resolution,
+              .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
+              .colors = {},
+              .depth = {
+                  .storage = FramebufferInfo::Storage::Texture2D,
+              },
+              .output = {
+                  .type = FramebufferInfo::Type::Depth,
+              },
+          }},
+          .point = {{
+              .resolution = glm::ivec2(glm::max(info.resolution.x, info.resolution.y)),
+              .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
+              .colors = {},
+              .depth = {
+                  .storage = FramebufferInfo::Storage::Cubemap,
+              },
+              .output = {
+                  .type = FramebufferInfo::Type::Depth,
+              },
+          }},
       }) {}
 
 bool Shadow::build() {
@@ -26,54 +41,105 @@ bool Shadow::build() {
 
     success &= Builtin::ScreenQuad::build();
     success &= Builtin::Passthrough::build();
-    success &= Builtin::Depth::build();
+    success &= Builtin::Depth2D::build();
+    success &= Builtin::DepthCubemap::build();
 
-    success &= m_Framebuffer.build();
+    success &= m_Framebuffers.directional.build();
+    success &= m_Framebuffers.point.build();
 
     return success;
 }
 bool Shadow::destroy() {
-    return m_Framebuffer.destroy();
-}
-
-const Framebuffer &Shadow::getFramebuffer() {
-    return m_Framebuffer;
+    return m_Framebuffers.directional.destroy();
 }
 
 void Shadow::tick(Scene &scene) const {
-    m_Framebuffer.clear();
-    m_Framebuffer.bind();
-
-    glm::mat4 projection = glm::ortho(-m_Info.orthoSize, m_Info.orthoSize, -m_Info.orthoSize, m_Info.orthoSize, 1.0f, m_Info.depth);
-    Builtin::Depth::Resource->bind();
-
-    if (!Builtin::Depth::Resource->reload()) {
-        return;
-    }
-
     GLint cullMode;
     glGetIntegerv(GL_CULL_FACE_MODE, &cullMode);
 
     glCullFace(GL_FRONT);
 
-    for (const auto [directional] : scene.getComponents<DirectionalLightComponent>()) {
-        glm::mat4 view = glm::lookAt(-directional.direction * m_Info.depth / 2.0f, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
-        directional.matrix = projection * view;
+    tickDirectional(scene);
+    tickPoint(scene);
 
-        Builtin::Depth::Resource->setUniform("u_LightMatrix", directional.matrix);
+    glCullFace(static_cast<GLenum>(cullMode));
+}
+
+void Shadow::tickDirectional(Scene &scene) const {
+    m_Framebuffers.directional.clear();
+    m_Framebuffers.directional.bind();
+
+    glm::mat4 projection = glm::ortho(-m_Info.orthoSize, m_Info.orthoSize, -m_Info.orthoSize, m_Info.orthoSize, 1.0f, m_Info.depth);
+
+    if (!Builtin::Depth2D::Resource->reload()) {
+        return;
+    }
+
+    Builtin::Depth2D::Resource->bind();
+    for (const auto [light] : scene.getComponents<DirectionalLightComponent>()) {
+        glm::mat4 view = glm::lookAt(-light.direction * m_Info.depth / 2.0f, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
+        light.matrix = projection * view;
+
+        Builtin::Depth2D::Resource->setUniform("PBZ_ShadowMatrix", light.matrix);
 
         for (const auto &object : m_Objects) {
-            Builtin::Depth::Resource->draw(scene, object);
+            Builtin::Depth2D::Resource->draw(scene, object);
         }
     }
 
-    glCullFace(static_cast<GLenum>(cullMode));
+    Builtin::Depth2D::Resource->unbind();
+    m_Framebuffers.directional.unbind();
+}
 
-    Builtin::Depth::Resource->unbind();
+void Shadow::tickPoint(Scene &scene) const {
+    m_Framebuffers.point.clear();
+    m_Framebuffers.point.bind();
+
+    glm::mat4 projection = glm::perspective(glm::radians(90.0f), 1.0f, 1.0f, m_Info.depth);
+
+    if (!Builtin::DepthCubemap::Resource->reload()) {
+        return;
+    }
+
+    Builtin::DepthCubemap::Resource->bind();
+    Builtin::DepthCubemap::Resource->setUniform("PBZ_FarPlane", m_Info.depth);
+
+    for (const auto [light] : scene.getComponents<PointLightComponent>()) {
+        std::array<glm::mat4, 6> matrices = {
+            projection * glm::lookAt(light.position, light.position + glm::vec3(1.0f, 0.0f, 0.0f), {0.0f, -1.0f, 0.0f}),
+            projection * glm::lookAt(light.position, light.position + glm::vec3(-1.0f, 0.0f, 0.0f), {0.0f, -1.0f, 0.0f}),
+            projection * glm::lookAt(light.position, light.position + glm::vec3(0.0f, 1.0f, 0.0f), {0.0f, 0.0f, 1.0f}),
+            projection * glm::lookAt(light.position, light.position + glm::vec3(0.0f, -1.0f, 0.0f), {0.0f, 0.0f, -1.0f}),
+            projection * glm::lookAt(light.position, light.position + glm::vec3(0.0f, 0.0f, 1.0f), {0.0f, -1.0f, 0.0f}),
+            projection * glm::lookAt(light.position, light.position + glm::vec3(0.0f, 0.0f, -1.0f), {0.0f, -1.0f, 0.0f}),
+        };
+
+        Builtin::DepthCubemap::Resource->setUniform("PBZ_LightPosition", light.position);
+        for (std::size_t i = 0; i < matrices.size(); i++) {
+            Builtin::DepthCubemap::Resource->setUniform(std::format("PBZ_LightMatrix[{}]", i), matrices[i]);
+        }
+
+        for (const auto &object : m_Objects) {
+            Builtin::DepthCubemap::Resource->draw(scene, object);
+        }
+    }
+
+    Builtin::DepthCubemap::Resource->unbind();
+    m_Framebuffers.point.unbind();
 }
 
 void Shadow::resize(const glm::ivec2 &resolution) {
-    m_Framebuffer.resize(resolution);
+    m_Info.resolution = resolution;
+    m_Framebuffers.directional.resize(resolution);
+    m_Framebuffers.point.resize(glm::ivec2(glm::max(resolution.x, resolution.y)));
+}
+
+const Shadow::Framebuffers &Shadow::getFramebuffers() const {
+    return m_Framebuffers;
+}
+
+const ShadowInfo &Shadow::getInfo() const {
+    return m_Info;
 }
 
 } // namespace Physbuzz

@@ -103,6 +103,7 @@ void Game::rebuild() {
         scene.createSystem<Physbuzz::Bindings>(&window);
         scene.createSystem<Physbuzz::Clock>();
         scene.createSystem<Physbuzz::Shadow>(Physbuzz::ShadowInfo{
+            .resolution = window.getResolution(),
             .orthoSize = 1000.0f,
             .depth = 10000.0f,
         });
@@ -112,12 +113,12 @@ void Game::rebuild() {
                 .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
                 .colors = {
                     {
-                        .storage = Physbuzz::ColorAttachmentInfo::Storage::Texture,
+                        .storage = Physbuzz::FramebufferInfo::Storage::Texture2D,
                         .isDrawn = true,
                     },
                 },
                 .depth = {
-                    .storage = Physbuzz::DepthAttachmentInfo::Storage::Renderbuffer,
+                    .storage = Physbuzz::FramebufferInfo::Storage::Renderbuffer,
                     .hasStencil = true,
                 },
             },
@@ -128,7 +129,7 @@ void Game::rebuild() {
     }
 
     std::random_device rd;
-    std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-250, 250);
+    std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-100, 100);
 
     // player
     {
@@ -201,7 +202,7 @@ void Game::rebuild() {
 
     // cubes
     {
-        for (int i = 0; i < 25; ++i) {
+        for (int i = 0; i < 5; ++i) {
             Cube cube = {
                 .cube = {
                     .width = 50.0f,
@@ -227,7 +228,7 @@ void Game::rebuild() {
 
     // point lights
     {
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 1; ++i) {
             LightCube lightCube = {
                 .cube = {
                     .cube = {

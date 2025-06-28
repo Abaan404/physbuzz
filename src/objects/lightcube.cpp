@@ -3,11 +3,15 @@
 #include <physbuzz/physics/collision.hpp>
 #include <physbuzz/render/lighting.hpp>
 #include <physbuzz/render/model.hpp>
+#include <physbuzz/render/shadow.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, LightCube &info) {
     // create a cube and add its component to this object
     create(object, info.cube);
+
+    // dont cast shadows on this cube
+    scene->eraseComponent<Physbuzz::ShadowComponent>(object);
 
     // add a point light to the center of the cube
     info.pointLight.position = {

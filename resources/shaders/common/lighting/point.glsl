@@ -1,5 +1,7 @@
 #pbz_include "defines.glsl"
 
+#pbz_include "../shadow/shadow.glsl"
+
 struct PointLight {
     vec3 position;
 
@@ -12,7 +14,7 @@ struct PointLight {
     float quadratic;
 };
 
-vec4 calcPointLight(PointLight light, float shininess, vec3 fragPosition, vec3 normal, vec3 viewPosition, vec4 materialDiffuse, vec4 materialSpecular) {
+vec4 calcPointLight(PointLight light, samplerCube shadowMap, float farPlane, float shininess, vec3 fragPosition, vec3 normal, vec3 viewPosition, vec4 materialDiffuse, vec4 materialSpecular) {
     // diffuse
     vec3 lightDirection = normalize(light.position - fragPosition);
     float diff = max(dot(normal, lightDirection), 0.0);
@@ -27,9 +29,13 @@ vec4 calcPointLight(PointLight light, float shininess, vec3 fragPosition, vec3 n
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
     // phong
-    vec3 ambient = light.ambient * materialDiffuse.rgb;
-    vec3 diffuse = light.diffuse * diff * materialDiffuse.rgb;
-    vec3 specular = light.specular * spec * materialSpecular.rgb;
+    vec3 ambient = light.ambient;
+    vec3 diffuse = light.diffuse * diff;
+    vec3 specular = light.specular * spec;
 
-    return vec4((ambient + diffuse + specular) * attenuation, materialDiffuse.a);
+    // shadows
+    float shadow = calcShadowsPoint(shadowMap, fragPosition, normal, lightDirection, light.position, farPlane);
+    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * materialDiffuse.rgb;
+
+    return vec4(lighting, materialDiffuse.a);
 }

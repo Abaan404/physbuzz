@@ -15,7 +15,7 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
     .compute = {},
     .draw = [](const Physbuzz::ShaderPipelineResource *pipeline, Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         const auto [render] = scene.getComponent<Physbuzz::RenderComponent>(object);
-        auto shadow = scene.getSystem<Physbuzz::Shadow>()->getFramebuffer();
+        const auto &shadow = scene.getSystem<Physbuzz::Shadow>();
 
         pipeline->setUniform("u_Model", render.transform.matrix);
 
@@ -91,8 +91,16 @@ inline Physbuzz::ShaderPipelineResource shaderDefault = {{
         pipeline->setUniform("u_Material.specularLength", textureLengths[Physbuzz::TextureType::Specular]);
 
         // shadow map
-        pipeline->setUniform("u_ShadowMap", Physbuzz::GL::TextureUnits::activate());
-        shadow.bindOutputTexture();
+        const Physbuzz::Shadow::Framebuffers &shadowMaps = shadow->getFramebuffers();
+
+        pipeline->setUniform("u_ShadowMapDirectional", Physbuzz::GL::TextureUnits::activate());
+        shadowMaps.directional.bindOutputTexture();
+
+        pipeline->setUniform("u_ShadowMapPoint", Physbuzz::GL::TextureUnits::activate());
+        shadowMaps.point.bindOutputTexture();
+
+        // shadow far plane
+        pipeline->setUniform("u_FarPlane", shadow->getInfo().depth);
 
         for (const auto &[mesh, meta] : render.model->getMeshs()) {
             pipeline->setUniform("u_MaterialShininess", meta.shininess);

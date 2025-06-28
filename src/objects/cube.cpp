@@ -1,5 +1,6 @@
 #include "cube.hpp"
 
+#include <physbuzz/render/shadow.hpp>
 #include <physbuzz/physics/collision.hpp>
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/resources/manager.hpp>
@@ -56,6 +57,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
 
     // setup rendering
     info.transform.update();
+    Physbuzz::ShadowComponent shadow;
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = modelName,
@@ -89,7 +91,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
         },
     };
 
-    scene->setComponent(object, info.cube, info.identifier, info.resources, render, rebuilder);
+    scene->setComponent(object, info.cube, info.identifier, info.resources, render, shadow, rebuilder);
 
     if (info.hasPhysics) {
         // generate bounding box

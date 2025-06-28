@@ -26,9 +26,8 @@ vec4 calcDirectionalLight(DirectionalLight light, sampler2D shadowMap, vec4 frag
     vec3 diffuse = light.diffuse * diff;
     vec3 specular = light.specular * spec;
 
-    float shadow = calcShadows(shadowMap, fragPositionLightSpace, normal, light.direction);
-
     // shadows
+    float shadow = calcShadowsDirectional(shadowMap, fragPositionLightSpace, normal, light.direction);
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * materialDiffuse.rgb;
 
     return vec4(lighting, materialDiffuse.a);

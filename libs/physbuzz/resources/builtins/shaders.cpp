@@ -15,20 +15,22 @@ bool Passthrough::build() {
 
     return ResourceRegistry<ShaderPipelineResource>::insert(
         Resource.getIdentifier(),
-        {{.vertex = {.file = {.path = "resources/shaders/builtin/passthrough/passthrough.vert"}},
-          .tessControl = {},
-          .tessEvaluation = {},
-          .geometry = {},
-          .fragment = {.file = {.path = "resources/shaders/builtin/passthrough/passthrough.frag"}},
-          .compute = {},
-          .draw = [](const ShaderPipelineResource *, Scene &, ObjectID id) {
-              for (const auto &[mesh, _] : Builtin::ScreenQuad::Resource->getMeshs()) {
-                  mesh.draw();
-              }
-          }}});
+        {{
+            .vertex = {.file = {.path = "resources/shaders/builtin/passthrough/passthrough.vert"}},
+            .tessControl = {},
+            .tessEvaluation = {},
+            .geometry = {},
+            .fragment = {.file = {.path = "resources/shaders/builtin/passthrough/passthrough.frag"}},
+            .compute = {},
+            .draw = [](const ShaderPipelineResource *, Scene &, ObjectID id) {
+                for (const auto &[mesh, _] : Builtin::ScreenQuad::Resource->getMeshs()) {
+                    mesh.draw();
+                }
+            },
+        }});
 }
 
-bool Depth::build() {
+bool Depth2D::build() {
     if (ResourceRegistry<ShaderPipelineResource>::contains(Resource.getIdentifier())) {
         return true;
     }
@@ -36,16 +38,16 @@ bool Depth::build() {
     return ResourceRegistry<ShaderPipelineResource>::insert(
         Resource.getIdentifier(),
         {{
-            .vertex = {.file = {.path = "resources/shaders/builtin/shadow/shadow.vert"}},
+            .vertex = {.file = {.path = "resources/shaders/builtin/depth/2D.vert"}},
             .tessControl = {},
             .tessEvaluation = {},
             .geometry = {},
-            .fragment = {.file = {.path = "resources/shaders/builtin/shadow/shadow.frag"}},
+            .fragment = {.file = {.path = "resources/shaders/builtin/depth/2D.frag"}},
             .compute = {},
             .draw = [](const ShaderPipelineResource *resource, Scene &scene, ObjectID object) {
                 const auto [render] = scene.getComponent<RenderComponent>(object);
 
-                resource->setUniform("u_Model", render.transform.matrix);
+                resource->setUniform("PBZ_Model", render.transform.matrix);
 
                 for (const auto &[mesh, _] : render.model->getMeshs()) {
                     mesh.draw();
@@ -53,6 +55,33 @@ bool Depth::build() {
             },
         }});
 }
+
+bool DepthCubemap::build() {
+    if (ResourceRegistry<ShaderPipelineResource>::contains(Resource.getIdentifier())) {
+        return true;
+    }
+
+    return ResourceRegistry<ShaderPipelineResource>::insert(
+        Resource.getIdentifier(),
+        {{
+            .vertex = {.file = {.path = "resources/shaders/builtin/depth/cubemap.vert"}},
+            .tessControl = {},
+            .tessEvaluation = {},
+            .geometry = {.file = {.path = "resources/shaders/builtin/depth/cubemap.geom"}},
+            .fragment = {.file = {.path = "resources/shaders/builtin/depth/cubemap.frag"}},
+            .compute = {},
+            .draw = [](const ShaderPipelineResource *resource, Scene &scene, ObjectID object) {
+                const auto [render] = scene.getComponent<RenderComponent>(object);
+
+                resource->setUniform("PBZ_Model", render.transform.matrix);
+
+                for (const auto &[mesh, _] : render.model->getMeshs()) {
+                    mesh.draw();
+                }
+            },
+        }});
+}
+
 } // namespace Builtin
 
 } // namespace Physbuzz

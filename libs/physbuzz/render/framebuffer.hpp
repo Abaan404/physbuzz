@@ -6,41 +6,40 @@
 
 namespace Physbuzz {
 
-struct ColorAttachmentInfo {
+struct FramebufferInfo {
     enum class Storage {
-        None,
-        Texture,
+        Texture2D,
+        Cubemap,
         Renderbuffer,
-    } storage = Storage::None;
-
-    bool isDrawn = false;
-};
-
-struct DepthAttachmentInfo {
-    enum class Storage {
         None,
-        Texture,
-        Renderbuffer,
-    } storage = Storage::None;
+    };
 
-    bool hasStencil = false;
-};
-
-struct OutputAttachmentInfo {
     enum class Type {
         Color,
         Depth,
-    } type = Type::Color;
-    std::size_t colorIndex = 0;
-};
+    };
 
-struct FramebufferInfo {
+    struct ColorAttachment {
+        Storage storage = Storage::None;
+        bool isDrawn = false;
+    };
+
+    struct DepthAttachment {
+        Storage storage = Storage::None;
+        bool hasStencil = false;
+    };
+
+    struct OutputAttachment {
+        Type type = Type::Color;
+        std::size_t colorIndex = 0;
+    };
+
     glm::ivec2 resolution = {1280, 720};
     glm::vec4 colorClear = {0.0f, 0.0f, 0.0f, 0.0f};
 
-    std::vector<ColorAttachmentInfo> colors;
-    DepthAttachmentInfo depth;
-    OutputAttachmentInfo output = {};
+    std::vector<ColorAttachment> colors = {};
+    DepthAttachment depth = {};
+    OutputAttachment output = {};
 };
 
 class Framebuffer {
@@ -58,9 +57,6 @@ class Framebuffer {
 
     bool bindOutputTexture() const;
     bool unbindOutputTexture() const;
-
-    std::tuple<ColorAttachmentInfo, GLuint> getColor(std::size_t index) const;
-    std::tuple<DepthAttachmentInfo, GLuint> getDepth() const;
 
     const FramebufferInfo &getInfo() const;
 

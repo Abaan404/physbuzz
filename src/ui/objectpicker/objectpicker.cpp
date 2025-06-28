@@ -50,12 +50,12 @@ ObjectPicker::ObjectPicker() {
             .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
             .colors = {
                 {
-                    .storage = Physbuzz::ColorAttachmentInfo::Storage::Texture,
+                    .storage = Physbuzz::FramebufferInfo::Storage::Texture2D,
                     .isDrawn = true,
                 },
             },
             .depth = {
-                .storage = Physbuzz::DepthAttachmentInfo::Storage::Renderbuffer,
+                .storage = Physbuzz::FramebufferInfo::Storage::Renderbuffer,
             },
         },
         .postProcessing = {},
@@ -98,7 +98,7 @@ ObjectPicker::ObjectPicker() {
                     .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
                     .colors = {
                         {
-                            .storage = Physbuzz::ColorAttachmentInfo::Storage::Texture,
+                            .storage = Physbuzz::FramebufferInfo::Storage::Texture2D,
                             .isDrawn = true,
                         },
                     },
@@ -148,7 +148,7 @@ void ObjectPicker::draw() {
         m_Scene.getSystem<Physbuzz::Renderer>()->target(&pickable.framebuffer);
         m_Scene.tickSystem<Physbuzz::Renderer>();
 
-        const auto [_, image] = pickable.framebuffer.getColor(0);
+        const auto [_, image] = pickable.framebuffer.getInfo().colors[0];
         ImGui::Image(reinterpret_cast<void *>(static_cast<uintptr_t>(image)), m_PreviewSize);
     }
 

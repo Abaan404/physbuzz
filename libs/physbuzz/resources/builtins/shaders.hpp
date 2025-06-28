@@ -15,9 +15,17 @@ bool build();
 
 } // namespace Passthrough
 
-namespace Depth {
+namespace Depth2D {
 
-inline ResourceHandle<ShaderPipelineResource> Resource = {"builtin/depth"};
+inline ResourceHandle<ShaderPipelineResource> Resource = {"builtin/depth/2D"};
+
+bool build();
+
+} // namespace Depth
+
+namespace DepthCubemap {
+
+inline ResourceHandle<ShaderPipelineResource> Resource = {"builtin/depth/cubemap"};
 
 bool build();
 

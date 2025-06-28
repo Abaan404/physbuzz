@@ -1,5 +1,5 @@
-float calcShadows(sampler2D shadowMap, vec4 lightSpaceFragPos, vec3 normal, vec3 lightDirection) {
-    vec3 projCoords = lightSpaceFragPos.xyz / lightSpaceFragPos.w;
+float calcShadowsDirectional(sampler2D shadowMap, vec4 lightSpaceFragPosition, vec3 normal, vec3 lightDirection) {
+    vec3 projCoords = lightSpaceFragPosition.xyz / lightSpaceFragPosition.w;
     if (projCoords.z > 1.0) {
         return 0.0f;
     }
@@ -21,6 +21,18 @@ float calcShadows(sampler2D shadowMap, vec4 lightSpaceFragPos, vec3 normal, vec3
         }
     }
     shadow /= 9.0f;
+
+    return shadow;
+}
+
+float calcShadowsPoint(samplerCube shadowMap, vec3 fragPosition, vec3 normal, vec3 lightDirection, vec3 lightPosition, float farPlane) {
+    vec3 fragToLight = fragPosition - lightPosition;
+    float closestDepth = texture(shadowMap, fragToLight).r;
+    closestDepth *= farPlane;
+    float currentDepth = length(fragToLight);
+
+    float bias = 0.0005;
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
     return shadow;
 }
