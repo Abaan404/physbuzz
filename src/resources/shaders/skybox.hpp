@@ -5,14 +5,14 @@
 #include <physbuzz/render/gl/units.hpp>
 #include <physbuzz/render/renderer.hpp>
 
-inline Physbuzz::ShaderPipelineResource shaderSkybox = {{
+inline Physbuzz::ShaderPipeline shaderSkybox = {{
     .vertex = {.file = {.path = "resources/shaders/skybox/skybox.vert"}},
     .tessControl = {},
     .tessEvaluation = {},
     .geometry = {},
     .fragment = {.file = {.path = "resources/shaders/skybox/skybox.frag"}},
     .compute = {},
-    .draw = [](const Physbuzz::ShaderPipelineResource *pipeline, Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
+    .draw = [](const Physbuzz::ShaderPipeline *pipeline, Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         const auto [render, skybox] = scene.getComponent<Physbuzz::RenderComponent, SkyboxComponent>(object);
 
         Physbuzz::GL::DepthFunc depthFunc = Physbuzz::GL::getDepthFunc();

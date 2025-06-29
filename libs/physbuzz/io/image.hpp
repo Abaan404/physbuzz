@@ -10,10 +10,10 @@ struct ImageInfo {
     bool flipVertically = false;
 };
 
-class ImageResource {
+class ImageFile : public ResourceTag {
   public:
-    ImageResource(const ImageInfo &image);
-    ~ImageResource();
+    ImageFile(const ImageInfo &image);
+    ~ImageFile();
 
     bool build();
     bool destroy();

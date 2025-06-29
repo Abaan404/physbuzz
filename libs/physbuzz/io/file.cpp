@@ -5,20 +5,20 @@
 
 namespace Physbuzz {
 
-FileResource::FileResource(const FileInfo &file)
+File::File(const FileInfo &file)
     : m_Info(file) {}
 
-FileResource::~FileResource() {}
+File::~File() {}
 
-bool FileResource::build() {
+bool File::build() {
     return true;
 }
 
-bool FileResource::destroy() {
+bool File::destroy() {
     return true;
 }
 
-bool FileResource::read() {
+bool File::read() {
     std::ifstream stream = std::ifstream(m_Info.path, std::ios::in | std::ios::binary);
 
     if (!stream.is_open()) {
@@ -44,7 +44,7 @@ bool FileResource::read() {
     return true;
 }
 
-bool FileResource::write() {
+bool File::write() {
     std::ofstream stream = std::ofstream(m_Info.path, std::ios::out | std::ios::binary);
 
     if (!stream.is_open()) {
@@ -62,11 +62,11 @@ bool FileResource::write() {
     return true;
 }
 
-const std::streampos &FileResource::getSize() const {
+const std::streampos &File::getSize() const {
     return m_Size;
 }
 
-const std::filesystem::path &FileResource::getPath() const {
+const std::filesystem::path &File::getPath() const {
     return m_Info.path;
 }
 

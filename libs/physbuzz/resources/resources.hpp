@@ -3,6 +3,7 @@
 #include "../containers/contigiousmap.hpp"
 #include "../events/handler.hpp"
 #include "../events/resources.hpp"
+#include "defines.hpp"
 
 namespace Physbuzz {
 
@@ -29,7 +30,7 @@ class ResourceFileWatcher : public efsw::FileWatchListener {
     }
 };
 
-} // namespace
+} // namespace detail
 
 template <ResourceType T>
 class ResourceRegistry {
@@ -128,7 +129,30 @@ class ResourceRegistry {
     inline static std::filesystem::path m_ResourceDirectory;
 
     template <ResourceType>
-    friend class ResourceHandle;
+    friend class Resource;
+};
+
+template <ResourceType T>
+class Resource {
+  public:
+    Resource(const ResourceID &identifier)
+        : m_Identifier(identifier) {}
+
+    T *operator->() const {
+        return get();
+    }
+
+    T *get() const {
+        PBZ_ASSERT(ResourceRegistry<T>::contains(m_Identifier), std::format("[Resource] Resource \"{}\" does not exist for type", m_Identifier));
+        return &ResourceRegistry<T>::m_Container.get(m_Identifier);
+    }
+
+    const ResourceID &getIdentifier() const {
+        return m_Identifier;
+    }
+
+  private:
+    ResourceID m_Identifier;
 };
 
 } // namespace Physbuzz

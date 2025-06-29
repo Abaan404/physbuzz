@@ -15,31 +15,31 @@
 static Physbuzz::EventID eventBuild;
 
 void ResourceBuilder::buildShaders() {
-    eventBuild = Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::Events.addCallback<Physbuzz::OnResourceBuild>([](const auto &) {
-        Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->bindPipeline(1);
-        Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformWindow>>("window")->bindPipeline(2);
-        Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformTime>>("time")->bindPipeline(3);
+    eventBuild = Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::Events.addCallback<Physbuzz::OnResourceBuild>([](const auto &) {
+        Physbuzz::Resource<Physbuzz::UniformBuffer<UniformCamera>>("camera")->bindPipeline(1);
+        Physbuzz::Resource<Physbuzz::UniformBuffer<UniformWindow>>("window")->bindPipeline(2);
+        Physbuzz::Resource<Physbuzz::UniformBuffer<UniformTime>>("time")->bindPipeline(3);
     });
 
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("default", std::move(shaderDefault));
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("circle", std::move(shaderCircle));
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("quad", std::move(shaderQuad));
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("cube", std::move(shaderCube));
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("skybox", std::move(shaderSkybox));
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("debug/normal", std::move(shaderDebugNormal));
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::insert("gamma", std::move(shaderGamma));
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert("default", std::move(shaderDefault));
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert("circle", std::move(shaderCircle));
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert("quad", std::move(shaderQuad));
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert("cube", std::move(shaderCube));
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert("skybox", std::move(shaderSkybox));
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert("debug/normal", std::move(shaderDebugNormal));
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert("gamma", std::move(shaderGamma));
 
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::watch();
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::watch();
 }
 
 void ResourceBuilder::destroyShaders() {
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("default");
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("circle");
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("quad");
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("cube");
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("skybox");
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("debug/normal");
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::erase("gamma");
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("default");
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("circle");
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("quad");
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("cube");
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("skybox");
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("debug/normal");
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("gamma");
 
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipelineResource>::Events.eraseCallback<Physbuzz::OnResourceBuild>(eventBuild);
+    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::Events.eraseCallback<Physbuzz::OnResourceBuild>(eventBuild);
 }

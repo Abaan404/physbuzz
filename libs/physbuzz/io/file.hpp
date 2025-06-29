@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../resources/defines.hpp"
 #include <filesystem>
 
 namespace Physbuzz {
@@ -8,10 +9,10 @@ struct FileInfo {
     std::filesystem::path path;
 };
 
-class FileResource {
+class File : public ResourceTag {
   public:
-    FileResource(const FileInfo &file);
-    ~FileResource();
+    File(const FileInfo &file);
+    ~File();
 
     bool build();
     bool destroy();

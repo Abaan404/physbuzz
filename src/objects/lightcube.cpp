@@ -1,8 +1,5 @@
 #include "lightcube.hpp"
 
-#include <physbuzz/physics/collision.hpp>
-#include <physbuzz/render/lighting.hpp>
-#include <physbuzz/render/model.hpp>
 #include <physbuzz/render/shadow.hpp>
 
 template <>

@@ -9,11 +9,11 @@ namespace Physbuzz {
 namespace Builtin {
 
 bool Passthrough::build() {
-    if (ResourceRegistry<ShaderPipelineResource>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
 
-    return ResourceRegistry<ShaderPipelineResource>::insert(
+    return ResourceRegistry<ShaderPipeline>::insert(
         Resource.getIdentifier(),
         {{
             .vertex = {.file = {.path = "resources/shaders/builtin/passthrough/passthrough.vert"}},
@@ -22,7 +22,7 @@ bool Passthrough::build() {
             .geometry = {},
             .fragment = {.file = {.path = "resources/shaders/builtin/passthrough/passthrough.frag"}},
             .compute = {},
-            .draw = [](const ShaderPipelineResource *, Scene &, ObjectID id) {
+            .draw = [](const ShaderPipeline *, Scene &, ObjectID id) {
                 for (const auto &[mesh, _] : Builtin::ScreenQuad::Resource->getMeshs()) {
                     mesh.draw();
                 }
@@ -31,11 +31,11 @@ bool Passthrough::build() {
 }
 
 bool Depth2D::build() {
-    if (ResourceRegistry<ShaderPipelineResource>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
 
-    return ResourceRegistry<ShaderPipelineResource>::insert(
+    return ResourceRegistry<ShaderPipeline>::insert(
         Resource.getIdentifier(),
         {{
             .vertex = {.file = {.path = "resources/shaders/builtin/depth/2D.vert"}},
@@ -44,7 +44,7 @@ bool Depth2D::build() {
             .geometry = {},
             .fragment = {.file = {.path = "resources/shaders/builtin/depth/2D.frag"}},
             .compute = {},
-            .draw = [](const ShaderPipelineResource *resource, Scene &scene, ObjectID object) {
+            .draw = [](const ShaderPipeline *resource, Scene &scene, ObjectID object) {
                 const auto [render] = scene.getComponent<RenderComponent>(object);
 
                 resource->setUniform("PBZ_Model", render.transform.matrix);
@@ -57,11 +57,11 @@ bool Depth2D::build() {
 }
 
 bool DepthCubemap::build() {
-    if (ResourceRegistry<ShaderPipelineResource>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
 
-    return ResourceRegistry<ShaderPipelineResource>::insert(
+    return ResourceRegistry<ShaderPipeline>::insert(
         Resource.getIdentifier(),
         {{
             .vertex = {.file = {.path = "resources/shaders/builtin/depth/cubemap.vert"}},
@@ -70,7 +70,7 @@ bool DepthCubemap::build() {
             .geometry = {.file = {.path = "resources/shaders/builtin/depth/cubemap.geom"}},
             .fragment = {.file = {.path = "resources/shaders/builtin/depth/cubemap.frag"}},
             .compute = {},
-            .draw = [](const ShaderPipelineResource *resource, Scene &scene, ObjectID object) {
+            .draw = [](const ShaderPipeline *resource, Scene &scene, ObjectID object) {
                 const auto [render] = scene.getComponent<RenderComponent>(object);
 
                 resource->setUniform("PBZ_Model", render.transform.matrix);

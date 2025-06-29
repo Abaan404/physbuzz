@@ -2,8 +2,6 @@
 
 #include "common.hpp"
 #include <physbuzz/physics/dynamics.hpp>
-#include <physbuzz/render/model.hpp>
-#include <physbuzz/resources/manager.hpp>
 
 struct CircleComponent {
     float radius = 0.0f;

@@ -19,6 +19,7 @@
 #include <physbuzz/render/gl/capabilities.hpp>
 #include <physbuzz/render/shadow.hpp>
 #include <physbuzz/render/uniforms.hpp>
+#include <physbuzz/window/bindings.hpp>
 #include <random>
 
 Game::Game()
@@ -36,7 +37,7 @@ void Game::build() {
 
     // notify resources and cameras when the window resizes
     window.addCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) {
-        Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformWindow>>("window")->update({
+        Physbuzz::Resource<Physbuzz::UniformBuffer<UniformWindow>>("window")->update({
             .resolution = event.resolution,
         });
 
@@ -126,6 +127,7 @@ void Game::rebuild() {
                     .storage = Physbuzz::FramebufferInfo::Storage::Renderbuffer,
                     .hasStencil = true,
                 },
+                .output = {},
             },
             .postProcessing = {
                 {"gamma"},
@@ -315,13 +317,13 @@ void Game::loop() {
 
     while (m_IsRunning && !window.shouldClose()) {
         auto clock = scene.getSystem<Physbuzz::Clock>();
-        Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformTime>>("time")->update({
+        Physbuzz::Resource<Physbuzz::UniformBuffer<UniformTime>>("time")->update({
             .time = clock->getTime(),
             .timedelta = clock->getDelta(),
         });
 
         for (const auto &[_, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
-            Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->update({
+            Physbuzz::Resource<Physbuzz::UniformBuffer<UniformCamera>>("camera")->update({
                 .position = camera.getInfo().view.position,
                 ._padding0 = 0.0f,
                 .view = camera.getView(),
@@ -343,7 +345,7 @@ void Game::destroy() {
     ResourceBuilder resources;
     resources.destroy();
 
-    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::clear(); // clean up generated models
+    Physbuzz::ResourceRegistry<Physbuzz::Model>::clear(); // clean up generated models
 
     m_IsRunning = false;
 

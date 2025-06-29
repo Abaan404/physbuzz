@@ -1,7 +1,6 @@
 #include "skybox.hpp"
 
 #include <physbuzz/render/renderer.hpp>
-#include <physbuzz/resources/manager.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Skybox &info) {
@@ -45,7 +44,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Skybox &info
     };
 
     std::string modelName = std::format("skybox_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(
+    Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
         modelName,
         {{
             .meshes = {{mesh, {}}},

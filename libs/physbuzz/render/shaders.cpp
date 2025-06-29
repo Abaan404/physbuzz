@@ -1,7 +1,7 @@
 #include "shaders.hpp"
 
 #include "../debug/logging.hpp"
-#include "../resources/handle.hpp"
+#include "../resources/resources.hpp"
 #include <bitset>
 #include <vector>
 
@@ -42,7 +42,7 @@ bool Shader::compile() {
         return false;
     }
 
-    FileResource file = FileResource(m_Info.file);
+    File file = File(m_Info.file);
     if (!file.build()) {
         Logger::ERROR("[Shader] Could not build file '{}'", m_Info.file.path.string());
         return false;
@@ -78,12 +78,12 @@ bool Shader::compile() {
     return true;
 }
 
-void Shader::preprocess(FileResource &file) {
+void Shader::preprocess(File &file) {
     if (file.buffer.empty()) {
         return;
     }
 
-    std::unordered_map<std::string, std::function<bool(FileResource &, std::size_t)>> directives = {
+    std::unordered_map<std::string, std::function<bool(File &, std::size_t)>> directives = {
         {"pbz_include ", std::bind(&Shader::preprocessInclude, this, std::placeholders::_1, std::placeholders::_2)},
     };
 
@@ -107,7 +107,7 @@ void Shader::preprocess(FileResource &file) {
     }
 }
 
-bool Shader::preprocessInclude(FileResource &file, std::size_t position) {
+bool Shader::preprocessInclude(File &file, std::size_t position) {
     std::size_t pathBegin = file.buffer.find('\"', position) + 1;
     if (pathBegin >= file.buffer.size()) {
         return false;
@@ -147,7 +147,7 @@ bool Shader::preprocessInclude(FileResource &file, std::size_t position) {
         return true;
     }
 
-    FileResource includeFile = FileResource({
+    File includeFile = File({
         .path = includePath,
     });
 
@@ -228,12 +228,12 @@ inline void destroyShaders(std::array<Shader, N> &shaders, const GLuint &program
     }
 }
 
-ShaderPipelineResource::ShaderPipelineResource(const ShaderPipelineInfo &info)
+ShaderPipeline::ShaderPipeline(const ShaderPipelineInfo &info)
     : m_Info(info) {}
 
-ShaderPipelineResource::~ShaderPipelineResource() {}
+ShaderPipeline::~ShaderPipeline() {}
 
-bool ShaderPipelineResource::build() {
+bool ShaderPipeline::build() {
     if (m_Program != 0) {
         Logger::WARNING("[ShaderPipelineResource] Trying to build a constructed pipeline.");
     }
@@ -306,13 +306,13 @@ bool ShaderPipelineResource::build() {
 
         // OpenGL's context must exist in the main thread (not necessarily but adds too much complexity)
         // hence why reload cannot be done in the watcher thread
-        ResourceHandle<ShaderPipelineResource>(event.identifier)->m_RequestedReload = true;
+        Resource<ShaderPipeline>(event.identifier)->m_RequestedReload = true;
     };
 
     return true;
 }
 
-bool ShaderPipelineResource::destroy() {
+bool ShaderPipeline::destroy() {
     if (m_Program == 0) {
         Logger::WARNING("[ShaderPipelineResource] Trying to destroy a destructed pipeline.");
     }
@@ -322,7 +322,7 @@ bool ShaderPipelineResource::destroy() {
     return true;
 }
 
-bool ShaderPipelineResource::reload() {
+bool ShaderPipeline::reload() {
     if (!m_RequestedReload) {
         // no reload was necessary, expected behaviour
         return true;
@@ -343,11 +343,11 @@ bool ShaderPipelineResource::reload() {
     return true;
 }
 
-void ShaderPipelineResource::draw(Scene &scene, ObjectID object) const {
+void ShaderPipeline::draw(Scene &scene, ObjectID object) const {
     m_Info.draw(this, scene, object);
 }
 
-bool ShaderPipelineResource::bind() const {
+bool ShaderPipeline::bind() const {
     if (m_Program == 0) {
         return false;
     }
@@ -356,7 +356,7 @@ bool ShaderPipelineResource::bind() const {
     return true;
 }
 
-bool ShaderPipelineResource::unbind() const {
+bool ShaderPipeline::unbind() const {
     if (m_Program == 0) {
         return false;
     }
@@ -365,36 +365,36 @@ bool ShaderPipelineResource::unbind() const {
     return true;
 }
 
-const GLuint &ShaderPipelineResource::getProgram() const {
+const GLuint &ShaderPipeline::getProgram() const {
     return m_Program;
 }
 
-void ShaderPipelineResource::setUniformInternal(const GLint location, const float &data) const { glUniform1fv(location, 1, &data); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::vec2 &data) const { glUniform2fv(location, 1, &data[0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::vec3 &data) const { glUniform3fv(location, 1, &data[0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::vec4 &data) const { glUniform4fv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const float &data) const { glUniform1fv(location, 1, &data); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec2 &data) const { glUniform2fv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec3 &data) const { glUniform3fv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec4 &data) const { glUniform4fv(location, 1, &data[0]); }
 
-void ShaderPipelineResource::setUniformInternal(const GLint location, const int &data) const { glUniform1iv(location, 1, &data); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::ivec2 &data) const { glUniform2iv(location, 1, &data[0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::ivec3 &data) const { glUniform3iv(location, 1, &data[0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::ivec4 &data) const { glUniform4iv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const int &data) const { glUniform1iv(location, 1, &data); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec2 &data) const { glUniform2iv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec3 &data) const { glUniform3iv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec4 &data) const { glUniform4iv(location, 1, &data[0]); }
 
-void ShaderPipelineResource::setUniformInternal(const GLint location, const unsigned int &data) const { glUniform1uiv(location, 1, &data); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::uvec2 &data) const { glUniform2uiv(location, 1, &data[0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::uvec3 &data) const { glUniform3uiv(location, 1, &data[0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::uvec4 &data) const { glUniform4uiv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const unsigned int &data) const { glUniform1uiv(location, 1, &data); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec2 &data) const { glUniform2uiv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec3 &data) const { glUniform3uiv(location, 1, &data[0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec4 &data) const { glUniform4uiv(location, 1, &data[0]); }
 
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat2 &data) const { glUniformMatrix2fv(location, 1, GL_FALSE, &data[0][0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat3 &data) const { glUniformMatrix3fv(location, 1, GL_FALSE, &data[0][0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat4 &data) const { glUniformMatrix4fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2 &data) const { glUniformMatrix2fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3 &data) const { glUniformMatrix3fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4 &data) const { glUniformMatrix4fv(location, 1, GL_FALSE, &data[0][0]); }
 
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat2x3 &data) const { glUniformMatrix2x3fv(location, 1, GL_FALSE, &data[0][0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat3x2 &data) const { glUniformMatrix3x2fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2x3 &data) const { glUniformMatrix2x3fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3x2 &data) const { glUniformMatrix3x2fv(location, 1, GL_FALSE, &data[0][0]); }
 
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat2x4 &data) const { glUniformMatrix2x4fv(location, 1, GL_FALSE, &data[0][0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat4x2 &data) const { glUniformMatrix4x2fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2x4 &data) const { glUniformMatrix2x4fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4x2 &data) const { glUniformMatrix4x2fv(location, 1, GL_FALSE, &data[0][0]); }
 
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat3x4 &data) const { glUniformMatrix3x4fv(location, 1, GL_FALSE, &data[0][0]); }
-void ShaderPipelineResource::setUniformInternal(const GLint location, const glm::mat4x3 &data) const { glUniformMatrix4x3fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3x4 &data) const { glUniformMatrix3x4fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4x3 &data) const { glUniformMatrix4x3fv(location, 1, GL_FALSE, &data[0][0]); }
 
 } // namespace Physbuzz

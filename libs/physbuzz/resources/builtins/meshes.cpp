@@ -5,11 +5,11 @@ namespace Physbuzz {
 namespace Builtin {
 
 bool ScreenQuad::build() {
-    if (ResourceRegistry<ModelResource>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<Model>::contains(Resource.getIdentifier())) {
         return true;
     }
 
-    return ResourceRegistry<ModelResource>::insert(
+    return ResourceRegistry<Model>::insert(
         Resource.getIdentifier(),
         {{
             .meshes = {

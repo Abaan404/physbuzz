@@ -6,6 +6,7 @@
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/gl/capabilities.hpp>
+#include <physbuzz/window/bindings.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Player &info) {

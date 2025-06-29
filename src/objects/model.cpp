@@ -1,9 +1,6 @@
 #include "model.hpp"
 
-#include <glm/ext/scalar_constants.hpp>
-#include <physbuzz/physics/collision.hpp>
 #include <physbuzz/render/shadow.hpp>
-#include <physbuzz/resources/manager.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Model &info) {

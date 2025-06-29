@@ -12,13 +12,13 @@ class Framebuffer;
 
 struct RenderComponent {
     Transform transform;
-    ResourceHandle<ModelResource> model;
-    ResourceHandle<ShaderPipelineResource> pipeline;
+    Resource<Model> model;
+    Resource<ShaderPipeline> pipeline;
 };
 
 struct RendererInfo {
     FramebufferInfo framebuffer;
-    std::vector<ResourceHandle<ShaderPipelineResource>> postProcessing;
+    std::vector<Resource<ShaderPipeline>> postProcessing;
 };
 
 class Renderer : public System<RenderComponent> {

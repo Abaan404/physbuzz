@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../resources/handle.hpp"
+#include "../resources/resources.hpp"
 #include "mesh.hpp"
 #include "texture.hpp"
 #include <assimp/scene.h>
@@ -43,20 +43,20 @@ struct MeshMeta {
 
 struct ModelInfo {
     std::vector<std::tuple<Mesh, MeshMeta>> meshes;
-    std::vector<ResourceHandle<Texture2DResource>> textures;
+    std::vector<Resource<Texture2D>> textures;
 };
 
-class ModelResource {
+class Model : public ResourceTag {
   public:
-    ModelResource(const std::filesystem::path &path);
-    ModelResource(const ModelInfo &info);
-    ~ModelResource();
+    Model(const std::filesystem::path &path);
+    Model(const ModelInfo &info);
+    ~Model();
 
     bool build();
     bool destroy();
 
     const std::vector<std::tuple<Mesh, MeshMeta>> &getMeshs() const;
-    const std::vector<ResourceHandle<Texture2DResource>> &getTextures() const;
+    const std::vector<Resource<Texture2D>> &getTextures() const;
 
   private:
     bool load();

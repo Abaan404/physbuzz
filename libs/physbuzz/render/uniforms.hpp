@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../debug/logging.hpp"
+#include "../resources/defines.hpp"
 #include <glad/gl.h>
 #include <type_traits>
 
@@ -13,10 +14,10 @@ concept UniformBufferType =
     std::is_standard_layout_v<T>;
 
 template <UniformBufferType T>
-class UniformBufferResource {
+class UniformBuffer : public ResourceTag {
   public:
-    UniformBufferResource() {}
-    ~UniformBufferResource() {}
+    UniformBuffer() {}
+    ~UniformBuffer() {}
 
     bool build() {
         if (UBO != 0) {

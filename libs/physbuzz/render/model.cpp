@@ -7,15 +7,15 @@
 
 namespace Physbuzz {
 
-ModelResource::ModelResource(const std::filesystem::path &path)
+Model::Model(const std::filesystem::path &path)
     : m_Path(path) {}
 
-ModelResource::ModelResource(const ModelInfo &info)
+Model::Model(const ModelInfo &info)
     : m_Info(info) {}
 
-ModelResource::~ModelResource() {}
+Model::~Model() {}
 
-bool ModelResource::build() {
+bool Model::build() {
     // if supplied a path, load the model from the filesystem
     if (!m_Path.empty()) {
         load();
@@ -28,7 +28,7 @@ bool ModelResource::build() {
     return true;
 }
 
-bool ModelResource::destroy() {
+bool Model::destroy() {
     for (auto &[mesh, _] : m_Info.meshes) {
         mesh.destroy();
     }
@@ -36,7 +36,7 @@ bool ModelResource::destroy() {
     return true;
 }
 
-bool ModelResource::load() {
+bool Model::load() {
     Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(m_Path, aiProcess_Triangulate | aiProcess_FlipUVs);
 
@@ -48,7 +48,7 @@ bool ModelResource::load() {
     return processNode(scene->mRootNode, scene);
 }
 
-bool ModelResource::processNode(const aiNode *ainode, const aiScene *aiscene) {
+bool Model::processNode(const aiNode *ainode, const aiScene *aiscene) {
     for (std::size_t i = 0; i < ainode->mNumMeshes; ++i) {
         aiMesh *mesh = aiscene->mMeshes[ainode->mMeshes[i]];
         processMesh(mesh, aiscene);
@@ -61,7 +61,7 @@ bool ModelResource::processNode(const aiNode *ainode, const aiScene *aiscene) {
     return true;
 }
 
-bool ModelResource::processMesh(const aiMesh *aimesh, const aiScene *scene) {
+bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
     MeshInfo mesh;
     MeshMeta meta;
 
@@ -112,7 +112,7 @@ bool ModelResource::processMesh(const aiMesh *aimesh, const aiScene *scene) {
     return true;
 }
 
-void ModelResource::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
+void Model::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
     std::uint32_t size = aimaterial->GetTextureCount(type);
 
     for (std::uint32_t i = 0; i < size; i++) {
@@ -130,18 +130,18 @@ void ModelResource::loadTextures(const aiMaterial *aimaterial, aiTextureType typ
             .type = static_cast<TextureType>(type),
         };
 
-        if (!ResourceRegistry<Texture2DResource>::contains(path)) {
-            ResourceRegistry<Texture2DResource>::insert(path, info);
+        if (!ResourceRegistry<Texture2D>::contains(path)) {
+            ResourceRegistry<Texture2D>::insert(path, info);
             m_Info.textures.emplace_back(path);
         }
     }
 }
 
-const std::vector<std::tuple<Mesh, MeshMeta>> &ModelResource::getMeshs() const {
+const std::vector<std::tuple<Mesh, MeshMeta>> &Model::getMeshs() const {
     return m_Info.meshes;
 }
 
-const std::vector<ResourceHandle<Texture2DResource>> &ModelResource::getTextures() const {
+const std::vector<Resource<Texture2D>> &Model::getTextures() const {
     return m_Info.textures;
 }
 

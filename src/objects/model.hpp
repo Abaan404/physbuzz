@@ -1,11 +1,11 @@
 #pragma once
 
 #include "common.hpp"
-#include <physbuzz/physics/dynamics.hpp>
+#include <physbuzz/render/model.hpp>
 #include <physbuzz/render/transform.hpp>
 
 struct ModelComponent {
-    Physbuzz::ResourceHandle<Physbuzz::ModelResource> resource;
+    Physbuzz::Resource<Physbuzz::Model> resource;
 };
 
 struct Model {

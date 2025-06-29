@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../render/model.hpp"
-#include "../../resources/handle.hpp"
+#include "../../resources/resources.hpp"
 
 namespace Physbuzz {
 
@@ -9,7 +9,7 @@ namespace Builtin {
 
 namespace ScreenQuad {
 
-inline ResourceHandle<ModelResource> Resource = {"builtin/passthrough"};
+inline Resource<Model> Resource = {"builtin/passthrough"};
 
 bool build();
 

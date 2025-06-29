@@ -1,7 +1,6 @@
 #include "circle.hpp"
 
 #include <physbuzz/physics/collision.hpp>
-#include <physbuzz/resources/manager.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info) {
@@ -29,7 +28,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
 
     // create model
     std::string modelName = std::format("circle_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(
+    Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
         modelName,
         {{
             .meshes = {{mesh, {}}},

@@ -2,7 +2,6 @@
 
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
-#include <physbuzz/resources/manager.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) {
@@ -25,7 +24,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
 
     // create model
     std::string modelName = std::format("line_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(
+    Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
         modelName,
         {{
             .meshes = {{mesh, {}}},

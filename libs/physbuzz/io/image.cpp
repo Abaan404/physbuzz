@@ -10,16 +10,16 @@
 
 namespace Physbuzz {
 
-ImageResource::ImageResource(const ImageInfo &image)
+ImageFile::ImageFile(const ImageInfo &image)
     : m_Info(image) {}
 
-ImageResource::~ImageResource() {}
+ImageFile::~ImageFile() {}
 
-bool ImageResource::build() {
+bool ImageFile::build() {
     return true;
 }
 
-bool ImageResource::destroy() {
+bool ImageFile::destroy() {
     if (buffer != nullptr) {
         stbi_image_free(buffer);
         buffer = nullptr;
@@ -28,7 +28,7 @@ bool ImageResource::destroy() {
     return true;
 }
 
-bool ImageResource::read() {
+bool ImageFile::read() {
     stbi_set_flip_vertically_on_load(m_Info.flipVertically);
 
     buffer = stbi_load(m_Info.file.path.c_str(), &m_Resolution.x, &m_Resolution.y, &m_Channels, 0);
@@ -41,7 +41,7 @@ bool ImageResource::read() {
     return true;
 }
 
-bool ImageResource::write() {
+bool ImageFile::write() {
     if (!buffer) {
         Logger::ERROR("[ImageResource] Buffer is empty, cannot write image.");
         return false;
@@ -57,11 +57,11 @@ bool ImageResource::write() {
     return true;
 }
 
-const glm::ivec2 &ImageResource::getResolution() const {
+const glm::ivec2 &ImageFile::getResolution() const {
     return m_Resolution;
 }
 
-const int &ImageResource::getChannels() const {
+const int &ImageFile::getChannels() const {
     return m_Channels;
 }
 

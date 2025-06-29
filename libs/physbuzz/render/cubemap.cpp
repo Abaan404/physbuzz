@@ -1,16 +1,16 @@
 #include "cubemap.hpp"
 
 #include "../debug/logging.hpp"
-#include "physbuzz/render/gl/units.hpp"
+#include "gl/units.hpp"
 
 namespace Physbuzz {
 
-CubemapResource::CubemapResource(const CubemapInfo &info)
+Cubemap::Cubemap(const CubemapInfo &info)
     : m_Info(info) {}
 
-CubemapResource::~CubemapResource() {}
+Cubemap::~Cubemap() {}
 
-bool CubemapResource::build() {
+bool Cubemap::build() {
     glGenTextures(1, &m_Texture);
     GL::TextureUnits::activate(0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_Texture);
@@ -40,28 +40,28 @@ bool CubemapResource::build() {
     return true;
 }
 
-bool CubemapResource::destroy() {
+bool Cubemap::destroy() {
     glDeleteTextures(1, &m_Texture);
 
     return true;
 }
 
-bool CubemapResource::bind() const {
+bool Cubemap::bind() const {
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_Texture);
     return true;
 }
 
-bool CubemapResource::unbind() const {
+bool Cubemap::unbind() const {
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     return true;
 }
 
-bool CubemapResource::loadImage(ImageInfo &imageInfo, GLenum target) {
+bool Cubemap::loadImage(ImageInfo &imageInfo, GLenum target) {
     if (imageInfo.file.path.empty()) {
         return false;
     }
 
-    ImageResource image = ImageResource(imageInfo);
+    ImageFile image = ImageFile(imageInfo);
     if (!image.build()) {
         Logger::ERROR("[CubemapResource] Could not build image: {}", imageInfo.file.path.string());
         return false;

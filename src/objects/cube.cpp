@@ -3,7 +3,6 @@
 #include <physbuzz/render/shadow.hpp>
 #include <physbuzz/physics/collision.hpp>
 #include <physbuzz/physics/dynamics.hpp>
-#include <physbuzz/resources/manager.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) {
@@ -48,7 +47,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
 
     // create model
     std::string modelName = std::format("cube_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(
+    Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
         modelName,
         {{
             .meshes = {{mesh, {}}},

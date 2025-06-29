@@ -5,19 +5,19 @@
 
 namespace Physbuzz {
 
-Texture2DResource::Texture2DResource(const Texture2DInfo &texture2D)
+Texture2D::Texture2D(const Texture2DInfo &texture2D)
     : m_Info(texture2D) {}
 
-Texture2DResource::~Texture2DResource() {}
+Texture2D::~Texture2D() {}
 
-bool Texture2DResource::build() {
+bool Texture2D::build() {
     if (m_Info.image.file.path.empty()) {
         return false;
     }
 
     // OpenGL's origin for textures are on its top-left
     m_Info.image.flipVertically = true;
-    ImageResource image = ImageResource(m_Info.image);
+    ImageFile image = ImageFile(m_Info.image);
     if (!image.build()) {
         Logger::ERROR("[Texture2D] Could not build image: {}", m_Info.image.file.path.string());
         return false;
@@ -31,7 +31,7 @@ bool Texture2DResource::build() {
 
     glGenTextures(1, &m_Texture);
     GL::TextureUnits::activate(0);
-    glBindTexture(GL_TEXTURE_2D, m_Texture);
+    bind();
 
     // Texture Wrapping (Repeat)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -65,28 +65,29 @@ bool Texture2DResource::build() {
     glGenerateMipmap(GL_TEXTURE_2D);
 
     GL::TextureUnits::deactivate(0);
+    unbind();
 
     image.destroy();
     return true;
 }
 
-bool Texture2DResource::destroy() {
+bool Texture2D::destroy() {
     glDeleteTextures(1, &m_Texture);
 
     return true;
 }
 
-bool Texture2DResource::bind() const {
+bool Texture2D::bind() const {
     glBindTexture(GL_TEXTURE_2D, m_Texture);
     return true;
 }
 
-bool Texture2DResource::unbind() const {
+bool Texture2D::unbind() const {
     glBindTexture(GL_TEXTURE_2D, 0);
     return true;
 }
 
-TextureType Texture2DResource::getType() const {
+TextureType Texture2D::getType() const {
     return m_Info.type;
 }
 

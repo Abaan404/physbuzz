@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../render/shaders.hpp"
-#include "../../resources/handle.hpp"
+#include "../../resources/resources.hpp"
 
 namespace Physbuzz {
 
@@ -9,7 +9,7 @@ namespace Builtin {
 
 namespace Passthrough {
 
-inline ResourceHandle<ShaderPipelineResource> Resource = {"builtin/passthrough"};
+inline Resource<ShaderPipeline> Resource = {"builtin/passthrough"};
 
 bool build();
 
@@ -17,7 +17,7 @@ bool build();
 
 namespace Depth2D {
 
-inline ResourceHandle<ShaderPipelineResource> Resource = {"builtin/depth/2D"};
+inline Resource<ShaderPipeline> Resource = {"builtin/depth/2D"};
 
 bool build();
 
@@ -25,7 +25,7 @@ bool build();
 
 namespace DepthCubemap {
 
-inline ResourceHandle<ShaderPipelineResource> Resource = {"builtin/depth/cubemap"};
+inline Resource<ShaderPipeline> Resource = {"builtin/depth/cubemap"};
 
 bool build();
 

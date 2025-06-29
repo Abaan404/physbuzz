@@ -5,13 +5,13 @@
 #include "../../objects/quad.hpp"
 #include "../../objects/skybox.hpp"
 #include "../../resources/uniforms/camera.hpp"
-#include "physbuzz/render/camera.hpp"
-#include "physbuzz/render/uniforms.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
+#include <physbuzz/render/camera.hpp>
 #include <physbuzz/render/renderer.hpp>
+#include <physbuzz/render/uniforms.hpp>
 
 struct PickableComponent {
     bool selected = false;
@@ -57,6 +57,7 @@ ObjectPicker::ObjectPicker() {
             .depth = {
                 .storage = Physbuzz::FramebufferInfo::Storage::Renderbuffer,
             },
+            .output = {},
         },
         .postProcessing = {},
     });
@@ -103,6 +104,7 @@ ObjectPicker::ObjectPicker() {
                         },
                     },
                     .depth = {},
+                    .output = {},
                 },
             },
         };
@@ -132,7 +134,7 @@ void ObjectPicker::draw() {
     }
 
     for (const auto &[camera] : m_Scene.getComponents<Physbuzz::CameraComponent>()) {
-        Physbuzz::ResourceHandle<Physbuzz::UniformBufferResource<UniformCamera>>("camera")->update({
+        Physbuzz::Resource<Physbuzz::UniformBuffer<UniformCamera>>("camera")->update({
             .position = camera.getInfo().view.position,
             ._padding0 = 0.0f,
             .view = camera.getView(),

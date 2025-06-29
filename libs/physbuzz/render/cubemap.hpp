@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../io/image.hpp"
+#include "../resources/defines.hpp"
 #include <glad/gl.h>
 
 namespace Physbuzz {
@@ -14,10 +15,10 @@ struct CubemapInfo {
     ImageInfo front;
 };
 
-class CubemapResource {
+class Cubemap : public ResourceTag {
   public:
-    CubemapResource(const CubemapInfo &info);
-    ~CubemapResource();
+    Cubemap(const CubemapInfo &info);
+    ~Cubemap();
 
     bool build();
     bool destroy();

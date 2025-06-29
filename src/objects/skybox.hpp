@@ -6,7 +6,7 @@
 #include <physbuzz/render/transform.hpp>
 
 struct SkyboxComponent {
-    Physbuzz::ResourceHandle<Physbuzz::CubemapResource> cubemap = {"skybox"};
+    Physbuzz::Resource<Physbuzz::Cubemap> cubemap = {"skybox"};
 };
 
 struct Skybox {

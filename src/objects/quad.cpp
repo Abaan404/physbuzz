@@ -1,7 +1,6 @@
 #include "quad.hpp"
 
 #include <physbuzz/physics/collision.hpp>
-#include <physbuzz/resources/manager.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) {
@@ -24,7 +23,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
 
     // create model
     std::string modelName = std::format("quad_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::ModelResource>::insert(
+    Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
         modelName,
         {{
             .meshes = {{mesh, {}}},

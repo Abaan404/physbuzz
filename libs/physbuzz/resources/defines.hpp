@@ -4,8 +4,11 @@
 #include <efsw/efsw.hpp>
 #include <filesystem>
 #include <string>
+#include <type_traits>
 
 namespace Physbuzz {
+
+struct ResourceTag {};
 
 using ResourceID = std::string;
 
@@ -23,9 +26,11 @@ struct ResourceWatcherInfo {
 };
 
 template <typename T>
-concept ResourceType = requires(T a) {
-    { a.build() } -> std::same_as<bool>;
-    { a.destroy() } -> std::same_as<bool>;
-};
+concept ResourceType =
+    std::is_base_of_v<ResourceTag, T> &&
+    requires(T a) {
+        { a.build() } -> std::same_as<bool>;
+        { a.destroy() } -> std::same_as<bool>;
+    };
 
 } // namespace Physbuzz

@@ -12,7 +12,7 @@
 
 namespace Physbuzz {
 
-class ShaderPipelineResource;
+class ShaderPipeline;
 class Scene;
 
 template <typename T>
@@ -71,8 +71,8 @@ class Shader {
     const std::set<std::filesystem::path> &getPaths() const;
 
   private:
-    void preprocess(FileResource &file);
-    bool preprocessInclude(FileResource &file, std::size_t position);
+    void preprocess(File &file);
+    bool preprocessInclude(File &file, std::size_t position);
 
     GLuint m_Shader = 0;
     ShaderType m_Type = ShaderType::Unknown;
@@ -90,15 +90,15 @@ struct ShaderPipelineInfo {
     ShaderInfo fragment;
     ShaderInfo compute;
 
-    void (*draw)(const ShaderPipelineResource *resource, Scene &, ObjectID) = [](const ShaderPipelineResource *, Scene &, ObjectID id) {
+    void (*draw)(const ShaderPipeline *resource, Scene &, ObjectID) = [](const ShaderPipeline *, Scene &, ObjectID id) {
         Logger::WARNING(std::format("[ShaderPipelineResource] Uninitialized draw calls for object '{}'", id));
     };
 };
 
-class ShaderPipelineResource {
+class ShaderPipeline : public ResourceTag {
   public:
-    ShaderPipelineResource(const ShaderPipelineInfo &info);
-    ~ShaderPipelineResource();
+    ShaderPipeline(const ShaderPipelineInfo &info);
+    ~ShaderPipeline();
 
     bool build();
     bool destroy();

@@ -4,16 +4,16 @@
 #include <physbuzz/render/gl/units.hpp>
 #include <physbuzz/render/renderer.hpp>
 
-inline Physbuzz::ShaderPipelineResource shaderCircle = {{
+inline Physbuzz::ShaderPipeline shaderCircle = {{
     .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
     .tessControl = {},
     .tessEvaluation = {},
     .geometry = {},
     .fragment = {.file = {.path = "resources/shaders/circle/circle.frag"}},
     .compute = {},
-    .draw = [](const Physbuzz::ShaderPipelineResource *pipeline, Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
+    .draw = [](const Physbuzz::ShaderPipeline *pipeline, Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
         const auto [render] = scene.getComponent<Physbuzz::RenderComponent>(object);
-        Physbuzz::ResourceHandle<Physbuzz::Texture2DResource> texture = {"default/diffuse"};
+        Physbuzz::Resource<Physbuzz::Texture2D> texture = {"default/diffuse"};
 
         pipeline->setUniform("u_Model", render.transform.matrix);
         pipeline->setUniform("u_Texture", Physbuzz::GL::TextureUnits::activate());

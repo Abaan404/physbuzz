@@ -7,14 +7,14 @@
 #include <physbuzz/render/renderer.hpp>
 #include <physbuzz/resources/builtins/meshes.hpp>
 
-inline Physbuzz::ShaderPipelineResource shaderGamma = {{
+inline Physbuzz::ShaderPipeline shaderGamma = {{
     .vertex = {.file = {.path = "resources/shaders/gamma/gamma.vert"}},
     .tessControl = {},
     .tessEvaluation = {},
     .geometry = {},
     .fragment = {.file = {.path = "resources/shaders/gamma/gamma.frag"}},
     .compute = {},
-    .draw = [](const Physbuzz::ShaderPipelineResource *, Physbuzz::Scene &, Physbuzz::ObjectID) {
+    .draw = [](const Physbuzz::ShaderPipeline *, Physbuzz::Scene &, Physbuzz::ObjectID) {
         for (const auto &[mesh, _] : Physbuzz::Builtin::ScreenQuad::Resource->getMeshs()) {
             mesh.draw();
         }

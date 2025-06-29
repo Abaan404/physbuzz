@@ -3,6 +3,7 @@
 #include "../../game.hpp"
 #include "../../objects/circle.hpp"
 #include "../../objects/line.hpp"
+#include "../../objects/cube.hpp"
 #include "../../objects/quad.hpp"
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
@@ -120,6 +121,21 @@ void ObjectList::draw() {
                 if (ImGui::DragFloat2("quad", wh, 1.0f, MIN_VALUE, MAX_VALUE)) {
                     quad.width = wh[0];
                     quad.height = wh[1];
+
+                    rebuild = true;
+                }
+            }
+
+            if (game->scene.containsComponent<CubeComponent>(object)) {
+                ImGui::SeparatorText("Cube");
+
+                const auto [cube] = game->scene.getComponent<CubeComponent>(object);
+                float whl[] = {cube.width, cube.height, cube.length};
+
+                if (ImGui::DragFloat3("cube", whl, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    cube.width = whl[0];
+                    cube.height = whl[1];
+                    cube.length = whl[2];
 
                     rebuild = true;
                 }

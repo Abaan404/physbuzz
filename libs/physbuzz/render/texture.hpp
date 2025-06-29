@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../io/image.hpp"
+#include "../resources/defines.hpp"
 #include <glad/gl.h>
 
 namespace Physbuzz {
@@ -12,10 +13,10 @@ struct Texture2DInfo {
     TextureType type;
 };
 
-class Texture2DResource {
+class Texture2D : public ResourceTag {
   public:
-    Texture2DResource(const Texture2DInfo &texture2D);
-    ~Texture2DResource();
+    Texture2D(const Texture2DInfo &texture2D);
+    ~Texture2D();
 
     bool build();
     bool destroy();
