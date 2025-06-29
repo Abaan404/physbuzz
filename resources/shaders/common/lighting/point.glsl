@@ -34,7 +34,7 @@ vec4 calcPointLight(PointLight light, samplerCube shadowMap, float farPlane, flo
     vec3 specular = light.specular * spec;
 
     // shadows
-    float shadow = calcShadowsPoint(shadowMap, fragPosition, normal, lightDirection, light.position, farPlane);
+    float shadow = calcShadowsPoint(shadowMap, fragPosition, viewPosition, normal, lightDirection, light.position, farPlane);
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * materialDiffuse.rgb;
 
     return vec4(lighting, materialDiffuse.a);
