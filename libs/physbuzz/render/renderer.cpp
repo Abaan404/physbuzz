@@ -9,7 +9,22 @@
 namespace Physbuzz {
 
 Renderer::Renderer(const RendererInfo &info)
-    : m_Info(info), m_Framebuffer(info.framebuffer) {}
+    : m_Info(info),
+      m_Framebuffer({
+          .resolution = info.resolution,
+          .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
+          .colors = {
+              {
+                  .storage = Physbuzz::FramebufferInfo::Storage::Texture2D,
+                  .isDrawn = true,
+              },
+          },
+          .depth = {
+              .storage = Physbuzz::FramebufferInfo::Storage::Renderbuffer,
+              .hasStencil = true,
+          },
+          .output = {},
+      }) {}
 
 bool Renderer::build() {
     bool success = true;

@@ -17,7 +17,7 @@ struct RenderComponent {
 };
 
 struct RendererInfo {
-    FramebufferInfo framebuffer;
+    glm::ivec2 resolution;
     std::vector<Resource<ShaderPipeline>> postProcessing;
 };
 

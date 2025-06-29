@@ -114,21 +114,7 @@ void Game::rebuild() {
             .depth = 10000.0f,
         });
         scene.createSystem<Physbuzz::Renderer>(Physbuzz::RendererInfo{
-            .framebuffer = {
-                .resolution = window.getResolution(),
-                .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
-                .colors = {
-                    {
-                        .storage = Physbuzz::FramebufferInfo::Storage::Texture2D,
-                        .isDrawn = true,
-                    },
-                },
-                .depth = {
-                    .storage = Physbuzz::FramebufferInfo::Storage::Renderbuffer,
-                    .hasStencil = true,
-                },
-                .output = {},
-            },
+            .resolution = window.getResolution(),
             .postProcessing = {
                 {"gamma"},
             },

@@ -45,20 +45,7 @@ ObjectPicker::ObjectPicker() {
     Skybox skybox;
 
     m_Scene.createSystem<Physbuzz::Renderer>(Physbuzz::RendererInfo{
-        .framebuffer = {
-            .resolution = {m_PreviewSize.x, m_PreviewSize.y},
-            .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
-            .colors = {
-                {
-                    .storage = Physbuzz::FramebufferInfo::Storage::Texture2D,
-                    .isDrawn = true,
-                },
-            },
-            .depth = {
-                .storage = Physbuzz::FramebufferInfo::Storage::Renderbuffer,
-            },
-            .output = {},
-        },
+        .resolution = {m_PreviewSize.x, m_PreviewSize.y},
         .postProcessing = {},
     });
 
