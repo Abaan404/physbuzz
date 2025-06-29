@@ -2,7 +2,7 @@
 
 namespace Physbuzz {
 
-Mesh::Mesh(const MeshInfo &info)
+Mesh::Mesh(const Info &info)
     : m_Info(info) {}
 
 bool Mesh::build() {
@@ -53,11 +53,11 @@ void Mesh::unbind() const {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Mesh::update(const MeshInfo &info) {
+void Mesh::update(const Info &info) {
     m_Info = info;
 }
 
-const MeshInfo &Mesh::getInfo() const {
+const Mesh::Info &Mesh::getInfo() const {
     return m_Info;
 }
 

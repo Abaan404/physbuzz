@@ -19,7 +19,7 @@ enum class WatchAction {
     Moved = efsw::Action::Moved,
 };
 
-struct ResourceWatcherInfo {
+struct ResourceWatcherData {
     WatchAction action;
     ResourceID identifier;
     std::filesystem::path path;

@@ -8,14 +8,14 @@ namespace Physbuzz {
 
 enum class TextureType;
 
-struct Texture2DInfo {
-    ImageInfo image;
-    TextureType type;
-};
-
 class Texture2D : public ResourceTag {
   public:
-    Texture2D(const Texture2DInfo &texture2D);
+    struct Info {
+        ImageFile::Info image;
+        TextureType type;
+    };
+
+    Texture2D(const Info &texture2D);
     ~Texture2D();
 
     bool build();
@@ -27,7 +27,7 @@ class Texture2D : public ResourceTag {
     TextureType getType() const;
 
   private:
-    Texture2DInfo m_Info;
+    Info m_Info;
     GLuint m_Texture;
 };
 

@@ -10,7 +10,7 @@
 
 namespace Physbuzz {
 
-ImageFile::ImageFile(const ImageInfo &image)
+ImageFile::ImageFile(const Info &image)
     : m_Info(image) {}
 
 ImageFile::~ImageFile() {}

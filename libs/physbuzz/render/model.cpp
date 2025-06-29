@@ -10,7 +10,7 @@ namespace Physbuzz {
 Model::Model(const std::filesystem::path &path)
     : m_Path(path) {}
 
-Model::Model(const ModelInfo &info)
+Model::Model(const Info &info)
     : m_Info(info) {}
 
 Model::~Model() {}
@@ -62,7 +62,7 @@ bool Model::processNode(const aiNode *ainode, const aiScene *aiscene) {
 }
 
 bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
-    MeshInfo mesh;
+    Mesh::Info mesh;
     MeshMeta meta;
 
     // pos and norm
@@ -121,7 +121,7 @@ void Model::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
 
         std::string path = m_Path.parent_path() / aiPath.C_Str();
 
-        Texture2DInfo info = {
+        Texture2D::Info info = {
             .image = {
                 .file = {
                     .path = path,

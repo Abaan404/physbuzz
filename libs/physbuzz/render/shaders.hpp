@@ -39,23 +39,23 @@ concept UniformType =
     std::same_as<T, glm::mat3x4> ||
     std::same_as<T, glm::mat4x3>;
 
-enum class ShaderType {
-    Vertex = GL_VERTEX_SHADER,
-    TessControl = GL_TESS_CONTROL_SHADER,
-    TessEvaluation = GL_TESS_EVALUATION_SHADER,
-    Geometry = GL_GEOMETRY_SHADER,
-    Fragment = GL_FRAGMENT_SHADER,
-    Compute = GL_COMPUTE_SHADER,
-    Unknown = GL_INVALID_ENUM,
-};
-
-struct ShaderInfo {
-    FileInfo file;
-};
-
 class Shader {
   public:
-    Shader(const ShaderInfo &info, const ShaderType &type);
+    enum class Type {
+        Vertex = GL_VERTEX_SHADER,
+        TessControl = GL_TESS_CONTROL_SHADER,
+        TessEvaluation = GL_TESS_EVALUATION_SHADER,
+        Geometry = GL_GEOMETRY_SHADER,
+        Fragment = GL_FRAGMENT_SHADER,
+        Compute = GL_COMPUTE_SHADER,
+        Unknown = GL_INVALID_ENUM,
+    };
+
+    struct Info {
+        File::Info file;
+    };
+
+    Shader(const Info &info, const Type &type);
     ~Shader();
 
     bool build();
@@ -67,7 +67,7 @@ class Shader {
     bool detach(GLuint program) const;
 
     const GLuint &getShader() const;
-    const ShaderType &getType() const;
+    const Type &getType() const;
     const std::set<std::filesystem::path> &getPaths() const;
 
   private:
@@ -75,29 +75,29 @@ class Shader {
     bool preprocessInclude(File &file, std::size_t position);
 
     GLuint m_Shader = 0;
-    ShaderType m_Type = ShaderType::Unknown;
+    Type m_Type = Type::Unknown;
 
     std::set<std::filesystem::path> m_Paths;
 
-    ShaderInfo m_Info;
-};
-
-struct ShaderPipelineInfo {
-    ShaderInfo vertex;
-    ShaderInfo tessControl;
-    ShaderInfo tessEvaluation;
-    ShaderInfo geometry;
-    ShaderInfo fragment;
-    ShaderInfo compute;
-
-    void (*draw)(const ShaderPipeline *resource, Scene &, ObjectID) = [](const ShaderPipeline *, Scene &, ObjectID id) {
-        Logger::WARNING(std::format("[ShaderPipelineResource] Uninitialized draw calls for object '{}'", id));
-    };
+    Info m_Info;
 };
 
 class ShaderPipeline : public ResourceTag {
   public:
-    ShaderPipeline(const ShaderPipelineInfo &info);
+    struct Info {
+        Shader::Info vertex;
+        Shader::Info tessControl;
+        Shader::Info tessEvaluation;
+        Shader::Info geometry;
+        Shader::Info fragment;
+        Shader::Info compute;
+
+        void (*draw)(const ShaderPipeline *resource, Scene &, ObjectID) = [](const ShaderPipeline *, Scene &, ObjectID id) {
+            Logger::WARNING(std::format("[ShaderPipelineResource] Uninitialized draw calls for object '{}'", id));
+        };
+    };
+
+    ShaderPipeline(const Info &info);
     ~ShaderPipeline();
 
     bool build();
@@ -148,9 +148,9 @@ class ShaderPipeline : public ResourceTag {
     GLuint m_Program = 0;
 
     bool m_RequestedReload = false;
-    std::function<void(const ResourceWatcherInfo &)> m_ReloadCallback;
+    std::function<void(const ResourceWatcherData &)> m_ReloadCallback;
 
-    ShaderPipelineInfo m_Info;
+    Info m_Info;
 
     template <ResourceType T>
     friend class ResourceRegistry;

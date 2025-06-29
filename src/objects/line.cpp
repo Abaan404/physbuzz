@@ -9,7 +9,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
     glm::vec3 min = glm::vec3(-info.line.thickness / 2.0f, 0.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.line.thickness / 2.0f, info.line.length, 0.0f);
 
-    Physbuzz::MeshInfo mesh = {
+    Physbuzz::Mesh::Info mesh = {
         .vertices = {
             {{min.x, min.y, 0.0f}, {}, {}}, // top-left
             {{min.x, max.y, 0.0f}, {}, {}}, // top-right

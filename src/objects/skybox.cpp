@@ -8,7 +8,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Skybox &info
     constexpr glm::vec3 min = glm::vec3(-2.0f, -2.0f, -2.0f);
     constexpr glm::vec3 max = glm::vec3(2.0f, 2.0f, 2.0f);
 
-    Physbuzz::MeshInfo mesh = {
+    Physbuzz::Mesh::Info mesh = {
         .vertices = {
             {{min.x, min.y, min.z}, {}, {}},
             {{min.x, min.y, max.z}, {}, {}},

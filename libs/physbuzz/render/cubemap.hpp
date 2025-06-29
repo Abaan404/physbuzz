@@ -6,18 +6,18 @@
 
 namespace Physbuzz {
 
-struct CubemapInfo {
-    ImageInfo right;
-    ImageInfo left;
-    ImageInfo top;
-    ImageInfo bottom;
-    ImageInfo back;
-    ImageInfo front;
-};
-
 class Cubemap : public ResourceTag {
   public:
-    Cubemap(const CubemapInfo &info);
+    struct Info {
+        ImageFile::Info right;
+        ImageFile::Info left;
+        ImageFile::Info top;
+        ImageFile::Info bottom;
+        ImageFile::Info back;
+        ImageFile::Info front;
+    };
+
+    Cubemap(const Info &info);
     ~Cubemap();
 
     bool build();
@@ -27,10 +27,10 @@ class Cubemap : public ResourceTag {
     bool unbind() const;
 
   private:
-    CubemapInfo m_Info;
+    Info m_Info;
     GLuint m_Texture = 0;
 
-    bool loadImage(ImageInfo &imageInfo, GLenum target);
+    bool loadImage(ImageFile::Info &imageInfo, GLenum target);
 };
 
 } // namespace Physbuzz

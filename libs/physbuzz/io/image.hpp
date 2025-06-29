@@ -5,14 +5,14 @@
 
 namespace Physbuzz {
 
-struct ImageInfo {
-    FileInfo file;
-    bool flipVertically = false;
-};
-
 class ImageFile : public ResourceTag {
   public:
-    ImageFile(const ImageInfo &image);
+    struct Info {
+        File::Info file;
+        bool flipVertically = false;
+    };
+
+    ImageFile(const Info &image);
     ~ImageFile();
 
     bool build();
@@ -27,7 +27,7 @@ class ImageFile : public ResourceTag {
     std::uint8_t *buffer = nullptr;
 
   private:
-    ImageInfo m_Info;
+    Info m_Info;
     glm::ivec2 m_Resolution;
     int m_Channels = 0;
 };

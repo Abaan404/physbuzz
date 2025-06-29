@@ -5,47 +5,53 @@
 
 namespace Physbuzz {
 
-struct CameraInfo {
+class CameraComponent {
+  public:
     enum class Projection {
         Perspective,
         Orthographic,
         Unknown,
-    } projection = Projection::Unknown;
+    };
 
     struct Orthographic {
         float left = 0.0f;
         float right = 1.0f;
         float bottom = 1.0f;
         float top = 0.0f;
-    } orthographic;
+    };
 
     struct Perspective {
         float fovy = glm::radians(45.0f);
         float aspect = 1.0f;
-    } perspective;
+    };
 
     struct Depth {
         float near = -1.0f;
         float far = 1.0f;
-    } depth;
+    };
 
     struct View {
         glm::vec3 position = {0.0f, 0.0f, 0.0f};
         glm::quat orientation = glm::angleAxis(0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-    } view;
+    };
 
-    glm::ivec2 resolution = {1, 1};
-};
+    struct Info {
+        Projection projection = Projection::Unknown;
+        Orthographic orthographic;
+        Perspective perspective;
+        Depth depth;
+        View view;
 
-class CameraComponent {
-  public:
-    CameraComponent(const CameraInfo &info);
+        glm::ivec2 resolution = {1, 1};
+    };
+
+    CameraComponent(const Info &info);
 
     void resize(const glm::ivec2 &resolution);
     void reset();
 
-    void setProjection(CameraInfo::Projection projection);
-    void update(const CameraInfo &info);
+    void setProjection(CameraComponent::Projection projection);
+    void update(const Info &info);
 
     void setPosition(const glm::vec3 &position);
     void setOrientation(const glm::quat &orientation);
@@ -60,7 +66,7 @@ class CameraComponent {
 
     const glm::mat4 &getProjection() const;
     const glm::mat4 &getView() const;
-    const CameraInfo &getInfo() const;
+    const Info &getInfo() const;
 
   private:
     void updateProjection();
@@ -69,7 +75,7 @@ class CameraComponent {
     glm::mat4 m_Projection{1.0f};
     glm::mat4 m_View{1.0f};
 
-    CameraInfo m_Info;
+    Info m_Info;
 };
 
 } // namespace Physbuzz

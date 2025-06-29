@@ -7,7 +7,7 @@
 
 namespace Physbuzz {
 
-Shader::Shader(const ShaderInfo &info, const ShaderType &type)
+Shader::Shader(const Info &info, const Type &type)
     : m_Info(info), m_Type(type) {}
 
 Shader::~Shader() {}
@@ -189,7 +189,7 @@ const GLuint &Shader::getShader() const {
     return m_Shader;
 }
 
-const ShaderType &Shader::getType() const {
+const Shader::Type &Shader::getType() const {
     return m_Type;
 }
 
@@ -228,7 +228,7 @@ inline void destroyShaders(std::array<Shader, N> &shaders, const GLuint &program
     }
 }
 
-ShaderPipeline::ShaderPipeline(const ShaderPipelineInfo &info)
+ShaderPipeline::ShaderPipeline(const Info &info)
     : m_Info(info) {}
 
 ShaderPipeline::~ShaderPipeline() {}
@@ -239,12 +239,12 @@ bool ShaderPipeline::build() {
     }
 
     std::array shaders = {
-        Shader(m_Info.vertex, ShaderType::Vertex),
-        Shader(m_Info.tessControl, ShaderType::TessControl),
-        Shader(m_Info.tessEvaluation, ShaderType::TessEvaluation),
-        Shader(m_Info.geometry, ShaderType::Geometry),
-        Shader(m_Info.fragment, ShaderType::Fragment),
-        Shader(m_Info.compute, ShaderType::Compute),
+        Shader(m_Info.vertex, Shader::Type::Vertex),
+        Shader(m_Info.tessControl, Shader::Type::TessControl),
+        Shader(m_Info.tessEvaluation, Shader::Type::TessEvaluation),
+        Shader(m_Info.geometry, Shader::Type::Geometry),
+        Shader(m_Info.fragment, Shader::Type::Fragment),
+        Shader(m_Info.compute, Shader::Type::Compute),
     };
 
     m_Program = glCreateProgram();
@@ -299,7 +299,7 @@ bool ShaderPipeline::build() {
         paths.merge(shaderPaths);
     }
 
-    m_ReloadCallback = [paths](const ResourceWatcherInfo &event) {
+    m_ReloadCallback = [paths](const ResourceWatcherData &event) {
         if (!paths.contains(event.path)) {
             return;
         }

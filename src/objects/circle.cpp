@@ -7,7 +7,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
     constexpr Physbuzz::Index MAX_VERTICES = 50;
     constexpr const float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
 
-    Physbuzz::MeshInfo mesh;
+    Physbuzz::Mesh::Info mesh;
 
     // calc positions
     mesh.vertices.resize(MAX_VERTICES);

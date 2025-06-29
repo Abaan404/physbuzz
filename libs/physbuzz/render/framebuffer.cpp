@@ -4,7 +4,7 @@
 
 namespace Physbuzz {
 
-Framebuffer::Framebuffer(const FramebufferInfo &info)
+Framebuffer::Framebuffer(const Info &info)
     : m_Info(info) {}
 
 bool Framebuffer::build() {
@@ -22,23 +22,23 @@ bool Framebuffer::build() {
     }
 
     switch (m_Info.output.type) {
-    case FramebufferInfo::Type::Color:
+    case Framebuffer::Type::Color:
         if (m_Info.output.colorIndex >= m_Info.colors.size()) {
             Logger::ERROR(std::format("[Framebuffer] Invalid output color index {}", m_Info.output.colorIndex));
             return false;
         }
 
         if (!m_Info.colors[m_Info.output.colorIndex].isDrawn ||
-            m_Info.colors[m_Info.output.colorIndex].storage == FramebufferInfo::Storage::Renderbuffer ||
-            m_Info.colors[m_Info.output.colorIndex].storage == FramebufferInfo::Storage::None) {
+            m_Info.colors[m_Info.output.colorIndex].storage == Framebuffer::Storage::Renderbuffer ||
+            m_Info.colors[m_Info.output.colorIndex].storage == Framebuffer::Storage::None) {
             Logger::ERROR(std::format("[Framebuffer] output color index cannot be drawn {}", m_Info.output.colorIndex));
             return false;
         }
         break;
 
-    case FramebufferInfo::Type::Depth:
-        if (m_Info.depth.storage == FramebufferInfo::Storage::Renderbuffer ||
-            m_Info.depth.storage == FramebufferInfo::Storage::None) {
+    case Framebuffer::Type::Depth:
+        if (m_Info.depth.storage == Framebuffer::Storage::Renderbuffer ||
+            m_Info.depth.storage == Framebuffer::Storage::None) {
             Logger::ERROR("[Framebuffer] output depth cannot be drawn");
             return false;
         }
@@ -55,7 +55,7 @@ bool Framebuffer::build() {
         GLuint color = 0;
 
         switch (attachment.storage) {
-        case FramebufferInfo::Storage::Texture2D:
+        case Framebuffer::Storage::Texture2D:
             glGenTextures(1, &color);
             glBindTexture(GL_TEXTURE_2D, color);
 
@@ -68,7 +68,7 @@ bool Framebuffer::build() {
             glBindTexture(GL_TEXTURE_2D, 0);
             break;
 
-        case FramebufferInfo::Storage::Cubemap:
+        case Framebuffer::Storage::Cubemap:
             glGenTextures(1, &color);
             glBindTexture(GL_TEXTURE_CUBE_MAP, color);
 
@@ -86,7 +86,7 @@ bool Framebuffer::build() {
             glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
             break;
 
-        case FramebufferInfo::Storage::Renderbuffer:
+        case Framebuffer::Storage::Renderbuffer:
             glGenRenderbuffers(1, &color);
             glBindRenderbuffer(GL_RENDERBUFFER, color);
 
@@ -96,7 +96,7 @@ bool Framebuffer::build() {
             glBindRenderbuffer(GL_RENDERBUFFER, 0);
             break;
 
-        case FramebufferInfo::Storage::None:
+        case Framebuffer::Storage::None:
             Logger::ERROR("[Framebuffer] No storage declared for the current color attachment");
             destroy();
             return false;
@@ -118,7 +118,7 @@ bool Framebuffer::build() {
     }
 
     switch (m_Info.depth.storage) {
-    case FramebufferInfo::Storage::Texture2D:
+    case Framebuffer::Storage::Texture2D:
         glGenTextures(1, &m_Depth);
         glBindTexture(GL_TEXTURE_2D, m_Depth);
 
@@ -141,7 +141,7 @@ bool Framebuffer::build() {
         glBindTexture(GL_TEXTURE_2D, 0);
         break;
 
-    case FramebufferInfo::Storage::Cubemap:
+    case Framebuffer::Storage::Cubemap:
         glGenTextures(1, &m_Depth);
         glBindTexture(GL_TEXTURE_CUBE_MAP, m_Depth);
 
@@ -167,7 +167,7 @@ bool Framebuffer::build() {
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         break;
 
-    case FramebufferInfo::Storage::Renderbuffer:
+    case Framebuffer::Storage::Renderbuffer:
         glGenRenderbuffers(1, &m_Depth);
         glBindRenderbuffer(GL_RENDERBUFFER, m_Depth);
 
@@ -182,7 +182,7 @@ bool Framebuffer::build() {
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
         break;
 
-    case FramebufferInfo::Storage::None:
+    case Framebuffer::Storage::None:
         break;
     }
 
@@ -201,16 +201,16 @@ bool Framebuffer::destroy() {
 
     for (std::size_t i = 0; i < m_Colors.size(); i++) {
         switch (m_Info.colors[i].storage) {
-        case FramebufferInfo::Storage::Texture2D:
-        case FramebufferInfo::Storage::Cubemap:
+        case Framebuffer::Storage::Texture2D:
+        case Framebuffer::Storage::Cubemap:
             glDeleteTextures(1, &m_Colors[i]);
             break;
 
-        case FramebufferInfo::Storage::Renderbuffer:
+        case Framebuffer::Storage::Renderbuffer:
             glDeleteRenderbuffers(1, &m_Colors[i]);
             break;
 
-        case FramebufferInfo::Storage::None:
+        case Framebuffer::Storage::None:
             break;
         }
     }
@@ -218,16 +218,16 @@ bool Framebuffer::destroy() {
     m_Colors.clear();
 
     switch (m_Info.depth.storage) {
-    case FramebufferInfo::Storage::Texture2D:
-    case FramebufferInfo::Storage::Cubemap:
+    case Framebuffer::Storage::Texture2D:
+    case Framebuffer::Storage::Cubemap:
         glDeleteTextures(1, &m_Depth);
         break;
 
-    case FramebufferInfo::Storage::Renderbuffer:
+    case Framebuffer::Storage::Renderbuffer:
         glDeleteRenderbuffers(1, &m_Depth);
         break;
 
-    case FramebufferInfo::Storage::None:
+    case Framebuffer::Storage::None:
         break;
     }
 
@@ -244,13 +244,13 @@ void Framebuffer::resize(const glm::ivec2 &resolution) {
 
     for (std::size_t i = 0; i < m_Colors.size(); i++) {
         switch (m_Info.colors[i].storage) {
-        case FramebufferInfo::Storage::Texture2D:
+        case Framebuffer::Storage::Texture2D:
             glBindTexture(GL_TEXTURE_2D, m_Colors[i]);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, resolution.x, resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
             glBindTexture(GL_TEXTURE_2D, 0);
             break;
 
-        case FramebufferInfo::Storage::Cubemap:
+        case Framebuffer::Storage::Cubemap:
             glBindTexture(GL_TEXTURE_CUBE_MAP, m_Colors[i]);
             for (std::size_t j = 0; j < 6; ++j) {
                 glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, GL_RGBA8, resolution.x, resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -258,19 +258,19 @@ void Framebuffer::resize(const glm::ivec2 &resolution) {
             glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
             break;
 
-        case FramebufferInfo::Storage::Renderbuffer:
+        case Framebuffer::Storage::Renderbuffer:
             glBindRenderbuffer(GL_RENDERBUFFER, m_Colors[i]);
             glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, resolution.x, resolution.y);
             glBindRenderbuffer(GL_RENDERBUFFER, 0);
             break;
 
-        case FramebufferInfo::Storage::None:
+        case Framebuffer::Storage::None:
             break;
         }
     }
 
     switch (m_Info.depth.storage) {
-    case FramebufferInfo::Storage::Texture2D:
+    case Framebuffer::Storage::Texture2D:
         glBindTexture(GL_TEXTURE_2D, m_Depth);
 
         if (m_Info.depth.hasStencil) {
@@ -282,7 +282,7 @@ void Framebuffer::resize(const glm::ivec2 &resolution) {
         glBindTexture(GL_TEXTURE_2D, 0);
         break;
 
-    case FramebufferInfo::Storage::Cubemap:
+    case Framebuffer::Storage::Cubemap:
         glBindTexture(GL_TEXTURE_CUBE_MAP, m_Depth);
         for (std::size_t i = 0; i < 6; ++i) {
             if (m_Info.depth.hasStencil) {
@@ -294,7 +294,7 @@ void Framebuffer::resize(const glm::ivec2 &resolution) {
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         break;
 
-    case FramebufferInfo::Storage::Renderbuffer:
+    case Framebuffer::Storage::Renderbuffer:
         glBindRenderbuffer(GL_RENDERBUFFER, m_Depth);
         if (m_Info.depth.hasStencil) {
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
@@ -305,7 +305,7 @@ void Framebuffer::resize(const glm::ivec2 &resolution) {
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
         break;
 
-    case FramebufferInfo::Storage::None:
+    case Framebuffer::Storage::None:
         break;
     }
 
@@ -321,7 +321,7 @@ void Framebuffer::clear() const {
         clear |= GL_COLOR_BUFFER_BIT;
     }
 
-    if (m_Info.depth.storage != FramebufferInfo::Storage::None) {
+    if (m_Info.depth.storage != Framebuffer::Storage::None) {
         clear |= GL_DEPTH_BUFFER_BIT;
         if (m_Info.depth.hasStencil) {
             clear |= GL_STENCIL_BUFFER_BIT;
@@ -344,38 +344,38 @@ void Framebuffer::unbind() const {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-const FramebufferInfo &Framebuffer::getInfo() const {
+const Framebuffer::Info &Framebuffer::getInfo() const {
     return m_Info;
 }
 
 bool Framebuffer::bindOutputTexture() const {
     PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to bind output from an incomplete framebuffer.");
-    FramebufferInfo::Storage storage = FramebufferInfo::Storage::None;
+    Framebuffer::Storage storage = Framebuffer::Storage::None;
     GLuint texture;
 
     switch (m_Info.output.type) {
-    case FramebufferInfo::Type::Color:
+    case Framebuffer::Type::Color:
         storage = m_Info.colors[m_Info.output.colorIndex].storage;
         texture = m_Colors[m_Info.output.colorIndex];
         break;
 
-    case FramebufferInfo::Type::Depth:
+    case Framebuffer::Type::Depth:
         storage = m_Info.depth.storage;
         texture = m_Depth;
         break;
     }
 
     switch (storage) {
-    case FramebufferInfo::Storage::Texture2D:
+    case Framebuffer::Storage::Texture2D:
         glBindTexture(GL_TEXTURE_2D, texture);
         break;
 
-    case FramebufferInfo::Storage::Cubemap:
+    case Framebuffer::Storage::Cubemap:
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
         break;
 
-    case FramebufferInfo::Storage::Renderbuffer:
-    case FramebufferInfo::Storage::None:
+    case Framebuffer::Storage::Renderbuffer:
+    case Framebuffer::Storage::None:
         Logger::ERROR("[Framebuffer] Cannot bind output attachment as a texture.");
         return false;
     }
@@ -385,29 +385,29 @@ bool Framebuffer::bindOutputTexture() const {
 
 bool Framebuffer::unbindOutputTexture() const {
     PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to unbind output from an incomplete framebuffer.");
-    FramebufferInfo::Storage storage = FramebufferInfo::Storage::None;
+    Framebuffer::Storage storage = Framebuffer::Storage::None;
 
     switch (m_Info.output.type) {
-    case FramebufferInfo::Type::Color:
+    case Framebuffer::Type::Color:
         storage = m_Info.colors[m_Info.output.colorIndex].storage;
         break;
 
-    case FramebufferInfo::Type::Depth:
+    case Framebuffer::Type::Depth:
         storage = m_Info.depth.storage;
         break;
     }
 
     switch (storage) {
-    case FramebufferInfo::Storage::Texture2D:
+    case Framebuffer::Storage::Texture2D:
         glBindTexture(GL_TEXTURE_2D, 0);
         break;
 
-    case FramebufferInfo::Storage::Cubemap:
+    case Framebuffer::Storage::Cubemap:
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         break;
 
-    case FramebufferInfo::Storage::Renderbuffer:
-    case FramebufferInfo::Storage::None:
+    case Framebuffer::Storage::Renderbuffer:
+    case Framebuffer::Storage::None:
         break;
     }
 

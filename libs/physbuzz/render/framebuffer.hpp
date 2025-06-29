@@ -6,7 +6,8 @@
 
 namespace Physbuzz {
 
-struct FramebufferInfo {
+class Framebuffer {
+  public:
     enum class Storage {
         Texture2D,
         Cubemap,
@@ -34,17 +35,16 @@ struct FramebufferInfo {
         std::size_t colorIndex = 0;
     };
 
-    glm::ivec2 resolution = {1280, 720};
-    glm::vec4 colorClear = {0.0f, 0.0f, 0.0f, 0.0f};
+    struct Info {
+        glm::ivec2 resolution = {1280, 720};
+        glm::vec4 colorClear = {0.0f, 0.0f, 0.0f, 0.0f};
 
-    std::vector<ColorAttachment> colors;
-    DepthAttachment depth;
-    OutputAttachment output;
-};
+        std::vector<ColorAttachment> colors;
+        DepthAttachment depth;
+        OutputAttachment output;
+    };
 
-class Framebuffer {
-  public:
-    Framebuffer(const FramebufferInfo &info);
+    Framebuffer(const Info &info);
 
     bool build();
     bool destroy();
@@ -58,7 +58,7 @@ class Framebuffer {
     bool bindOutputTexture() const;
     bool unbindOutputTexture() const;
 
-    const FramebufferInfo &getInfo() const;
+    const Info &getInfo() const;
 
   private:
     GLuint m_Framebuffer = 0;
@@ -66,7 +66,7 @@ class Framebuffer {
     std::vector<GLuint> m_Colors;
     GLuint m_Depth;
 
-    FramebufferInfo m_Info;
+    Info m_Info;
 };
 
 } // namespace Physbuzz

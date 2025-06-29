@@ -24,6 +24,6 @@ class ObjectBuilder {
 
   private:
     // Common Util Functions
-    static void generateTexCoords(Physbuzz::MeshInfo &mesh);
-    static void generateNormals(Physbuzz::MeshInfo &mesh);
+    static void generateTexCoords(Physbuzz::Mesh::Info &mesh);
+    static void generateNormals(Physbuzz::Mesh::Info &mesh);
 };

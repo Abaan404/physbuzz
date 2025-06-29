@@ -5,7 +5,7 @@
 
 namespace Physbuzz {
 
-Cubemap::Cubemap(const CubemapInfo &info)
+Cubemap::Cubemap(const Info &info)
     : m_Info(info) {}
 
 Cubemap::~Cubemap() {}
@@ -56,7 +56,7 @@ bool Cubemap::unbind() const {
     return true;
 }
 
-bool Cubemap::loadImage(ImageInfo &imageInfo, GLenum target) {
+bool Cubemap::loadImage(ImageFile::Info &imageInfo, GLenum target) {
     if (imageInfo.file.path.empty()) {
         return false;
     }

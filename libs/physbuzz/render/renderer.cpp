@@ -8,19 +8,19 @@
 
 namespace Physbuzz {
 
-Renderer::Renderer(const RendererInfo &info)
+Renderer::Renderer(const Info &info)
     : m_Info(info),
       m_Framebuffer({
           .resolution = info.resolution,
           .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
           .colors = {
               {
-                  .storage = Physbuzz::FramebufferInfo::Storage::Texture2D,
+                  .storage = Framebuffer::Storage::Texture2D,
                   .isDrawn = true,
               },
           },
           .depth = {
-              .storage = Physbuzz::FramebufferInfo::Storage::Renderbuffer,
+              .storage = Framebuffer::Storage::Renderbuffer,
               .hasStencil = true,
           },
           .output = {},

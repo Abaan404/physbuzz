@@ -63,7 +63,7 @@ void Game::build() {
 
             window.setCursorCapture(true);
 
-            const Physbuzz::CameraInfo &info = camera.getInfo();
+            const Physbuzz::CameraComponent::Info &info = camera.getInfo();
             glm::quat pitch = glm::angleAxis(glm::radians(offset.x), glm::vec3(0.0f, -1.0f, 0.0f));
             glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.getUp(), camera.getFacing()));
 
@@ -74,9 +74,9 @@ void Game::build() {
     // change prespective camera fov when scrolling
     window.addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
         for (const auto &[player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
-            Physbuzz::CameraInfo info = camera.getInfo();
+            Physbuzz::CameraComponent::Info info = camera.getInfo();
 
-            if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || info.projection != Physbuzz::CameraInfo::Projection::Perspective) {
+            if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || info.projection != Physbuzz::CameraComponent::Projection::Perspective) {
                 return;
             }
 
@@ -108,12 +108,12 @@ void Game::rebuild() {
         scene.createSystem<Physbuzz::Dynamics>(0.0005);
         scene.createSystem<Physbuzz::Bindings>(&window);
         scene.createSystem<Physbuzz::Clock>();
-        scene.createSystem<Physbuzz::Shadow>(Physbuzz::ShadowInfo{
+        scene.createSystem<Physbuzz::Shadow>(Physbuzz::Shadow::Info{
             .resolution = window.getResolution(),
             .orthoSize = 1000.0f,
             .depth = 10000.0f,
         });
-        scene.createSystem<Physbuzz::Renderer>(Physbuzz::RendererInfo{
+        scene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
             .resolution = window.getResolution(),
             .postProcessing = {
                 {"gamma"},
@@ -128,7 +128,7 @@ void Game::rebuild() {
     {
         Player player = {
             .camera = {{
-                .projection = Physbuzz::CameraInfo::Projection::Perspective,
+                .projection = Physbuzz::CameraComponent::Projection::Perspective,
                 .orthographic = {},
                 .perspective = {
                     .fovy = glm::radians(45.0f),
@@ -145,7 +145,7 @@ void Game::rebuild() {
             .player = {},
         };
 
-        if (restoreCamera.getInfo().projection != Physbuzz::CameraInfo::Projection::Unknown) {
+        if (restoreCamera.getInfo().projection != Physbuzz::CameraComponent::Projection::Unknown) {
             player.camera = {restoreCamera};
         }
 

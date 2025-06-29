@@ -8,7 +8,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
     glm::vec3 min = glm::vec3(-info.quad.width / 2.0f, -info.quad.height / 2.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
 
-    Physbuzz::MeshInfo mesh = {
+    Physbuzz::Mesh::Info mesh = {
         .vertices = {
             {{min.x, min.y, 0.0f}, {}, {}}, // top-left
             {{min.x, max.y, 0.0f}, {}, {}}, // top-right

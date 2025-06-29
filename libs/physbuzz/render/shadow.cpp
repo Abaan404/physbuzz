@@ -9,7 +9,7 @@
 
 namespace Physbuzz {
 
-Shadow::Shadow(const ShadowInfo &info)
+Shadow::Shadow(const Info &info)
     : m_Info(info),
       m_Framebuffers({
           .directional = {{
@@ -17,10 +17,10 @@ Shadow::Shadow(const ShadowInfo &info)
               .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
               .colors = {},
               .depth = {
-                  .storage = FramebufferInfo::Storage::Texture2D,
+                  .storage = Framebuffer::Storage::Texture2D,
               },
               .output = {
-                  .type = FramebufferInfo::Type::Depth,
+                  .type = Framebuffer::Type::Depth,
               },
           }},
           .point = {{
@@ -28,10 +28,10 @@ Shadow::Shadow(const ShadowInfo &info)
               .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
               .colors = {},
               .depth = {
-                  .storage = FramebufferInfo::Storage::Cubemap,
+                  .storage = Framebuffer::Storage::Cubemap,
               },
               .output = {
-                  .type = FramebufferInfo::Type::Depth,
+                  .type = Framebuffer::Type::Depth,
               },
           }},
       }) {}
@@ -138,7 +138,7 @@ const Shadow::Framebuffers &Shadow::getFramebuffers() const {
     return m_Framebuffers;
 }
 
-const ShadowInfo &Shadow::getInfo() const {
+const Shadow::Info &Shadow::getInfo() const {
     return m_Info;
 }
 

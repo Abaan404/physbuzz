@@ -11,13 +11,13 @@ namespace detail {
 
 template <typename T>
 concept ResourceWatched = requires(T a) {
-    requires std::same_as<decltype(a.m_ReloadCallback), std::function<void(const ResourceWatcherInfo &)>>;
+    requires std::same_as<decltype(a.m_ReloadCallback), std::function<void(const ResourceWatcherData &)>>;
 } && ResourceType<T>;
 
 template <ResourceType T>
 class ResourceFileWatcher : public efsw::FileWatchListener {
   public:
-    std::unordered_map<ResourceID, std::function<void(const ResourceWatcherInfo &)>> callbacks;
+    std::unordered_map<ResourceID, std::function<void(const ResourceWatcherData &)>> callbacks;
 
     void handleFileAction(efsw::WatchID, const std::string &directory, const std::string &filename, efsw::Action action, std::string) override {
         for (const auto &[id, callback] : callbacks) {

@@ -5,7 +5,7 @@
 
 namespace Physbuzz {
 
-File::File(const FileInfo &file)
+File::File(const Info &file)
     : m_Info(file) {}
 
 File::~File() {}

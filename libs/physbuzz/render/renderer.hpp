@@ -16,14 +16,14 @@ struct RenderComponent {
     Resource<ShaderPipeline> pipeline;
 };
 
-struct RendererInfo {
-    glm::ivec2 resolution;
-    std::vector<Resource<ShaderPipeline>> postProcessing;
-};
-
 class Renderer : public System<RenderComponent> {
   public:
-    Renderer(const RendererInfo &info);
+    struct Info {
+        glm::ivec2 resolution;
+        std::vector<Resource<ShaderPipeline>> postProcessing;
+    };
+
+    Renderer(const Info &info);
 
     bool build() override;
     bool destroy() override;
@@ -38,7 +38,7 @@ class Renderer : public System<RenderComponent> {
     const Framebuffer &getFramebuffer() const;
 
   private:
-    RendererInfo m_Info;
+    Info m_Info;
 
     Framebuffer m_Framebuffer;
     const Framebuffer *m_TargetBuffer = nullptr;

@@ -5,13 +5,13 @@
 
 namespace Physbuzz {
 
-struct FileInfo {
-    std::filesystem::path path;
-};
-
 class File : public ResourceTag {
   public:
-    File(const FileInfo &file);
+    struct Info {
+        std::filesystem::path path;
+    };
+
+    File(const Info &file);
     ~File();
 
     bool build();
@@ -26,7 +26,7 @@ class File : public ResourceTag {
     std::string buffer;
 
   private:
-    FileInfo m_Info;
+    Info m_Info;
     std::streampos m_Size = 0;
 };
 

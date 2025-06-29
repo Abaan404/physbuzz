@@ -5,7 +5,7 @@
 
 namespace Physbuzz {
 
-Texture2D::Texture2D(const Texture2DInfo &texture2D)
+Texture2D::Texture2D(const Info &texture2D)
     : m_Info(texture2D) {}
 
 Texture2D::~Texture2D() {}

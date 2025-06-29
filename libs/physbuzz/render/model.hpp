@@ -41,15 +41,15 @@ struct MeshMeta {
     float shininess = 32.0f;
 };
 
-struct ModelInfo {
-    std::vector<std::tuple<Mesh, MeshMeta>> meshes;
-    std::vector<Resource<Texture2D>> textures;
-};
-
 class Model : public ResourceTag {
   public:
+    struct Info {
+        std::vector<std::tuple<Mesh, MeshMeta>> meshes;
+        std::vector<Resource<Texture2D>> textures;
+    };
+
     Model(const std::filesystem::path &path);
-    Model(const ModelInfo &info);
+    Model(const Info &info);
     ~Model();
 
     bool build();
@@ -66,7 +66,7 @@ class Model : public ResourceTag {
     void loadTextures(const aiMaterial *aimaterial, const aiTextureType type);
 
     std::filesystem::path m_Path;
-    ModelInfo m_Info;
+    Info m_Info;
 };
 
 } // namespace Physbuzz

@@ -29,7 +29,7 @@ void Camera::draw() {
 
         ImGui::SeparatorText("Projection");
 
-        Physbuzz::CameraInfo info = camera.getInfo();
+        Physbuzz::CameraComponent::Info info = camera.getInfo();
 
         const char *projections[] = {"Prespective", "Orthographic", "Unknown"};
         static int currentProjection = static_cast<int>(info.projection);
@@ -38,7 +38,7 @@ void Camera::draw() {
             glm::vec2 resolution = game->window.getResolution();
             switch (currentProjection) {
             case 0:
-                info.projection = Physbuzz::CameraInfo::Projection::Perspective;
+                info.projection = Physbuzz::CameraComponent::Projection::Perspective;
                 info.perspective = {
                     .fovy = glm::radians(45.0f),
                     .aspect = resolution.x / resolution.y,
@@ -46,7 +46,7 @@ void Camera::draw() {
                 break;
 
             case 1: // Orthographic
-                info.projection = Physbuzz::CameraInfo::Projection::Orthographic;
+                info.projection = Physbuzz::CameraComponent::Projection::Orthographic;
                 info.orthographic = {
                     .left = 0.0f,
                     .right = resolution.x,
@@ -74,7 +74,7 @@ void Camera::draw() {
                 camera.update(info);
             }
 
-            Physbuzz::CameraInfo::Depth depth = info.depth;
+            Physbuzz::CameraComponent::Depth depth = info.depth;
             float depths[2] = {depth.near, depth.far};
             if (ImGui::DragFloat2("depth", depths, 1.0f, MIN_VALUE, MAX_VALUE)) {
                 info.depth.near = depths[0];
@@ -85,7 +85,7 @@ void Camera::draw() {
 
         // Orthographic
         case 1: {
-            Physbuzz::CameraInfo::Orthographic orthographic = info.orthographic;
+            Physbuzz::CameraComponent::Orthographic orthographic = info.orthographic;
 
             if (ImGui::DragFloat("top", &orthographic.top, 1.0f, MIN_VALUE, MAX_VALUE)) {
                 camera.update(info);
@@ -103,7 +103,7 @@ void Camera::draw() {
                 camera.update(info);
             }
 
-            Physbuzz::CameraInfo::Depth depth = info.depth;
+            Physbuzz::CameraComponent::Depth depth = info.depth;
             float depths[2] = {depth.near, depth.far};
             if (ImGui::DragFloat2("depth", depths, 1.0f, MIN_VALUE, MAX_VALUE)) {
                 info.depth.near = depths[0];

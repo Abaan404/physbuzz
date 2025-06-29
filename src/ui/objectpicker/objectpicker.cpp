@@ -44,7 +44,7 @@ ObjectPicker::ObjectPicker() {
 
     Skybox skybox;
 
-    m_Scene.createSystem<Physbuzz::Renderer>(Physbuzz::RendererInfo{
+    m_Scene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
         .resolution = {m_PreviewSize.x, m_PreviewSize.y},
         .postProcessing = {},
     });
@@ -56,7 +56,7 @@ ObjectPicker::ObjectPicker() {
     builder.create(quad);
 
     Physbuzz::CameraComponent camera = {{
-        .projection = Physbuzz::CameraInfo::Projection::Orthographic,
+        .projection = Physbuzz::CameraComponent::Projection::Orthographic,
         .orthographic = {
             .left = 0.0f,
             .right = static_cast<float>(m_PreviewSize.x),
@@ -86,7 +86,7 @@ ObjectPicker::ObjectPicker() {
                     .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
                     .colors = {
                         {
-                            .storage = Physbuzz::FramebufferInfo::Storage::Texture2D,
+                            .storage = Physbuzz::Framebuffer::Storage::Texture2D,
                             .isDrawn = true,
                         },
                     },

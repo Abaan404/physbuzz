@@ -14,14 +14,14 @@ struct Vertex {
     glm::vec2 texCoords;
 };
 
-struct MeshInfo {
-    std::vector<Vertex> vertices;
-    std::vector<Index> indices;
-};
-
 class Mesh {
   public:
-    Mesh(const MeshInfo &info);
+    struct Info {
+        std::vector<Vertex> vertices;
+        std::vector<Index> indices;
+    };
+
+    Mesh(const Info &info);
 
     bool build();
     bool destroy();
@@ -30,13 +30,13 @@ class Mesh {
     void draw() const;
     void unbind() const;
 
-    void update(const MeshInfo &info);
-    const MeshInfo &getInfo() const;
+    void update(const Info &info);
+    const Info &getInfo() const;
 
   private:
     GLuint VBO, VAO, EBO;
 
-    MeshInfo m_Info;
+    Info m_Info;
 };
 
 } // namespace Physbuzz
