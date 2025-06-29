@@ -26,12 +26,14 @@ template <typename... Signature>
 class System : public ISystem {
   private:
     inline bool containsSignature(ComponentManager &componentManager, ObjectID id) override {
-        if (sizeof...(Signature) == 0) {
+        if constexpr (sizeof...(Signature) == 0) {
             return false;
+        } else {
+            return componentManager.contains<Signature...>(id);
         }
-
-        return componentManager.contains<Signature...>(id);
     }
+
+    friend class Scene;
 };
 
 template <typename T>
