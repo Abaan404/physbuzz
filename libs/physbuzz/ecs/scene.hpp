@@ -16,6 +16,10 @@ class Scene : public EventSubject {
 
     template <typename... T>
     inline void setComponent(ObjectID id, T &...component) {
+        if (!m_Objects.contains(id)) {
+            createObject(id);
+        }
+
         m_ComponentManager.set<T...>(id, component...);
         m_SystemManager.objectUpdate(m_ComponentManager, id);
 

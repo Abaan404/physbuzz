@@ -3,7 +3,7 @@
 #include <physbuzz/render/renderer.hpp>
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Skybox &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Skybox &info) {
     // generate mesh
     constexpr glm::vec3 min = glm::vec3(-2.0f, -2.0f, -2.0f);
     constexpr glm::vec3 max = glm::vec3(2.0f, 2.0f, 2.0f);
@@ -60,7 +60,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Skybox &info
     };
 
     // setup rendering
-    scene->setComponent(object, info.resources, info.skybox, render);
+    scene.setComponent(object, info.resources, info.skybox, render);
 
     return object;
 }

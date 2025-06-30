@@ -3,7 +3,7 @@
 #include <physbuzz/physics/collision.hpp>
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Circle &info) {
     constexpr Physbuzz::Index MAX_VERTICES = 50;
     constexpr const float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
 
@@ -45,12 +45,13 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
-        .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<CircleComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
+        .rebuild = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
+            if (!scene.containsComponent<CircleComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
-            const auto [circle, identifier, resources, render] = builder.scene->getComponent<CircleComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
+
+            const auto [circle, identifier, resources, render] = scene.getComponent<CircleComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
 
             Circle info = {
                 .body = {},
@@ -58,19 +59,19 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
                 .transform = render.transform,
                 .identifier = identifier,
                 .resources = resources,
-                .hasPhysics = builder.scene->containsComponent<Physbuzz::RigidBodyComponent>(object),
+                .hasPhysics = scene.containsComponent<Physbuzz::RigidBodyComponent>(object),
             };
 
             if (info.hasPhysics) {
-                const auto [body] = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object);
+                const auto [body] = scene.getComponent<Physbuzz::RigidBodyComponent>(object);
                 info.body = body;
             }
 
-            builder.create(object, info);
+            ObjectBuilder::create(scene, object, info);
         },
     };
 
-    scene->setComponent(object, info.circle, info.identifier, info.resources, render, rebuilder);
+    scene.setComponent(object, info.circle, info.identifier, info.resources, render, rebuilder);
 
     // generate physics info
     if (info.hasPhysics) {
@@ -82,7 +83,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Circle &info
         // generate bounding box
         Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(render);
 
-        scene->setComponent(object, info.body, aabb);
+        scene.setComponent(object, info.body, aabb);
     }
 
     return object;

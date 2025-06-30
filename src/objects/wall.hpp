@@ -1,5 +1,6 @@
 #pragma once
 
+#include "builder.hpp"
 #include "common.hpp"
 
 struct WallComponent {
@@ -16,7 +17,7 @@ struct WallComponent {
     Physbuzz::ObjectID down;
 };
 
-struct Wall {
+struct Wall : public Buildable {
     // geometry
     WallComponent wall;
 
@@ -27,8 +28,7 @@ struct Wall {
     };
 
     bool isCollidable = false;
-    bool isRenderable = false;
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Wall &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Wall &info);

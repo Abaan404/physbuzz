@@ -5,7 +5,7 @@
 #include <physbuzz/physics/dynamics.hpp>
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Cube &info) {
     // generate mesh
     glm::vec3 min = glm::vec3(-info.cube.width / 2.0f, -info.cube.height / 2.0f, -info.cube.length / 2.0f);
     glm::vec3 max = glm::vec3(info.cube.width / 2.0f, info.cube.height / 2.0f, info.cube.length / 2.0f);
@@ -65,13 +65,13 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
-        .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<CubeComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
+        .rebuild = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
+            if (!scene.containsComponent<CubeComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
 
-            const auto [cube, identifier, resources, render] = builder.scene->getComponent<CubeComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
+            const auto [cube, identifier, resources, render] = scene.getComponent<CubeComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
 
             Cube info = {
                 // .body = object.getComponent<Physbuzz::RigidBodyComponent>(),
@@ -79,23 +79,23 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info) 
                 .transform = render.transform,
                 .identifier = identifier,
                 .resources = resources,
-                .hasPhysics = builder.scene->containsComponent<Physbuzz::RigidBodyComponent>(object),
+                .hasPhysics = scene.containsComponent<Physbuzz::RigidBodyComponent>(object),
             };
 
             if (info.hasPhysics) {
-                // info.body = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object);
+                // info.body = scene.getComponent<Physbuzz::RigidBodyComponent>(object);
             }
 
-            builder.create(object, info);
+            ObjectBuilder::create(scene, object, info);
         },
     };
 
-    scene->setComponent(object, info.cube, info.identifier, info.resources, render, shadow, rebuilder);
+    scene.setComponent(object, info.cube, info.identifier, info.resources, render, shadow, rebuilder);
 
     if (info.hasPhysics) {
         // generate bounding box
         Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(render);
-        scene->setComponent(object, aabb);
+        scene.setComponent(object, aabb);
     }
 
     return object;

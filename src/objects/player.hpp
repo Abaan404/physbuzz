@@ -12,7 +12,7 @@ struct PlayerComponent {
     bool captureMouse = false;
 };
 
-struct Player {
+struct Player : public Buildable {
     // physics info
     Physbuzz::CameraComponent camera;
 
@@ -39,4 +39,4 @@ struct Player {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Player &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Player &info);

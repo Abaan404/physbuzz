@@ -1,8 +1,8 @@
 #pragma once
 
-#include "builder.hpp"
 #include <functional>
 #include <physbuzz/render/shaders.hpp>
+#include <physbuzz/render/mesh.hpp>
 #include <physbuzz/render/texture.hpp>
 #include <physbuzz/resources/resources.hpp>
 
@@ -12,7 +12,7 @@ struct IdentifiableComponent {
 };
 
 struct RebuildableComponent {
-    std::function<void(ObjectBuilder &, Physbuzz::ObjectID)> rebuild;
+    std::function<void(Physbuzz::Scene &, Physbuzz::ObjectID)> rebuild;
 };
 
 struct ResourceComponent {
@@ -22,3 +22,6 @@ struct ResourceComponent {
     };
     Physbuzz::Resource<Physbuzz::ShaderPipeline> pipeline = {"default"};
 };
+
+void generateTexCoords(Physbuzz::Mesh::Info &mesh);
+void generateNormals(Physbuzz::Mesh::Info &mesh);

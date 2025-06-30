@@ -9,8 +9,8 @@
 #include <physbuzz/window/bindings.hpp>
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Player &info) {
-    if (scene->getComponents<PlayerComponent>().size() >= 1) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Player &info) {
+    if (scene.getComponents<PlayerComponent>().size() >= 1) {
         Physbuzz::Logger::WARNING("[ObjectBuilder<Player>] Trying to build more than one player controller. Are you sure? Pretty sure? Threw a trashbag into space?");
     }
 
@@ -141,7 +141,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Player &info
                     };
 
                     Game *game = Physbuzz::Context::get<Game>();
-                    game->builder.create(info);
+                    ObjectBuilder::create(game->scene, info);
                 },
             },
             {
@@ -172,13 +172,13 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Player &info
                     };
 
                     Game *game = Physbuzz::Context::get<Game>();
-                    game->builder.create(info);
+                    ObjectBuilder::create(game->scene, info);
                 },
             },
         },
     };
 
-    scene->setComponent(object, inputs, info.player, info.camera, info.identifier, info.flashlight);
+    scene.setComponent(object, inputs, info.player, info.camera, info.identifier, info.flashlight);
 
     return object;
 }

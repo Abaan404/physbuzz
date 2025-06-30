@@ -1,5 +1,6 @@
 #include "game.hpp"
 
+#include "objects/builder.hpp"
 #include "collision.hpp"
 #include "objects/circle.hpp"
 #include "objects/cube.hpp"
@@ -21,9 +22,6 @@
 #include <physbuzz/render/uniforms.hpp>
 #include <physbuzz/window/bindings.hpp>
 #include <random>
-
-Game::Game()
-    : builder(&scene) {}
 
 void Game::build() {
     Physbuzz::Context::set(this);
@@ -149,13 +147,13 @@ void Game::rebuild() {
             player.camera = {restoreCamera};
         }
 
-        builder.create(player);
+        ObjectBuilder::create(scene, player);
     }
 
     // skybox
     {
         Skybox skybox;
-        builder.create(skybox);
+        ObjectBuilder::create(scene, skybox);
     }
 
     // backpack
@@ -172,7 +170,7 @@ void Game::rebuild() {
             .resources = {},
         };
 
-        builder.create(backpack);
+        ObjectBuilder::create(scene, backpack);
     }
 
     // platform
@@ -194,7 +192,7 @@ void Game::rebuild() {
             },
         };
 
-        builder.create(quad);
+        ObjectBuilder::create(scene, quad);
     }
 
     // cubes
@@ -219,7 +217,7 @@ void Game::rebuild() {
                 .hasPhysics = false,
             };
 
-            builder.create(cube);
+            ObjectBuilder::create(scene, cube);
         }
     }
 
@@ -256,7 +254,7 @@ void Game::rebuild() {
                 },
             };
 
-            builder.create(lightCube);
+            ObjectBuilder::create(scene, lightCube);
         }
     }
 
@@ -272,7 +270,7 @@ void Game::rebuild() {
             },
         };
 
-        builder.create(directional);
+        ObjectBuilder::create(scene, directional);
     }
 
     // a circle because why not?
@@ -294,7 +292,7 @@ void Game::rebuild() {
             },
         };
 
-        builder.create(point);
+        ObjectBuilder::create(scene, point);
     }
 }
 

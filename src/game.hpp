@@ -1,13 +1,11 @@
 #pragma once
 
-#include "objects/builder.hpp"
 #include "ui/handler.hpp"
+#include <physbuzz/ecs/scene.hpp>
 #include <physbuzz/window/window.hpp>
 
 class Game {
   public:
-    Game();
-
     void build();
     void destroy();
 
@@ -21,7 +19,6 @@ class Game {
 
     // object management
     Physbuzz::Scene scene;
-    ObjectBuilder builder;
 
     // ImGui
     InterfaceManager interface;

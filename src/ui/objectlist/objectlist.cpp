@@ -195,7 +195,7 @@ void ObjectList::draw() {
 
             if (rebuild && game->scene.containsComponent<RebuildableComponent>(object)) {
                 const auto [rebuilder] = game->scene.getComponent<RebuildableComponent>(object);
-                rebuilder.rebuild(game->builder, object);
+                rebuilder.rebuild(game->scene, object);
             }
 
             ImGui::PopID();

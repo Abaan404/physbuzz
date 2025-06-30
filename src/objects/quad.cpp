@@ -3,7 +3,7 @@
 #include <physbuzz/physics/collision.hpp>
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Quad &info) {
     // generate mesh
     glm::vec3 min = glm::vec3(-info.quad.width / 2.0f, -info.quad.height / 2.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
@@ -40,13 +40,13 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
-        .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<QuadComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
+        .rebuild = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
+            if (!scene.containsComponent<QuadComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
 
-            const auto [quad, identifier, resources, render] = builder.scene->getComponent<QuadComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
+            const auto [quad, identifier, resources, render] = scene.getComponent<QuadComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
 
             Quad info = {
                 .body = {},
@@ -54,24 +54,24 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
                 .transform = render.transform,
                 .identifier = identifier,
                 .resources = resources,
-                .hasPhysics = builder.scene->containsComponent<Physbuzz::RigidBodyComponent>(object),
+                .hasPhysics = scene.containsComponent<Physbuzz::RigidBodyComponent>(object),
             };
 
             if (info.hasPhysics) {
-                const auto [body] = builder.scene->getComponent<Physbuzz::RigidBodyComponent>(object);
+                const auto [body] = scene.getComponent<Physbuzz::RigidBodyComponent>(object);
                 info.body = body;
             }
 
-            builder.create(object, info);
+            ObjectBuilder::create(scene, object, info);
         },
     };
 
-    scene->setComponent(object, info.quad, info.identifier, info.resources, render, rebuilder);
+    scene.setComponent(object, info.quad, info.identifier, info.resources, render, rebuilder);
 
     // generate bounding box
     if (info.hasPhysics) {
         Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(render);
-        scene->setComponent(object, aabb);
+        scene.setComponent(object, aabb);
     }
 
     // build inertia
@@ -80,7 +80,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info) 
         // My = (x**2).integrate((x, -a/2, a/2)).integrate((y, -b/2, b/2)) * rho
         info.body.angular.inertia = info.body.mass * (glm::pow(info.quad.width, 2) + glm::pow(info.quad.height, 2)) / 12.0f;
 
-        scene->setComponent(object, info.body);
+        scene.setComponent(object, info.body);
     }
 
     return object;

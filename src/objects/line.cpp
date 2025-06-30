@@ -4,7 +4,7 @@
 #include <physbuzz/render/renderer.hpp>
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) {
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Line &info) {
     // generate mesh
     glm::vec3 min = glm::vec3(-info.line.thickness / 2.0f, 0.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.line.thickness / 2.0f, info.line.length, 0.0f);
@@ -43,13 +43,13 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
-        .rebuild = [](ObjectBuilder &builder, Physbuzz::ObjectID object) {
-            if (!builder.scene->containsComponent<LineComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
+        .rebuild = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
+            if (!scene.containsComponent<LineComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
 
-            const auto [line, identifier, resources, render] = builder.scene->getComponent<LineComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
+            const auto [line, identifier, resources, render] = scene.getComponent<LineComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
 
             Line info = {
                 .line = line,
@@ -58,11 +58,11 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Line &info) 
                 .resources = resources,
             };
 
-            builder.create(object, info);
+            ObjectBuilder::create(scene, object, info);
         },
     };
 
-    scene->setComponent(object, info.line, info.identifier, info.resources, render, rebuilder);
+    scene.setComponent(object, info.line, info.identifier, info.resources, render, rebuilder);
 
     return object;
 }

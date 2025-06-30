@@ -1,11 +1,6 @@
-#include "builder.hpp"
+#include "common.hpp"
 
-ObjectBuilder::ObjectBuilder(Physbuzz::Scene *scene)
-    : scene(scene) {}
-
-ObjectBuilder::~ObjectBuilder() {}
-
-void ObjectBuilder::generateTexCoords(Physbuzz::Mesh::Info &mesh) {
+void generateTexCoords(Physbuzz::Mesh::Info &mesh) {
     glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 max = glm::vec3(std::numeric_limits<float>::lowest());
 
@@ -20,7 +15,7 @@ void ObjectBuilder::generateTexCoords(Physbuzz::Mesh::Info &mesh) {
     }
 }
 
-void ObjectBuilder::generateNormals(Physbuzz::Mesh::Info &mesh) {
+void generateNormals(Physbuzz::Mesh::Info &mesh) {
     for (std::size_t i = 0; i < mesh.indices.size(); i += 3) {
         const Physbuzz::Index i0 = mesh.indices[i];
         const Physbuzz::Index i1 = mesh.indices[i + 1];

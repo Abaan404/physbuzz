@@ -10,7 +10,7 @@ struct QuadComponent {
     float height = 0.0f;
 };
 
-struct Quad {
+struct Quad : public Buildable {
     // physics info
     Physbuzz::RigidBodyComponent body;
 
@@ -31,4 +31,4 @@ struct Quad {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Quad &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Quad &info);

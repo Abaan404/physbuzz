@@ -51,9 +51,8 @@ ObjectPicker::ObjectPicker() {
 
     m_Scene.createSystem<Physbuzz::Clock>();
 
-    ObjectBuilder builder = ObjectBuilder(&m_Scene);
-    builder.create(circle);
-    builder.create(quad);
+    ObjectBuilder::create(m_Scene, circle);
+    ObjectBuilder::create(m_Scene, quad);
 
     Physbuzz::CameraComponent camera = {{
         .projection = Physbuzz::CameraComponent::Projection::Orthographic,

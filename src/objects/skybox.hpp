@@ -9,7 +9,7 @@ struct SkyboxComponent {
     Physbuzz::Resource<Physbuzz::Cubemap> cubemap = {"skybox"};
 };
 
-struct Skybox {
+struct Skybox : public Buildable {
     // geometry
     SkyboxComponent skybox;
     Physbuzz::Transform transform;
@@ -21,4 +21,4 @@ struct Skybox {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Skybox &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Skybox &info);

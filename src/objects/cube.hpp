@@ -10,7 +10,7 @@ struct CubeComponent {
     float length = 0.0f;
 };
 
-struct Cube {
+struct Cube : public Buildable {
     // geometry
     CubeComponent cube;
     Physbuzz::Transform transform;
@@ -28,4 +28,4 @@ struct Cube {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, Cube &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Cube &info);

@@ -4,7 +4,7 @@
 #include "common.hpp"
 #include <physbuzz/render/lighting.hpp>
 
-struct LightDirectional {
+struct LightDirectional : public Buildable {
     Physbuzz::DirectionalLightComponent directionalLight;
 
     IdentifiableComponent identifier = {
@@ -14,4 +14,4 @@ struct LightDirectional {
 };
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::ObjectID object, LightDirectional &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, LightDirectional &info);

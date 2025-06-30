@@ -1,29 +1,20 @@
 #pragma once
 
 #include <physbuzz/ecs/scene.hpp>
-#include <physbuzz/render/mesh.hpp>
+
+struct Buildable {};
+
+template <typename T>
+concept BuildableType = std::derived_from<T, Buildable>;
 
 class ObjectBuilder {
   public:
-    ObjectBuilder(Physbuzz::Scene *scene);
-    ~ObjectBuilder();
-
-    template <typename T>
-    Physbuzz::ObjectID create(T &info) {
-        Physbuzz::ObjectID id = scene->createObject();
-        return create(id, info);
+    template <BuildableType T>
+    static Physbuzz::ObjectID create(Physbuzz::Scene &scene, T &info) {
+        Physbuzz::ObjectID id = scene.createObject();
+        return create(scene, id, info);
     }
 
-    template <typename T>
-    Physbuzz::ObjectID create(Physbuzz::ObjectID id, T &info) {
-        scene->createObject(id);
-        return create(info);
-    }
-
-    Physbuzz::Scene *scene;
-
-  private:
-    // Common Util Functions
-    static void generateTexCoords(Physbuzz::Mesh::Info &mesh);
-    static void generateNormals(Physbuzz::Mesh::Info &mesh);
+    template <BuildableType T>
+    static Physbuzz::ObjectID create(Physbuzz::Scene &scene, Physbuzz::ObjectID id, T &info);
 };
