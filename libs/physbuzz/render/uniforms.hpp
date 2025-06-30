@@ -14,7 +14,7 @@ concept UniformBufferType =
     std::is_standard_layout_v<T>;
 
 template <UniformBufferType T>
-class UniformBuffer : public ResourceTag {
+class UniformBuffer {
   public:
     UniformBuffer() {}
     ~UniformBuffer() {}
@@ -67,5 +67,8 @@ class UniformBuffer : public ResourceTag {
   private:
     GLuint UBO = 0;
 };
+
+template <UniformBufferType T>
+struct IsResource<UniformBuffer<T>> : std::true_type {};
 
 } // namespace Physbuzz

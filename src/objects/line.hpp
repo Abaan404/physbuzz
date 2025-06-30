@@ -10,7 +10,7 @@ struct LineComponent {
     float thickness = 0.0f;
 };
 
-struct Line : public Buildable {
+struct Line {
     // geometry
     LineComponent line;
     Physbuzz::Transform transform;
@@ -24,6 +24,9 @@ struct Line : public Buildable {
     // rendering
     ResourceComponent resources;
 };
+
+template <>
+struct IsBuildable<Line> : std::true_type {};
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Line &info);

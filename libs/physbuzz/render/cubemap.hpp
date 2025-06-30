@@ -6,7 +6,7 @@
 
 namespace Physbuzz {
 
-class Cubemap : public ResourceTag {
+class Cubemap {
   public:
     struct Info {
         ImageFile::Info right;
@@ -32,5 +32,8 @@ class Cubemap : public ResourceTag {
 
     bool loadImage(ImageFile::Info &imageInfo, GLenum target);
 };
+
+template <>
+struct IsResource<Cubemap> : std::true_type {};
 
 } // namespace Physbuzz

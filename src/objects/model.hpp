@@ -2,7 +2,6 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include "physbuzz/ecs/scene.hpp"
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/transform.hpp>
 
@@ -10,7 +9,7 @@ struct ModelComponent {
     Physbuzz::Resource<Physbuzz::Model> resource;
 };
 
-struct Model : public Buildable {
+struct Model {
     // geometry
     ModelComponent model;
     Physbuzz::Transform transform;
@@ -24,6 +23,9 @@ struct Model : public Buildable {
     // rendering
     ResourceComponent resources;
 };
+
+template <>
+struct IsBuildable<Model> : std::true_type {};
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Model &info);

@@ -8,7 +8,7 @@ namespace Physbuzz {
 
 enum class TextureType;
 
-class Texture2D : public ResourceTag {
+class Texture2D {
   public:
     struct Info {
         ImageFile::Info image;
@@ -30,5 +30,8 @@ class Texture2D : public ResourceTag {
     Info m_Info;
     GLuint m_Texture;
 };
+
+template <>
+struct IsResource<Texture2D> : std::true_type {};
 
 } // namespace Physbuzz

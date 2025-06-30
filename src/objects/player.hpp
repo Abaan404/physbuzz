@@ -12,7 +12,7 @@ struct PlayerComponent {
     bool captureMouse = false;
 };
 
-struct Player : public Buildable {
+struct Player {
     // physics info
     Physbuzz::CameraComponent camera;
 
@@ -37,6 +37,9 @@ struct Player : public Buildable {
         .hidden = false,
     };
 };
+
+template <>
+struct IsBuildable<Player> : std::true_type {};
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Player &info);

@@ -1,11 +1,14 @@
 #pragma once
 
 #include <physbuzz/ecs/scene.hpp>
-
-struct Buildable {};
+#include <type_traits>
 
 template <typename T>
-concept BuildableType = std::derived_from<T, Buildable>;
+struct IsBuildable : std::false_type {};
+
+template <typename T>
+concept BuildableType =
+    IsBuildable<T>::value;
 
 class ObjectBuilder {
   public:

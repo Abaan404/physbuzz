@@ -41,7 +41,7 @@ struct MeshMeta {
     float shininess = 32.0f;
 };
 
-class Model : public ResourceTag {
+class Model {
   public:
     struct Info {
         std::vector<std::tuple<Mesh, MeshMeta>> meshes;
@@ -68,5 +68,8 @@ class Model : public ResourceTag {
     std::filesystem::path m_Path;
     Info m_Info;
 };
+
+template <>
+struct IsResource<Model> : std::true_type {};
 
 } // namespace Physbuzz

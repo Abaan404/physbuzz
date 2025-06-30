@@ -5,7 +5,7 @@
 
 namespace Physbuzz {
 
-class File : public ResourceTag {
+class File {
   public:
     struct Info {
         std::filesystem::path path;
@@ -29,5 +29,8 @@ class File : public ResourceTag {
     Info m_Info;
     std::streampos m_Size = 0;
 };
+
+template <>
+struct IsResource<File> : std::true_type {};
 
 } // namespace Physbuzz

@@ -17,7 +17,7 @@ struct WallComponent {
     Physbuzz::ObjectID down;
 };
 
-struct Wall : public Buildable {
+struct Wall {
     // geometry
     WallComponent wall;
 
@@ -29,6 +29,9 @@ struct Wall : public Buildable {
 
     bool isCollidable = false;
 };
+
+template <>
+struct IsBuildable<Wall> : std::true_type {};
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Wall &info);

@@ -82,7 +82,7 @@ class Shader {
     Info m_Info;
 };
 
-class ShaderPipeline : public ResourceTag {
+class ShaderPipeline {
   public:
     struct Info {
         Shader::Info vertex;
@@ -155,5 +155,8 @@ class ShaderPipeline : public ResourceTag {
     template <ResourceType T>
     friend class ResourceRegistry;
 };
+
+template <>
+struct IsResource<ShaderPipeline> : std::true_type {};
 
 } // namespace Physbuzz

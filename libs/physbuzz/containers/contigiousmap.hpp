@@ -1,22 +1,13 @@
 #pragma once
 
-#include "physbuzz/debug/logging.hpp"
+#include "../debug/logging.hpp"
 #include <set>
 #include <unordered_map>
 #include <vector>
 
 namespace Physbuzz {
 
-namespace detail {
-
-template <typename T>
-concept Comparable = requires(T a, T b) {
-    a <=> b;
-};
-
-} // namespace
-
-template <detail::Comparable K, typename T>
+template <std::totally_ordered K, typename T>
 class ContiguousMap {
   public:
     K insert(const K &key, const T &object) {

@@ -8,7 +8,7 @@ struct CircleComponent {
     float radius = 0.0f;
 };
 
-struct Circle : public Buildable {
+struct Circle {
     // physics info
     Physbuzz::RigidBodyComponent body;
 
@@ -27,6 +27,9 @@ struct Circle : public Buildable {
 
     bool hasPhysics = false;
 };
+
+template <>
+struct IsBuildable<Circle> : std::true_type {};
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Circle &info);

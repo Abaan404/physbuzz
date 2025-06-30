@@ -5,7 +5,7 @@
 
 namespace Physbuzz {
 
-class ImageFile : public ResourceTag {
+class ImageFile {
   public:
     struct Info {
         File::Info file;
@@ -31,5 +31,8 @@ class ImageFile : public ResourceTag {
     glm::ivec2 m_Resolution;
     int m_Channels = 0;
 };
+
+template <>
+struct IsResource<ImageFile> : std::true_type {};
 
 } // namespace Physbuzz

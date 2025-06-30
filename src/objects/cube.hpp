@@ -10,7 +10,7 @@ struct CubeComponent {
     float length = 0.0f;
 };
 
-struct Cube : public Buildable {
+struct Cube {
     // geometry
     CubeComponent cube;
     Physbuzz::Transform transform;
@@ -26,6 +26,9 @@ struct Cube : public Buildable {
 
     bool hasPhysics = false;
 };
+
+template <>
+struct IsBuildable<Cube> : std::true_type {};
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Cube &info);

@@ -8,7 +8,8 @@
 
 namespace Physbuzz {
 
-struct ResourceTag {};
+template <typename T>
+struct IsResource : std::false_type {};
 
 using ResourceID = std::string;
 
@@ -27,7 +28,7 @@ struct ResourceWatcherData {
 
 template <typename T>
 concept ResourceType =
-    std::is_base_of_v<ResourceTag, T> &&
+    IsResource<T>::value &&
     requires(T a) {
         { a.build() } -> std::same_as<bool>;
         { a.destroy() } -> std::same_as<bool>;
