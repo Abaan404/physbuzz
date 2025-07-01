@@ -6,7 +6,9 @@ void ResourceBuilder::buildModels() {
     Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
         "backpack",
         {{
-            "resources/models/backpack/backpack.obj",
+            .path = "resources/models/backpack/backpack.obj",
+            .meshes = {},
+            .textures = {},
         }});
 }
 

@@ -15,9 +15,12 @@ layout(std140, binding = 1) uniform Camera {
     mat4 projection;
 } camera;
 
-uniform Material u_Material;
+uniform uint u_MaterialDiffuseLength;
 uniform sampler2D u_MaterialDiffuse[MAX_DIFFUSE_SAMPLERS];
+
+uniform uint u_MaterialSpecularLength;
 uniform sampler2D u_MaterialSpecular[MAX_SPECULAR_SAMPLERS];
+
 uniform float u_MaterialShininess;
 
 uniform uint u_PointLightLength;
@@ -25,6 +28,7 @@ uniform PointLight u_PointLight[MAX_POINT_LIGHTS];
 
 uniform uint u_DirectionalLightLength;
 uniform DirectionalLight u_DirectionalLight[MAX_DIRECTIONAL_LIGHTS];
+
 uniform SpotLight u_SpotLight;
 
 uniform sampler2D u_ShadowMapDirectional;
@@ -47,17 +51,17 @@ void main() {
 
     // average the diffuse textures
     vec4 diffuse = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-    for (int i = 0; i < u_Material.diffuseLength; i++) {
+    for (int i = 0; i < u_MaterialDiffuseLength; i++) {
         diffuse += texture(u_MaterialDiffuse[i], fs_in.texCoord);
     }
-    diffuse /= float(u_Material.diffuseLength);
+    diffuse /= float(u_MaterialDiffuseLength);
 
     // average the specular textures
     vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-    for (int i = 0; i < u_Material.specularLength; i++) {
+    for (int i = 0; i < u_MaterialSpecularLength; i++) {
         specular += texture(u_MaterialSpecular[i], fs_in.texCoord);
     }
-    specular /= float(u_Material.specularLength);
+    specular /= float(u_MaterialSpecularLength);
 
     result += calcSpotLight(u_SpotLight, u_MaterialShininess, fs_in.fragPosition, fs_in.normal, camera.position, diffuse, specular);
 

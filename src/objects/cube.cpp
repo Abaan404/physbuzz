@@ -1,8 +1,8 @@
 #include "cube.hpp"
 
-#include <physbuzz/render/shadow.hpp>
 #include <physbuzz/physics/collision.hpp>
 #include <physbuzz/physics/dynamics.hpp>
+#include <physbuzz/render/shadow.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Cube &info) {
@@ -50,6 +50,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
         modelName,
         {{
+            .path = {},
             .meshes = {{mesh, {}}},
             .textures = info.resources.textures,
         }});

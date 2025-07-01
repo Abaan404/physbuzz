@@ -1,5 +1,3 @@
-#pbz_include "defines.glsl"
-
 struct SpotLight {
     vec3 position;
     vec3 direction;

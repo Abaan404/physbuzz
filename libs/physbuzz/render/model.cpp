@@ -7,18 +7,20 @@
 
 namespace Physbuzz {
 
-Model::Model(const std::filesystem::path &path)
-    : m_Path(path) {}
-
 Model::Model(const Info &info)
     : m_Info(info) {}
 
-Model::~Model() {}
-
 bool Model::build() {
     // if supplied a path, load the model from the filesystem
-    if (!m_Path.empty()) {
-        load();
+    if (!m_Info.path.empty()) {
+        Assimp::Importer importer;
+        const aiScene *scene = importer.ReadFile(m_Info.path, aiProcess_Triangulate | aiProcess_FlipUVs);
+        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+            Logger::ERROR("[Model] Could not import model at \"{}\". Assimp Error: \n{}", m_Info.path.string(), importer.GetErrorString());
+            return false;
+        }
+
+        processNode(scene->mRootNode, scene);
     }
 
     for (auto &[mesh, _] : m_Info.meshes) {
@@ -36,18 +38,6 @@ bool Model::destroy() {
     return true;
 }
 
-bool Model::load() {
-    Assimp::Importer importer;
-    const aiScene *scene = importer.ReadFile(m_Path, aiProcess_Triangulate | aiProcess_FlipUVs);
-
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        Logger::ERROR("[Model] Could not import model \"{}\". Assimp Error: \n{}", m_Path.string(), importer.GetErrorString());
-        return false;
-    }
-
-    return processNode(scene->mRootNode, scene);
-}
-
 bool Model::processNode(const aiNode *ainode, const aiScene *aiscene) {
     for (std::size_t i = 0; i < ainode->mNumMeshes; ++i) {
         aiMesh *mesh = aiscene->mMeshes[ainode->mMeshes[i]];
@@ -63,7 +53,7 @@ bool Model::processNode(const aiNode *ainode, const aiScene *aiscene) {
 
 bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
     Mesh::Info mesh;
-    MeshMeta meta;
+    Meta meta;
 
     // pos and norm
     mesh.vertices.resize(aimesh->mNumVertices);
@@ -97,8 +87,9 @@ bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
     if (aimesh->mMaterialIndex >= 0) {
         aiMaterial *material = scene->mMaterials[aimesh->mMaterialIndex];
 
-        loadTextures(material, aiTextureType_DIFFUSE);
-        loadTextures(material, aiTextureType_SPECULAR);
+        for (std::size_t i = 0; i < AI_TEXTURE_TYPE_MAX; i++) {
+            loadTextures(material, static_cast<aiTextureType>(i));
+        }
 
         float shininiess;
         material->Get(AI_MATKEY_SHININESS, shininiess);
@@ -115,11 +106,13 @@ bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
 void Model::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
     std::uint32_t size = aimaterial->GetTextureCount(type);
 
+    std::string name = aiTextureTypeToString(type);
+
     for (std::uint32_t i = 0; i < size; i++) {
         aiString aiPath;
         aimaterial->GetTexture(type, i, &aiPath);
 
-        std::string path = m_Path.parent_path() / aiPath.C_Str();
+        std::string path = m_Info.path.parent_path() / aiPath.C_Str();
 
         Texture2D::Info info = {
             .image = {
@@ -130,19 +123,25 @@ void Model::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
             .type = static_cast<TextureType>(type),
         };
 
-        if (!ResourceRegistry<Texture2D>::contains(path)) {
-            ResourceRegistry<Texture2D>::insert(path, info);
-            m_Info.textures.emplace_back(path);
+        ResourceID name = std::format("model@{}", path);
+
+        if (!ResourceRegistry<Texture2D>::contains(name)) {
+            ResourceRegistry<Texture2D>::insert(name, info);
+            m_Info.textures.emplace_back(name);
         }
     }
 }
 
-const std::vector<std::tuple<Mesh, MeshMeta>> &Model::getMeshs() const {
+const std::vector<std::tuple<Mesh, Model::Meta>> &Model::getMeshs() const {
     return m_Info.meshes;
 }
 
 const std::vector<Resource<Texture2D>> &Model::getTextures() const {
     return m_Info.textures;
+}
+
+std::string Model::getTextureTypeName(TextureType texture) {
+    return aiTextureTypeToString(static_cast<aiTextureType>(texture));
 }
 
 } // namespace Physbuzz

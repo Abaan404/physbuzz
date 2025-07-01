@@ -70,21 +70,15 @@ inline Physbuzz::ShaderPipeline shaderDefault = {{
 
         for (const auto &texture : render.model->getTextures()) {
             const Physbuzz::TextureType type = texture->getType();
-            switch (type) {
-            case Physbuzz::TextureType::Diffuse:
-                pipeline->setUniform(std::format("u_MaterialDiffuse[{}]", textureLengths[type]), Physbuzz::GL::TextureUnits::activate());
-                break;
+            const std::string name = render.model->getTextureTypeName(type);
 
-            case Physbuzz::TextureType::Specular:
-                pipeline->setUniform(std::format("u_MaterialSpecular[{}]", textureLengths[type]), Physbuzz::GL::TextureUnits::activate());
-                break;
-
-            default:
-                break;
-            }
-
-            textureLengths[type]++;
+            pipeline->setUniform(std::format("u_Material{}[{}]", name, textureLengths[type]), Physbuzz::GL::TextureUnits::activate());
             texture->bind();
+            textureLengths[type]++;
+        }
+
+        for (const auto [type, size] : textureLengths) {
+            pipeline->setUniform(std::format("u_Material{}Length", render.model->getTextureTypeName(type)), size);
         }
 
         pipeline->setUniform("u_Material.diffuseLength", textureLengths[Physbuzz::TextureType::Diffuse]);

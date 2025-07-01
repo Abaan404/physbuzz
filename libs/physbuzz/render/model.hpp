@@ -37,35 +37,33 @@ enum class TextureType {
     MayaSpecularRoughness = aiTextureType_MAYA_SPECULAR_ROUGHNESS,
 };
 
-struct MeshMeta {
-    float shininess = 32.0f;
-};
-
 class Model {
   public:
+    struct Meta {
+        float shininess = 32.0f;
+    };
+
     struct Info {
-        std::vector<std::tuple<Mesh, MeshMeta>> meshes;
+        std::filesystem::path path;
+        std::vector<std::tuple<Mesh, Meta>> meshes;
         std::vector<Resource<Texture2D>> textures;
     };
 
-    Model(const std::filesystem::path &path);
     Model(const Info &info);
-    ~Model();
 
     bool build();
     bool destroy();
 
-    const std::vector<std::tuple<Mesh, MeshMeta>> &getMeshs() const;
+    const std::vector<std::tuple<Mesh, Meta>> &getMeshs() const;
     const std::vector<Resource<Texture2D>> &getTextures() const;
 
-  private:
-    bool load();
+    static std::string getTextureTypeName(TextureType texture);
 
+  private:
     bool processNode(const aiNode *ainode, const aiScene *aiscene);
     bool processMesh(const aiMesh *aimesh, const aiScene *scene);
     void loadTextures(const aiMaterial *aimaterial, const aiTextureType type);
 
-    std::filesystem::path m_Path;
     Info m_Info;
 };
 

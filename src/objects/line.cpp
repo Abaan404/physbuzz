@@ -27,6 +27,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
         modelName,
         {{
+            .path = {},
             .meshes = {{mesh, {}}},
             .textures = info.resources.textures,
         }});

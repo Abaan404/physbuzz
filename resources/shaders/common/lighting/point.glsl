@@ -1,5 +1,3 @@
-#pbz_include "defines.glsl"
-
 #pbz_include "../shadow/shadow.glsl"
 
 struct PointLight {
