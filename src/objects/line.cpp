@@ -9,18 +9,25 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     glm::vec3 min = glm::vec3(-info.line.thickness / 2.0f, 0.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.line.thickness / 2.0f, info.line.length, 0.0f);
 
-    Physbuzz::Mesh::Info mesh = {
-        .vertices = {
-            {{min.x, min.y, 0.0f}, {}, {}}, // top-left
-            {{min.x, max.y, 0.0f}, {}, {}}, // top-right
-            {{max.x, max.y, 0.0f}, {}, {}}, // bottom-right
-            {{max.x, min.y, 0.0f}, {}, {}}, // bottom-left
-        },
-        .indices = {0, 1, 2, 0, 3, 2},
+    std::vector<Physbuzz::Index> indices = {0, 1, 2, 2, 3, 0};
+    std::vector<glm::vec3> positions = {
+        {min.x, min.y, 0.0f},
+        {min.x, max.y, 0.0f},
+        {max.x, max.y, 0.0f},
+        {max.x, min.y, 0.0f},
     };
+    std::vector normals = generateNormals(indices, positions);
 
-    generateTexCoords(mesh);
-    generateNormals(mesh);
+    Physbuzz::Mesh<Physbuzz::Builtin::VertexDefault::Format> mesh = {{
+        .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
+        .vertices = {
+            {positions[0], normals[3], {}, {}, {1.0f, 1.0f}}, // top-left
+            {positions[1], normals[3], {}, {}, {0.0f, 1.0f}}, // top-right
+            {positions[2], normals[3], {}, {}, {0.0f, 1.0f}}, // bottom-right
+            {positions[3], normals[3], {}, {}, {0.0f, 0.0f}}, // bottom-left
+        },
+        .indices = indices,
+    }};
 
     // create model
     std::string modelName = std::format("line_{}", object);

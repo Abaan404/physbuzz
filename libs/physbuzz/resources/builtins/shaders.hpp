@@ -7,7 +7,7 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-namespace Passthrough {
+namespace ShaderPassthrough {
 
 inline Resource<ShaderPipeline> Resource = {"builtin/passthrough"};
 
@@ -15,7 +15,7 @@ bool build();
 
 } // namespace Passthrough
 
-namespace Depth2D {
+namespace ShaderDepth2D {
 
 inline Resource<ShaderPipeline> Resource = {"builtin/depth/2D"};
 
@@ -23,7 +23,7 @@ bool build();
 
 } // namespace Depth
 
-namespace DepthCubemap {
+namespace ShaderDepthCubemap {
 
 inline Resource<ShaderPipeline> Resource = {"builtin/depth/cubemap"};
 

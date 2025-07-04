@@ -8,18 +8,26 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     glm::vec3 min = glm::vec3(-info.quad.width / 2.0f, -info.quad.height / 2.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
 
-    Physbuzz::Mesh::Info mesh = {
-        .vertices = {
-            {{min.x, min.y, 0.0f}, {}, {}}, // top-left
-            {{min.x, max.y, 0.0f}, {}, {}}, // top-right
-            {{max.x, max.y, 0.0f}, {}, {}}, // bottom-right
-            {{max.x, min.y, 0.0f}, {}, {}}, // bottom-left
-        },
-        .indices = {0, 1, 2, 2, 3, 0},
+    std::vector<Physbuzz::Index> indices = {0, 1, 2, 2, 3, 0};
+    std::vector<glm::vec3> positions = {
+        {min.x, min.y, 0.0f}, // top-left
+        {min.x, max.y, 0.0f}, // top-right
+        {max.x, max.y, 0.0f}, // bottom-right
+        {max.x, min.y, 0.0f}, // bottom-left
     };
+    std::vector<glm::vec3> normals = generateNormals(indices, positions);
+    std::vector<glm::vec2> texCoords = generateTexCoords(positions);
 
-    generateTexCoords(mesh);
-    generateNormals(mesh);
+    Physbuzz::Mesh<Physbuzz::Builtin::VertexDefault::Format> mesh = {{
+        .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
+        .vertices = {
+            {positions[0], normals[0], {}, {}, texCoords[0]},
+            {positions[1], normals[1], {}, {}, texCoords[1]},
+            {positions[2], normals[2], {}, {}, texCoords[2]},
+            {positions[3], normals[3], {}, {}, texCoords[3]},
+        },
+        .indices = indices,
+    }};
 
     // create model
     std::string modelName = std::format("quad_{}", object);

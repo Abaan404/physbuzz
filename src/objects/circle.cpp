@@ -7,24 +7,36 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     constexpr Physbuzz::Index MAX_VERTICES = 50;
     constexpr const float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
 
-    Physbuzz::Mesh::Info mesh;
-
     // calc positions
-    mesh.vertices.resize(MAX_VERTICES);
+    std::vector<glm::vec3> positions = std::vector<glm::vec3>(MAX_VERTICES);
     for (Physbuzz::Index i = 0; i < MAX_VERTICES; i++) {
         float angle = i * angleIncrement;
-        mesh.vertices[i].position = info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f);
+        positions[i] = info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f);
     }
 
     // calc indices
+    std::vector<Physbuzz::Index> indices;
     for (Physbuzz::Index i = 1; i < MAX_VERTICES - 1; i++) {
-        mesh.indices.insert(mesh.indices.end(), {0, i, i + 1});
+        indices.insert(indices.end(), {0, i, i + 1});
     }
-    mesh.indices.insert(mesh.indices.end(), {0, MAX_VERTICES - 1, 1});
+    indices.insert(indices.end(), {0, MAX_VERTICES - 1, 1});
 
-    // calc vertices
-    generateTexCoords(mesh);
-    generateNormals(mesh);
+    // calc normals
+    std::vector<glm::vec3> normals = generateNormals(indices, positions);
+    std::vector<glm::vec2> texCoords = generateTexCoords(positions);
+
+    Physbuzz::Mesh<Physbuzz::Builtin::VertexDefault::Format>::Info mesh{
+        .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
+        .vertices = std::vector<Physbuzz::Builtin::VertexDefault::Format>(positions.size()),
+        .indices = indices,
+    };
+
+    mesh.vertices.resize(positions.size());
+    for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
+        mesh.vertices[i].position = positions[i];
+        mesh.vertices[i].normal = normals[i];
+        mesh.vertices[i].texCoords = texCoords[i];
+    }
 
     // create model
     std::string modelName = std::format("circle_{}", object);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../resources/builtins/vertices.hpp"
 #include "../resources/resources.hpp"
 #include "mesh.hpp"
 #include "texture.hpp"
@@ -8,6 +9,7 @@
 
 namespace Physbuzz {
 
+constexpr std::size_t TextureTypeMax = AI_TEXTURE_TYPE_MAX;
 enum class TextureType {
     None = aiTextureType_NONE,
     Diffuse = aiTextureType_DIFFUSE,
@@ -37,7 +39,8 @@ enum class TextureType {
     MayaSpecularRoughness = aiTextureType_MAYA_SPECULAR_ROUGHNESS,
 };
 
-class Model {
+template <typename VertexFormat = Builtin::VertexDefault::Format>
+class BasicModel {
   public:
     struct Meta {
         float shininess = 32.0f;
@@ -45,16 +48,16 @@ class Model {
 
     struct Info {
         std::filesystem::path path;
-        std::vector<std::tuple<Mesh, Meta>> meshes;
+        std::vector<std::tuple<Mesh<VertexFormat>, Meta>> meshes;
         std::vector<Resource<Texture2D>> textures;
     };
 
-    Model(const Info &info);
+    BasicModel(const Info &info);
 
     bool build();
     bool destroy();
 
-    const std::vector<std::tuple<Mesh, Meta>> &getMeshs() const;
+    const std::vector<std::tuple<Mesh<VertexFormat>, Meta>> &getMeshs() const;
     const std::vector<Resource<Texture2D>> &getTextures() const;
 
     static std::string getTextureTypeName(TextureType texture);
@@ -67,7 +70,10 @@ class Model {
     Info m_Info;
 };
 
-template <>
-struct IsResource<Model> : std::true_type {};
+template <VertexAttributeFormatType T>
+struct IsResource<BasicModel<T>> : std::true_type {};
+
+template class BasicModel<Builtin::VertexDefault::Format>;
+using Model = BasicModel<Builtin::VertexDefault::Format>;
 
 } // namespace Physbuzz

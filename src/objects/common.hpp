@@ -1,8 +1,8 @@
 #pragma once
 
 #include <functional>
-#include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/mesh.hpp>
+#include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/texture.hpp>
 #include <physbuzz/resources/resources.hpp>
 
@@ -23,5 +23,5 @@ struct ResourceComponent {
     Physbuzz::Resource<Physbuzz::ShaderPipeline> pipeline = {"default"};
 };
 
-void generateTexCoords(Physbuzz::Mesh::Info &mesh);
-void generateNormals(Physbuzz::Mesh::Info &mesh);
+std::vector<glm::vec2> generateTexCoords(const std::vector<glm::vec3> &positions);
+std::vector<glm::vec3> generateNormals(const std::vector<Physbuzz::Index> &indices, const std::vector<glm::vec3> &positions);

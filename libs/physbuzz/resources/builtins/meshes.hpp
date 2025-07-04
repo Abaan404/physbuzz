@@ -7,7 +7,7 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-namespace ScreenQuad {
+namespace MeshScreenQuad {
 
 inline Resource<Model> Resource = {"builtin/passthrough"};
 

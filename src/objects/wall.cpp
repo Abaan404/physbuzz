@@ -94,11 +94,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             const auto [wall, identifier] = scene.getComponent<WallComponent, IdentifiableComponent>(object);
 
             bool isCollidable = false;
-            bool isRenderable = false;
 
             for (const auto &id : {wall.left, wall.right, wall.up, wall.down}) {
                 isCollidable = scene.containsComponent<Physbuzz::AABBComponent>(id) || isCollidable;
-                isRenderable = scene.containsComponent<Physbuzz::Mesh>(id) || isRenderable;
 
                 scene.eraseObject(id);
             }

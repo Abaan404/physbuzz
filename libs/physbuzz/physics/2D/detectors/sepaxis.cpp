@@ -8,10 +8,6 @@ SeperatingAxis2D::SeperatingAxis2D(Scene *scene)
     : ICollisionDetector(scene) {}
 
 bool SeperatingAxis2D::check(Contact &contact) {
-    if (!(m_Scene->containsComponent<Mesh>(contact.object1) && m_Scene->containsComponent<Mesh>(contact.object2))) {
-        return false;
-    }
-
     const auto [render1] = m_Scene->getComponent<RenderComponent>(contact.object1);
     const auto [render2] = m_Scene->getComponent<RenderComponent>(contact.object2);
 

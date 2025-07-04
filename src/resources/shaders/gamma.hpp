@@ -15,7 +15,7 @@ inline Physbuzz::ShaderPipeline shaderGamma = {{
     .fragment = {.file = {.path = "resources/shaders/gamma/gamma.frag"}},
     .compute = {},
     .draw = [](const Physbuzz::ShaderPipeline *, Physbuzz::Scene &, Physbuzz::ObjectID) {
-        for (const auto &[mesh, _] : Physbuzz::Builtin::ScreenQuad::Resource->getMeshs()) {
+        for (const auto &[mesh, _] : Physbuzz::Builtin::MeshScreenQuad::Resource->getMeshs()) {
             mesh.draw();
         }
     },

@@ -77,12 +77,10 @@ inline Physbuzz::ShaderPipeline shaderDefault = {{
             textureLengths[type]++;
         }
 
-        for (const auto [type, size] : textureLengths) {
-            pipeline->setUniform(std::format("u_Material{}Length", render.model->getTextureTypeName(type)), size);
+        for (std::size_t i = 0; i < Physbuzz::TextureTypeMax; i++) {
+            Physbuzz::TextureType type = static_cast<Physbuzz::TextureType>(i);
+            pipeline->setUniform(std::format("u_Material{}Length", render.model->getTextureTypeName(type)), textureLengths[type]);
         }
-
-        pipeline->setUniform("u_Material.diffuseLength", textureLengths[Physbuzz::TextureType::Diffuse]);
-        pipeline->setUniform("u_Material.specularLength", textureLengths[Physbuzz::TextureType::Specular]);
 
         // shadow map
         const Physbuzz::Shadow::Framebuffers &shadowMaps = shadow->getFramebuffers();

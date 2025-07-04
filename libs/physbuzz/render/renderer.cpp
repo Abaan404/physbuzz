@@ -30,8 +30,8 @@ bool Renderer::build() {
     bool success = true;
 
     success &= m_Framebuffer.build();
-    success &= Builtin::ScreenQuad::build();
-    success &= Builtin::Passthrough::build();
+    success &= Builtin::MeshScreenQuad::build();
+    success &= Builtin::ShaderPassthrough::build();
 
     return success;
 }
@@ -74,11 +74,11 @@ void Renderer::tick(Scene &scene) const {
 
     framebuffer->unbind();
 
-    if (framebuffer == &m_Framebuffer && Builtin::Passthrough::Resource->reload()) {
-        Builtin::Passthrough::Resource->bind();
-        Builtin::Passthrough::Resource->setUniform("PBZ_Framebuffer", screenUnit);
-        Builtin::Passthrough::Resource->draw(scene, -1);
-        Builtin::Passthrough::Resource->unbind();
+    if (framebuffer == &m_Framebuffer && Builtin::ShaderPassthrough::Resource->reload()) {
+        Builtin::ShaderPassthrough::Resource->bind();
+        Builtin::ShaderPassthrough::Resource->setUniform("PBZ_Framebuffer", screenUnit);
+        Builtin::ShaderPassthrough::Resource->draw(scene, -1);
+        Builtin::ShaderPassthrough::Resource->unbind();
     }
 
     framebuffer->unbindOutputTexture();

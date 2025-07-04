@@ -10,37 +10,38 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     glm::vec3 min = glm::vec3(-info.cube.width / 2.0f, -info.cube.height / 2.0f, -info.cube.length / 2.0f);
     glm::vec3 max = glm::vec3(info.cube.width / 2.0f, info.cube.height / 2.0f, info.cube.length / 2.0f);
 
-    Physbuzz::Mesh mesh = {{
+    Physbuzz::Mesh<Physbuzz::Builtin::VertexDefault::Format> mesh = {{
+        .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
         .vertices = {
-            {{min.x, min.y, min.z}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{min.x, min.y, max.z}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-            {{min.x, max.y, max.z}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-            {{min.x, max.y, min.z}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+            {{min.x, min.y, min.z}, {-1.0f, 0.0f, 0.0f}, {}, {}, {0.0f, 0.0f}},
+            {{min.x, min.y, max.z}, {-1.0f, 0.0f, 0.0f}, {}, {}, {1.0f, 0.0f}},
+            {{min.x, max.y, max.z}, {-1.0f, 0.0f, 0.0f}, {}, {}, {1.0f, 1.0f}},
+            {{min.x, max.y, min.z}, {-1.0f, 0.0f, 0.0f}, {}, {}, {0.0f, 1.0f}},
 
-            {{max.x, min.y, max.z}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{max.x, min.y, min.z}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-            {{max.x, max.y, min.z}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-            {{max.x, max.y, max.z}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+            {{max.x, min.y, max.z}, {1.0f, 0.0f, 0.0f}, {}, {}, {0.0f, 0.0f}},
+            {{max.x, min.y, min.z}, {1.0f, 0.0f, 0.0f}, {}, {}, {1.0f, 0.0f}},
+            {{max.x, max.y, min.z}, {1.0f, 0.0f, 0.0f}, {}, {}, {1.0f, 1.0f}},
+            {{max.x, max.y, max.z}, {1.0f, 0.0f, 0.0f}, {}, {}, {0.0f, 1.0f}},
 
-            {{max.x, min.y, min.z}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}},
-            {{min.x, min.y, min.z}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}},
-            {{min.x, max.y, min.z}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}},
-            {{max.x, max.y, min.z}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}},
+            {{max.x, min.y, min.z}, {0.0f, 0.0f, -1.0f}, {}, {}, {0.0f, 0.0f}},
+            {{min.x, min.y, min.z}, {0.0f, 0.0f, -1.0f}, {}, {}, {1.0f, 0.0f}},
+            {{min.x, max.y, min.z}, {0.0f, 0.0f, -1.0f}, {}, {}, {1.0f, 1.0f}},
+            {{max.x, max.y, min.z}, {0.0f, 0.0f, -1.0f}, {}, {}, {0.0f, 1.0f}},
 
-            {{min.x, min.y, max.z}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-            {{max.x, min.y, max.z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-            {{max.x, max.y, max.z}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{min.x, max.y, max.z}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+            {{min.x, min.y, max.z}, {0.0f, 0.0f, 1.0f}, {}, {}, {0.0f, 0.0f}},
+            {{max.x, min.y, max.z}, {0.0f, 0.0f, 1.0f}, {}, {}, {1.0f, 0.0f}},
+            {{max.x, max.y, max.z}, {0.0f, 0.0f, 1.0f}, {}, {}, {1.0f, 1.0f}},
+            {{min.x, max.y, max.z}, {0.0f, 0.0f, 1.0f}, {}, {}, {0.0f, 1.0f}},
 
-            {{min.x, min.y, min.z}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
-            {{max.x, min.y, min.z}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
-            {{max.x, min.y, max.z}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},
-            {{min.x, min.y, max.z}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}},
+            {{min.x, min.y, min.z}, {0.0f, -1.0f, 0.0f}, {}, {}, {0.0f, 0.0f}},
+            {{max.x, min.y, min.z}, {0.0f, -1.0f, 0.0f}, {}, {}, {1.0f, 0.0f}},
+            {{max.x, min.y, max.z}, {0.0f, -1.0f, 0.0f}, {}, {}, {1.0f, 1.0f}},
+            {{min.x, min.y, max.z}, {0.0f, -1.0f, 0.0f}, {}, {}, {0.0f, 1.0f}},
 
-            {{max.x, max.y, min.z}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-            {{min.x, max.y, min.z}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-            {{min.x, max.y, max.z}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-            {{max.x, max.y, max.z}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+            {{max.x, max.y, min.z}, {0.0f, 1.0f, 0.0f}, {}, {}, {0.0f, 0.0f}},
+            {{min.x, max.y, min.z}, {0.0f, 1.0f, 0.0f}, {}, {}, {1.0f, 0.0f}},
+            {{min.x, max.y, max.z}, {0.0f, 1.0f, 0.0f}, {}, {}, {1.0f, 1.0f}},
+            {{max.x, max.y, max.z}, {0.0f, 1.0f, 0.0f}, {}, {}, {0.0f, 1.0f}},
         },
         .indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20},
     }};

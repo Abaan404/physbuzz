@@ -7,10 +7,14 @@
 
 namespace Physbuzz {
 
-Model::Model(const Info &info)
+template <typename VertexFormat>
+BasicModel<VertexFormat>::BasicModel(const Info &info)
     : m_Info(info) {}
 
-bool Model::build() {
+template <typename VertexFormat>
+bool BasicModel<VertexFormat>::build() {
+    Builtin::VertexDefault::build();
+
     // if supplied a path, load the model from the filesystem
     if (!m_Info.path.empty()) {
         Assimp::Importer importer;
@@ -30,7 +34,8 @@ bool Model::build() {
     return true;
 }
 
-bool Model::destroy() {
+template <typename VertexFormat>
+bool BasicModel<VertexFormat>::destroy() {
     for (auto &[mesh, _] : m_Info.meshes) {
         mesh.destroy();
     }
@@ -38,7 +43,8 @@ bool Model::destroy() {
     return true;
 }
 
-bool Model::processNode(const aiNode *ainode, const aiScene *aiscene) {
+template <typename VertexFormat>
+bool BasicModel<VertexFormat>::processNode(const aiNode *ainode, const aiScene *aiscene) {
     for (std::size_t i = 0; i < ainode->mNumMeshes; ++i) {
         aiMesh *mesh = aiscene->mMeshes[ainode->mMeshes[i]];
         processMesh(mesh, aiscene);
@@ -51,8 +57,13 @@ bool Model::processNode(const aiNode *ainode, const aiScene *aiscene) {
     return true;
 }
 
-bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
-    Mesh::Info mesh;
+template <>
+bool BasicModel<Builtin::VertexDefault::Format>::processMesh(const aiMesh *aimesh, const aiScene *scene) {
+    Mesh<Builtin::VertexDefault::Format>::Info mesh = {
+        .attribute = Builtin::VertexDefault::Resource.getIdentifier(),
+        .vertices = {},
+        .indices = {},
+    };
     Meta meta;
 
     // pos and norm
@@ -87,7 +98,7 @@ bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
     if (aimesh->mMaterialIndex >= 0) {
         aiMaterial *material = scene->mMaterials[aimesh->mMaterialIndex];
 
-        for (std::size_t i = 0; i < AI_TEXTURE_TYPE_MAX; i++) {
+        for (std::size_t i = 0; i < TextureTypeMax; i++) {
             loadTextures(material, static_cast<aiTextureType>(i));
         }
 
@@ -103,7 +114,8 @@ bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
     return true;
 }
 
-void Model::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
+template <typename VertexFormat>
+void BasicModel<VertexFormat>::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
     std::uint32_t size = aimaterial->GetTextureCount(type);
 
     std::string name = aiTextureTypeToString(type);
@@ -132,15 +144,18 @@ void Model::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
     }
 }
 
-const std::vector<std::tuple<Mesh, Model::Meta>> &Model::getMeshs() const {
+template <typename VertexFormat>
+const std::vector<std::tuple<Mesh<VertexFormat>, typename BasicModel<VertexFormat>::Meta>> &BasicModel<VertexFormat>::getMeshs() const {
     return m_Info.meshes;
 }
 
-const std::vector<Resource<Texture2D>> &Model::getTextures() const {
+template <typename VertexFormat>
+const std::vector<Resource<Texture2D>> &BasicModel<VertexFormat>::getTextures() const {
     return m_Info.textures;
 }
 
-std::string Model::getTextureTypeName(TextureType texture) {
+template <typename VertexFormat>
+std::string BasicModel<VertexFormat>::getTextureTypeName(TextureType texture) {
     return aiTextureTypeToString(static_cast<aiTextureType>(texture));
 }
 

@@ -8,9 +8,13 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool Passthrough::build() {
+bool ShaderPassthrough::build() {
     if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
         return true;
+    }
+
+    if (!Builtin::MeshScreenQuad::build()) {
+        return false;
     }
 
     return ResourceRegistry<ShaderPipeline>::insert(
@@ -23,14 +27,14 @@ bool Passthrough::build() {
             .fragment = {.file = {.path = "resources/shaders/builtin/passthrough/passthrough.frag"}},
             .compute = {},
             .draw = [](const ShaderPipeline *, Scene &, ObjectID id) {
-                for (const auto &[mesh, _] : Builtin::ScreenQuad::Resource->getMeshs()) {
+                for (const auto &[mesh, _] : Builtin::MeshScreenQuad::Resource->getMeshs()) {
                     mesh.draw();
                 }
             },
         }});
 }
 
-bool Depth2D::build() {
+bool ShaderDepth2D::build() {
     if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
@@ -56,7 +60,7 @@ bool Depth2D::build() {
         }});
 }
 
-bool DepthCubemap::build() {
+bool ShaderDepthCubemap::build() {
     if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
