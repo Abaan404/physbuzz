@@ -57,8 +57,9 @@ bool Shader::compile() {
     }
 
     Logger::INFO("[Shader] Compiling shader {}", m_Info.file.path.string());
-    preprocess(file);
-    const char *source = file.buffer.data();
+
+    std::string output = preprocess(file);
+    const char *source = output.data();
     glShaderSource(m_Shader, 1, &source, NULL);
     glCompileShader(m_Shader);
     file.destroy();
@@ -80,91 +81,94 @@ bool Shader::compile() {
     return true;
 }
 
-void Shader::preprocess(File &file) {
-    if (file.buffer.empty()) {
-        return;
+const std::string Shader::preprocess(const File &file) {
+    const File::Data &data = file.getData();
+
+    if (data.buffer.empty()) {
+        return "";
     }
 
-    std::unordered_map<std::string, std::function<bool(File &, std::size_t)>> directives = {
-        {"pbz_include ", std::bind(&Shader::preprocessInclude, this, std::placeholders::_1, std::placeholders::_2)},
+    std::string output = data.buffer;
+
+    std::unordered_map<std::string, std::function<bool(const File &, std::string &buffer, std::size_t)>> directives = {
+        {"pbz_include ", std::bind(&Shader::preprocessInclude, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)},
     };
 
-    for (std::size_t position = 0; position < file.buffer.size(); position = file.buffer.find('#', position + 1)) {
-        if (position >= file.buffer.size()) {
+    for (std::size_t position = 0; position < output.size(); position = output.find('#', position + 1)) {
+        if (position >= output.size()) {
             break;
         }
 
         for (const auto &[directive, func] : directives) {
-            if (file.buffer.compare(position + 1, directive.size(), directive) == 0) {
-                if (position != 0 && file.buffer[position - 1] != '\n') {
+            if (output.compare(position + 1, directive.size(), directive) == 0) {
+                if (position != 0 && output[position - 1] != '\n') {
                     break;
                 }
 
-                if (!func(file, position)) {
-                    std::string line = file.buffer.substr(position, std::min(file.buffer.find('\n', position), file.buffer.size()) - position);
+                if (!func(file, output, position)) {
+                    std::string line = output.substr(position, std::min(output.find('\n', position), output.size()) - position);
                     Logger::ERROR("[Shader] Could not parse directive '{}'", line);
                 }
             }
         }
     }
+
+    return output;
 }
 
-bool Shader::preprocessInclude(File &file, std::size_t position) {
-    std::size_t pathBegin = file.buffer.find('\"', position) + 1;
-    if (pathBegin >= file.buffer.size()) {
+bool Shader::preprocessInclude(const File &file, std::string &output, std::size_t position) {
+    std::size_t pathBegin = output.find('\"', position) + 1;
+    if (pathBegin >= output.size()) {
         return false;
     }
 
-    std::size_t pathEnd = file.buffer.find('\"', pathBegin + 1);
-    if (pathEnd >= file.buffer.size()) {
+    std::size_t pathEnd = output.find('\"', pathBegin + 1);
+    if (pathEnd >= output.size()) {
         return false;
     }
 
-    std::filesystem::path cwdIncludePath = file.buffer.substr(pathBegin, pathEnd - pathBegin);
-    std::filesystem::path relativeIncludePath = file.getPath().parent_path() / cwdIncludePath;
+    std::filesystem::path cwdIncludePath = output.substr(pathBegin, pathEnd - pathBegin);
+    std::filesystem::path relativeIncludePath = file.getInfo().path.parent_path() / cwdIncludePath;
 
     // check relative path first, the cwd path
-    std::filesystem::path includePath;
+    std::filesystem::path path;
     if (std::filesystem::is_regular_file(relativeIncludePath)) {
-        includePath = relativeIncludePath;
+        path = relativeIncludePath;
     } else if (std::filesystem::is_regular_file(cwdIncludePath)) {
-        includePath = cwdIncludePath;
+        path = cwdIncludePath;
     }
 
     // could not locate file
-    if (includePath.empty()) {
+    if (path.empty()) {
         return false;
     }
 
-    includePath = std::filesystem::canonical(includePath);
+    path = std::filesystem::canonical(path);
 
-    std::string top = file.buffer.substr(0, position);
-    std::string bottom = file.buffer.substr(
-        std::min(file.buffer.find('\n', position), file.buffer.size()),
-        file.buffer.size());
+    std::string top = output.substr(0, position);
+    std::string bottom = output.substr(
+        std::min(output.find('\n', position), output.size()),
+        output.size());
 
     // guard headers by default
-    if (m_Paths.contains(includePath)) {
-        file.buffer = top + bottom;
+    if (m_Paths.contains(path)) {
+        output = top + bottom;
         return true;
     }
 
-    File includeFile = File({
-        .path = includePath,
+    File include = File({
+        .path = path,
     });
 
-    if (!includeFile.build() || !includeFile.read()) {
-        Logger::ERROR("[Shader] Could not process file '{}'", includeFile.getPath().string());
+    if (!include.build() || !include.read()) {
+        Logger::ERROR("[Shader] Could not process file '{}'", path.string());
         return false;
     }
-    m_Paths.insert(includePath);
+    m_Paths.insert(path);
 
-    // recursively apply directives to included path
-    preprocess(includeFile);
-    includeFile.buffer[includeFile.buffer.size()] = ' '; // pop null terminator
-    file.buffer = top + includeFile.buffer + bottom;
+    output = top + preprocess(include) + bottom;
 
-    includeFile.destroy();
+    include.destroy();
 
     return true;
 }
@@ -307,20 +311,36 @@ bool ShaderPipeline::reload() {
 
     m_RequestedReload = false;
 
-    if (!(destroy() && build())) {
+    if (!m_FailedReload && !destroy()) {
         Logger::ERROR("[ShaderPipeline] Reload failed.");
         return false;
     }
 
+    if (!build()) {
+        m_FailedReload = true;
+        return false;
+    }
+
+    m_FailedReload = false;
     return true;
 }
 
 void ShaderPipeline::draw(Scene &scene, ObjectID object) const {
+    // dont draw this shader on a failed reload
+    if (m_FailedReload) {
+        return;
+    }
+
     PBZ_ASSERT(m_Program != 0, "[ShaderPipeline] trying to draw an incomplete pipeline.");
     m_Info.draw(this, scene, object);
 }
 
 void ShaderPipeline::bind() const {
+    // dont use this shader on a failed reload
+    if (m_FailedReload) {
+        return;
+    }
+
     PBZ_ASSERT(m_Program != 0, "[ShaderPipeline] trying to bind an incomplete pipeline.");
     glUseProgram(m_Program);
 }

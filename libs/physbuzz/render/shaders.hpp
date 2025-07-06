@@ -4,7 +4,6 @@
 #include "../ecs/defines.hpp"
 #include "../io/file.hpp"
 #include "../resources/defines.hpp"
-#include <format>
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <set>
@@ -12,7 +11,6 @@
 
 namespace Physbuzz {
 
-class ShaderPipeline;
 class Scene;
 
 template <typename T>
@@ -67,8 +65,8 @@ class Shader {
     void detach(GLuint program) const;
 
   private:
-    void preprocess(File &file);
-    bool preprocessInclude(File &file, std::size_t position);
+    const std::string preprocess(const File &file);
+    bool preprocessInclude(const File &file, std::string &output, std::size_t position);
 
     GLuint m_Shader = 0;
     Type m_Type = Type::Unknown;
@@ -145,6 +143,7 @@ class ShaderPipeline {
 
     GLuint m_Program = 0;
 
+    bool m_FailedReload = false;
     bool m_RequestedReload = false;
     std::function<void(const ResourceWatcherData &)> m_ReloadCallback;
 

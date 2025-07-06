@@ -11,8 +11,12 @@ class File {
         std::filesystem::path path;
     };
 
+    struct Data {
+        std::string buffer;
+        std::streampos size = 0;
+    };
+
     File(const Info &file);
-    ~File();
 
     bool build();
     bool destroy();
@@ -20,14 +24,12 @@ class File {
     bool read();
     bool write();
 
-    const std::streampos &getSize() const;
-    const std::filesystem::path &getPath() const;
-
-    std::string buffer;
+    const Info &getInfo() const;
+    const Data &getData() const;
 
   private:
+    Data m_Data;
     Info m_Info;
-    std::streampos m_Size = 0;
 };
 
 template <>
