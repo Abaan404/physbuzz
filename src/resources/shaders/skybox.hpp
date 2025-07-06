@@ -20,15 +20,11 @@ inline Physbuzz::ShaderPipeline shaderSkybox = {{
         Physbuzz::GL::setDepthMask(false);
         Physbuzz::GL::setDepthFunc(Physbuzz::GL::DepthFunc::LEqual);
 
-        pipeline->setUniform("u_Skybox", Physbuzz::GL::TextureUnits::activate());
-
-        skybox.cubemap->bind();
+        pipeline->setUniform("u_Skybox", skybox.cubemap->activate());
 
         for (const auto &[mesh, _] : render.model->getMeshs()) {
             mesh.draw();
         }
-
-        skybox.cubemap->unbind();
 
         Physbuzz::GL::setDepthMask(true);
         Physbuzz::GL::setDepthFunc(depthFunc);

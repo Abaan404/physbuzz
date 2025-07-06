@@ -2,6 +2,7 @@
 
 #include "file.hpp"
 #include <glm/glm.hpp>
+#include <vector>
 
 namespace Physbuzz {
 
@@ -12,6 +13,12 @@ class ImageFile {
         bool flipVertically = false;
     };
 
+    struct Data {
+        std::vector<std::uint8_t> image;
+        glm::ivec2 resolution = {0, 0};
+        int channels = 0;
+    };
+
     ImageFile(const Info &image);
     ~ImageFile();
 
@@ -19,17 +26,14 @@ class ImageFile {
     bool destroy();
 
     bool read();
-    bool write();
+    bool write(const Info &info, const Data &data);
 
-    const int &getChannels() const;
-    const glm::ivec2 &getResolution() const;
-
-    std::uint8_t *buffer = nullptr;
+    const Data &getData() const;
+    const Info &getInfo() const;
 
   private:
+    Data m_Data;
     Info m_Info;
-    glm::ivec2 m_Resolution;
-    int m_Channels = 0;
 };
 
 template <>

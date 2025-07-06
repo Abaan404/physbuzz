@@ -14,7 +14,6 @@ Shadow::Shadow(const Info &info)
       m_Framebuffers({
           .directional = {{
               .resolution = info.resolution,
-              .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
               .colors = {},
               .depth = {
                   .storage = Framebuffer::Storage::Texture2D,
@@ -25,7 +24,6 @@ Shadow::Shadow(const Info &info)
           }},
           .point = {{
               .resolution = glm::ivec2(glm::max(info.resolution.x, info.resolution.y)),
-              .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
               .colors = {},
               .depth = {
                   .storage = Framebuffer::Storage::Cubemap,
@@ -50,7 +48,12 @@ bool Shadow::build() {
     return success;
 }
 bool Shadow::destroy() {
-    return m_Framebuffers.directional.destroy();
+    bool success = true;
+
+    success &= m_Framebuffers.point.destroy();
+    success &= m_Framebuffers.directional.destroy();
+
+    return success;
 }
 
 void Shadow::tick(Scene &scene) const {
@@ -105,7 +108,7 @@ void Shadow::tickPoint(Scene &scene) const {
     Builtin::ShaderDepthCubemap::Resource->setUniform("PBZ_FarPlane", m_Info.depth);
 
     for (const auto [light] : scene.getComponents<PointLightComponent>()) {
-        std::array<glm::mat4, 6> matrices = {
+        std::array matrices = {
             projection * glm::lookAt(light.position, light.position + glm::vec3(1.0f, 0.0f, 0.0f), {0.0f, -1.0f, 0.0f}),
             projection * glm::lookAt(light.position, light.position + glm::vec3(-1.0f, 0.0f, 0.0f), {0.0f, -1.0f, 0.0f}),
             projection * glm::lookAt(light.position, light.position + glm::vec3(0.0f, 1.0f, 0.0f), {0.0f, 0.0f, 1.0f}),

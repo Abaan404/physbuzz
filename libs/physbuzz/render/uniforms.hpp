@@ -16,51 +16,38 @@ concept UniformBufferType =
 template <UniformBufferType T>
 class UniformBuffer {
   public:
-    UniformBuffer() {}
-    ~UniformBuffer() {}
-
     bool build() {
         if (UBO != 0) {
-            Logger::WARNING("[UniformBufferResource] Trying to build a constructed uniform.");
+            Logger::WARNING("[UniformBuffer] Trying to build a constructed uniform.");
+            return true;
         }
 
-        glGenBuffers(1, &UBO);
-
-        bind();
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(T), nullptr, GL_STREAM_DRAW);
-        unbind();
+        glCreateBuffers(1, &UBO);
+        glNamedBufferData(UBO, sizeof(T), nullptr, GL_STREAM_DRAW);
 
         return true;
     }
 
     bool destroy() {
         if (UBO == 0) {
-            Logger::WARNING("[UniformBufferResource] Trying to destroy a destructed uniform.");
+            Logger::WARNING("[UniformBuffer] Trying to destroy a destructed uniform.");
+            return true;
         }
 
         glDeleteBuffers(1, &UBO);
         return true;
     }
 
-    void update(const T &data) {
-        bind();
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(T), &data);
-        unbind();
+    void update(const T &data) const {
+        glNamedBufferSubData(UBO, 0, sizeof(T), &data);
     }
 
-    void bind() {
-        glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-    }
-
-    void unbind() {
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    }
-
-    void bindPipeline(GLuint binding) {
+    void bindPipeline(GLuint binding) const {
+        PBZ_ASSERT(UBO != 0, "[UniformBuffer] trying to bind an incomplete uniform buffer to a pipeline.");
         glBindBufferBase(GL_UNIFORM_BUFFER, binding, UBO);
     }
 
-    void unbindPipeline(GLuint binding) {
+    void unbindPipeline(GLuint binding) const {
         glBindBufferBase(GL_UNIFORM_BUFFER, binding, 0);
     }
 

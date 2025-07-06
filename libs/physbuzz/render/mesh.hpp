@@ -146,10 +146,6 @@ class Mesh {
         glDrawElements(GL_TRIANGLES, m_Info.indices.size(), GL_UNSIGNED_INT, 0);
     }
 
-    void update(const Info &info) {
-        m_Info = info;
-    }
-
     const Info &getInfo() const {
         return m_Info;
     }

@@ -63,12 +63,8 @@ class Shader {
 
     bool compile();
 
-    bool attach(GLuint program) const;
-    bool detach(GLuint program) const;
-
-    const GLuint &getShader() const;
-    const Type &getType() const;
-    const std::set<std::filesystem::path> &getPaths() const;
+    void attach(GLuint program) const;
+    void detach(GLuint program) const;
 
   private:
     void preprocess(File &file);
@@ -80,6 +76,8 @@ class Shader {
     std::set<std::filesystem::path> m_Paths;
 
     Info m_Info;
+
+    friend class ShaderPipeline;
 };
 
 class ShaderPipeline {
@@ -92,8 +90,8 @@ class ShaderPipeline {
         Shader::Info fragment;
         Shader::Info compute;
 
-        void (*draw)(const ShaderPipeline *resource, Scene &, ObjectID) = [](const ShaderPipeline *, Scene &, ObjectID id) {
-            Logger::WARNING(std::format("[ShaderPipelineResource] Uninitialized draw calls for object '{}'", id));
+        void (*draw)(const ShaderPipeline *, Scene &, ObjectID) = [](const ShaderPipeline *, Scene &, ObjectID id) {
+            Logger::WARNING("[ShaderPipeline] Uninitialized draw calls for object '{}'", id);
         };
     };
 
@@ -106,15 +104,15 @@ class ShaderPipeline {
     bool reload();
     void draw(Scene &scene, ObjectID object) const;
 
-    bool bind() const;
-    bool unbind() const;
+    void bind() const;
+    void unbind() const;
 
     template <UniformType T>
     inline void setUniform(const std::string &name, const T &data) const {
         setUniformInternal(glGetUniformLocation(m_Program, name.c_str()), data);
     }
 
-    const GLuint &getProgram() const;
+    const Info &getInfo() const;
 
   private:
     void setUniformInternal(const GLint location, const float &data) const;

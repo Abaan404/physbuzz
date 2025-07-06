@@ -37,7 +37,11 @@ class Framebuffer {
 
     struct Info {
         glm::ivec2 resolution = {1280, 720};
-        glm::vec4 colorClear = {0.0f, 0.0f, 0.0f, 0.0f};
+        struct {
+            glm::vec4 color = {0.0f, 0.0f, 0.0f, 0.0f};
+            float depth = 1.0f;
+            float stencil = 1.0f;
+        } clear;
 
         std::vector<ColorAttachment> colors;
         DepthAttachment depth;
@@ -52,11 +56,10 @@ class Framebuffer {
     void bind() const;
     void unbind() const;
 
-    void resize(const glm::ivec2 &resolution);
+    bool resize(const glm::ivec2 &resolution);
     void clear() const;
 
-    bool bindOutputTexture() const;
-    bool unbindOutputTexture() const;
+    GLint activate(GLint unit = -1) const;
 
     const Info &getInfo() const;
 
@@ -64,7 +67,7 @@ class Framebuffer {
     GLuint m_Framebuffer = 0;
 
     std::vector<GLuint> m_Colors;
-    GLuint m_Depth;
+    GLuint m_Depth = 0;
 
     Info m_Info;
 };

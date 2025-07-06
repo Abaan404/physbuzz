@@ -69,11 +69,10 @@ inline Physbuzz::ShaderPipeline shaderDefault = {{
         std::unordered_map<Physbuzz::TextureType, std::uint32_t> textureLengths;
 
         for (const auto &texture : render.model->getTextures()) {
-            const Physbuzz::TextureType type = texture->getType();
+            const Physbuzz::TextureType type = texture->getInfo().type;
             const std::string name = render.model->getTextureTypeName(type);
 
-            pipeline->setUniform(std::format("u_Material{}[{}]", name, textureLengths[type]), Physbuzz::GL::TextureUnits::activate());
-            texture->bind();
+            pipeline->setUniform(std::format("u_Material{}[{}]", name, textureLengths[type]), texture->activate());
             textureLengths[type]++;
         }
 
@@ -85,23 +84,14 @@ inline Physbuzz::ShaderPipeline shaderDefault = {{
         // shadow map
         const Physbuzz::Shadow::Framebuffers &shadowMaps = shadow->getFramebuffers();
 
-        pipeline->setUniform("u_ShadowMapDirectional", Physbuzz::GL::TextureUnits::activate());
-        shadowMaps.directional.bindOutputTexture();
-
-        pipeline->setUniform("u_ShadowMapPoint", Physbuzz::GL::TextureUnits::activate());
-        shadowMaps.point.bindOutputTexture();
-
-        // shadow far plane
+        pipeline->setUniform("u_ShadowMapDirectional", shadowMaps.directional.activate());
+        pipeline->setUniform("u_ShadowMapPoint", shadowMaps.point.activate());
         pipeline->setUniform("u_FarPlane", shadow->getInfo().depth);
 
         for (const auto &[mesh, meta] : render.model->getMeshs()) {
             pipeline->setUniform("u_MaterialShininess", meta.shininess);
 
             mesh.draw();
-        }
-
-        for (const auto &texture : render.model->getTextures()) {
-            texture->unbind();
         }
     },
 }};

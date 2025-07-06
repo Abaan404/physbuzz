@@ -1,6 +1,8 @@
 #include "framebuffer.hpp"
 
 #include "../debug/logging.hpp"
+#include "gl/units.hpp"
+#include <glm/gtc/type_ptr.hpp>
 
 namespace Physbuzz {
 
@@ -10,43 +12,47 @@ Framebuffer::Framebuffer(const Info &info)
 bool Framebuffer::build() {
     if (m_Framebuffer != 0) {
         Logger::WARNING("[Framebuffer] Trying to build a built framebuffer");
-        return false;
+        return true;
+    }
+
+    if (m_Info.depth.storage != Storage::None && m_Depth != 0) {
+        Logger::WARNING("[Framebuffer] Trying to build a built depth buffer.");
+        return true;
     }
 
     GLint maxColors = 0;
     glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxColors);
 
     if (m_Info.colors.size() > maxColors) {
-        Logger::ERROR(std::format("[Framebuffer] Too many color attachments, max supported is {}", maxColors));
+        Logger::ERROR("[Framebuffer] Too many color attachments, max supported is {}", maxColors);
         return false;
     }
 
     switch (m_Info.output.type) {
-    case Framebuffer::Type::Color:
+    case Type::Color:
         if (m_Info.output.colorIndex >= m_Info.colors.size()) {
-            Logger::ERROR(std::format("[Framebuffer] Invalid output color index {}", m_Info.output.colorIndex));
+            Logger::ERROR("[Framebuffer] Invalid output color index {}", m_Info.output.colorIndex);
             return false;
         }
 
         if (!m_Info.colors[m_Info.output.colorIndex].isDrawn ||
-            m_Info.colors[m_Info.output.colorIndex].storage == Framebuffer::Storage::Renderbuffer ||
-            m_Info.colors[m_Info.output.colorIndex].storage == Framebuffer::Storage::None) {
-            Logger::ERROR(std::format("[Framebuffer] output color index cannot be drawn {}", m_Info.output.colorIndex));
+            m_Info.colors[m_Info.output.colorIndex].storage == Storage::Renderbuffer ||
+            m_Info.colors[m_Info.output.colorIndex].storage == Storage::None) {
+            Logger::ERROR("[Framebuffer] output color index cannot be drawn {}", m_Info.output.colorIndex);
             return false;
         }
         break;
 
-    case Framebuffer::Type::Depth:
-        if (m_Info.depth.storage == Framebuffer::Storage::Renderbuffer ||
-            m_Info.depth.storage == Framebuffer::Storage::None) {
+    case Type::Depth:
+        if (m_Info.depth.storage == Storage::Renderbuffer ||
+            m_Info.depth.storage == Storage::None) {
             Logger::ERROR("[Framebuffer] output depth cannot be drawn");
             return false;
         }
         break;
     }
 
-    glGenFramebuffers(1, &m_Framebuffer);
-    bind();
+    glCreateFramebuffers(1, &m_Framebuffer);
 
     GLuint attachmentIndex = 0;
 
@@ -55,48 +61,41 @@ bool Framebuffer::build() {
         GLuint color = 0;
 
         switch (attachment.storage) {
-        case Framebuffer::Storage::Texture2D:
-            glGenTextures(1, &color);
-            glBindTexture(GL_TEXTURE_2D, color);
+        case Storage::Texture2D:
+            glCreateTextures(GL_TEXTURE_2D, 1, &color);
 
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Info.resolution.x, m_Info.resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTextureParameteri(color, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTextureParameteri(color, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentIndex, GL_TEXTURE_2D, color, 0);
-            glBindTexture(GL_TEXTURE_2D, 0);
+            glTextureStorage2D(color, 1, GL_RGBA8, m_Info.resolution.x, m_Info.resolution.y);
+            glTextureSubImage2D(color, 0, 0, 0, m_Info.resolution.x, m_Info.resolution.y, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glNamedFramebufferTexture(m_Framebuffer, GL_COLOR_ATTACHMENT0 + attachmentIndex, color, 0);
             break;
 
-        case Framebuffer::Storage::Cubemap:
-            glGenTextures(1, &color);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, color);
+        case Storage::Cubemap:
+            glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &color);
 
+            glTextureParameteri(color, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTextureParameteri(color, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTextureParameteri(color, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTextureParameteri(color, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTextureParameteri(color, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+            glTextureStorage2D(color, 1, GL_RGBA8, m_Info.resolution.x, m_Info.resolution.y);
             for (std::size_t i = 0; i < 6; ++i) {
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8, m_Info.resolution.x, m_Info.resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+                glTextureSubImage3D(color, 0, 0, 0, i, m_Info.resolution.x, m_Info.resolution.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
             }
 
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentIndex, color, 0);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+            glNamedFramebufferTexture(m_Framebuffer, GL_COLOR_ATTACHMENT0 + attachmentIndex, color, 0);
             break;
 
-        case Framebuffer::Storage::Renderbuffer:
-            glGenRenderbuffers(1, &color);
-            glBindRenderbuffer(GL_RENDERBUFFER, color);
-
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, m_Info.resolution.x, m_Info.resolution.y);
-
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentIndex, GL_RENDERBUFFER, color);
-            glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        case Storage::Renderbuffer:
+            glCreateRenderbuffers(1, &color);
+            glNamedRenderbufferStorage(color, GL_RGBA8, m_Info.resolution.x, m_Info.resolution.y);
+            glNamedFramebufferRenderbuffer(m_Framebuffer, GL_COLOR_ATTACHMENT0 + attachmentIndex, GL_RENDERBUFFER, color);
             break;
 
-        case Framebuffer::Storage::None:
+        case Storage::None:
             Logger::ERROR("[Framebuffer] No storage declared for the current color attachment");
             destroy();
             return false;
@@ -110,107 +109,105 @@ bool Framebuffer::build() {
         m_Colors.emplace_back(color);
     }
 
-    if (m_Colors.size() > 0) {
-        glDrawBuffers(drawBuffers.size(), drawBuffers.data());
+    if (!drawBuffers.empty()) {
+        glNamedFramebufferDrawBuffers(m_Framebuffer, drawBuffers.size(), drawBuffers.data());
     } else {
-        glDrawBuffer(GL_NONE);
-        glReadBuffer(GL_NONE);
+        glNamedFramebufferDrawBuffer(m_Framebuffer, GL_NONE);
+        glNamedFramebufferReadBuffer(m_Framebuffer, GL_NONE);
     }
 
     switch (m_Info.depth.storage) {
-    case Framebuffer::Storage::Texture2D:
-        glGenTextures(1, &m_Depth);
-        glBindTexture(GL_TEXTURE_2D, m_Depth);
-
-        if (m_Info.depth.hasStencil) {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_Info.resolution.x, m_Info.resolution.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_Depth, 0);
-        } else {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, m_Info.resolution.x, m_Info.resolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_Depth, 0);
-        }
+    case Storage::Texture2D:
+        glCreateTextures(GL_TEXTURE_2D, 1, &m_Depth);
 
         {
             float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-            glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+            glTextureParameterfv(m_Depth, GL_TEXTURE_BORDER_COLOR, borderColor);
         }
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glTextureParameteri(m_Depth, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTextureParameteri(m_Depth, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTextureParameteri(m_Depth, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_Depth, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        if (m_Info.depth.hasStencil) {
+            glTextureStorage2D(m_Depth, 1, GL_DEPTH24_STENCIL8, m_Info.resolution.x, m_Info.resolution.y);
+            glTextureSubImage2D(m_Depth, 0, 0, 0, m_Info.resolution.x, m_Info.resolution.y, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
+            glNamedFramebufferTexture(m_Framebuffer, GL_DEPTH_STENCIL_ATTACHMENT, m_Depth, 0);
+        } else {
+            glTextureStorage2D(m_Depth, 1, GL_DEPTH_COMPONENT32F, m_Info.resolution.x, m_Info.resolution.y);
+            glTextureSubImage2D(m_Depth, 0, 0, 0, m_Info.resolution.x, m_Info.resolution.y, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+            glNamedFramebufferTexture(m_Framebuffer, GL_DEPTH_ATTACHMENT, m_Depth, 0);
+        }
+
         break;
 
-    case Framebuffer::Storage::Cubemap:
-        glGenTextures(1, &m_Depth);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, m_Depth);
+    case Storage::Cubemap:
+        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_Depth);
 
-        for (std::size_t i = 0; i < 6; ++i) {
-            if (m_Info.depth.hasStencil) {
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH24_STENCIL8, m_Info.resolution.x, m_Info.resolution.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
-            } else {
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT32F, m_Info.resolution.x, m_Info.resolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+        glTextureParameteri(m_Depth, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTextureParameteri(m_Depth, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTextureParameteri(m_Depth, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_Depth, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(m_Depth, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        if (m_Info.depth.hasStencil) {
+            glTextureStorage2D(m_Depth, 1, GL_DEPTH24_STENCIL8, m_Info.resolution.x, m_Info.resolution.y);
+            for (std::size_t i = 0; i < 6; ++i) {
+                glTextureSubImage3D(m_Depth, 0, 0, 0, i, m_Info.resolution.x, m_Info.resolution.y, 1, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
             }
-        }
 
-        if (m_Info.depth.hasStencil) {
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, m_Depth, 0);
+            glNamedFramebufferTexture(m_Framebuffer, GL_DEPTH_STENCIL_ATTACHMENT, m_Depth, 0);
         } else {
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_Depth, 0);
+            glTextureStorage2D(m_Depth, 1, GL_DEPTH_COMPONENT32F, m_Info.resolution.x, m_Info.resolution.y);
+            for (std::size_t i = 0; i < 6; ++i) {
+                glTextureSubImage3D(m_Depth, 0, 0, 0, i, m_Info.resolution.x, m_Info.resolution.y, 1, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+            }
+
+            glNamedFramebufferTexture(m_Framebuffer, GL_DEPTH_ATTACHMENT, m_Depth, 0);
         }
 
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         break;
 
-    case Framebuffer::Storage::Renderbuffer:
-        glGenRenderbuffers(1, &m_Depth);
-        glBindRenderbuffer(GL_RENDERBUFFER, m_Depth);
+    case Storage::Renderbuffer:
+        glCreateRenderbuffers(1, &m_Depth);
 
         if (m_Info.depth.hasStencil) {
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_Info.resolution.x, m_Info.resolution.y);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_Depth);
+            glNamedRenderbufferStorage(m_Depth, GL_DEPTH24_STENCIL8, m_Info.resolution.x, m_Info.resolution.y);
+            glNamedFramebufferRenderbuffer(m_Framebuffer, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_Depth);
         } else {
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32F, m_Info.resolution.x, m_Info.resolution.y);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_Depth);
+            glNamedRenderbufferStorage(m_Depth, GL_DEPTH_COMPONENT32F, m_Info.resolution.x, m_Info.resolution.y);
+            glNamedFramebufferRenderbuffer(m_Framebuffer, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_Depth);
         }
 
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
         break;
 
-    case Framebuffer::Storage::None:
+    case Storage::None:
         break;
     }
 
-    PBZ_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "[Framebuffer] Incomplete Framebuffer.");
-
-    unbind();
+    PBZ_ASSERT(glCheckNamedFramebufferStatus(m_Framebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "[Framebuffer] Incomplete Framebuffer.");
 
     return true;
 }
 
 bool Framebuffer::destroy() {
     if (m_Framebuffer == 0) {
-        Logger::WARNING("[Framebuffer] Trying to delete a destroyed framebuffer");
-        return false;
+        Logger::WARNING("[Framebuffer] Trying to delete a destructed framebuffer");
+        return true;
     }
 
     for (std::size_t i = 0; i < m_Colors.size(); i++) {
         switch (m_Info.colors[i].storage) {
-        case Framebuffer::Storage::Texture2D:
-        case Framebuffer::Storage::Cubemap:
+        case Storage::Texture2D:
+        case Storage::Cubemap:
             glDeleteTextures(1, &m_Colors[i]);
             break;
 
-        case Framebuffer::Storage::Renderbuffer:
+        case Storage::Renderbuffer:
             glDeleteRenderbuffers(1, &m_Colors[i]);
             break;
 
-        case Framebuffer::Storage::None:
+        case Storage::None:
             break;
         }
     }
@@ -218,16 +215,18 @@ bool Framebuffer::destroy() {
     m_Colors.clear();
 
     switch (m_Info.depth.storage) {
-    case Framebuffer::Storage::Texture2D:
-    case Framebuffer::Storage::Cubemap:
+    case Storage::Texture2D:
+    case Storage::Cubemap:
         glDeleteTextures(1, &m_Depth);
+        m_Depth = 0;
         break;
 
-    case Framebuffer::Storage::Renderbuffer:
+    case Storage::Renderbuffer:
         glDeleteRenderbuffers(1, &m_Depth);
+        m_Depth = 0;
         break;
 
-    case Framebuffer::Storage::None:
+    case Storage::None:
         break;
     }
 
@@ -237,101 +236,33 @@ bool Framebuffer::destroy() {
     return true;
 }
 
-void Framebuffer::resize(const glm::ivec2 &resolution) {
+bool Framebuffer::resize(const glm::ivec2 &resolution) {
     m_Info.resolution = resolution;
 
-    bind();
-
-    for (std::size_t i = 0; i < m_Colors.size(); i++) {
-        switch (m_Info.colors[i].storage) {
-        case Framebuffer::Storage::Texture2D:
-            glBindTexture(GL_TEXTURE_2D, m_Colors[i]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, resolution.x, resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            break;
-
-        case Framebuffer::Storage::Cubemap:
-            glBindTexture(GL_TEXTURE_CUBE_MAP, m_Colors[i]);
-            for (std::size_t j = 0; j < 6; ++j) {
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, GL_RGBA8, resolution.x, resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-            }
-            glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-            break;
-
-        case Framebuffer::Storage::Renderbuffer:
-            glBindRenderbuffer(GL_RENDERBUFFER, m_Colors[i]);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, resolution.x, resolution.y);
-            glBindRenderbuffer(GL_RENDERBUFFER, 0);
-            break;
-
-        case Framebuffer::Storage::None:
-            break;
-        }
+    if (!(destroy() && build())) {
+        Logger::ERROR("[Framebuffer] Could not resize framebuffer.");
+        return false;
     }
 
-    switch (m_Info.depth.storage) {
-    case Framebuffer::Storage::Texture2D:
-        glBindTexture(GL_TEXTURE_2D, m_Depth);
-
-        if (m_Info.depth.hasStencil) {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, resolution.x, resolution.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
-        } else {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, resolution.x, resolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-        }
-
-        glBindTexture(GL_TEXTURE_2D, 0);
-        break;
-
-    case Framebuffer::Storage::Cubemap:
-        glBindTexture(GL_TEXTURE_CUBE_MAP, m_Depth);
-        for (std::size_t i = 0; i < 6; ++i) {
-            if (m_Info.depth.hasStencil) {
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH24_STENCIL8, resolution.x, resolution.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
-            } else {
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT32F, resolution.x, resolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-            }
-        }
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-        break;
-
-    case Framebuffer::Storage::Renderbuffer:
-        glBindRenderbuffer(GL_RENDERBUFFER, m_Depth);
-        if (m_Info.depth.hasStencil) {
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
-        } else {
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32F, resolution.x, resolution.y);
-        }
-
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
-        break;
-
-    case Framebuffer::Storage::None:
-        break;
-    }
-
-    PBZ_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "[Framebuffer] Incomplete Framebuffer after resize.");
-
-    unbind();
+    return true;
 }
 
 void Framebuffer::clear() const {
-    GLenum clear = 0;
+    PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to clear an incomplete framebuffer.");
 
-    if (!m_Colors.empty()) {
-        clear |= GL_COLOR_BUFFER_BIT;
-    }
-
-    if (m_Info.depth.storage != Framebuffer::Storage::None) {
-        clear |= GL_DEPTH_BUFFER_BIT;
-        if (m_Info.depth.hasStencil) {
-            clear |= GL_STENCIL_BUFFER_BIT;
+    for (std::size_t i = 0; i < m_Info.colors.size(); i++) {
+        if (m_Info.colors[i].isDrawn) {
+            glClearNamedFramebufferfv(m_Framebuffer, GL_COLOR, i, glm::value_ptr(m_Info.clear.color));
         }
     }
 
-    bind();
-    glClearColor(m_Info.colorClear.r, m_Info.colorClear.g, m_Info.colorClear.b, m_Info.colorClear.a);
-    glClear(clear);
-    unbind();
+    if (m_Info.depth.storage != Storage::None) {
+        if (m_Info.depth.hasStencil) {
+            glClearNamedFramebufferfi(m_Framebuffer, GL_DEPTH_STENCIL, 0, m_Info.clear.depth, m_Info.clear.stencil);
+        } else {
+            glClearNamedFramebufferfv(m_Framebuffer, GL_DEPTH, 0, &m_Info.clear.depth);
+        }
+    }
 }
 
 void Framebuffer::bind() const {
@@ -344,74 +275,25 @@ void Framebuffer::unbind() const {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-const Framebuffer::Info &Framebuffer::getInfo() const {
-    return m_Info;
-}
-
-bool Framebuffer::bindOutputTexture() const {
-    PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to bind output from an incomplete framebuffer.");
-    Framebuffer::Storage storage = Framebuffer::Storage::None;
+GLint Framebuffer::activate(GLint unit) const {
+    PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to activate output from an incomplete framebuffer.");
     GLuint texture;
 
     switch (m_Info.output.type) {
-    case Framebuffer::Type::Color:
-        storage = m_Info.colors[m_Info.output.colorIndex].storage;
+    case Type::Color:
         texture = m_Colors[m_Info.output.colorIndex];
         break;
 
-    case Framebuffer::Type::Depth:
-        storage = m_Info.depth.storage;
+    case Type::Depth:
         texture = m_Depth;
         break;
     }
 
-    switch (storage) {
-    case Framebuffer::Storage::Texture2D:
-        glBindTexture(GL_TEXTURE_2D, texture);
-        break;
-
-    case Framebuffer::Storage::Cubemap:
-        glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
-        break;
-
-    case Framebuffer::Storage::Renderbuffer:
-    case Framebuffer::Storage::None:
-        Logger::ERROR("[Framebuffer] Cannot bind output attachment as a texture.");
-        return false;
-    }
-
-    return true;
+    return GL::detail::TextureUnits::activate(texture, unit);
 }
 
-bool Framebuffer::unbindOutputTexture() const {
-    PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to unbind output from an incomplete framebuffer.");
-    Framebuffer::Storage storage = Framebuffer::Storage::None;
-
-    switch (m_Info.output.type) {
-    case Framebuffer::Type::Color:
-        storage = m_Info.colors[m_Info.output.colorIndex].storage;
-        break;
-
-    case Framebuffer::Type::Depth:
-        storage = m_Info.depth.storage;
-        break;
-    }
-
-    switch (storage) {
-    case Framebuffer::Storage::Texture2D:
-        glBindTexture(GL_TEXTURE_2D, 0);
-        break;
-
-    case Framebuffer::Storage::Cubemap:
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-        break;
-
-    case Framebuffer::Storage::Renderbuffer:
-    case Framebuffer::Storage::None:
-        break;
-    }
-
-    return true;
+const Framebuffer::Info &Framebuffer::getInfo() const {
+    return m_Info;
 }
 
 } // namespace Physbuzz

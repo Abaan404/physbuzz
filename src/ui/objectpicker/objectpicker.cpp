@@ -82,7 +82,7 @@ ObjectPicker::ObjectPicker() {
             .framebuffer = {
                 {
                     .resolution = {m_PreviewSize.x, m_PreviewSize.y},
-                    .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
+                    .clear = {},
                     .colors = {
                         {
                             .storage = Physbuzz::Framebuffer::Storage::Texture2D,

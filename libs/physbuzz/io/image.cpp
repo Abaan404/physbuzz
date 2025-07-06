@@ -20,49 +20,50 @@ bool ImageFile::build() {
 }
 
 bool ImageFile::destroy() {
-    if (buffer != nullptr) {
-        stbi_image_free(buffer);
-        buffer = nullptr;
-    }
-
     return true;
 }
 
 bool ImageFile::read() {
     stbi_set_flip_vertically_on_load(m_Info.flipVertically);
 
-    buffer = stbi_load(m_Info.file.path.c_str(), &m_Resolution.x, &m_Resolution.y, &m_Channels, 0);
+    stbi_uc *buffer = stbi_load(m_Info.file.path.c_str(), &m_Data.resolution.x, &m_Data.resolution.y, &m_Data.channels, 0);
 
     if (!buffer) {
-        Logger::ERROR("[ImageResource] Could not read image from {}: {}", m_Info.file.path.string(), stbi_failure_reason());
+        Logger::ERROR("[ImageFile] Could not read image from {}: {}", m_Info.file.path.string(), stbi_failure_reason());
         return false;
     }
+
+    m_Data.image = {buffer, buffer + (m_Data.resolution.x * m_Data.resolution.y * m_Data.channels)};
+    stbi_image_free(buffer);
 
     return true;
 }
 
-bool ImageFile::write() {
-    if (!buffer) {
-        Logger::ERROR("[ImageResource] Buffer is empty, cannot write image.");
+bool ImageFile::write(const Info &info, const Data &data) {
+    if (data.resolution.x * data.resolution.y * data.channels != data.image.size()) {
+        Logger::ERROR("[ImageFile] Image size or properties are invalid");
         return false;
     }
 
-    bool ret = stbi_write_png(m_Info.file.path.c_str(), m_Resolution.x, m_Resolution.y, m_Channels, buffer, m_Resolution.x * m_Channels);
+    bool ret = stbi_write_png(info.file.path.c_str(), data.resolution.x, data.resolution.y, data.channels, data.image.data(), data.resolution.x * data.channels);
 
     if (!ret) {
-        Logger::ERROR("[ImageResource] Failed to write image to {}", m_Info.file.path.string());
+        Logger::ERROR("[ImageFile] Failed to write image to {}", info.file.path.string());
         return false;
     }
+
+    m_Info = info;
+    m_Data = data;
 
     return true;
 }
 
-const glm::ivec2 &ImageFile::getResolution() const {
-    return m_Resolution;
+const ImageFile::Data &ImageFile::getData() const {
+    return m_Data;
 }
 
-const int &ImageFile::getChannels() const {
-    return m_Channels;
+const ImageFile::Info &ImageFile::getInfo() const {
+    return m_Info;
 }
 
 } // namespace Physbuzz

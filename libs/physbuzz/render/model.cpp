@@ -85,7 +85,7 @@ bool BasicModel<Builtin::VertexDefault::Format>::processMesh(const aiMesh *aimes
         aiFace face = aimesh->mFaces[i];
 
         if (face.mNumIndices % 3 != 0) {
-            Logger::ERROR("[ModelResource] Invalid number of indices for model \"{}\"");
+            Logger::ERROR("[Model] Invalid number of indices for model \"{}\"");
             return false;
         }
 

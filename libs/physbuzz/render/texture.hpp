@@ -21,14 +21,13 @@ class Texture2D {
     bool build();
     bool destroy();
 
-    bool bind() const;
-    bool unbind() const;
+    GLint activate(GLint unit = -1) const;
 
-    TextureType getType() const;
+    const Info &getInfo() const;
 
   private:
     Info m_Info;
-    GLuint m_Texture;
+    GLuint m_Texture = 0;
 };
 
 template <>

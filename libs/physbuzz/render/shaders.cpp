@@ -3,6 +3,7 @@
 #include "../debug/logging.hpp"
 #include "../resources/resources.hpp"
 #include <bitset>
+#include <glm/gtc/type_ptr.hpp>
 #include <vector>
 
 namespace Physbuzz {
@@ -15,16 +16,17 @@ Shader::~Shader() {}
 bool Shader::build() {
     if (m_Shader != 0) {
         Logger::WARNING("[Shader] Trying to build a constructed shader '{}'.", m_Info.file.path.string());
+        return true;
     }
 
-    m_Shader = glCreateShader(static_cast<GLuint>(m_Type));
+    m_Shader = glCreateShader(static_cast<GLenum>(m_Type));
     return true;
 }
 
 bool Shader::destroy() {
     if (m_Shader == 0) {
         Logger::WARNING("[Shader] Trying to destroy a constructed shader '{}'.", m_Info.file.path.string());
-        return false;
+        return true;
     }
 
     glDeleteShader(m_Shader);
@@ -70,7 +72,7 @@ bool Shader::compile() {
         std::vector<char> errorMessage(logLength + 1);
         glGetShaderInfoLog(m_Shader, logLength, NULL, errorMessage.data());
 
-        Logger::ERROR(std::format("[Shader] Shader compilation failed!\n{}", errorMessage.data()));
+        Logger::ERROR("[Shader] Shader compilation failed!\n{}", errorMessage.data());
         return false;
     }
 
@@ -167,53 +169,14 @@ bool Shader::preprocessInclude(File &file, std::size_t position) {
     return true;
 }
 
-bool Shader::attach(GLuint program) const {
-    if (m_Shader == 0) {
-        return false;
-    }
-
+void Shader::attach(GLuint program) const {
+    PBZ_ASSERT(m_Shader != 0, "[Shader] trying to attach an incomplete shader to a pipeline.");
     glAttachShader(program, m_Shader);
-    return true;
 }
 
-bool Shader::detach(GLuint program) const {
-    if (m_Shader == 0) {
-        return false;
-    }
-
+void Shader::detach(GLuint program) const {
+    PBZ_ASSERT(m_Shader != 0, "[Shader] trying to detach an incomplete shader to a pipeline.");
     glDetachShader(program, m_Shader);
-    return true;
-}
-
-const GLuint &Shader::getShader() const {
-    return m_Shader;
-}
-
-const Shader::Type &Shader::getType() const {
-    return m_Type;
-}
-
-const std::set<std::filesystem::path> &Shader::getPaths() const {
-    return m_Paths;
-}
-
-template <std::size_t N>
-inline std::bitset<N> buildShaders(std::array<Shader, N> &shaders, const GLuint &program) {
-    std::bitset<N> compiled = 0;
-
-    for (int i = 0; i < shaders.size(); i++) {
-        shaders[i].build();
-
-        if (!shaders[i].compile()) {
-            shaders[i].destroy();
-            continue;
-        }
-
-        compiled[i] = true;
-        shaders[i].attach(program);
-    }
-
-    return compiled;
 }
 
 template <std::size_t N>
@@ -235,7 +198,8 @@ ShaderPipeline::~ShaderPipeline() {}
 
 bool ShaderPipeline::build() {
     if (m_Program != 0) {
-        Logger::WARNING("[ShaderPipelineResource] Trying to build a constructed pipeline.");
+        Logger::WARNING("[ShaderPipeline] Trying to build a constructed pipeline.");
+        return true;
     }
 
     std::array shaders = {
@@ -248,24 +212,36 @@ bool ShaderPipeline::build() {
     };
 
     m_Program = glCreateProgram();
-    std::bitset compiled = buildShaders(shaders, m_Program);
+
+    std::bitset<6> compiled;
+    for (int i = 0; i < shaders.size(); i++) {
+        shaders[i].build();
+
+        if (!shaders[i].compile()) {
+            shaders[i].destroy();
+            continue;
+        }
+
+        compiled[i] = true;
+        shaders[i].attach(m_Program);
+    }
 
     if (compiled[5]) {
-        Logger::ERROR("[ShaderPipelineResource] Compute shaders are not supported by the engine.");
+        Logger::ERROR("[ShaderPipeline] Compute shaders are not supported by the engine.");
         destroyShaders(shaders, m_Program, compiled);
         destroy();
         return false;
     }
 
     if (!compiled[0]) {
-        Logger::ERROR("[ShaderPipelineResource] Could not compile vertex shader");
+        Logger::ERROR("[ShaderPipeline] Could not compile vertex shader");
         destroyShaders(shaders, m_Program, compiled);
         destroy();
         return false;
     }
 
     if (!compiled[4]) {
-        Logger::ERROR("[ShaderPipelineResource] Could not compile fragment shader.");
+        Logger::ERROR("[ShaderPipeline] Could not compile fragment shader.");
         destroyShaders(shaders, m_Program, compiled);
         destroy();
         return false;
@@ -284,7 +260,7 @@ bool ShaderPipeline::build() {
         std::vector<char> errorMessage(logLength + 1);
         glGetProgramInfoLog(m_Program, logLength, NULL, errorMessage.data());
 
-        Logger::ERROR(std::format("[ShaderPipelineResource] Shader Linking failed!\n{}", errorMessage.data()));
+        Logger::ERROR("[ShaderPipeline] Shader Linking failed!\n{}", errorMessage.data());
         destroy();
         return false;
     }
@@ -295,7 +271,7 @@ bool ShaderPipeline::build() {
             continue;
         }
 
-        std::set<std::filesystem::path> shaderPaths = shaders[i].getPaths();
+        std::set<std::filesystem::path> shaderPaths = shaders[i].m_Paths;
         paths.merge(shaderPaths);
     }
 
@@ -314,7 +290,8 @@ bool ShaderPipeline::build() {
 
 bool ShaderPipeline::destroy() {
     if (m_Program == 0) {
-        Logger::WARNING("[ShaderPipelineResource] Trying to destroy a destructed pipeline.");
+        Logger::WARNING("[ShaderPipeline] Trying to destroy a destructed pipeline.");
+        return true;
     }
 
     glDeleteProgram(m_Program);
@@ -330,13 +307,8 @@ bool ShaderPipeline::reload() {
 
     m_RequestedReload = false;
 
-    if (!destroy()) {
-        Logger::ERROR("[ShaderPipelineResource] Reload stage destroy() failed.");
-        return false;
-    }
-
-    if (!build()) {
-        Logger::ERROR("[ShaderPipelineResource] Reload stage build() failed.");
+    if (!(destroy() && build())) {
+        Logger::ERROR("[ShaderPipeline] Reload failed.");
         return false;
     }
 
@@ -344,57 +316,43 @@ bool ShaderPipeline::reload() {
 }
 
 void ShaderPipeline::draw(Scene &scene, ObjectID object) const {
+    PBZ_ASSERT(m_Program != 0, "[ShaderPipeline] trying to draw an incomplete pipeline.");
     m_Info.draw(this, scene, object);
 }
 
-bool ShaderPipeline::bind() const {
-    if (m_Program == 0) {
-        return false;
-    }
-
+void ShaderPipeline::bind() const {
+    PBZ_ASSERT(m_Program != 0, "[ShaderPipeline] trying to bind an incomplete pipeline.");
     glUseProgram(m_Program);
-    return true;
 }
 
-bool ShaderPipeline::unbind() const {
-    if (m_Program == 0) {
-        return false;
-    }
-
-    glUseProgram(0); // Undefined Behaviour, upto the user to use the right shader
-    return true;
+void ShaderPipeline::unbind() const {
+    glUseProgram(0);
 }
 
-const GLuint &ShaderPipeline::getProgram() const {
-    return m_Program;
+const ShaderPipeline::Info &ShaderPipeline::getInfo() const {
+    return m_Info;
 }
 
-void ShaderPipeline::setUniformInternal(const GLint location, const float &data) const { glUniform1fv(location, 1, &data); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec2 &data) const { glUniform2fv(location, 1, &data[0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec3 &data) const { glUniform3fv(location, 1, &data[0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec4 &data) const { glUniform4fv(location, 1, &data[0]); }
-
-void ShaderPipeline::setUniformInternal(const GLint location, const int &data) const { glUniform1iv(location, 1, &data); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec2 &data) const { glUniform2iv(location, 1, &data[0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec3 &data) const { glUniform3iv(location, 1, &data[0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec4 &data) const { glUniform4iv(location, 1, &data[0]); }
-
-void ShaderPipeline::setUniformInternal(const GLint location, const unsigned int &data) const { glUniform1uiv(location, 1, &data); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec2 &data) const { glUniform2uiv(location, 1, &data[0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec3 &data) const { glUniform3uiv(location, 1, &data[0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec4 &data) const { glUniform4uiv(location, 1, &data[0]); }
-
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2 &data) const { glUniformMatrix2fv(location, 1, GL_FALSE, &data[0][0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3 &data) const { glUniformMatrix3fv(location, 1, GL_FALSE, &data[0][0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4 &data) const { glUniformMatrix4fv(location, 1, GL_FALSE, &data[0][0]); }
-
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2x3 &data) const { glUniformMatrix2x3fv(location, 1, GL_FALSE, &data[0][0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3x2 &data) const { glUniformMatrix3x2fv(location, 1, GL_FALSE, &data[0][0]); }
-
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2x4 &data) const { glUniformMatrix2x4fv(location, 1, GL_FALSE, &data[0][0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4x2 &data) const { glUniformMatrix4x2fv(location, 1, GL_FALSE, &data[0][0]); }
-
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3x4 &data) const { glUniformMatrix3x4fv(location, 1, GL_FALSE, &data[0][0]); }
-void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4x3 &data) const { glUniformMatrix4x3fv(location, 1, GL_FALSE, &data[0][0]); }
+void ShaderPipeline::setUniformInternal(const GLint location, const float &data) const { glProgramUniform1f(m_Program, location, data); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec2 &data) const { glProgramUniform2fv(m_Program, location, 1, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec3 &data) const { glProgramUniform3fv(m_Program, location, 1, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::vec4 &data) const { glProgramUniform4fv(m_Program, location, 1, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const int &data) const { glProgramUniform1i(m_Program, location, data); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec2 &data) const { glProgramUniform2iv(m_Program, location, 1, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec3 &data) const { glProgramUniform3iv(m_Program, location, 1, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::ivec4 &data) const { glProgramUniform4iv(m_Program, location, 1, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const unsigned int &data) const { glProgramUniform1ui(m_Program, location, data); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec2 &data) const { glProgramUniform2uiv(m_Program, location, 1, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec3 &data) const { glProgramUniform3uiv(m_Program, location, 1, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::uvec4 &data) const { glProgramUniform4uiv(m_Program, location, 1, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2 &data) const { glProgramUniformMatrix2fv(m_Program, location, 1, GL_FALSE, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3 &data) const { glProgramUniformMatrix3fv(m_Program, location, 1, GL_FALSE, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4 &data) const { glProgramUniformMatrix4fv(m_Program, location, 1, GL_FALSE, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2x3 &data) const { glProgramUniformMatrix2x3fv(m_Program, location, 1, GL_FALSE, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3x2 &data) const { glProgramUniformMatrix3x2fv(m_Program, location, 1, GL_FALSE, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat2x4 &data) const { glProgramUniformMatrix2x4fv(m_Program, location, 1, GL_FALSE, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4x2 &data) const { glProgramUniformMatrix4x2fv(m_Program, location, 1, GL_FALSE, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat3x4 &data) const { glProgramUniformMatrix3x4fv(m_Program, location, 1, GL_FALSE, glm::value_ptr(data)); }
+void ShaderPipeline::setUniformInternal(const GLint location, const glm::mat4x3 &data) const { glProgramUniformMatrix4x3fv(m_Program, location, 1, GL_FALSE, glm::value_ptr(data)); }
 
 } // namespace Physbuzz

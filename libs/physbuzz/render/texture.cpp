@@ -11,6 +11,11 @@ Texture2D::Texture2D(const Info &texture2D)
 Texture2D::~Texture2D() {}
 
 bool Texture2D::build() {
+    if (m_Texture != 0) {
+        Logger::WARNING("[Texture2D] Trying to build a built texture.");
+        return true;
+    }
+
     if (m_Info.image.file.path.empty()) {
         return false;
     }
@@ -29,30 +34,32 @@ bool Texture2D::build() {
         return false;
     }
 
-    glGenTextures(1, &m_Texture);
-    GL::TextureUnits::activate(0);
-    bind();
+    const ImageFile::Data &data = image.getData();
 
-    // Texture Wrapping (Repeat)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glCreateTextures(GL_TEXTURE_2D, 1, &m_Texture);
 
-    // Mipmaps
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(m_Texture, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTextureParameteri(m_Texture, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTextureParameteri(m_Texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTextureParameteri(m_Texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    GLuint format;
-    switch (image.getChannels()) {
+    GLenum format;
+    GLenum internalFormat;
+    switch (data.channels) {
     case 1:
+        internalFormat = GL_R8;
         format = GL_RED;
         break;
     case 2:
+        internalFormat = GL_RG8;
         format = GL_RG;
         break;
     case 3:
+        internalFormat = GL_RGB8;
         format = GL_RGB;
         break;
     case 4:
+        internalFormat = GL_RGBA8;
         format = GL_RGBA;
         break;
     default:
@@ -60,35 +67,31 @@ bool Texture2D::build() {
         break;
     }
 
-    const glm::ivec2 &resolution = image.getResolution();
-    glTexImage2D(GL_TEXTURE_2D, 0, format, resolution.x, resolution.y, 0, format, GL_UNSIGNED_BYTE, image.buffer);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    GL::TextureUnits::deactivate(0);
-    unbind();
+    glTextureStorage2D(m_Texture, 1, internalFormat, data.resolution.x, data.resolution.y);
+    glTextureSubImage2D(m_Texture, 0, 0, 0, data.resolution.x, data.resolution.y, format, GL_UNSIGNED_BYTE, data.image.data());
+    glGenerateTextureMipmap(m_Texture);
 
     image.destroy();
     return true;
 }
 
 bool Texture2D::destroy() {
+    if (m_Texture == 0) {
+        Logger::WARNING("[Texture2D] Trying to destroy a destructed texture.");
+        return true;
+    }
+
     glDeleteTextures(1, &m_Texture);
-
     return true;
 }
 
-bool Texture2D::bind() const {
-    glBindTexture(GL_TEXTURE_2D, m_Texture);
-    return true;
+const Texture2D::Info &Texture2D::getInfo() const {
+    return m_Info;
 }
 
-bool Texture2D::unbind() const {
-    glBindTexture(GL_TEXTURE_2D, 0);
-    return true;
-}
-
-TextureType Texture2D::getType() const {
-    return m_Info.type;
+GLint Texture2D::activate(GLint unit) const {
+    PBZ_ASSERT(m_Texture != 0, "[Texture2D] trying to activate an incomplete texture.");
+    return GL::detail::TextureUnits::activate(m_Texture, unit);
 }
 
 } // namespace Physbuzz

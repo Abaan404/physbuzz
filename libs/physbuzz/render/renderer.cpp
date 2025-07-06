@@ -12,7 +12,6 @@ Renderer::Renderer(const Info &info)
     : m_Info(info),
       m_Framebuffer({
           .resolution = info.resolution,
-          .colorClear = {0.0f, 0.0f, 0.0f, 0.0f},
           .colors = {
               {
                   .storage = Framebuffer::Storage::Texture2D,
@@ -57,9 +56,8 @@ void Renderer::tick(Scene &scene) const {
     bool depthTest = GL::getCapability(GL::Capabilities::DepthTest);
     GL::setCapability(GL::Capabilities::DepthTest, false);
 
-    GL::TextureUnits::reset();
-    int screenUnit = GL::TextureUnits::activate();
-    framebuffer->bindOutputTexture();
+    GL::detail::TextureUnits::reset();
+    GLint screenUnit = framebuffer->activate();
 
     for (const auto &postProcessing : m_Info.postProcessing) {
         if (!postProcessing->reload()) {
@@ -81,7 +79,6 @@ void Renderer::tick(Scene &scene) const {
         Builtin::ShaderPassthrough::Resource->unbind();
     }
 
-    framebuffer->unbindOutputTexture();
     GL::setCapability(GL::Capabilities::DepthTest, depthTest);
 }
 
@@ -93,7 +90,7 @@ void Renderer::render(Scene &scene, ObjectID object) const {
         return;
     }
 
-    GL::TextureUnits::reset();
+    GL::detail::TextureUnits::reset();
     render.pipeline->bind();
     render.pipeline->draw(scene, object);
     render.pipeline->unbind();
