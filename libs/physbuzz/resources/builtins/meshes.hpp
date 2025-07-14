@@ -9,7 +9,7 @@ namespace Builtin {
 
 namespace MeshScreenQuad {
 
-inline Resource<Model> Resource = {"builtin/passthrough"};
+inline Resource<Model> Resource = {"builtin/screenquad"};
 
 bool build();
 

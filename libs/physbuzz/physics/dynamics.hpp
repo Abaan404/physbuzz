@@ -8,6 +8,11 @@
 namespace Physbuzz {
 
 struct RigidBodyComponent {
+    struct Vertex {
+        glm::vec3 position;
+        glm::vec3 normal;
+    };
+
     float mass = 1.0f;
 
     glm::vec3 accumForces = {0.0f, 0.0f, 0.0f};
@@ -31,6 +36,11 @@ struct RigidBodyComponent {
         float k1 = 0.0f;
         float k2 = 0.0f;
     } drag;
+
+    struct {
+        std::vector<Vertex> vertices;
+        std::vector<Index> indices;
+    } geometry = {};
 
     void addForce(const glm::vec3 &force) {
         accumForces += force;

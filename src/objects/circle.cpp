@@ -1,6 +1,7 @@
 #include "circle.hpp"
 
 #include <physbuzz/physics/collision.hpp>
+#include <physbuzz/resources/builtins/vertices.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Circle &info) {
@@ -25,7 +26,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     std::vector<glm::vec3> normals = generateNormals(indices, positions);
     std::vector<glm::vec2> texCoords = generateTexCoords(positions);
 
-    Physbuzz::Mesh<Physbuzz::Builtin::VertexDefault::Format>::Info mesh{
+    Physbuzz::Mesh::Info<Physbuzz::Builtin::VertexDefault::Format> mesh = {
         .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
         .vertices = std::vector<Physbuzz::Builtin::VertexDefault::Format>(positions.size()),
         .indices = indices,
@@ -86,18 +87,18 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
 
     scene.setComponent(object, info.circle, info.identifier, info.resources, render, rebuilder);
 
-    // generate physics info
-    if (info.hasPhysics) {
-        // build inertia
-        // Mx = (r*sin(theta))**2 * r).integrate((theta, 0, 2*pi)).integrate((r, 0, a)) * rho
-        // My = (r*cos(theta))**2 * r).integrate((theta, 0, 2*pi)).integrate((r, 0, a)) * rho
-        info.body.angular.inertia = info.body.mass * glm::pow(info.circle.radius, 2) / 2.0f;
-
-        // generate bounding box
-        Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(render);
-
-        scene.setComponent(object, info.body, aabb);
-    }
+    // // generate physics info
+    // if (info.hasPhysics) {
+    //     // build inertia
+    //     // Mx = (r*sin(theta))**2 * r).integrate((theta, 0, 2*pi)).integrate((r, 0, a)) * rho
+    //     // My = (r*cos(theta))**2 * r).integrate((theta, 0, 2*pi)).integrate((r, 0, a)) * rho
+    //     info.body.angular.inertia = info.body.mass * glm::pow(info.circle.radius, 2) / 2.0f;
+    //
+    //     // generate bounding box
+    //     Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(render);
+    //
+    //     scene.setComponent(object, info.body, aabb);
+    // }
 
     return object;
 }

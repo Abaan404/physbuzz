@@ -67,7 +67,7 @@ void Dynamics::tickMotion(Scene &scene, ObjectID id) const {
         render.transform.update();
 
         // adjust collision bounding box
-        AABBComponent aabb = AABBComponent(render);
+        AABBComponent aabb = AABBComponent(render, body);
         scene.setComponent(id, aabb);
     }
 

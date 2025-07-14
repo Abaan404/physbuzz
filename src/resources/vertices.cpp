@@ -7,7 +7,7 @@ void ResourceBuilder::buildVertices() {
     Physbuzz::ResourceRegistry<Physbuzz::VertexAttribute>::insert(
         "default",
         {{
-            .formats = {
+            .attributes = {
                 {
                     .type = Physbuzz::Types::Float,
                     .size = 3,

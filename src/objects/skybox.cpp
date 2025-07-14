@@ -1,6 +1,7 @@
 #include "skybox.hpp"
 
 #include <physbuzz/render/renderer.hpp>
+#include <physbuzz/resources/builtins/vertices.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Skybox &info) {
@@ -8,7 +9,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     constexpr glm::vec3 min = glm::vec3(-2.0f, -2.0f, -2.0f);
     constexpr glm::vec3 max = glm::vec3(2.0f, 2.0f, 2.0f);
 
-    Physbuzz::Mesh<Physbuzz::Builtin::VertexDefault::Format> mesh = {{
+    Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Builtin::VertexDefault::Format>{
         .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
         .vertices = {
             {{min.x, min.y, min.z}, {}, {}, {}, {}},
@@ -42,7 +43,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             {{max.x, max.y, max.z}, {}, {}, {}, {}},
         },
         .indices = {0, 3, 2, 2, 1, 0, 4, 7, 6, 6, 5, 4, 8, 11, 10, 10, 9, 8, 12, 15, 14, 14, 13, 12, 16, 19, 18, 18, 17, 16, 20, 23, 22, 22, 21, 20},
-    }};
+    };
 
     std::string modelName = std::format("skybox_{}", object);
     Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(

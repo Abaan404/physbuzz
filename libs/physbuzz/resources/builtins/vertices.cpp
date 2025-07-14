@@ -12,7 +12,7 @@ bool VertexDefault::build() {
     return ResourceRegistry<VertexAttribute>::insert(
         Resource.getIdentifier(),
         {{
-            .formats = {
+            .attributes = {
                 {
                     .type = Physbuzz::Types::Float,
                     .size = 3,
@@ -32,6 +32,30 @@ bool VertexDefault::build() {
                     .type = Physbuzz::Types::Float,
                     .size = 3,
                     .offset = offsetof(Format, bitangent),
+                },
+                {
+                    .type = Physbuzz::Types::Float,
+                    .size = 2,
+                    .offset = offsetof(Format, texCoords),
+                },
+            },
+            .size = sizeof(Format),
+        }});
+}
+
+bool VertexScreenQuad::build() {
+    if (ResourceRegistry<VertexAttribute>::contains(Resource.getIdentifier())) {
+        return true;
+    }
+
+    return ResourceRegistry<VertexAttribute>::insert(
+        Resource.getIdentifier(),
+        {{
+            .attributes = {
+                {
+                    .type = Physbuzz::Types::Float,
+                    .size = 3,
+                    .offset = offsetof(Format, position),
                 },
                 {
                     .type = Physbuzz::Types::Float,

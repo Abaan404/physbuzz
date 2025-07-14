@@ -1,10 +1,11 @@
 #pragma once
 
+#include "physbuzz/physics/dynamics.hpp"
 #include <physbuzz/physics/2D/detectors/gjk.hpp>
 #include <physbuzz/physics/2D/detectors/sweepandprune.hpp>
 #include <physbuzz/physics/2D/resolvers/angular.hpp>
 
-class Collision : public Physbuzz::System<Physbuzz::AABBComponent, Physbuzz::RenderComponent> {
+class Collision : public Physbuzz::System<Physbuzz::RigidBodyComponent, Physbuzz::AABBComponent, Physbuzz::RenderComponent> {
   public:
     Collision(Physbuzz::Scene *scene, const float restitution);
     ~Collision();

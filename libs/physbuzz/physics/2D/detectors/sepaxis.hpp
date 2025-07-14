@@ -11,8 +11,8 @@ class SeperatingAxis2D : public ICollisionDetector {
     bool check(Contact &contact) override;
 
   protected:
-    float getAxisOverlap(const glm::vec3 &axis, const RenderComponent &render1, const RenderComponent &render2);
-    void addMeshNormals(const RenderComponent &render, std::vector<glm::vec3> &axes);
+    float getAxisOverlap(const glm::vec3 &axis, const RigidBodyComponent &body1, const RigidBodyComponent &body2);
+    void addMeshNormals(const RigidBodyComponent &body, std::vector<glm::vec3> &axes);
 };
 
 } // namespace Physbuzz

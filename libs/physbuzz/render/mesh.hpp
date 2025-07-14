@@ -2,7 +2,7 @@
 
 #include "../resources/resources.hpp"
 #include <glad/gl.h>
-#include <glm/glm.hpp>
+#include <type_traits>
 #include <vector>
 
 namespace Physbuzz {
@@ -39,73 +39,16 @@ class VertexAttribute {
     };
 
     struct Info {
-        std::vector<Format> formats;
+        std::vector<Format> attributes;
         GLuint size;
     };
 
-    VertexAttribute(const Info &info)
-        : m_Info(info) {};
+    VertexAttribute(const Info &info);
 
-    bool build() {
-        if (VAO != 0 && VBO != 0 && EBO != 0) {
-            Logger::ERROR("[VertexAttribute] Cannot create already built vertex attributes.");
-            return false;
-        }
+    bool build();
+    bool destroy();
 
-        glCreateBuffers(1, &VBO);
-        glCreateBuffers(1, &EBO);
-        glCreateVertexArrays(1, &VAO);
-
-        std::size_t i = 0;
-        for (const auto &format : m_Info.formats) {
-            glEnableVertexArrayAttrib(VAO, i);
-            glVertexArrayAttribBinding(VAO, i, 0);
-
-            switch (format.type) {
-            case Types::Byte:
-            case Types::UnsignedByte:
-            case Types::Short:
-            case Types::UnsignedShort:
-            case Types::Int:
-            case Types::UnsignedInt:
-                glVertexArrayAttribIFormat(VAO, i, format.size, static_cast<GLenum>(format.type), format.offset);
-                break;
-
-            case Types::HalfFloat:
-            case Types::Fixed:
-            case Types::Float:
-                glVertexArrayAttribFormat(VAO, i, format.size, static_cast<GLenum>(format.type), GL_FALSE, format.offset);
-                break;
-
-            case Types::Double:
-                glVertexArrayAttribLFormat(VAO, i, format.size, static_cast<GLenum>(format.type), format.offset);
-                break;
-            }
-            i++;
-        }
-
-        glVertexArrayElementBuffer(VAO, EBO);
-        glVertexArrayVertexBuffer(VAO, 0, VBO, 0, m_Info.size);
-
-        return true;
-    }
-
-    bool destroy() {
-        if (VAO == 0 && VBO == 0 && EBO == 0) {
-            Logger::ERROR("[VertexAttribute] Cannot destroy already destructed vertex attributes.");
-            return false;
-        }
-
-        glDeleteBuffers(1, &VBO);
-        glDeleteBuffers(1, &EBO);
-        glDeleteVertexArrays(1, &VAO);
-
-        return true;
-    }
-
-    const Info &getInfo() const {
-        return m_Info;
-    }
+    const Info &getInfo() const;
 
   private:
     GLuint VBO = 0;
@@ -114,44 +57,42 @@ class VertexAttribute {
 
     Info m_Info;
 
-    template <VertexAttributeFormatType>
     friend class Mesh;
 };
 
 template <>
 struct IsResource<VertexAttribute> : std::true_type {};
 
-template <VertexAttributeFormatType T>
 class Mesh {
   public:
+    template <VertexAttributeFormatType T>
     struct Info {
         Resource<VertexAttribute> attribute;
         std::vector<T> vertices;
         std::vector<Index> indices;
     };
 
-    Mesh(const Info &info)
-        : m_Info(info) {}
-
-    bool build() { return true; }
-    bool destroy() { return true; }
-
-    void draw() const {
-        const VertexAttribute *attribute = m_Info.attribute.get();
-
-        glNamedBufferData(attribute->VBO, m_Info.vertices.size() * sizeof(T), m_Info.vertices.data(), GL_STREAM_DRAW);
-        glNamedBufferData(attribute->EBO, m_Info.indices.size() * sizeof(Index), m_Info.indices.data(), GL_STREAM_DRAW);
-        glBindVertexArray(attribute->VAO);
-
-        glDrawElements(GL_TRIANGLES, m_Info.indices.size(), GL_UNSIGNED_INT, 0);
+    template <VertexAttributeFormatType T>
+    Mesh(const Info<T> &info)
+        : m_Attribute(info.attribute),
+          m_Indices(info.indices) {
+        m_Vertices.resize(info.vertices.size() * sizeof(T));
+        std::memcpy(m_Vertices.data(), info.vertices.data(), info.vertices.size() * sizeof(T));
     }
 
-    const Info &getInfo() const {
-        return m_Info;
-    }
+    bool build();
+    bool destroy();
+
+    void draw() const;
+
+    const Resource<VertexAttribute> &getAttribute() const;
+    const std::vector<std::byte> &getVertices() const;
+    const std::vector<Index> &getIndices() const;
 
   private:
-    Info m_Info;
+    Resource<VertexAttribute> m_Attribute;
+    std::vector<std::byte> m_Vertices;
+    std::vector<Index> m_Indices;
 };
 
 } // namespace Physbuzz

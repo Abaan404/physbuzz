@@ -1,6 +1,7 @@
 #include "quad.hpp"
 
 #include <physbuzz/physics/collision.hpp>
+#include <physbuzz/resources/builtins/vertices.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Quad &info) {
@@ -18,7 +19,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     std::vector<glm::vec3> normals = generateNormals(indices, positions);
     std::vector<glm::vec2> texCoords = generateTexCoords(positions);
 
-    Physbuzz::Mesh<Physbuzz::Builtin::VertexDefault::Format> mesh = {{
+    Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Builtin::VertexDefault::Format>{
         .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
         .vertices = {
             {positions[0], normals[0], {}, {}, texCoords[0]},
@@ -27,7 +28,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             {positions[3], normals[3], {}, {}, texCoords[3]},
         },
         .indices = indices,
-    }};
+    };
 
     // create model
     std::string modelName = std::format("quad_{}", object);
@@ -78,10 +79,10 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     scene.setComponent(object, info.quad, info.identifier, info.resources, render, rebuilder);
 
     // generate bounding box
-    if (info.hasPhysics) {
-        Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(render);
-        scene.setComponent(object, aabb);
-    }
+    // if (info.hasPhysics) {
+    //     Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(render);
+    //     scene.setComponent(object, aabb);
+    // }
 
     // build inertia
     {

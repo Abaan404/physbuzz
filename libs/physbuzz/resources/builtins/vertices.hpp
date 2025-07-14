@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../render/mesh.hpp"
+#include <glm/glm.hpp>
 
 namespace Physbuzz {
 
@@ -20,7 +21,20 @@ inline Resource<VertexAttribute> Resource = {"builtin/default"};
 
 bool build();
 
-} // namespace ScreenQuad
+} // namespace VertexDefault
+
+namespace VertexScreenQuad {
+
+struct Format {
+    glm::vec3 position;
+    glm::vec2 texCoords;
+};
+
+inline Resource<VertexAttribute> Resource = {"builtin/screenquad"};
+
+bool build();
+
+} // namespace VertexScreenQuad
 
 } // namespace Builtin
 

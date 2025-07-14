@@ -1,22 +1,23 @@
 #include "model.hpp"
 
 #include "../debug/logging.hpp"
+#include "../resources/builtins/vertices.hpp"
 #include "texture.hpp"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
 namespace Physbuzz {
 
-template <typename VertexFormat>
-BasicModel<VertexFormat>::BasicModel(const Info &info)
+Model::Model(const Info &info)
     : m_Info(info) {}
 
-template <typename VertexFormat>
-bool BasicModel<VertexFormat>::build() {
-    Builtin::VertexDefault::build();
+bool Model::build() {
+    bool success = true;
 
     // if supplied a path, load the model from the filesystem
     if (!m_Info.path.empty()) {
+        success &= Builtin::VertexDefault::build();
+
         Assimp::Importer importer;
         const aiScene *scene = importer.ReadFile(m_Info.path, aiProcess_Triangulate | aiProcess_FlipUVs);
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -24,18 +25,17 @@ bool BasicModel<VertexFormat>::build() {
             return false;
         }
 
-        processNode(scene->mRootNode, scene);
+        success &= processNode(scene->mRootNode, scene);
     }
 
     for (auto &[mesh, _] : m_Info.meshes) {
-        mesh.build();
+        success &= mesh.build();
     }
 
     return true;
 }
 
-template <typename VertexFormat>
-bool BasicModel<VertexFormat>::destroy() {
+bool Model::destroy() {
     for (auto &[mesh, _] : m_Info.meshes) {
         mesh.destroy();
     }
@@ -43,8 +43,7 @@ bool BasicModel<VertexFormat>::destroy() {
     return true;
 }
 
-template <typename VertexFormat>
-bool BasicModel<VertexFormat>::processNode(const aiNode *ainode, const aiScene *aiscene) {
+bool Model::processNode(const aiNode *ainode, const aiScene *aiscene) {
     for (std::size_t i = 0; i < ainode->mNumMeshes; ++i) {
         aiMesh *mesh = aiscene->mMeshes[ainode->mMeshes[i]];
         processMesh(mesh, aiscene);
@@ -57,9 +56,8 @@ bool BasicModel<VertexFormat>::processNode(const aiNode *ainode, const aiScene *
     return true;
 }
 
-template <>
-bool BasicModel<Builtin::VertexDefault::Format>::processMesh(const aiMesh *aimesh, const aiScene *scene) {
-    Mesh<Builtin::VertexDefault::Format>::Info mesh = {
+bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
+    Mesh::Info<Builtin::VertexDefault::Format> mesh = {
         .attribute = Builtin::VertexDefault::Resource.getIdentifier(),
         .vertices = {},
         .indices = {},
@@ -114,8 +112,7 @@ bool BasicModel<Builtin::VertexDefault::Format>::processMesh(const aiMesh *aimes
     return true;
 }
 
-template <typename VertexFormat>
-void BasicModel<VertexFormat>::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
+void Model::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
     std::uint32_t size = aimaterial->GetTextureCount(type);
 
     std::string name = aiTextureTypeToString(type);
@@ -144,18 +141,15 @@ void BasicModel<VertexFormat>::loadTextures(const aiMaterial *aimaterial, aiText
     }
 }
 
-template <typename VertexFormat>
-const std::vector<std::tuple<Mesh<VertexFormat>, typename BasicModel<VertexFormat>::Meta>> &BasicModel<VertexFormat>::getMeshs() const {
+const std::vector<std::tuple<Mesh, Model::Meta>> &Model::getMeshs() const {
     return m_Info.meshes;
 }
 
-template <typename VertexFormat>
-const std::vector<Resource<Texture2D>> &BasicModel<VertexFormat>::getTextures() const {
+const std::vector<Resource<Texture2D>> &Model::getTextures() const {
     return m_Info.textures;
 }
 
-template <typename VertexFormat>
-std::string BasicModel<VertexFormat>::getTextureTypeName(TextureType texture) {
+std::string Model::getTextureTypeName(TextureType texture) {
     return aiTextureTypeToString(static_cast<aiTextureType>(texture));
 }
 

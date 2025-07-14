@@ -11,7 +11,7 @@ bool MeshScreenQuad::build() {
         return true;
     }
 
-    if (!VertexDefault::build()) {
+    if (!VertexScreenQuad::build()) {
         return false;
     }
 
@@ -21,16 +21,16 @@ bool MeshScreenQuad::build() {
             .meshes = {
                 {
                     {
-                        {{
-                            .attribute = {VertexDefault::Resource.getIdentifier()},
+                        Mesh::Info<VertexScreenQuad::Format>{
+                            .attribute = {VertexScreenQuad::Resource.getIdentifier()},
                             .vertices = {
-                                {{-1.0f, -1.0f, 0.0f}, {}, {}, {}, {0.0f, 0.0f}},
-                                {{1.0f, -1.0f, 0.0f}, {}, {}, {}, {1.0f, 0.0f}},
-                                {{1.0f, 1.0f, 0.0f}, {}, {}, {}, {1.0f, 1.0f}},
-                                {{-1.0f, 1.0f, 0.0f}, {}, {}, {}, {0.0f, 1.0f}},
+                                {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
+                                {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
+                                {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+                                {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
                             },
                             .indices = {0, 1, 2, 2, 3, 0},
-                        }},
+                        },
                         {},
                     },
                 },

@@ -1,7 +1,6 @@
 #include "renderer.hpp"
 
 #include "../ecs/scene.hpp"
-#include "../resources/builtins/meshes.hpp"
 #include "../resources/builtins/shaders.hpp"
 #include "gl/capabilities.hpp"
 #include "gl/units.hpp"
@@ -29,7 +28,6 @@ bool Renderer::build() {
     bool success = true;
 
     success &= m_Framebuffer.build();
-    success &= Builtin::MeshScreenQuad::build();
     success &= Builtin::ShaderPassthrough::build();
 
     return success;

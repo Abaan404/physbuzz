@@ -2,6 +2,7 @@
 
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
+#include <physbuzz/resources/builtins/vertices.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Line &info) {
@@ -18,7 +19,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     };
     std::vector normals = generateNormals(indices, positions);
 
-    Physbuzz::Mesh<Physbuzz::Builtin::VertexDefault::Format> mesh = {{
+    Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Builtin::VertexDefault::Format>{
         .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
         .vertices = {
             {positions[0], normals[3], {}, {}, {1.0f, 1.0f}}, // top-left
@@ -27,7 +28,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             {positions[3], normals[3], {}, {}, {0.0f, 0.0f}}, // bottom-left
         },
         .indices = indices,
-    }};
+    };
 
     // create model
     std::string modelName = std::format("line_{}", object);

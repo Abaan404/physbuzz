@@ -6,8 +6,10 @@
 
 namespace Physbuzz {
 
+class RigidBodyComponent;
+
 struct AABBComponent {
-    AABBComponent(const RenderComponent& render);
+    AABBComponent(const RenderComponent &render, const RigidBodyComponent &mesh);
 
     glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 max = glm::vec3(std::numeric_limits<float>::lowest());
