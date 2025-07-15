@@ -19,7 +19,7 @@ bool Model::build() {
         success &= Builtin::VertexDefault::build();
 
         Assimp::Importer importer;
-        const aiScene *scene = importer.ReadFile(m_Info.path, aiProcess_Triangulate | aiProcess_FlipUVs);
+        const aiScene *scene = importer.ReadFile(m_Info.path, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
             Logger::ERROR("[Model] Could not import model at \"{}\". Assimp Error: \n{}", m_Info.path.string(), importer.GetErrorString());
             return false;
@@ -69,6 +69,7 @@ bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
     for (std::size_t i = 0; i < mesh.vertices.size(); ++i) {
         mesh.vertices[i].position = {aimesh->mVertices[i].x, aimesh->mVertices[i].y, aimesh->mVertices[i].z};
         mesh.vertices[i].normal = {aimesh->mNormals[i].x, aimesh->mNormals[i].y, aimesh->mNormals[i].z};
+        mesh.vertices[i].tangent = {aimesh->mTangents[i].x, aimesh->mTangents[i].y, aimesh->mTangents[i].z};
     }
 
     // texcoords

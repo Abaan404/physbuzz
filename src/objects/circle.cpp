@@ -23,8 +23,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     indices.insert(indices.end(), {0, MAX_VERTICES - 1, 1});
 
     // calc normals
-    std::vector<glm::vec3> normals = generateNormals(indices, positions);
     std::vector<glm::vec2> texCoords = generateTexCoords(positions);
+    std::vector<NormalTangent> NT = generateNormalTangent(indices, positions, texCoords);
 
     Physbuzz::Mesh::Info<Physbuzz::Builtin::VertexDefault::Format> mesh = {
         .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
@@ -35,7 +35,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     mesh.vertices.resize(positions.size());
     for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
         mesh.vertices[i].position = positions[i];
-        mesh.vertices[i].normal = normals[i];
+        mesh.vertices[i].normal = NT[i].normal;
+        mesh.vertices[i].tangent = NT[i].tangent;
         mesh.vertices[i].texCoords = texCoords[i];
     }
 

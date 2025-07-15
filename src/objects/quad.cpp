@@ -9,25 +9,15 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     glm::vec3 min = glm::vec3(-info.quad.width / 2.0f, -info.quad.height / 2.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
 
-    std::vector<Physbuzz::Index> indices = {0, 1, 2, 2, 3, 0};
-    std::vector<glm::vec3> positions = {
-        {min.x, min.y, 0.0f}, // top-left
-        {min.x, max.y, 0.0f}, // top-right
-        {max.x, max.y, 0.0f}, // bottom-right
-        {max.x, min.y, 0.0f}, // bottom-left
-    };
-    std::vector<glm::vec3> normals = generateNormals(indices, positions);
-    std::vector<glm::vec2> texCoords = generateTexCoords(positions);
-
     Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Builtin::VertexDefault::Format>{
         .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
         .vertices = {
-            {positions[0], normals[0], {}, {}, texCoords[0]},
-            {positions[1], normals[1], {}, {}, texCoords[1]},
-            {positions[2], normals[2], {}, {}, texCoords[2]},
-            {positions[3], normals[3], {}, {}, texCoords[3]},
+            {{min.x, min.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, // top-left
+            {{min.x, max.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // top-right
+            {{max.x, max.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}}, // bottom-right
+            {{max.x, min.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}, // bottom-left
         },
-        .indices = indices,
+        .indices = {0, 1, 2, 2, 3, 0},
     };
 
     // create model

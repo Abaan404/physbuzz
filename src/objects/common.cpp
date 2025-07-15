@@ -19,8 +19,12 @@ std::vector<glm::vec2> generateTexCoords(const std::vector<glm::vec3> &positions
     return texCoords;
 }
 
-std::vector<glm::vec3> generateNormals(const std::vector<Physbuzz::Index> &indices, const std::vector<glm::vec3> &positions) {
-    std::vector<glm::vec3> normals = std::vector<glm::vec3>(positions.size());
+std::vector<NormalTangent> generateNormalTangent(const std::vector<Physbuzz::Index> &indices, const std::vector<glm::vec3> &positions, const std::vector<glm::vec2> &texCoords) {
+    std::vector<NormalTangent> NT = std::vector<NormalTangent>(positions.size());
+
+    if (indices.size() % 3 != 0) {
+        return NT;
+    }
 
     for (std::size_t i = 0; i < indices.size(); i += 3) {
         const Physbuzz::Index i0 = indices[i];
@@ -31,18 +35,48 @@ std::vector<glm::vec3> generateNormals(const std::vector<Physbuzz::Index> &indic
         const glm::vec3 &p2 = positions[i1];
         const glm::vec3 &p3 = positions[i2];
 
+        const glm::vec2 uv1 = texCoords[i0];
+        const glm::vec2 uv2 = texCoords[i1];
+        const glm::vec2 uv3 = texCoords[i2];
+
         const glm::vec3 p12 = p2 - p1;
         const glm::vec3 p13 = p3 - p1;
+
+        const glm::vec2 dUV1 = uv2 - uv1;
+        const glm::vec2 dUV2 = uv3 - uv1;
+
+        float det = dUV1.x * dUV2.y - dUV2.x * dUV1.y;
+        if (glm::abs(det) < 1e-8f) {
+            det = 1.0f;
+        }
+
         const glm::vec3 normal = glm::cross(p12, p13);
+        const glm::vec3 tangent = 1.0f / det * (dUV2.y * p12 - dUV1.y * p13);
 
-        normals[i0] += normal;
-        normals[i1] += normal;
-        normals[i2] += normal;
+        NT[i0].normal += normal;
+        NT[i1].normal += normal;
+        NT[i2].normal += normal;
+        NT[i0].tangent += tangent;
+        NT[i1].tangent += tangent;
+        NT[i2].tangent += tangent;
     }
 
-    for (auto &normal : normals) {
-        normal = glm::normalize(normal);
+    for (auto &nt : NT) {
+        if (glm::dot(nt.normal, nt.normal) > 0.0f) {
+            nt.normal = glm::normalize(nt.normal);
+        } else {
+            nt.normal = glm::vec3(0, 0, 1);
+        }
+
+        glm::vec3 tangent = nt.tangent;
+        tangent -= nt.normal * glm::dot(nt.normal, tangent);
+
+        if (glm::dot(tangent, tangent) > 0.0f) {
+            nt.tangent = glm::normalize(tangent);
+        } else {
+            nt.tangent = glm::vec3(1, 0, 0);
+        }
     }
 
-    return normals;
+    return NT;
 }

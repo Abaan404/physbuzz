@@ -1,33 +1,23 @@
 #include "builder.hpp"
 
-#include "vertex/default.hpp"
+#include "vertex/skybox.hpp"
 #include <physbuzz/render/mesh.hpp>
 
 void ResourceBuilder::buildVertices() {
     Physbuzz::ResourceRegistry<Physbuzz::VertexAttribute>::insert(
-        "default",
+        "skybox",
         {{
             .attributes = {
                 {
                     .type = Physbuzz::Types::Float,
-                    .size = 3,
-                    .offset = offsetof(VertexDefault, position),
-                },
-                {
-                    .type = Physbuzz::Types::Float,
-                    .size = 3,
-                    .offset = offsetof(VertexDefault, normal),
-                },
-                {
-                    .type = Physbuzz::Types::Float,
-                    .size = 2,
-                    .offset = offsetof(VertexDefault, texCoords),
+                    .size = sizeof(VertexSkybox::position) / sizeof(decltype(VertexSkybox::position)::value_type),
+                    .offset = offsetof(VertexSkybox, position),
                 },
             },
-            .size = sizeof(VertexDefault),
+            .size = sizeof(VertexSkybox),
         }});
 }
 
 void ResourceBuilder::destroyVertices() {
-    Physbuzz::ResourceRegistry<Physbuzz::VertexAttribute>::erase("default");
+    Physbuzz::ResourceRegistry<Physbuzz::VertexAttribute>::erase("skybox");
 }

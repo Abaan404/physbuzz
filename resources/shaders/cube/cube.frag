@@ -4,6 +4,7 @@ uniform vec4 u_Color = vec4(1.0, 1.0, 0.0, 0.0);
 uniform sampler2D u_Texture;
 
 in VS_OUT {
+    mat3 TBN;
     vec4 fragPositionLightSpace;
     vec3 normal;
     vec3 fragPosition;

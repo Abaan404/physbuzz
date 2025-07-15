@@ -15,27 +15,22 @@ bool VertexDefault::build() {
             .attributes = {
                 {
                     .type = Physbuzz::Types::Float,
-                    .size = 3,
+                    .size = sizeof(Format::position) / sizeof(decltype(Format::position)::value_type),
                     .offset = offsetof(Format, position),
                 },
                 {
                     .type = Physbuzz::Types::Float,
-                    .size = 3,
+                    .size = sizeof(Format::normal) / sizeof(decltype(Format::normal)::value_type),
                     .offset = offsetof(Format, normal),
                 },
                 {
                     .type = Physbuzz::Types::Float,
-                    .size = 3,
+                    .size = sizeof(Format::tangent) / sizeof(decltype(Format::tangent)::value_type),
                     .offset = offsetof(Format, tangent),
                 },
                 {
                     .type = Physbuzz::Types::Float,
-                    .size = 3,
-                    .offset = offsetof(Format, bitangent),
-                },
-                {
-                    .type = Physbuzz::Types::Float,
-                    .size = 2,
+                    .size = sizeof(Format::texCoords) / sizeof(decltype(Format::texCoords)::value_type),
                     .offset = offsetof(Format, texCoords),
                 },
             },
@@ -54,12 +49,12 @@ bool VertexScreenQuad::build() {
             .attributes = {
                 {
                     .type = Physbuzz::Types::Float,
-                    .size = 3,
+                    .size = sizeof(Format::position) / sizeof(decltype(Format::position)::value_type),
                     .offset = offsetof(Format, position),
                 },
                 {
                     .type = Physbuzz::Types::Float,
-                    .size = 2,
+                    .size = sizeof(Format::texCoords) / sizeof(decltype(Format::texCoords)::value_type),
                     .offset = offsetof(Format, texCoords),
                 },
             },
