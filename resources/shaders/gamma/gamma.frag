@@ -9,8 +9,11 @@ in VS_OUT {
 layout(location = 0) out vec4 fragColor;
 
 void main() {
-    vec4 color = texture(PBZ_Framebuffer, fs_in.texCoord);
-
     float gamma = 2.2f;
-    fragColor.rgb = pow(color.rgb, vec3(1.0f / gamma));
+    float exposure = 1.0f;
+
+    vec3 color = texture(PBZ_Framebuffer, fs_in.texCoord).rgb;
+    vec3 mapped = vec3(1.0) - exp(-color * exposure);
+
+    fragColor.rgb = pow(mapped, vec3(1.0f / gamma));
 }

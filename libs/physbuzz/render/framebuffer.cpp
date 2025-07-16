@@ -67,8 +67,8 @@ bool Framebuffer::build() {
             glTextureParameteri(color, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTextureParameteri(color, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-            glTextureStorage2D(color, 1, GL_RGBA8, m_Info.resolution.x, m_Info.resolution.y);
-            glTextureSubImage2D(color, 0, 0, 0, m_Info.resolution.x, m_Info.resolution.y, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTextureStorage2D(color, 1, GL_RGBA16F, m_Info.resolution.x, m_Info.resolution.y);
+            glTextureSubImage2D(color, 0, 0, 0, m_Info.resolution.x, m_Info.resolution.y, GL_RGBA, GL_FLOAT, nullptr);
             glNamedFramebufferTexture(m_Framebuffer, GL_COLOR_ATTACHMENT0 + attachmentIndex, color, 0);
             break;
 
@@ -81,9 +81,9 @@ bool Framebuffer::build() {
             glTextureParameteri(color, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTextureParameteri(color, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-            glTextureStorage2D(color, 1, GL_RGBA8, m_Info.resolution.x, m_Info.resolution.y);
+            glTextureStorage2D(color, 1, GL_RGBA16F, m_Info.resolution.x, m_Info.resolution.y);
             for (std::size_t i = 0; i < 6; ++i) {
-                glTextureSubImage3D(color, 0, 0, 0, i, m_Info.resolution.x, m_Info.resolution.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+                glTextureSubImage3D(color, 0, 0, 0, i, m_Info.resolution.x, m_Info.resolution.y, 1, GL_RGBA, GL_FLOAT, nullptr);
             }
 
             glNamedFramebufferTexture(m_Framebuffer, GL_COLOR_ATTACHMENT0 + attachmentIndex, color, 0);
@@ -91,7 +91,7 @@ bool Framebuffer::build() {
 
         case Storage::Renderbuffer:
             glCreateRenderbuffers(1, &color);
-            glNamedRenderbufferStorage(color, GL_RGBA8, m_Info.resolution.x, m_Info.resolution.y);
+            glNamedRenderbufferStorage(color, GL_RGBA16F, m_Info.resolution.x, m_Info.resolution.y);
             glNamedFramebufferRenderbuffer(m_Framebuffer, GL_COLOR_ATTACHMENT0 + attachmentIndex, GL_RENDERBUFFER, color);
             break;
 
