@@ -23,7 +23,7 @@ bool Collision::destroy() {
     return success;
 }
 
-void Collision::tick(Physbuzz::Scene &) {
+void Collision::tick() {
     std::list<Physbuzz::Contact> contacts = m_DetectorBroad.find();
     m_DetectorNarrow.find(contacts);
 

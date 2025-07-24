@@ -13,7 +13,7 @@ class Collision : public Physbuzz::System<Physbuzz::RigidBodyComponent, Physbuzz
     bool build() override;
     bool destroy() override;
 
-    void tick(Physbuzz::Scene &scene);
+    void tick();
 
   protected:
     Physbuzz::SweepAndPrune2D m_DetectorBroad;

@@ -2,7 +2,6 @@
 
 #include "../resources/vertex/skybox.hpp"
 #include <physbuzz/render/renderer.hpp>
-#include <physbuzz/resources/builtins/vertices.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Skybox &info) {
@@ -60,11 +59,18 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = modelName,
+    };
+
+    Physbuzz::DeferredRenderComponent::ForwardPass deferredForward = {
+        .pipeline = info.resources.pipeline,
+    };
+
+    Physbuzz::ForwardRenderComponent forward = {
         .pipeline = info.resources.pipeline,
     };
 
     // setup rendering
-    scene.setComponent(object, info.resources, info.skybox, render);
+    scene.setComponent(object, info.resources, info.skybox, render, forward, deferredForward);
 
     return object;
 }

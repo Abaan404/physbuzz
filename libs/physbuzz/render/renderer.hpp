@@ -1,26 +1,81 @@
 #pragma once
 
 #include "../ecs/system.hpp"
-#include "framebuffer.hpp"
-#include "model.hpp"
-#include "shaders.hpp"
-#include "transform.hpp"
+#include "renderers/deferred.hpp"
+#include "renderers/forward.hpp"
+#include "uniforms.hpp"
 
 namespace Physbuzz {
 
-class Framebuffer;
+namespace Builtin {
 
-struct RenderComponent {
-    Transform transform;
-    Resource<Model> model;
-    Resource<ShaderPipeline> pipeline;
+namespace VertexRendererScreenQuad {
+
+struct Format {
+    glm::vec3 position;
+    glm::vec2 texCoords;
 };
 
-class Renderer : public System<RenderComponent> {
+inline Resource<VertexAttribute> Resource = {"builtin/renderer/screenquad"};
+
+bool build();
+
+} // namespace VertexRendererScreenQuad
+
+namespace MeshRendererScreenQuad {
+
+inline Resource<Model> Resource = {"builtin/renderer/screenquad"};
+
+bool build();
+
+} // namespace MeshRendererScreenQuad
+
+namespace ShaderRendererPassthrough {
+
+inline Resource<ShaderPipeline> Resource = {"builtin/renderer/passthrough"};
+
+bool build();
+
+} // namespace ShaderRendererPassthrough
+
+namespace UniformRendererCamera {
+
+struct Format {
+    glm::vec3 position;
+    float _padding0;
+    glm::mat4x4 view;
+    glm::mat4x4 projection;
+};
+
+constexpr GLuint Binding = 0;
+
+inline Resource<UniformBuffer<Format>> Resource = {"builtin/renderer/camera"};
+
+bool build();
+
+} // namespace UniformRendererCamera
+
+} // namespace Builtin
+
+class Window;
+
+class Renderer : public System<> {
   public:
+    enum class Type {
+        Deferred,
+        Forward,
+    };
+
     struct Info {
-        glm::ivec2 resolution;
-        std::vector<Resource<ShaderPipeline>> postProcessing;
+        bool passthrough = true;
+        Type type = Type::Deferred;
+        ObjectID camera = -1;
+        glm::ivec2 resolution = {1, 1};
+
+        ForwardRenderer::Info forward = {};
+        DeferredRenderer::Info deferred = {};
+
+        std::vector<Resource<ShaderPipeline>> postProcessing = {};
     };
 
     Renderer(const Info &info);
@@ -28,20 +83,26 @@ class Renderer : public System<RenderComponent> {
     bool build() override;
     bool destroy() override;
 
+    void tick();
+
     void resize(const glm::ivec2 &resolution);
 
-    void tick(Scene &scene) const;
-    void render(Scene &scene, ObjectID id) const;
-
-    void target(const Framebuffer *framebuffer);
+    const Type &getType();
+    void setType(const Type &type);
 
     const Framebuffer &getFramebuffer() const;
+    const Info &getInfo() const;
 
   private:
+    std::shared_ptr<IRenderer> getRenderer() const;
+    bool buildRenderer();
+    bool destroyRenderer();
+
     Info m_Info;
 
-    Framebuffer m_Framebuffer;
-    const Framebuffer *m_TargetBuffer = nullptr;
+    struct {
+        EventID resize;
+    } m_Events;
 };
 
 } // namespace Physbuzz

@@ -11,11 +11,13 @@ class Scene;
 
 class ISystem {
   public:
+    virtual ~ISystem() = default;
     virtual bool build() { return true; }
     virtual bool destroy() { return true; }
 
   protected:
     std::set<ObjectID> m_Objects;
+    Scene *m_Scene;
 
   private:
     virtual inline bool containsSignature(ComponentManager &componentManager, ObjectID id) = 0;
@@ -42,18 +44,19 @@ concept SystemType = std::derived_from<T, ISystem>;
 template <typename T>
 concept SystemTickable =
     SystemType<T> &&
-    requires(T a, Scene &scene, ObjectID id) {
-        { a.tick(scene) } -> std::same_as<void>; // TODO multithread ticking system
+    requires(T a, ObjectID id) {
+        { a.tick() } -> std::same_as<void>; // TODO multithread ticking system
     };
 
 class SystemManager {
   public:
     template <SystemType T, typename... Args>
-    inline std::shared_ptr<T> emplace(Args &&...system) {
+    inline std::shared_ptr<T> emplace(Scene *scene, Args &&...system) {
         SignatureID id = Signature::ID<T>();
 
         if (!m_Systems.contains(id)) {
             m_Systems[id] = std::make_shared<T>(std::forward<Args>(system)...);
+            m_Systems[id]->m_Scene = scene;
             if (!m_Systems[id]->build()) {
                 Logger::ERROR("[Scene/Systems] Failed to build a system.");
             }
@@ -78,15 +81,15 @@ class SystemManager {
     }
 
     template <SystemType T>
-    inline std::shared_ptr<T> get() {
+    inline std::shared_ptr<T> get() const {
         SignatureID id = Signature::ID<T>();
-        return std::static_pointer_cast<T>(m_Systems[id]);
+        return std::static_pointer_cast<T>(m_Systems.at(id));
     }
 
     template <SystemTickable... T>
-    inline void tick(Scene &scene) {
+    inline void tick() {
         if (contains<T...>()) {
-            (..., get<T>()->tick(scene));
+            (..., get<T>()->tick());
         }
     }
 

@@ -5,17 +5,17 @@ layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec3 aTangent;
 layout(location = 3) in vec2 aTexCoord;
 
-out VS_OUT {
-    vec3 normal;
-} vs_out;
-
-layout(std140, binding = 1) uniform Camera {
+layout(std140, binding = 0) uniform Camera {
     vec3 position;
     mat4 view;
     mat4 projection;
 } camera;
 
 uniform mat4 u_Model;
+
+out VS_OUT {
+    vec3 normal;
+} vs_out;
 
 void main() {
     gl_Position = camera.view * u_Model * vec4(aPosition, 1.0);

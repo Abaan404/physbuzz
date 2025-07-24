@@ -9,13 +9,13 @@ Dynamics::Dynamics(float dtime)
 
 Dynamics::~Dynamics() {}
 
-void Dynamics::tick(Scene &scene) {
+void Dynamics::tick() {
     if (!m_IsRunning) {
         return;
     }
 
     static float time = 0.0f;
-    const float &delta = scene.getSystem<Clock>()->getDelta();
+    const float &delta = m_Scene->getSystem<Clock>()->getDelta();
 
     if (delta > 10.0f) {
         Logger::WARNING("[Dynamics] Max Timeout exceeded, skipping frame. ({:.3f}ms since last tick)", delta);
@@ -26,15 +26,15 @@ void Dynamics::tick(Scene &scene) {
 
     while (m_DeltaTime - time <= 0.0f) {
         for (auto &object : m_Objects) {
-            tickMotion(scene, object);
+            tickMotion(object);
         }
 
         time -= m_DeltaTime;
     }
 }
 
-void Dynamics::tickMotion(Scene &scene, ObjectID id) const {
-    const auto [body, render] = scene.getComponent<RigidBodyComponent, RenderComponent>(id);
+void Dynamics::tickMotion(ObjectID id) const {
+    const auto [body, render] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(id);
 
     // apply gravity
     {
@@ -68,7 +68,7 @@ void Dynamics::tickMotion(Scene &scene, ObjectID id) const {
 
         // adjust collision bounding box
         AABBComponent aabb = AABBComponent(render, body);
-        scene.setComponent(id, aabb);
+        m_Scene->setComponent(id, aabb);
     }
 
     // apply accumulated forces to velocity and clear them

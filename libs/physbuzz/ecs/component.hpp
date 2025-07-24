@@ -4,6 +4,7 @@
 #include "../misc/signature.hpp"
 #include "defines.hpp"
 #include <memory>
+#include <tuple>
 
 namespace Physbuzz {
 
@@ -86,14 +87,14 @@ class ComponentManager {
     }
 
     template <ComponentArrayType... T>
-    std::vector<std::tuple<T &...>> getArray() {
+    std::vector<std::tuple<ObjectID, T &...>> getArray() {
         std::set<ObjectID> ids;
         (ids.insert(getComponents<T>()->getKeys().begin(), getComponents<T>()->getKeys().end()), ...);
 
-        std::vector<std::tuple<T &...>> result;
+        std::vector<std::tuple<ObjectID, T &...>> result;
         for (const auto &id : ids) {
             if (contains<T...>(id)) {
-                result.push_back(get<T...>(id));
+                result.emplace_back(std::tuple_cat(std::make_tuple(id), get<T...>(id)));
             }
         }
         return result;

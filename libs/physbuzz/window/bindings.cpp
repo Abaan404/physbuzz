@@ -50,7 +50,7 @@ bool Bindings::destroy() {
     return true;
 }
 
-void Bindings::tick(Scene &scene) {
+void Bindings::tick() {
     if (m_Window == nullptr) {
         Logger::ERROR("[Inputs] Cant tick with a missing window");
         return;
@@ -59,7 +59,7 @@ void Bindings::tick(Scene &scene) {
     m_Window->poll();
 
     for (const auto &object : m_Objects) {
-        const auto [input] = scene.getComponent<BindingComponent>(object);
+        const auto [input] = m_Scene->getComponent<BindingComponent>(object);
 
         for (const auto &input : input.keyboardCallbacks) {
             if (m_HeldKeys.contains(input.key)) {

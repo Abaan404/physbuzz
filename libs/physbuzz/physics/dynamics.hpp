@@ -57,7 +57,7 @@ class Dynamics : public System<RenderComponent, RigidBodyComponent> {
     Dynamics(float dtime);
     ~Dynamics();
 
-    void tick(Scene &scene);
+    void tick();
 
     const bool &isRunning() const;
     void start();
@@ -65,7 +65,7 @@ class Dynamics : public System<RenderComponent, RigidBodyComponent> {
     const bool &toggle();
 
   private:
-    void tickMotion(Scene &scene, ObjectID id) const;
+    void tickMotion(ObjectID id) const;
 
     float m_DeltaTime = 0.0f;
     bool m_IsRunning = false;

@@ -1,13 +1,68 @@
 #include "shadow.hpp"
 
 #include "../ecs/scene.hpp"
-#include "../resources/builtins/meshes.hpp"
-#include "../resources/builtins/shaders.hpp"
 #include "lighting.hpp"
+#include "renderer.hpp"
 #include <array>
 #include <format>
 
 namespace Physbuzz {
+
+namespace Builtin {
+
+bool ShaderShadowDepth2D::build() {
+    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
+        return true;
+    }
+
+    return ResourceRegistry<ShaderPipeline>::insert(
+        Resource.getIdentifier(),
+        {{
+            .vertex = {.file = {.path = "resources/shaders/builtin/depth/2D.vert"}},
+            .tessControl = {},
+            .tessEvaluation = {},
+            .geometry = {},
+            .fragment = {.file = {.path = "resources/shaders/builtin/depth/2D.frag"}},
+            .compute = {},
+            .draw = [](const ShaderPipeline *resource, Scene &scene, ObjectID object) {
+                const auto [render] = scene.getComponent<RenderComponent>(object);
+
+                resource->setUniform("PBZ_Model", render.transform.matrix);
+
+                for (const auto &[mesh, _] : render.model->getMeshs()) {
+                    mesh.draw();
+                }
+            },
+        }});
+}
+
+bool ShaderShaderDepthCubemap::build() {
+    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
+        return true;
+    }
+
+    return ResourceRegistry<ShaderPipeline>::insert(
+        Resource.getIdentifier(),
+        {{
+            .vertex = {.file = {.path = "resources/shaders/builtin/depth/cubemap.vert"}},
+            .tessControl = {},
+            .tessEvaluation = {},
+            .geometry = {.file = {.path = "resources/shaders/builtin/depth/cubemap.geom"}},
+            .fragment = {.file = {.path = "resources/shaders/builtin/depth/cubemap.frag"}},
+            .compute = {},
+            .draw = [](const ShaderPipeline *resource, Scene &scene, ObjectID object) {
+                const auto [render] = scene.getComponent<RenderComponent>(object);
+
+                resource->setUniform("PBZ_Model", render.transform.matrix);
+
+                for (const auto &[mesh, _] : render.model->getMeshs()) {
+                    mesh.draw();
+                }
+            },
+        }});
+}
+
+} // namespace Builtin
 
 Shadow::Shadow(const Info &info)
     : m_Info(info),
@@ -18,9 +73,6 @@ Shadow::Shadow(const Info &info)
               .depth = {
                   .storage = Framebuffer::Storage::Texture2D,
               },
-              .output = {
-                  .type = Framebuffer::Type::Depth,
-              },
           }},
           .point = {{
               .resolution = glm::ivec2(glm::max(info.resolution.x, info.resolution.y)),
@@ -28,19 +80,15 @@ Shadow::Shadow(const Info &info)
               .depth = {
                   .storage = Framebuffer::Storage::Cubemap,
               },
-              .output = {
-                  .type = Framebuffer::Type::Depth,
-              },
           }},
       }) {}
 
 bool Shadow::build() {
     bool success = true;
 
-    success &= Builtin::MeshScreenQuad::build();
-    success &= Builtin::ShaderPassthrough::build();
-    success &= Builtin::ShaderDepth2D::build();
-    success &= Builtin::ShaderDepthCubemap::build();
+    success &= Builtin::ShaderRendererPassthrough::build();
+    success &= Builtin::ShaderShadowDepth2D::build();
+    success &= Builtin::ShaderShaderDepthCubemap::build();
 
     success &= m_Framebuffers.directional.build();
     success &= m_Framebuffers.point.build();
@@ -56,58 +104,58 @@ bool Shadow::destroy() {
     return success;
 }
 
-void Shadow::tick(Scene &scene) const {
+void Shadow::tick() const {
     GLint cullMode;
     glGetIntegerv(GL_CULL_FACE_MODE, &cullMode);
 
     glCullFace(GL_FRONT);
 
-    tickDirectional(scene);
-    tickPoint(scene);
+    tickDirectional();
+    tickPoint();
 
     glCullFace(static_cast<GLenum>(cullMode));
 }
 
-void Shadow::tickDirectional(Scene &scene) const {
+void Shadow::tickDirectional() const {
     m_Framebuffers.directional.clear();
     m_Framebuffers.directional.bind();
 
     glm::mat4 projection = glm::ortho(-m_Info.orthoSize, m_Info.orthoSize, -m_Info.orthoSize, m_Info.orthoSize, 1.0f, m_Info.depth);
 
-    if (!Builtin::ShaderDepth2D::Resource->reload()) {
+    if (!Builtin::ShaderShadowDepth2D::Resource->reload()) {
         return;
     }
 
-    Builtin::ShaderDepth2D::Resource->bind();
-    for (const auto [light] : scene.getComponents<DirectionalLightComponent>()) {
+    Builtin::ShaderShadowDepth2D::Resource->bind();
+    for (const auto [_, light] : m_Scene->getComponents<DirectionalLightComponent>()) {
         glm::mat4 view = glm::lookAt(-light.direction * m_Info.depth / 2.0f, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
         light.matrix = projection * view;
 
-        Builtin::ShaderDepth2D::Resource->setUniform("PBZ_ShadowMatrix", light.matrix);
+        Builtin::ShaderShadowDepth2D::Resource->setUniform("PBZ_ShadowMatrix", light.matrix);
 
         for (const auto &object : m_Objects) {
-            Builtin::ShaderDepth2D::Resource->draw(scene, object);
+            Builtin::ShaderShadowDepth2D::Resource->draw(*m_Scene, object);
         }
     }
 
-    Builtin::ShaderDepth2D::Resource->unbind();
+    Builtin::ShaderShadowDepth2D::Resource->unbind();
     m_Framebuffers.directional.unbind();
 }
 
-void Shadow::tickPoint(Scene &scene) const {
+void Shadow::tickPoint() const {
     m_Framebuffers.point.clear();
     m_Framebuffers.point.bind();
 
     glm::mat4 projection = glm::perspective(glm::radians(90.0f), 1.0f, 1.0f, m_Info.depth);
 
-    if (!Builtin::ShaderDepthCubemap::Resource->reload()) {
+    if (!Builtin::ShaderShaderDepthCubemap::Resource->reload()) {
         return;
     }
 
-    Builtin::ShaderDepthCubemap::Resource->bind();
-    Builtin::ShaderDepthCubemap::Resource->setUniform("PBZ_FarPlane", m_Info.depth);
+    Builtin::ShaderShaderDepthCubemap::Resource->bind();
+    Builtin::ShaderShaderDepthCubemap::Resource->setUniform("PBZ_FarPlane", m_Info.depth);
 
-    for (const auto [light] : scene.getComponents<PointLightComponent>()) {
+    for (const auto [_, light] : m_Scene->getComponents<PointLightComponent>()) {
         std::array matrices = {
             projection * glm::lookAt(light.position, light.position + glm::vec3(1.0f, 0.0f, 0.0f), {0.0f, -1.0f, 0.0f}),
             projection * glm::lookAt(light.position, light.position + glm::vec3(-1.0f, 0.0f, 0.0f), {0.0f, -1.0f, 0.0f}),
@@ -117,17 +165,17 @@ void Shadow::tickPoint(Scene &scene) const {
             projection * glm::lookAt(light.position, light.position + glm::vec3(0.0f, 0.0f, -1.0f), {0.0f, -1.0f, 0.0f}),
         };
 
-        Builtin::ShaderDepthCubemap::Resource->setUniform("PBZ_LightPosition", light.position);
+        Builtin::ShaderShaderDepthCubemap::Resource->setUniform("PBZ_LightPosition", light.position);
         for (std::size_t i = 0; i < matrices.size(); i++) {
-            Builtin::ShaderDepthCubemap::Resource->setUniform(std::format("PBZ_LightMatrix[{}]", i), matrices[i]);
+            Builtin::ShaderShaderDepthCubemap::Resource->setUniform(std::format("PBZ_LightMatrix[{}]", i), matrices[i]);
         }
 
         for (const auto &object : m_Objects) {
-            Builtin::ShaderDepthCubemap::Resource->draw(scene, object);
+            Builtin::ShaderShaderDepthCubemap::Resource->draw(*m_Scene, object);
         }
     }
 
-    Builtin::ShaderDepthCubemap::Resource->unbind();
+    Builtin::ShaderShaderDepthCubemap::Resource->unbind();
     m_Framebuffers.point.unbind();
 }
 

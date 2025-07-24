@@ -8,6 +8,25 @@
 
 namespace Physbuzz {
 
+namespace Builtin {
+
+namespace ModelVertexDefault {
+
+struct Format {
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec3 tangent;
+    glm::vec2 texCoords;
+};
+
+inline Resource<VertexAttribute> Resource = {"builtin/model/default"};
+
+bool build();
+
+} // namespace ModelVertexDefault
+
+} // namespace Builtin
+
 constexpr std::size_t TextureTypeMax = AI_TEXTURE_TYPE_MAX;
 enum class TextureType {
     None = aiTextureType_NONE,

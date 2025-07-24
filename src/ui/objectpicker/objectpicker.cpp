@@ -4,7 +4,6 @@
 #include "../../objects/circle.hpp"
 #include "../../objects/quad.hpp"
 #include "../../objects/skybox.hpp"
-#include "../../resources/uniforms/camera.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -45,11 +44,9 @@ ObjectPicker::ObjectPicker() {
     Skybox skybox;
 
     m_Scene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
+        .passthrough = false,
         .resolution = {m_PreviewSize.x, m_PreviewSize.y},
-        .postProcessing = {},
     });
-
-    m_Scene.createSystem<Physbuzz::Clock>();
 
     ObjectBuilder::create(m_Scene, circle);
     ObjectBuilder::create(m_Scene, quad);
@@ -90,7 +87,6 @@ ObjectPicker::ObjectPicker() {
                         },
                     },
                     .depth = {},
-                    .output = {},
                 },
             },
         };
@@ -101,7 +97,7 @@ ObjectPicker::ObjectPicker() {
 }
 
 ObjectPicker::~ObjectPicker() {
-    for (const auto &[pickable] : m_Scene.getComponents<PickableComponent>()) {
+    for (const auto &[_, pickable] : m_Scene.getComponents<PickableComponent>()) {
         pickable.framebuffer.destroy();
     }
 
@@ -119,26 +115,26 @@ void ObjectPicker::draw() {
         return;
     }
 
-    for (const auto &[camera] : m_Scene.getComponents<Physbuzz::CameraComponent>()) {
-        Physbuzz::Resource<Physbuzz::UniformBuffer<UniformCamera>>("camera")->update({
-            .position = camera.getInfo().view.position,
-            ._padding0 = 0.0f,
-            .view = camera.getView(),
-            .projection = camera.getProjection(),
-        });
-    }
+    // for (const auto &[camera] : m_Scene.getComponents<Physbuzz::CameraComponent>()) {
+    //     Physbuzz::Resource<Physbuzz::UniformBuffer<UniformCamera>>("camera")->update({
+    //         .position = camera.getInfo().view.position,
+    //         ._padding0 = 0.0f,
+    //         .view = camera.getView(),
+    //         .projection = camera.getProjection(),
+    //     });
+    // }
 
     // TODO this doesnt work
-    for (const auto &object : m_Scene.getObjects()) {
-        const auto [pickable] = m_Scene.getComponent<PickableComponent>(object);
-
-        // render to framebuffer
-        m_Scene.getSystem<Physbuzz::Renderer>()->target(&pickable.framebuffer);
-        m_Scene.tickSystem<Physbuzz::Renderer>();
-
-        const auto [_, image] = pickable.framebuffer.getInfo().colors[0];
-        ImGui::Image(reinterpret_cast<void *>(static_cast<uintptr_t>(image)), m_PreviewSize);
-    }
+    // for (const auto &object : m_Scene.getObjects()) {
+    //     const auto [pickable] = m_Scene.getComponent<PickableComponent>(object);
+    //
+    //     // render to framebuffer
+    //     // m_Scene.getSystem<Physbuzz::Renderer>()->target(&pickable.framebuffer);
+    //     // m_Scene.tickSystem<Physbuzz::Renderer>();
+    //
+    //     const auto [_, image] = pickable.framebuffer.getInfo().colors[0];
+    //     ImGui::Image(reinterpret_cast<void *>(static_cast<uintptr_t>(image)), m_PreviewSize);
+    // }
 
     ImGui::End();
 }

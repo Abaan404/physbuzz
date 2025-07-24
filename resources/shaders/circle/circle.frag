@@ -1,10 +1,10 @@
 #version 460 core
 
-layout(std140, binding = 2) uniform Window {
+layout(std140, binding = 1) uniform Window {
     ivec2 resolution;
 } window;
 
-layout(std140, binding = 3) uniform Time {
+layout(std140, binding = 2) uniform Time {
     uint time;
     uint timedelta;
 } time;

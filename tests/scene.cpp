@@ -17,7 +17,7 @@ struct TestComponent3 {
 
 class TestSystem1 : public Physbuzz::System<TestComponent1, TestComponent3> {
   public:
-    void tick(Physbuzz::Scene &scene) {
+    void tick() {
         for (const auto &id : m_Objects) {
             tickedIds.insert(id);
         }
@@ -28,7 +28,7 @@ class TestSystem1 : public Physbuzz::System<TestComponent1, TestComponent3> {
 
 class TestSystem2 : public Physbuzz::System<TestComponent2, TestComponent3> {
   public:
-    void tick(Physbuzz::Scene &scene) {
+    void tick() {
         for (const auto &id : m_Objects) {
             tickedIds.insert(id);
         }

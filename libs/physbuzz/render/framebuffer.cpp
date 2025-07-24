@@ -28,30 +28,6 @@ bool Framebuffer::build() {
         return false;
     }
 
-    switch (m_Info.output.type) {
-    case Type::Color:
-        if (m_Info.output.colorIndex >= m_Info.colors.size()) {
-            Logger::ERROR("[Framebuffer] Invalid output color index {}", m_Info.output.colorIndex);
-            return false;
-        }
-
-        if (!m_Info.colors[m_Info.output.colorIndex].isDrawn ||
-            m_Info.colors[m_Info.output.colorIndex].storage == Storage::Renderbuffer ||
-            m_Info.colors[m_Info.output.colorIndex].storage == Storage::None) {
-            Logger::ERROR("[Framebuffer] output color index cannot be drawn {}", m_Info.output.colorIndex);
-            return false;
-        }
-        break;
-
-    case Type::Depth:
-        if (m_Info.depth.storage == Storage::Renderbuffer ||
-            m_Info.depth.storage == Storage::None) {
-            Logger::ERROR("[Framebuffer] output depth cannot be drawn");
-            return false;
-        }
-        break;
-    }
-
     glCreateFramebuffers(1, &m_Framebuffer);
 
     GLuint attachmentIndex = 0;
@@ -265,6 +241,10 @@ void Framebuffer::clear() const {
     }
 }
 
+void Framebuffer::blit(const Framebuffer &framebuffer, Rect from, Rect to, Mask mask) const {
+    glBlitNamedFramebuffer(framebuffer.m_Framebuffer, m_Framebuffer, from.p1.x, from.p1.y, from.p2.x, from.p2.y, to.p1.x, to.p1.y, to.p2.x, to.p2.y, mask, GL_NEAREST);
+}
+
 void Framebuffer::bind() const {
     PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to bind an incomplete framebuffer.");
     glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer);
@@ -275,13 +255,39 @@ void Framebuffer::unbind() const {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-GLint Framebuffer::activate(GLint unit) const {
+GLint Framebuffer::activate(Type type, std::size_t colorIndex, GLint unit) const {
+    PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to activate output from an incomplete framebuffer.");
+
+    switch (type) {
+    case Type::Color:
+        if (colorIndex >= m_Info.colors.size()) {
+            Logger::ERROR("[Framebuffer] Invalid output color index {}", colorIndex);
+            return false;
+        }
+
+        if (!m_Info.colors[colorIndex].isDrawn ||
+            m_Info.colors[colorIndex].storage == Storage::Renderbuffer ||
+            m_Info.colors[colorIndex].storage == Storage::None) {
+            Logger::ERROR("[Framebuffer] output color index cannot be drawn {}", colorIndex);
+            return false;
+        }
+        break;
+
+    case Type::Depth:
+        if (m_Info.depth.storage == Storage::Renderbuffer ||
+            m_Info.depth.storage == Storage::None) {
+            Logger::ERROR("[Framebuffer] output depth cannot be drawn");
+            return false;
+        }
+        break;
+    }
+
     PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to activate output from an incomplete framebuffer.");
     GLuint texture;
 
-    switch (m_Info.output.type) {
+    switch (type) {
     case Type::Color:
-        texture = m_Colors[m_Info.output.colorIndex];
+        texture = m_Colors[colorIndex];
         break;
 
     case Type::Depth:
@@ -294,6 +300,14 @@ GLint Framebuffer::activate(GLint unit) const {
 
 const Framebuffer::Info &Framebuffer::getInfo() const {
     return m_Info;
+}
+
+const std::vector<GLuint> &Framebuffer::getColors() const {
+    return m_Colors;
+}
+
+const GLuint &Framebuffer::getDepth() const {
+    return m_Depth;
 }
 
 } // namespace Physbuzz

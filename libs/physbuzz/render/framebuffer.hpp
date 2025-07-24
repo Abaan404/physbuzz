@@ -15,9 +15,20 @@ class Framebuffer {
         None,
     };
 
+    enum Mask {
+        Color = GL_COLOR_BUFFER_BIT,
+        Depth = GL_DEPTH_BUFFER_BIT,
+        Stencil = GL_STENCIL_BUFFER_BIT,
+    };
+
     enum class Type {
         Color,
         Depth,
+    };
+
+    struct Rect {
+        glm::ivec2 p1;
+        glm::ivec2 p2;
     };
 
     struct ColorAttachment {
@@ -30,13 +41,8 @@ class Framebuffer {
         bool hasStencil = false;
     };
 
-    struct OutputAttachment {
-        Type type = Type::Color;
-        std::size_t colorIndex = 0;
-    };
-
     struct Info {
-        glm::ivec2 resolution = {1280, 720};
+        glm::ivec2 resolution = {1, 1};
         struct {
             glm::vec4 color = {0.0f, 0.0f, 0.0f, 0.0f};
             float depth = 1.0f;
@@ -45,7 +51,6 @@ class Framebuffer {
 
         std::vector<ColorAttachment> colors;
         DepthAttachment depth;
-        OutputAttachment output;
     };
 
     Framebuffer(const Info &info);
@@ -58,10 +63,13 @@ class Framebuffer {
 
     bool resize(const glm::ivec2 &resolution);
     void clear() const;
+    void blit(const Framebuffer &framebuffer, Rect from, Rect to, Mask mask = Mask::Color) const;
 
-    GLint activate(GLint unit = -1) const;
+    GLint activate(Type type, std::size_t colorIndex = 0, GLint unit = -1) const;
 
     const Info &getInfo() const;
+    const std::vector<GLuint> &getColors() const;
+    const GLuint &getDepth() const;
 
   private:
     GLuint m_Framebuffer = 0;

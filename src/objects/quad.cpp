@@ -1,7 +1,6 @@
 #include "quad.hpp"
 
 #include <physbuzz/physics/collision.hpp>
-#include <physbuzz/resources/builtins/vertices.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Quad &info) {
@@ -9,8 +8,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     glm::vec3 min = glm::vec3(-info.quad.width / 2.0f, -info.quad.height / 2.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
 
-    Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Builtin::VertexDefault::Format>{
-        .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
+    Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Builtin::ModelVertexDefault::Format>{
+        .attribute = {Physbuzz::Builtin::ModelVertexDefault::Resource.getIdentifier()},
         .vertices = {
             {{min.x, min.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, // top-left
             {{min.x, max.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // top-right
@@ -35,8 +34,13 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = modelName,
+    };
+
+    Physbuzz::ForwardRenderComponent forward = {
         .pipeline = info.resources.pipeline,
     };
+
+    Physbuzz::DeferredRenderComponent deferred = {};
 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
@@ -66,7 +70,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         },
     };
 
-    scene.setComponent(object, info.quad, info.identifier, info.resources, render, rebuilder);
+    scene.setComponent(object, info.quad, info.identifier, info.resources, render, forward, deferred, rebuilder);
 
     // generate bounding box
     // if (info.hasPhysics) {

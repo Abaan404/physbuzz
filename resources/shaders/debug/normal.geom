@@ -5,7 +5,7 @@
 layout(triangles) in;
 layout(line_strip, max_vertices = 6) out;
 
-layout(std140, binding = 1) uniform Camera {
+layout(std140, binding = 0) uniform Camera {
     vec3 position;
     mat4 view;
     mat4 projection;

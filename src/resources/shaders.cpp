@@ -7,20 +7,9 @@
 #include "shaders/gamma.hpp"
 #include "shaders/quad.hpp"
 #include "shaders/skybox.hpp"
-#include "uniforms/camera.hpp"
-#include "uniforms/time.hpp"
-#include "uniforms/window.hpp"
 #include <physbuzz/render/uniforms.hpp>
 
-static Physbuzz::EventID eventBuild;
-
 void ResourceBuilder::buildShaders() {
-    eventBuild = Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::Events.addCallback<Physbuzz::OnResourceBuild>([](const auto &) {
-        Physbuzz::Resource<Physbuzz::UniformBuffer<UniformCamera>>("camera")->bindPipeline(1);
-        Physbuzz::Resource<Physbuzz::UniformBuffer<UniformWindow>>("window")->bindPipeline(2);
-        Physbuzz::Resource<Physbuzz::UniformBuffer<UniformTime>>("time")->bindPipeline(3);
-    });
-
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert("default", std::move(shaderDefault));
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert("circle", std::move(shaderCircle));
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert("quad", std::move(shaderQuad));
@@ -40,6 +29,4 @@ void ResourceBuilder::destroyShaders() {
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("skybox");
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("debug/normal");
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("gamma");
-
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::Events.eraseCallback<Physbuzz::OnResourceBuild>(eventBuild);
 }

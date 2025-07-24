@@ -1,12 +1,49 @@
 #include "model.hpp"
 
 #include "../debug/logging.hpp"
-#include "../resources/builtins/vertices.hpp"
 #include "texture.hpp"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
 namespace Physbuzz {
+
+namespace Builtin {
+
+bool ModelVertexDefault::build() {
+    if (ResourceRegistry<VertexAttribute>::contains(Resource.getIdentifier())) {
+        return true;
+    }
+
+    return ResourceRegistry<VertexAttribute>::insert(
+        Resource.getIdentifier(),
+        {{
+            .attributes = {
+                {
+                    .type = Types::Float,
+                    .size = sizeof(Format::position) / sizeof(decltype(Format::position)::value_type),
+                    .offset = offsetof(Format, position),
+                },
+                {
+                    .type = Types::Float,
+                    .size = sizeof(Format::normal) / sizeof(decltype(Format::normal)::value_type),
+                    .offset = offsetof(Format, normal),
+                },
+                {
+                    .type = Types::Float,
+                    .size = sizeof(Format::tangent) / sizeof(decltype(Format::tangent)::value_type),
+                    .offset = offsetof(Format, tangent),
+                },
+                {
+                    .type = Types::Float,
+                    .size = sizeof(Format::texCoords) / sizeof(decltype(Format::texCoords)::value_type),
+                    .offset = offsetof(Format, texCoords),
+                },
+            },
+            .size = sizeof(Format),
+        }});
+}
+
+} // namespace Builtin
 
 Model::Model(const Info &info)
     : m_Info(info) {}
@@ -16,7 +53,7 @@ bool Model::build() {
 
     // if supplied a path, load the model from the filesystem
     if (!m_Info.path.empty()) {
-        success &= Builtin::VertexDefault::build();
+        success &= Builtin::ModelVertexDefault::build();
 
         Assimp::Importer importer;
         const aiScene *scene = importer.ReadFile(m_Info.path, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
@@ -57,8 +94,8 @@ bool Model::processNode(const aiNode *ainode, const aiScene *aiscene) {
 }
 
 bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
-    Mesh::Info<Builtin::VertexDefault::Format> mesh = {
-        .attribute = Builtin::VertexDefault::Resource.getIdentifier(),
+    Mesh::Info<Builtin::ModelVertexDefault::Format> mesh = {
+        .attribute = Builtin::ModelVertexDefault::Resource,
         .vertices = {},
         .indices = {},
     };

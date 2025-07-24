@@ -1,7 +1,7 @@
 #include "game.hpp"
 
-#include "objects/builder.hpp"
 #include "collision.hpp"
+#include "objects/builder.hpp"
 #include "objects/circle.hpp"
 #include "objects/cube.hpp"
 #include "objects/lightcube.hpp"
@@ -11,13 +11,14 @@
 #include "objects/quad.hpp"
 #include "objects/skybox.hpp"
 #include "resources/builder.hpp"
-#include "resources/uniforms/camera.hpp"
 #include "resources/uniforms/time.hpp"
 #include "resources/uniforms/window.hpp"
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/framebuffer.hpp>
 #include <physbuzz/render/gl/capabilities.hpp>
+#include <physbuzz/render/renderers/deferred.hpp>
+#include <physbuzz/render/renderers/forward.hpp>
 #include <physbuzz/render/shadow.hpp>
 #include <physbuzz/render/uniforms.hpp>
 #include <physbuzz/window/bindings.hpp>
@@ -33,15 +34,11 @@ void Game::build() {
     ResourceBuilder resources;
     resources.build();
 
-    // notify resources and cameras when the window resizes
+    // notify uniform of window
     window.addCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) {
         Physbuzz::Resource<Physbuzz::UniformBuffer<UniformWindow>>("window")->update({
             .resolution = event.resolution,
         });
-
-        for (const auto &[camera] : scene.getComponents<Physbuzz::CameraComponent>()) {
-            camera.resize(event.resolution);
-        }
 
         scene.getSystem<Physbuzz::Renderer>()->resize(event.resolution);
         scene.getSystem<Physbuzz::Shadow>()->resize(event.resolution);
@@ -51,7 +48,7 @@ void Game::build() {
     window.addCallback<Physbuzz::MousePositionEvent>([&](const Physbuzz::MousePositionEvent &event) {
         static glm::vec2 lastPosition = event.window->getResolution() >> 1;
 
-        for (const auto &[player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
+        for (const auto &[_, player, camera, flashlight] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
             glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * player.sensitivity;
             lastPosition = event.position;
 
@@ -66,12 +63,13 @@ void Game::build() {
             glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.getUp(), camera.getFacing()));
 
             camera.setOrientation(pitch * yaw * info.view.orientation);
+            flashlight.direction = camera.getFacing();
         }
     });
 
     // change prespective camera fov when scrolling
     window.addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
-        for (const auto &[player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
+        for (const auto &[_, player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
             Physbuzz::CameraComponent::Info info = camera.getInfo();
 
             if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || info.projection != Physbuzz::CameraComponent::Projection::Perspective) {
@@ -94,33 +92,16 @@ void Game::build() {
 
 void Game::rebuild() {
     Physbuzz::CameraComponent restoreCamera = {{}};
-    for (const auto &[_, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
+    for (const auto &[_1, _2, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
         restoreCamera = camera;
     }
 
     scene.clear();
 
-    // ticking systems
-    {
-        scene.createSystem<Collision>(&scene, 0.9);
-        scene.createSystem<Physbuzz::Dynamics>(0.0005);
-        scene.createSystem<Physbuzz::Bindings>(&window);
-        scene.createSystem<Physbuzz::Clock>();
-        scene.createSystem<Physbuzz::Shadow>(Physbuzz::Shadow::Info{
-            .resolution = window.getResolution(),
-            .orthoSize = 1000.0f,
-            .depth = 10000.0f,
-        });
-        scene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
-            .resolution = window.getResolution(),
-            .postProcessing = {
-                {"gamma"},
-            },
-        });
-    }
-
     std::random_device rd;
     std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-100, 100);
+
+    Physbuzz::ObjectID playerObject;
 
     // player
     {
@@ -147,7 +128,7 @@ void Game::rebuild() {
             player.camera = {restoreCamera};
         }
 
-        ObjectBuilder::create(scene, player);
+        playerObject = ObjectBuilder::create(scene, player);
     }
 
     // skybox
@@ -294,6 +275,27 @@ void Game::rebuild() {
 
         ObjectBuilder::create(scene, point);
     }
+
+    // ticking systems
+    {
+        scene.createSystem<Collision>(&scene, 0.9);
+        scene.createSystem<Physbuzz::Dynamics>(0.0005);
+        scene.createSystem<Physbuzz::Bindings>(&window);
+        scene.createSystem<Physbuzz::Clock>();
+        scene.createSystem<Physbuzz::Shadow>(Physbuzz::Shadow::Info{
+            .resolution = window.getResolution(),
+            .orthoSize = 1000.0f,
+            .depth = 10000.0f,
+        });
+        scene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
+            .type = Physbuzz::Renderer::Type::Deferred,
+            .camera = playerObject,
+            .resolution = window.getResolution(),
+            .postProcessing = {
+                {"gamma"},
+            },
+        });
+    }
 }
 
 void Game::loop() {
@@ -305,15 +307,6 @@ void Game::loop() {
             .time = clock->getTime(),
             .timedelta = clock->getDelta(),
         });
-
-        for (const auto &[_, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
-            Physbuzz::Resource<Physbuzz::UniformBuffer<UniformCamera>>("camera")->update({
-                .position = camera.getInfo().view.position,
-                ._padding0 = 0.0f,
-                .view = camera.getView(),
-                .projection = camera.getProjection(),
-            });
-        }
 
         // scene.tickSystem<Physbuzz::Dynamics, Collision>();
         scene.tickSystem<Physbuzz::Bindings>();

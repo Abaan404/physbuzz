@@ -56,7 +56,7 @@ class Scene : public EventSubject {
     }
 
     template <typename... T>
-    std::vector<std::tuple<T &...>> getComponents() {
+    std::vector<std::tuple<ObjectID, T &...>> getComponents() {
         return m_ComponentManager.getArray<T...>();
     }
 
@@ -67,10 +67,10 @@ class Scene : public EventSubject {
 
     template <SystemType T, typename... Args>
     inline std::shared_ptr<T> createSystem(Args &&...args) {
-        std::shared_ptr<T> system = m_SystemManager.emplace<T>(std::forward<Args>(args)...);
+        std::shared_ptr<T> system = m_SystemManager.emplace<T>(this, std::forward<Args>(args)...);
 
         for (ObjectID id : getObjects()) {
-            if (system->template containsSignature(m_ComponentManager, id)) {
+            if (system->containsSignature(m_ComponentManager, id)) {
                 system->m_Objects.insert(id);
             }
         }
@@ -103,13 +103,13 @@ class Scene : public EventSubject {
     }
 
     template <SystemType T>
-    inline std::shared_ptr<T> getSystem() {
+    inline std::shared_ptr<T> getSystem() const {
         return m_SystemManager.get<T>();
     }
 
     template <SystemType... T>
     inline void tickSystem() {
-        m_SystemManager.tick<T...>(*this);
+        m_SystemManager.tick<T...>();
     }
 
     void buildSystems();

@@ -1,7 +1,7 @@
 #include "circle.hpp"
 
 #include <physbuzz/physics/collision.hpp>
-#include <physbuzz/resources/builtins/vertices.hpp>
+#include <physbuzz/render/model.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Circle &info) {
@@ -26,9 +26,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     std::vector<glm::vec2> texCoords = generateTexCoords(positions);
     std::vector<NormalTangent> NT = generateNormalTangent(indices, positions, texCoords);
 
-    Physbuzz::Mesh::Info<Physbuzz::Builtin::VertexDefault::Format> mesh = {
-        .attribute = {Physbuzz::Builtin::VertexDefault::Resource.getIdentifier()},
-        .vertices = std::vector<Physbuzz::Builtin::VertexDefault::Format>(positions.size()),
+    Physbuzz::Mesh::Info<Physbuzz::Builtin::ModelVertexDefault::Format> mesh = {
+        .attribute = Physbuzz::Builtin::ModelVertexDefault::Resource,
+        .vertices = {positions.size(), Physbuzz::Builtin::ModelVertexDefault::Format{}},
         .indices = indices,
     };
 
@@ -55,6 +55,13 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = modelName,
+    };
+
+    Physbuzz::DeferredRenderComponent::ForwardPass deferredForward = {
+        .pipeline = info.resources.pipeline,
+    };
+
+    Physbuzz::ForwardRenderComponent forward = {
         .pipeline = info.resources.pipeline,
     };
 
@@ -86,7 +93,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         },
     };
 
-    scene.setComponent(object, info.circle, info.identifier, info.resources, render, rebuilder);
+    scene.setComponent(object, info.circle, info.identifier, info.resources, render, forward, deferredForward, rebuilder);
 
     // // generate physics info
     // if (info.hasPhysics) {

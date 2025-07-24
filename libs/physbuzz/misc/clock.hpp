@@ -12,7 +12,7 @@ class Clock : public System<> {
     Clock();
     ~Clock();
 
-    void tick(const Scene &scene);
+    void tick();
     std::uint32_t getDelta() const;
     std::uint32_t getTime() const;
 

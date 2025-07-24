@@ -34,10 +34,10 @@ class Bindings : public System<BindingComponent> {
   public:
     Bindings(Window *window);
 
-    bool build();
-    bool destroy();
+    bool build() override;
+    bool destroy() override;
 
-    void tick(Scene &scene);
+    void tick();
 
   private:
     Window *m_Window = nullptr;

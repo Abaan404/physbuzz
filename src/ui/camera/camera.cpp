@@ -24,7 +24,7 @@ void Camera::draw() {
 
     Game *game = Physbuzz::Context::get<Game>();
 
-    for (const auto &[player, camera, identifier] : game->scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, IdentifiableComponent>()) {
+    for (const auto &[_, player, camera, identifier] : game->scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, IdentifiableComponent>()) {
         ImGui::SeparatorText(identifier.name.c_str());
 
         ImGui::SeparatorText("Projection");

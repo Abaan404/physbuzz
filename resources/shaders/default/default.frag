@@ -8,7 +8,7 @@
 #define MAX_POINT_LIGHTS 100
 #define MAX_DIRECTIONAL_LIGHTS 100
 
-layout(std140, binding = 1) uniform Camera {
+layout(std140, binding = 0) uniform Camera {
     vec3 position;
     mat4 view;
     mat4 projection;

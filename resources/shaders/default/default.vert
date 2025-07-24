@@ -9,7 +9,7 @@ layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec3 aTangent;
 layout(location = 3) in vec2 aTexCoord;
 
-layout(std140, binding = 1) uniform Camera {
+layout(std140, binding = 0) uniform Camera {
     vec3 position;
     mat4 view;
     mat4 projection;

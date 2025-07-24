@@ -24,7 +24,7 @@ inline Physbuzz::ShaderPipeline shaderDefault = {{
         pipeline->setUniform<unsigned int>("u_DirectionalLightLength", directionalLights.size());
 
         for (std::size_t i = 0; i < directionalLights.size(); ++i) {
-            const auto &[directional] = directionalLights[i];
+            const auto &[_, directional] = directionalLights[i];
 
             pipeline->setUniform(std::format("u_DirectionalLight[{}].direction", i), directional.direction);
             pipeline->setUniform(std::format("u_DirectionalLight[{}].ambient", i), directional.ambient);
@@ -38,7 +38,7 @@ inline Physbuzz::ShaderPipeline shaderDefault = {{
         pipeline->setUniform<unsigned int>("u_PointLightLength", pointLights.size());
 
         for (std::size_t i = 0; i < pointLights.size(); ++i) {
-            const auto &[pointLight] = pointLights[i];
+            const auto &[_, pointLight] = pointLights[i];
 
             pipeline->setUniform(std::format("u_PointLight[{}].position", i), pointLight.position);
             pipeline->setUniform(std::format("u_PointLight[{}].ambient", i), pointLight.ambient);
@@ -49,7 +49,7 @@ inline Physbuzz::ShaderPipeline shaderDefault = {{
             pipeline->setUniform(std::format("u_PointLight[{}].quadratic", i), pointLight.quadratic);
         }
 
-        for (const auto &[_, camera, spotLight] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
+        for (const auto &[_object, _player, camera, spotLight] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
             // Spotlight Lighting
             pipeline->setUniform("u_SpotLight.position", camera.getInfo().view.position);
             pipeline->setUniform("u_SpotLight.direction", camera.getFacing());
@@ -84,8 +84,8 @@ inline Physbuzz::ShaderPipeline shaderDefault = {{
         // shadow map
         const Physbuzz::Shadow::Framebuffers &shadowMaps = shadow->getFramebuffers();
 
-        pipeline->setUniform("u_ShadowMapDirectional", shadowMaps.directional.activate());
-        pipeline->setUniform("u_ShadowMapPoint", shadowMaps.point.activate());
+        pipeline->setUniform("u_ShadowMapDirectional", shadowMaps.directional.activate(Physbuzz::Framebuffer::Type::Depth));
+        pipeline->setUniform("u_ShadowMapPoint", shadowMaps.point.activate(Physbuzz::Framebuffer::Type::Depth));
         pipeline->setUniform("u_FarPlane", shadow->getInfo().depth);
 
         for (const auto &[mesh, meta] : render.model->getMeshs()) {
