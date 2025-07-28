@@ -13,6 +13,7 @@
 #include "resources/builder.hpp"
 #include "resources/uniforms/time.hpp"
 #include "resources/uniforms/window.hpp"
+#include "ui/handler.hpp"
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/framebuffer.hpp>
@@ -29,7 +30,6 @@ void Game::build() {
     Physbuzz::Logger::build();
 
     window.build({1280, 720});
-    interface.build(window);
 
     ResourceBuilder resources;
     resources.build();
@@ -52,7 +52,7 @@ void Game::build() {
             glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * player.sensitivity;
             lastPosition = event.position;
 
-            if (player.captureMouse || interface.draw) {
+            if (player.captureMouse || scene.getSystem<InterfaceManager>()->draw) {
                 return;
             }
 
@@ -295,6 +295,9 @@ void Game::rebuild() {
                 {"gamma"},
             },
         });
+        scene.createSystem<InterfaceManager>(InterfaceManager::Info{
+            .window = &window,
+        });
     }
 }
 
@@ -312,8 +315,7 @@ void Game::loop() {
         scene.tickSystem<Physbuzz::Bindings>();
         scene.tickSystem<Physbuzz::Clock>();
         scene.tickSystem<Physbuzz::Shadow, Physbuzz::Renderer>();
-
-        interface.render();
+        scene.tickSystem<InterfaceManager>();
         window.flip();
     }
 }
@@ -326,7 +328,6 @@ void Game::destroy() {
 
     m_IsRunning = false;
 
-    interface.destroy();
     scene.clear();
     window.destroy();
 }

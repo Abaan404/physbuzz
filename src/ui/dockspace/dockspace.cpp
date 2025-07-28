@@ -2,9 +2,13 @@
 
 #include <imgui.h>
 #include <imgui_internal.h> // for DockBuilder API
-#include <mutex>
 
-static std::once_flag onceFlag;
+Dockspace::Dockspace(Physbuzz::Scene *scene)
+    : IUserInterface(scene) {}
+
+Dockspace::~Dockspace() {
+    m_Docked = false;
+}
 
 void Dockspace::draw() {
     // setup dockspace
@@ -30,7 +34,7 @@ void Dockspace::draw() {
     ImGuiID dockspace = viewport->ID;
     ImGui::DockSpace(dockspace, ImVec2(0.0f, 0.0f), dockspaceFlags | ImGuiDockNodeFlags_PassthruCentralNode);
 
-    std::call_once(onceFlag, [&]() {
+    if (!m_Docked) {
         // DockBuilder is experimental
         // see: https://github.com/ocornut/imgui/wiki/Docking
         ImGui::DockBuilderAddNode(dockspace, dockspaceFlags | ImGuiDockNodeFlags_DockSpace);
@@ -65,9 +69,8 @@ void Dockspace::draw() {
         }
 
         ImGui::DockBuilderFinish(dockspace);
-
-        return 0;
-    });
+        m_Docked = true;
+    }
 
     ImGui::End();
 }

@@ -8,12 +8,12 @@
 
 class ObjectPicker : public IUserInterface {
   public:
-    ObjectPicker();
+    ObjectPicker(Physbuzz::Scene *scene);
     ~ObjectPicker();
 
     void draw() override;
 
   private:
-    Physbuzz::Scene m_Scene;
+    Physbuzz::Scene m_PickerScene;
     ImVec2 m_PreviewSize = {120, 120};
 };

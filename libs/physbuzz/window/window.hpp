@@ -11,6 +11,8 @@ class Window : public EventSubject {
     Window();
     ~Window();
 
+    operator GLFWwindow *() const;
+
     void build(const glm::ivec2 &resolution);
     void destroy();
 
@@ -27,8 +29,6 @@ class Window : public EventSubject {
     bool shouldClose() const;
 
     void setCursorCapture(bool capture) const;
-
-    GLFWwindow *getGLFWwindow() const;
 
     const glm::dvec2 getCursorPos() const;
     void setCursorPos(const glm::ivec2 &position);

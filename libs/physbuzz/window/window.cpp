@@ -4,16 +4,18 @@
 #include "../debug/logging.hpp"
 #include "../events/window.hpp"
 #include "../render/gl/capabilities.hpp"
-#include <GLFW/glfw3.h>
-#include <string>
 
 namespace Physbuzz {
+
+static inline std::unordered_map<GLFWwindow *, Window *> sWindowMap = {};
 
 Window::Window() {}
 
 Window::~Window() {}
 
-static inline std::unordered_map<GLFWwindow *, Window *> sWindowMap = {};
+Window::operator GLFWwindow *() const {
+    return m_Window;
+}
 
 void Window::build(const glm::ivec2 &resolution) {
     // error callback
@@ -138,10 +140,6 @@ void Window::maximize() const {
 
 void Window::setCursorPos(const glm::ivec2 &position) {
     glfwSetCursorPos(m_Window, position.x, position.y);
-}
-
-GLFWwindow *Window::getGLFWwindow() const {
-    return m_Window;
 }
 
 const glm::ivec2 Window::getResolution() const {

@@ -7,7 +7,6 @@
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
-#include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/camera.hpp>
 #include <physbuzz/render/renderer.hpp>
 #include <physbuzz/render/uniforms.hpp>
@@ -17,7 +16,8 @@ struct PickableComponent {
     Physbuzz::Framebuffer framebuffer;
 };
 
-ObjectPicker::ObjectPicker() {
+ObjectPicker::ObjectPicker(Physbuzz::Scene *scene)
+    : IUserInterface(scene) {
     Quad quad = {
         .body = {},
         .quad = {
@@ -43,13 +43,13 @@ ObjectPicker::ObjectPicker() {
 
     Skybox skybox;
 
-    m_Scene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
+    m_PickerScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
         .passthrough = false,
         .resolution = {m_PreviewSize.x, m_PreviewSize.y},
     });
 
-    ObjectBuilder::create(m_Scene, circle);
-    ObjectBuilder::create(m_Scene, quad);
+    ObjectBuilder::create(m_PickerScene, circle);
+    ObjectBuilder::create(m_PickerScene, quad);
 
     Physbuzz::CameraComponent camera = {{
         .projection = Physbuzz::CameraComponent::Projection::Orthographic,
@@ -70,10 +70,10 @@ ObjectPicker::ObjectPicker() {
         .resolution = {m_PreviewSize.x, m_PreviewSize.y},
     }};
 
-    Physbuzz::ObjectID object = m_Scene.createObject();
-    m_Scene.setComponent(object, camera);
+    Physbuzz::ObjectID object = m_PickerScene.createObject();
+    m_PickerScene.setComponent(object, camera);
 
-    for (const auto &object : m_Scene.getObjects()) {
+    for (const auto &object : m_PickerScene.getObjects()) {
         PickableComponent pickable = {
             .selected = false,
             .framebuffer = {
@@ -92,16 +92,16 @@ ObjectPicker::ObjectPicker() {
         };
 
         pickable.framebuffer.build();
-        m_Scene.setComponent(object, pickable);
+        m_PickerScene.setComponent(object, pickable);
     }
 }
 
 ObjectPicker::~ObjectPicker() {
-    for (const auto &[_, pickable] : m_Scene.getComponents<PickableComponent>()) {
+    for (const auto &[_, pickable] : m_PickerScene.getComponents<PickableComponent>()) {
         pickable.framebuffer.destroy();
     }
 
-    m_Scene.clear();
+    m_PickerScene.clear();
 }
 
 void ObjectPicker::draw() {

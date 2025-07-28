@@ -4,6 +4,8 @@
 
 class Camera : public IUserInterface {
   public:
+    Camera(Physbuzz::Scene *scene);
+
     void draw() override;
 };
 

@@ -12,11 +12,10 @@
 #include "objectpicker/objectpicker.hpp"
 #include "overlay/overlay.hpp"
 
-InterfaceManager::InterfaceManager() {}
+InterfaceManager::InterfaceManager(const Info &info)
+    : m_Info(info) {}
 
-InterfaceManager::~InterfaceManager() {}
-
-void InterfaceManager::build(const Physbuzz::Window &window) {
+bool InterfaceManager::build() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
@@ -28,31 +27,35 @@ void InterfaceManager::build(const Physbuzz::Window &window) {
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows (buggy on wayland)
     io.IniFilename = nullptr; // disable imgui.ini
 
-    ImGui_ImplGlfw_InitForOpenGL(window.getGLFWwindow(), true);
+    ImGui_ImplGlfw_InitForOpenGL(static_cast<GLFWwindow *>(*m_Info.window), true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    m_Interfaces["Demo"] = std::make_shared<Demo>();
-    // m_Interfaces["ShapePicker"] = std::make_unique<ObjectPicker>();
-    m_Interfaces["ObjectList"] = std::make_unique<ObjectList>();
-    m_Interfaces["Camera"] = std::make_unique<Camera>();
-    m_Interfaces["Dockspace"] = std::make_unique<Dockspace>();
+    m_Interfaces["Demo"] = std::make_shared<Demo>(m_Scene);
+    // m_Interfaces["ShapePicker"] = std::make_unique<ObjectPicker>(m_Scene);
+    m_Interfaces["ObjectList"] = std::make_unique<ObjectList>(m_Scene);
+    m_Interfaces["Camera"] = std::make_unique<Camera>(m_Scene);
+    m_Interfaces["Dockspace"] = std::make_unique<Dockspace>(m_Scene);
 
     m_Interfaces["Demo"]->show = false;
+
+    return true;
 }
 
-void InterfaceManager::destroy() {
+bool InterfaceManager::destroy() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+    return true;
 }
 
-void InterfaceManager::render() {
+void InterfaceManager::tick() {
     // draw a new frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    static FrametimeOverlay frametimeOverlay;
+    static FrametimeOverlay frametimeOverlay = {m_Scene};
     frametimeOverlay.draw();
 
     if (draw) {

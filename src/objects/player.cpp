@@ -1,6 +1,7 @@
 #include "player.hpp"
 
 #include "../game.hpp"
+#include "../ui/handler.hpp"
 #include "circle.hpp"
 #include "cube.hpp"
 #include <imgui.h>
@@ -25,8 +26,10 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                 .callback = [](const Physbuzz::KeyEvent &event) {
                     Game *game = Physbuzz::Context::get<Game>();
 
-                    game->interface.draw ^= true;
-                    if (game->interface.draw) {
+                    std::shared_ptr<InterfaceManager> interface = game->scene.getSystem<InterfaceManager>();
+
+                    interface->draw ^= true;
+                    if (interface->draw) {
                         event.window->setCursorCapture(false);
                     }
                 },

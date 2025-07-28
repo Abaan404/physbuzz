@@ -5,17 +5,22 @@
 #include <physbuzz/window/window.hpp>
 #include <unordered_map>
 
-class InterfaceManager {
+class InterfaceManager : public Physbuzz::System<> {
   public:
-    InterfaceManager();
-    ~InterfaceManager();
+    struct Info {
+        Physbuzz::Window *window;
+    };
 
-    void build(const Physbuzz::Window &window);
-    void destroy();
-    void render();
+    InterfaceManager(const Info &info);
+
+    bool build() override;
+    bool destroy() override;
+    void tick();
 
     bool draw = false;
 
   private:
+    Info m_Info;
+
     std::unordered_map<std::string, std::shared_ptr<IUserInterface>> m_Interfaces;
 };
