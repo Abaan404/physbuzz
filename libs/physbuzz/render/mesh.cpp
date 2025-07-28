@@ -77,8 +77,8 @@ bool Mesh::destroy() {
 void Mesh::draw() const {
     const VertexAttribute *attribute = m_Attribute.get();
 
-    glNamedBufferData(attribute->VBO, m_Vertices.size(), m_Vertices.data(), GL_STREAM_DRAW);
-    glNamedBufferData(attribute->EBO, m_Indices.size() * sizeof(Index), m_Indices.data(), GL_STREAM_DRAW);
+    glNamedBufferData(attribute->VBO, m_Vertices.size(), m_Vertices.data(), GL_STATIC_DRAW);
+    glNamedBufferData(attribute->EBO, m_Indices.size() * sizeof(Index), m_Indices.data(), GL_STATIC_DRAW);
     glBindVertexArray(attribute->VAO);
 
     glDrawElements(GL_TRIANGLES, m_Indices.size(), GL_UNSIGNED_INT, 0);
