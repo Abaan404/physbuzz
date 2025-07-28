@@ -63,7 +63,7 @@ void Bindings::tick() {
 
         for (const auto &input : input.keyboardCallbacks) {
             if (m_HeldKeys.contains(input.key)) {
-                input.callback(m_HeldKeys[input.key]);
+                input.callback(m_HeldKeys[input.key], *m_Scene);
 
                 if (input.type == CallbackType::OneShot) {
                     m_HeldKeys.erase(input.key);
@@ -73,7 +73,7 @@ void Bindings::tick() {
 
         for (const auto &input : input.mouseCallbacks) {
             if (m_HeldMouseButtons.contains(input.button)) {
-                input.callback(m_HeldMouseButtons[input.button]);
+                input.callback(m_HeldMouseButtons[input.button], *m_Scene);
 
                 if (input.type == CallbackType::OneShot) {
                     m_HeldMouseButtons.erase(input.button);

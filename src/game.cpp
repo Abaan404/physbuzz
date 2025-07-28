@@ -48,38 +48,40 @@ void Game::build() {
     window.addCallback<Physbuzz::MousePositionEvent>([&](const Physbuzz::MousePositionEvent &event) {
         static glm::vec2 lastPosition = event.window->getResolution() >> 1;
 
-        for (const auto &[_, player, camera, flashlight] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
-            glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * player.sensitivity;
-            lastPosition = event.position;
+        std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
+        const auto [player, camera, flashlight] = scene.getComponent<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
 
-            if (player.captureMouse || scene.getSystem<InterfaceManager>()->draw) {
-                return;
-            }
+        glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * player.sensitivity;
+        lastPosition = event.position;
 
-            window.setCursorCapture(true);
-
-            const Physbuzz::CameraComponent::Info &info = camera.getInfo();
-            glm::quat pitch = glm::angleAxis(glm::radians(offset.x), glm::vec3(0.0f, -1.0f, 0.0f));
-            glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.getUp(), camera.getFacing()));
-
-            camera.setOrientation(pitch * yaw * info.view.orientation);
-            flashlight.direction = camera.getFacing();
+        if (player.captureMouse || scene.getSystem<InterfaceManager>()->draw) {
+            return;
         }
+
+        window.setCursorCapture(true);
+
+        const Physbuzz::CameraComponent::Info &info = camera.getInfo();
+        glm::quat pitch = glm::angleAxis(glm::radians(offset.x), glm::vec3(0.0f, -1.0f, 0.0f));
+        glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.getUp(), camera.getFacing()));
+
+        camera.setOrientation(pitch * yaw * info.view.orientation);
+        flashlight.direction = camera.getFacing();
     });
 
     // change prespective camera fov when scrolling
     window.addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
-        for (const auto &[_, player, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
-            Physbuzz::CameraComponent::Info info = camera.getInfo();
+        std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
+        const auto [player, camera] = scene.getComponent<PlayerComponent, Physbuzz::CameraComponent>(renderer->getInfo().camera);
 
-            if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || info.projection != Physbuzz::CameraComponent::Projection::Perspective) {
-                return;
-            }
+        Physbuzz::CameraComponent::Info info = camera.getInfo();
 
-            info.perspective.fovy = glm::clamp(info.perspective.fovy + glm::radians<float>(event.offset.y), glm::radians(30.0f), glm::radians(135.0f));
-
-            camera.update(info);
+        if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || info.projection != Physbuzz::CameraComponent::Projection::Perspective) {
+            return;
         }
+
+        info.perspective.fovy = glm::clamp(info.perspective.fovy + glm::radians<float>(event.offset.y), glm::radians(30.0f), glm::radians(135.0f));
+
+        camera.update(info);
     });
 
     // enable backface culling and depth testing

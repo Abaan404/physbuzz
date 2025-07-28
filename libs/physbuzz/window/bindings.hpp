@@ -17,13 +17,13 @@ struct BindingComponent {
     struct Keyboard {
         Key key;
         CallbackType type = CallbackType::Continous;
-        std::function<void(const KeyEvent &)> callback;
+        std::function<void(const KeyEvent &, Scene &)> callback;
     };
 
     struct MouseButton {
         Button button;
         CallbackType type = CallbackType::Continous;
-        std::function<void(const MouseButtonEvent &)> callback;
+        std::function<void(const MouseButtonEvent &, Scene &)> callback;
     };
 
     std::vector<Keyboard> keyboardCallbacks;

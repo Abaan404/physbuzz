@@ -23,10 +23,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             {
                 .key = Physbuzz::Key::F3,
                 .type = Physbuzz::CallbackType::OneShot,
-                .callback = [](const Physbuzz::KeyEvent &event) {
-                    Game *game = Physbuzz::Context::get<Game>();
-
-                    std::shared_ptr<InterfaceManager> interface = game->scene.getSystem<InterfaceManager>();
+                .callback = [](const Physbuzz::KeyEvent &event, Physbuzz::Scene &scene) {
+                    std::shared_ptr<InterfaceManager> interface = scene.getSystem<InterfaceManager>();
 
                     interface->draw ^= true;
                     if (interface->draw) {
@@ -37,12 +35,11 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             {
                 .key = Physbuzz::Key::Escape,
                 .type = Physbuzz::CallbackType::OneShot,
-                .callback = [](const Physbuzz::KeyEvent &event) {
-                    Game *game = Physbuzz::Context::get<Game>();
+                .callback = [](const Physbuzz::KeyEvent &event, Physbuzz::Scene &scene) {
+                    std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
 
-                    for (const auto &[_object, player, _camera] : game->scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
-                        player.captureMouse ^= true;
-                    }
+                    const auto [player] = scene.getComponent<PlayerComponent>(renderer->getInfo().camera);
+                    player.captureMouse ^= true;
 
                     event.window->setCursorCapture(false);
                 },
@@ -50,7 +47,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             {
                 .key = Physbuzz::Key::C,
                 .type = Physbuzz::CallbackType::OneShot,
-                .callback = [](const Physbuzz::KeyEvent &) {
+                .callback = [](const Physbuzz::KeyEvent &, Physbuzz::Scene &) {
                     Game *game = Physbuzz::Context::get<Game>();
                     game->rebuild();
                 },
@@ -58,73 +55,67 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             {
                 .key = Physbuzz::Key::W,
                 .type = Physbuzz::CallbackType::Continous,
-                .callback = [](const Physbuzz::KeyEvent &) {
-                    Game *game = Physbuzz::Context::get<Game>();
+                .callback = [](const Physbuzz::KeyEvent &, Physbuzz::Scene &scene) {
+                    std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
+                    const auto [player, camera, flashlight] = scene.getComponent<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
 
-                    for (const auto &[_, player, camera, flashlight] : game->scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
-                        camera.setPosition(camera.getInfo().view.position + camera.getFacing() * player.speed);
-                        flashlight.position = camera.getInfo().view.position;
-                    }
+                    camera.setPosition(camera.getInfo().view.position + camera.getFacing() * player.speed);
+                    flashlight.position = camera.getInfo().view.position;
                 },
             },
             {
                 .key = Physbuzz::Key::A,
                 .type = Physbuzz::CallbackType::Continous,
-                .callback = [](const Physbuzz::KeyEvent &) {
-                    Game *game = Physbuzz::Context::get<Game>();
+                .callback = [](const Physbuzz::KeyEvent &, Physbuzz::Scene &scene) {
+                    std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
+                    const auto [player, camera, flashlight] = scene.getComponent<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
 
-                    for (const auto &[_, player, camera, flashlight] : game->scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
-                        camera.setPosition(camera.getInfo().view.position - camera.getRight() * player.speed);
-                        flashlight.position = camera.getInfo().view.position;
-                    }
+                    camera.setPosition(camera.getInfo().view.position - camera.getRight() * player.speed);
+                    flashlight.position = camera.getInfo().view.position;
                 },
             },
             {
                 .key = Physbuzz::Key::S,
                 .type = Physbuzz::CallbackType::Continous,
-                .callback = [](const Physbuzz::KeyEvent &) {
-                    Game *game = Physbuzz::Context::get<Game>();
+                .callback = [](const Physbuzz::KeyEvent &, Physbuzz::Scene &scene) {
+                    std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
+                    const auto [player, camera, flashlight] = scene.getComponent<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
 
-                    for (const auto &[_, player, camera, flashlight] : game->scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
-                        camera.setPosition(camera.getInfo().view.position - camera.getFacing() * player.speed);
-                        flashlight.position = camera.getInfo().view.position;
-                    }
+                    camera.setPosition(camera.getInfo().view.position - camera.getFacing() * player.speed);
+                    flashlight.position = camera.getInfo().view.position;
                 },
             },
             {
                 .key = Physbuzz::Key::D,
                 .type = Physbuzz::CallbackType::Continous,
-                .callback = [](const Physbuzz::KeyEvent &) {
-                    Game *game = Physbuzz::Context::get<Game>();
+                .callback = [](const Physbuzz::KeyEvent &, Physbuzz::Scene &scene) {
+                    std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
+                    const auto [player, camera, flashlight] = scene.getComponent<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
 
-                    for (const auto &[_, player, camera, flashlight] : game->scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
-                        camera.setPosition(camera.getInfo().view.position + camera.getRight() * player.speed);
-                        flashlight.position = camera.getInfo().view.position;
-                    }
+                    camera.setPosition(camera.getInfo().view.position + camera.getRight() * player.speed);
+                    flashlight.position = camera.getInfo().view.position;
                 },
             },
             {
                 .key = Physbuzz::Key::LeftShift,
                 .type = Physbuzz::CallbackType::Continous,
-                .callback = [](const Physbuzz::KeyEvent &) {
-                    Game *game = Physbuzz::Context::get<Game>();
+                .callback = [](const Physbuzz::KeyEvent &, Physbuzz::Scene &scene) {
+                    std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
+                    const auto [player, camera, flashlight] = scene.getComponent<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
 
-                    for (const auto &[_, player, camera, flashlight] : game->scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
-                        camera.setPosition(camera.getInfo().view.position - camera.getUp() * player.speed);
-                        flashlight.position = camera.getInfo().view.position;
-                    }
+                    camera.setPosition(camera.getInfo().view.position - camera.getUp() * player.speed);
+                    flashlight.position = camera.getInfo().view.position;
                 },
             },
             {
                 .key = Physbuzz::Key::Space,
                 .type = Physbuzz::CallbackType::Continous,
-                .callback = [](const Physbuzz::KeyEvent &) {
-                    Game *game = Physbuzz::Context::get<Game>();
+                .callback = [](const Physbuzz::KeyEvent &, Physbuzz::Scene &scene) {
+                    std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
+                    const auto [player, camera, flashlight] = scene.getComponent<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
 
-                    for (const auto &[_, player, camera, flashlight] : game->scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
-                        camera.setPosition(camera.getInfo().view.position + camera.getUp() * player.speed);
-                        flashlight.position = camera.getInfo().view.position;
-                    }
+                    camera.setPosition(camera.getInfo().view.position + camera.getUp() * player.speed);
+                    flashlight.position = camera.getInfo().view.position;
                 },
             },
         },
@@ -132,7 +123,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             {
                 .button = Physbuzz::Button::Left,
                 .type = Physbuzz::CallbackType::OneShot,
-                .callback = [](const Physbuzz::MouseButtonEvent &) {
+                .callback = [](const Physbuzz::MouseButtonEvent &, Physbuzz::Scene &scene) {
                     if (ImGui::GetIO().WantCaptureMouse) {
                         return;
                     }
@@ -151,14 +142,13 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                         .hasPhysics = false,
                     };
 
-                    Game *game = Physbuzz::Context::get<Game>();
-                    ObjectBuilder::create(game->scene, info);
+                    ObjectBuilder::create(scene, info);
                 },
             },
             {
                 .button = Physbuzz::Button::Right,
                 .type = Physbuzz::CallbackType::OneShot,
-                .callback = [](const Physbuzz::MouseButtonEvent &event) {
+                .callback = [](const Physbuzz::MouseButtonEvent &event, Physbuzz::Scene &scene) {
                     if (ImGui::GetIO().WantCaptureMouse) {
                         return;
                     }
@@ -182,8 +172,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                         .hasPhysics = true,
                     };
 
-                    Game *game = Physbuzz::Context::get<Game>();
-                    ObjectBuilder::create(game->scene, info);
+                    ObjectBuilder::create(scene, info);
                 },
             },
         },

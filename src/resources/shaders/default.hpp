@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../../objects/player.hpp"
+#include <physbuzz/ecs/scene.hpp>
+#include <physbuzz/render/camera.hpp>
 #include <physbuzz/render/gl/units.hpp>
 #include <physbuzz/render/lighting.hpp>
 #include <physbuzz/render/renderer.hpp>
@@ -49,22 +50,23 @@ inline Physbuzz::ShaderPipeline shaderDefault = {{
             pipeline->setUniform(std::format("u_PointLight[{}].quadratic", i), pointLight.quadratic);
         }
 
-        for (const auto &[_object, _player, camera, spotLight] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>()) {
-            // Spotlight Lighting
-            pipeline->setUniform("u_SpotLight.position", camera.getInfo().view.position);
-            pipeline->setUniform("u_SpotLight.direction", camera.getFacing());
+        std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
+        const auto [camera, spotLight] = scene.getComponent<Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
 
-            pipeline->setUniform("u_SpotLight.ambient", spotLight.ambient);
-            pipeline->setUniform("u_SpotLight.diffuse", spotLight.diffuse);
-            pipeline->setUniform("u_SpotLight.specular", spotLight.specular);
+        // Spotlight Lighting
+        pipeline->setUniform("u_SpotLight.position", camera.getInfo().view.position);
+        pipeline->setUniform("u_SpotLight.direction", camera.getFacing());
 
-            pipeline->setUniform("u_SpotLight.constant", spotLight.constant);
-            pipeline->setUniform("u_SpotLight.linear", spotLight.linear);
-            pipeline->setUniform("u_SpotLight.quadratic", spotLight.quadratic);
+        pipeline->setUniform("u_SpotLight.ambient", spotLight.ambient);
+        pipeline->setUniform("u_SpotLight.diffuse", spotLight.diffuse);
+        pipeline->setUniform("u_SpotLight.specular", spotLight.specular);
 
-            pipeline->setUniform("u_SpotLight.cutOff", glm::cos(spotLight.cutOff));
-            pipeline->setUniform("u_SpotLight.outerCutOff", glm::cos(spotLight.outerCutOff));
-        }
+        pipeline->setUniform("u_SpotLight.constant", spotLight.constant);
+        pipeline->setUniform("u_SpotLight.linear", spotLight.linear);
+        pipeline->setUniform("u_SpotLight.quadratic", spotLight.quadratic);
+
+        pipeline->setUniform("u_SpotLight.cutOff", glm::cos(spotLight.cutOff));
+        pipeline->setUniform("u_SpotLight.outerCutOff", glm::cos(spotLight.outerCutOff));
 
         std::unordered_map<Physbuzz::TextureType, std::uint32_t> textureLengths;
 
