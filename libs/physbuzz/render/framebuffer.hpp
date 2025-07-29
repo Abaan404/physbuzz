@@ -68,8 +68,7 @@ class Framebuffer {
     GLint activate(Type type, std::size_t colorIndex = 0, GLint unit = -1) const;
 
     const Info &getInfo() const;
-    const std::vector<GLuint> &getColors() const;
-    const GLuint &getDepth() const;
+    GLuint getImGuiTextureHandle(Type type, std::size_t colorIndex = 0) const;
 
   private:
     GLuint m_Framebuffer = 0;

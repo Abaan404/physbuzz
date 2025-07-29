@@ -39,6 +39,11 @@ struct DeferredRenderComponent {
 class DeferredRenderer : public IRenderer,
                          public System<RenderComponent, DeferredRenderComponent> {
   public:
+    struct Framebuffers {
+        Framebuffer gBuffer;
+        Framebuffer output;
+    };
+
     struct Info {
         std::uint32_t gBufferCount = 3;
 
@@ -58,14 +63,13 @@ class DeferredRenderer : public IRenderer,
     void tick() const;
     void render(ObjectID id) const;
 
-    const Framebuffer &getFramebuffer() const override;
+    const Framebuffers &getFramebuffers() const;
+    const Framebuffer &getOutput() const override;
     const Info &getInfo() const;
 
   private:
+    Framebuffers m_Framebuffers;
     Info m_Info;
-
-    Framebuffer m_GBuffer;
-    Framebuffer m_Framebuffer;
 };
 
 } // namespace Physbuzz

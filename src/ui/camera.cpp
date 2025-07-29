@@ -1,6 +1,6 @@
 #include "camera.hpp"
 
-#include "../../objects/player.hpp"
+#include "../objects/player.hpp"
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <physbuzz/render/renderer.hpp>
@@ -12,10 +12,6 @@ Camera::Camera(Physbuzz::Scene *scene)
     : IUserInterface(scene) {}
 
 void Camera::draw() {
-    const ImGuiViewport *Viewport = ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(ImVec2(Viewport->WorkPos.x, Viewport->WorkPos.y), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(128, 256), ImGuiCond_FirstUseEver);
-
     ImGuiWindowFlags windowFlags = 0;
     if (!ImGui::Begin("Camera", &show, windowFlags)) {
         ImGui::End();
@@ -37,7 +33,7 @@ void Camera::draw() {
     if (ImGui::Combo("projection", &currentProjection, projections, IM_ARRAYSIZE(projections))) {
         glm::vec2 resolution = renderer->getInfo().resolution;
         switch (currentProjection) {
-        case 0:
+        case 0: // Perspective
             info.projection = Physbuzz::CameraComponent::Projection::Perspective;
             info.perspective = {
                 .fovy = glm::radians(45.0f),

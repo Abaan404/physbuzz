@@ -5,12 +5,13 @@
 #include <imgui_impl_opengl3.h>
 #include <memory>
 
-#include "camera/camera.hpp"
-#include "demo/demo.hpp"
-#include "dockspace/dockspace.hpp"
-#include "objectlist/objectlist.hpp"
-#include "objectpicker/objectpicker.hpp"
-#include "overlay/overlay.hpp"
+#include "camera.hpp"
+#include "demo.hpp"
+#include "dockspace.hpp"
+#include "objectlist.hpp"
+#include "objectpicker.hpp"
+#include "overlay.hpp"
+#include "renderer.hpp"
 
 InterfaceManager::InterfaceManager(const Info &info)
     : m_Info(info) {}
@@ -34,6 +35,7 @@ bool InterfaceManager::build() {
     // m_Interfaces["ShapePicker"] = std::make_unique<ObjectPicker>(m_Scene);
     m_Interfaces["ObjectList"] = std::make_unique<ObjectList>(m_Scene);
     m_Interfaces["Camera"] = std::make_unique<Camera>(m_Scene);
+    m_Interfaces["Renderer"] = std::make_unique<Renderer>(m_Scene);
     m_Interfaces["Dockspace"] = std::make_unique<Dockspace>(m_Scene);
 
     m_Interfaces["Demo"]->show = false;

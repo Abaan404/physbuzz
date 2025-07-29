@@ -7,7 +7,7 @@ namespace Physbuzz {
 
 ForwardRenderer::ForwardRenderer(const Info &info, const glm::ivec2 &resolution)
     : m_Info(info),
-      m_Framebuffer({
+      m_Output({
           .resolution = resolution,
           .colors = {
               {
@@ -22,22 +22,22 @@ ForwardRenderer::ForwardRenderer(const Info &info, const glm::ivec2 &resolution)
       }) {}
 
 bool ForwardRenderer::build() {
-    return m_Framebuffer.build();
+    return m_Output.build();
 }
 
 bool ForwardRenderer::destroy() {
-    return m_Framebuffer.destroy();
+    return m_Output.destroy();
 }
 
 void ForwardRenderer::tick() const {
-    m_Framebuffer.bind();
-    m_Framebuffer.clear();
+    m_Output.bind();
+    m_Output.clear();
 
     for (const auto &object : m_Objects) {
         render(object);
     }
 
-    m_Framebuffer.unbind();
+    m_Output.unbind();
 }
 
 void ForwardRenderer::render(ObjectID object) const {
@@ -55,11 +55,11 @@ void ForwardRenderer::render(ObjectID object) const {
 }
 
 void ForwardRenderer::resize(const glm::ivec2 &resolution) {
-    m_Framebuffer.resize(resolution);
+    m_Output.resize(resolution);
 }
 
-const Framebuffer &ForwardRenderer::getFramebuffer() const {
-    return m_Framebuffer;
+const Framebuffer &ForwardRenderer::getOutput() const {
+    return m_Output;
 }
 
 const ForwardRenderer::Info &ForwardRenderer::getInfo() const {

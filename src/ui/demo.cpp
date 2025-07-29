@@ -6,5 +6,5 @@ Demo::Demo(Physbuzz::Scene *scene)
     : IUserInterface(scene) {}
 
 void Demo::draw() {
-    ImGui::ShowDemoWindow();
+    ImGui::ShowDemoWindow(&show);
 }

@@ -1,9 +1,9 @@
 #include "objectpicker.hpp"
 
-#include "../../objects/builder.hpp"
-#include "../../objects/circle.hpp"
-#include "../../objects/quad.hpp"
-#include "../../objects/skybox.hpp"
+#include "../objects/builder.hpp"
+#include "../objects/circle.hpp"
+#include "../objects/quad.hpp"
+#include "../objects/skybox.hpp"
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <imgui.h>

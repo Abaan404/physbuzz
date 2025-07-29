@@ -160,7 +160,7 @@ void Renderer::tick() {
 
     // get renderer output buffer
     GL::detail::TextureUnits::reset();
-    const Framebuffer &framebuffer = getRenderer()->getFramebuffer();
+    const Framebuffer &framebuffer = getRenderer()->getOutput();
     GLint screenUnit = framebuffer.activate(Framebuffer::Type::Color);
 
     // add any post processing effects
@@ -203,6 +203,7 @@ void Renderer::resize(const glm::ivec2 &resolution) {
 
     const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
 
+    m_Info.resolution = resolution;
     getRenderer()->resize(resolution);
     camera.resize(resolution);
 }
@@ -218,7 +219,7 @@ const Renderer::Type &Renderer::getType() {
 }
 
 const Framebuffer &Renderer::getFramebuffer() const {
-    return getRenderer()->getFramebuffer();
+    return getRenderer()->getOutput();
 }
 
 const Renderer::Info &Renderer::getInfo() const {

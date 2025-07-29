@@ -30,6 +30,7 @@ void Game::build() {
     Physbuzz::Logger::build();
 
     window.build({1280, 720});
+    window.swapInterval(0);
 
     ResourceBuilder resources;
     resources.build();

@@ -28,13 +28,13 @@ class ForwardRenderer : public IRenderer,
     void tick() const;
     void render(ObjectID id) const;
 
-    const Framebuffer &getFramebuffer() const override;
+    const Framebuffer &getOutput() const override;
     const Info &getInfo() const;
 
   private:
     Info m_Info;
 
-    Framebuffer m_Framebuffer;
+    Framebuffer m_Output;
 };
 
 } // namespace Physbuzz

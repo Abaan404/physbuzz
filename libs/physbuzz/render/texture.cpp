@@ -94,4 +94,9 @@ GLint Texture2D::activate(GLint unit) const {
     return GL::detail::TextureUnits::activate(m_Texture, unit);
 }
 
+GLuint Texture2D::getImGuiTextureHandle() const {
+    PBZ_ASSERT(m_Texture != 0, "[Texture2D] trying to create an imgui handle on an incomplete texture.");
+    return m_Texture;
+}
+
 } // namespace Physbuzz

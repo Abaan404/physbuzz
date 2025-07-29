@@ -14,8 +14,8 @@ uniform sampler2D PBZ_TextureDiffuse[MAX_SAMPLERS];
 uniform uint PBZ_TextureSpecularLength;
 uniform sampler2D PBZ_TextureSpecular[MAX_SAMPLERS];
 
-layout(location = 0) out vec3 PBZ_GBuffer0; // position
-layout(location = 1) out vec3 PBZ_GBuffer1; // normals
+layout(location = 0) out vec4 PBZ_GBuffer0; // position
+layout(location = 1) out vec4 PBZ_GBuffer1; // normals
 layout(location = 2) out vec4 PBZ_GBuffer2; // albedo+spec
 
 void main() {
@@ -38,7 +38,7 @@ void main() {
         specular /= float(PBZ_TextureSpecularLength);
     }
 
-    PBZ_GBuffer0 = fs_in.fragPosition;
-    PBZ_GBuffer1 = normalize(fs_in.normal);
+    PBZ_GBuffer0 = vec4(fs_in.fragPosition, 1.0f);
+    PBZ_GBuffer1 = vec4(normalize(fs_in.normal), 1.0f);
     PBZ_GBuffer2 = vec4(albedo, specular);
 }

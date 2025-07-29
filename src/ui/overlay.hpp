@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ui.hpp"
+#include "ui.hpp"
 
 class FrametimeOverlay : public IUserInterface {
   public:

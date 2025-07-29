@@ -12,7 +12,7 @@ class IRenderer {
     virtual ~IRenderer() = default;
 
     virtual void resize(const glm::ivec2 &resolution) = 0;
-    virtual const Framebuffer &getFramebuffer() const = 0;
+    virtual const Framebuffer &getOutput() const = 0;
 };
 
 struct RenderComponent {

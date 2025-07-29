@@ -1,9 +1,9 @@
 #include "objectlist.hpp"
 
-#include "../../objects/circle.hpp"
-#include "../../objects/cube.hpp"
-#include "../../objects/line.hpp"
-#include "../../objects/quad.hpp"
+#include "../objects/circle.hpp"
+#include "../objects/cube.hpp"
+#include "../objects/line.hpp"
+#include "../objects/quad.hpp"
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/gtc/type_ptr.hpp>

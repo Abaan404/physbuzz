@@ -282,9 +282,7 @@ GLint Framebuffer::activate(Type type, std::size_t colorIndex, GLint unit) const
         break;
     }
 
-    PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to activate output from an incomplete framebuffer.");
     GLuint texture;
-
     switch (type) {
     case Type::Color:
         texture = m_Colors[colorIndex];
@@ -302,12 +300,42 @@ const Framebuffer::Info &Framebuffer::getInfo() const {
     return m_Info;
 }
 
-const std::vector<GLuint> &Framebuffer::getColors() const {
-    return m_Colors;
-}
+GLuint Framebuffer::getImGuiTextureHandle(Type type, std::size_t colorIndex) const {
+    PBZ_ASSERT(m_Framebuffer != 0, "[Framebuffer] trying to create an imgui handle on an incomplete framebuffer.");
 
-const GLuint &Framebuffer::getDepth() const {
-    return m_Depth;
+    switch (type) {
+    case Type::Color:
+        if (colorIndex >= m_Info.colors.size()) {
+            Logger::ERROR("[Framebuffer] Invalid output color index {}", colorIndex);
+            return false;
+        }
+
+        if (m_Info.colors[colorIndex].storage != Storage::Texture2D) {
+            Logger::ERROR("[Framebuffer] output color index cannot be casted to ImGui {}", colorIndex);
+            return false;
+        }
+        break;
+
+    case Type::Depth:
+        if (m_Info.depth.storage != Storage::Texture2D) {
+            Logger::ERROR("[Framebuffer] output depth cannot be drawn");
+            return false;
+        }
+        break;
+    }
+
+    GLuint texture;
+    switch (type) {
+    case Type::Color:
+        texture = m_Colors[colorIndex];
+        break;
+
+    case Type::Depth:
+        texture = m_Depth;
+        break;
+    }
+
+    return texture;
 }
 
 } // namespace Physbuzz

@@ -134,39 +134,41 @@ bool ShaderDeferredLighting::build() {
 
 DeferredRenderer::DeferredRenderer(const Info &info, const glm::ivec2 &resolution)
     : m_Info(info),
-      m_GBuffer({
-          .resolution = resolution,
-          .colors = {
-              info.gBufferCount,
-              {
-                  .storage = Framebuffer::Storage::Texture2D,
-                  .isDrawn = true,
+      m_Framebuffers({
+          .gBuffer = Framebuffer::Info{
+              .resolution = resolution,
+              .colors = {
+                  info.gBufferCount,
+                  {
+                      .storage = Framebuffer::Storage::Texture2D,
+                      .isDrawn = true,
+                  },
+              },
+              .depth = {
+                  .storage = Framebuffer::Storage::Renderbuffer,
+                  .hasStencil = true,
               },
           },
-          .depth = {
-              .storage = Framebuffer::Storage::Renderbuffer,
-              .hasStencil = true,
-          },
-      }),
-      m_Framebuffer({
-          .resolution = resolution,
-          .colors = {
-              {
-                  .storage = Framebuffer::Storage::Texture2D,
-                  .isDrawn = true,
+          .output = Framebuffer::Info{
+              .resolution = resolution,
+              .colors = {
+                  {
+                      .storage = Framebuffer::Storage::Texture2D,
+                      .isDrawn = true,
+                  },
               },
-          },
-          .depth = {
-              .storage = Framebuffer::Storage::Renderbuffer,
-              .hasStencil = true,
+              .depth = {
+                  .storage = Framebuffer::Storage::Renderbuffer,
+                  .hasStencil = true,
+              },
           },
       }) {}
 
 bool DeferredRenderer::build() {
     bool success = true;
 
-    success &= m_GBuffer.build();
-    success &= m_Framebuffer.build();
+    success &= m_Framebuffers.gBuffer.build();
+    success &= m_Framebuffers.output.build();
 
     if (m_Info.passes.geometry.getIdentifier() == Builtin::ShaderDeferredGeometry::Resource.getIdentifier()) {
         success &= Builtin::ShaderDeferredGeometry::build();
@@ -182,8 +184,8 @@ bool DeferredRenderer::build() {
 bool DeferredRenderer::destroy() {
     bool success = true;
 
-    success &= m_GBuffer.destroy();
-    success &= m_Framebuffer.destroy();
+    success &= m_Framebuffers.gBuffer.destroy();
+    success &= m_Framebuffers.output.destroy();
 
     return success;
 }
@@ -199,34 +201,33 @@ void DeferredRenderer::tick() const {
     }
 
     // geometry pass
-    m_GBuffer.bind();
-    m_GBuffer.clear();
+    m_Framebuffers.gBuffer.bind();
+    m_Framebuffers.gBuffer.clear();
 
     // render to gBuffers
     for (const auto &object : m_Objects) {
-        const auto [deferred] = m_Scene->getComponent<DeferredRenderComponent>(object);
         render(object);
     }
 
     // lighting pass
-    m_Framebuffer.bind();
-    m_Framebuffer.clear();
+    m_Framebuffers.output.bind();
+    m_Framebuffers.output.clear();
 
     m_Info.passes.lighting->bind();
 
-    for (std::size_t i = 0; i < m_GBuffer.getInfo().colors.size(); i++) {
+    for (std::size_t i = 0; i < m_Framebuffers.gBuffer.getInfo().colors.size(); i++) {
         m_Info.passes.lighting->setUniform(
             std::format("PBZ_GBuffer{}", i),
-            m_GBuffer.activate(Framebuffer::Type::Color, i));
+            m_Framebuffers.gBuffer.activate(Framebuffer::Type::Color, i));
     }
 
     m_Info.passes.lighting->draw(*m_Scene, -1);
     m_Info.passes.lighting->unbind();
 
-    m_Framebuffer.blit(
-        m_GBuffer,
-        {{0, 0}, m_Framebuffer.getInfo().resolution},
-        {{0, 0}, m_Framebuffer.getInfo().resolution},
+    m_Framebuffers.output.blit(
+        m_Framebuffers.gBuffer,
+        {{0, 0}, m_Framebuffers.output.getInfo().resolution},
+        {{0, 0}, m_Framebuffers.output.getInfo().resolution},
         Framebuffer::Mask::Depth);
 
     // forward passes
@@ -240,7 +241,7 @@ void DeferredRenderer::tick() const {
         forward.pipeline->unbind();
     }
 
-    m_Framebuffer.unbind();
+    m_Framebuffers.output.unbind();
 }
 
 void DeferredRenderer::render(ObjectID object) const {
@@ -253,12 +254,16 @@ void DeferredRenderer::render(ObjectID object) const {
 }
 
 void DeferredRenderer::resize(const glm::ivec2 &resolution) {
-    m_GBuffer.resize(resolution);
-    m_Framebuffer.resize(resolution);
+    m_Framebuffers.gBuffer.resize(resolution);
+    m_Framebuffers.output.resize(resolution);
 }
 
-const Framebuffer &DeferredRenderer::getFramebuffer() const {
-    return m_Framebuffer;
+const DeferredRenderer::Framebuffers &DeferredRenderer::getFramebuffers() const {
+    return m_Framebuffers;
+}
+
+const Framebuffer &DeferredRenderer::getOutput() const {
+    return m_Framebuffers.output;
 }
 
 const DeferredRenderer::Info &DeferredRenderer::getInfo() const {

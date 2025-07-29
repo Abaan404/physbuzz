@@ -24,6 +24,7 @@ class Texture2D {
     GLint activate(GLint unit = -1) const;
 
     const Info &getInfo() const;
+    GLuint getImGuiTextureHandle() const;
 
   private:
     Info m_Info;
