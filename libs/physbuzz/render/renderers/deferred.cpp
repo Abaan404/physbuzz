@@ -83,39 +83,52 @@ bool ShaderDeferredLighting::build() {
                 const auto &directionals = scene.getComponents<DirectionalLightComponent>();
                 const auto &spots = scene.getComponents<SpotLightComponent>();
 
+                const auto &shadows = scene.getSystem<Shadow>();
+                const Shadow::Framebuffers &shadowFramebuffers = shadows->getFramebuffers();
+                const float shadowFarPlane = shadows->getInfo().depth;
+
                 pipeline->setUniform<std::uint32_t>("PBZ_PointLightLength", points.size());
                 pipeline->setUniform<std::uint32_t>("PBZ_DirectionalLightLength", points.size());
                 pipeline->setUniform<std::uint32_t>("PBZ_SpotLightLength", points.size());
 
+                pipeline->setUniform("PBZ_ShadowFarPlane", shadows->getInfo().depth);
+
                 for (std::size_t i = 0; i < points.size(); i++) {
                     const auto &[_, point] = points[i];
+                    const Framebuffer &shadow = shadowFramebuffers.point; // TODO: implement multiple shadowmaps
 
+                    pipeline->setUniform(std::format("PBZ_PointLight[{}].light.ambient", i), point.ambient);
+                    pipeline->setUniform(std::format("PBZ_PointLight[{}].light.diffuse", i), point.diffuse);
+                    pipeline->setUniform(std::format("PBZ_PointLight[{}].light.specular", i), point.specular);
                     pipeline->setUniform(std::format("PBZ_PointLight[{}].position", i), point.position);
-                    pipeline->setUniform(std::format("PBZ_PointLight[{}].ambient", i), point.ambient);
-                    pipeline->setUniform(std::format("PBZ_PointLight[{}].diffuse", i), point.diffuse);
-                    pipeline->setUniform(std::format("PBZ_PointLight[{}].specular", i), point.specular);
                     pipeline->setUniform(std::format("PBZ_PointLight[{}].constant", i), point.constant);
                     pipeline->setUniform(std::format("PBZ_PointLight[{}].linear", i), point.linear);
                     pipeline->setUniform(std::format("PBZ_PointLight[{}].quadratic", i), point.quadratic);
+
+                    pipeline->setUniform(std::format("PBZ_PointShadow", i), shadow.activate(Framebuffer::Type::Depth));
                 }
 
                 for (std::size_t i = 0; i < directionals.size(); i++) {
-                    const auto &[_, direction] = directionals[i];
+                    const auto &[_, directional] = directionals[i];
+                    const Framebuffer shadow = shadowFramebuffers.directional; // TODO: implement multiple shadowmaps
 
-                    pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].direction", i), direction.direction);
-                    pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].ambient", i), direction.ambient);
-                    pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].diffuse", i), direction.diffuse);
-                    pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].specular", i), direction.specular);
+                    pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].light.ambient", i), directional.ambient);
+                    pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].light.diffuse", i), directional.diffuse);
+                    pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].light.specular", i), directional.specular);
+                    pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].direction", i), directional.direction);
+                    pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].matrix", i), directional.matrix);
+
+                    pipeline->setUniform(std::format("PBZ_DirectionalShadow[{}]", i), shadow.activate(Framebuffer::Type::Depth));
                 }
 
                 for (std::size_t i = 0; i < spots.size(); i++) {
                     const auto &[_, spot] = spots[i];
 
+                    pipeline->setUniform(std::format("PBZ_SpotLight[{}].light.ambient", i), spot.ambient);
+                    pipeline->setUniform(std::format("PBZ_SpotLight[{}].light.diffuse", i), spot.diffuse);
+                    pipeline->setUniform(std::format("PBZ_SpotLight[{}].light.specular", i), spot.specular);
                     pipeline->setUniform(std::format("PBZ_SpotLight[{}].position", i), spot.position);
                     pipeline->setUniform(std::format("PBZ_SpotLight[{}].direction", i), spot.direction);
-                    pipeline->setUniform(std::format("PBZ_SpotLight[{}].ambient", i), spot.ambient);
-                    pipeline->setUniform(std::format("PBZ_SpotLight[{}].diffuse", i), spot.diffuse);
-                    pipeline->setUniform(std::format("PBZ_SpotLight[{}].specular", i), spot.specular);
                     pipeline->setUniform(std::format("PBZ_SpotLight[{}].constant", i), spot.constant);
                     pipeline->setUniform(std::format("PBZ_SpotLight[{}].linear", i), spot.linear);
                     pipeline->setUniform(std::format("PBZ_SpotLight[{}].quadratic", i), spot.quadratic);

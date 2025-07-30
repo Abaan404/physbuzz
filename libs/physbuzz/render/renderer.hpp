@@ -3,6 +3,7 @@
 #include "../ecs/system.hpp"
 #include "renderers/deferred.hpp"
 #include "renderers/forward.hpp"
+#include "shadow.hpp"
 #include "uniforms.hpp"
 
 namespace Physbuzz {
@@ -74,6 +75,7 @@ class Renderer : public System<> {
 
         ForwardRenderer::Info forward = {};
         DeferredRenderer::Info deferred = {};
+        Shadow::Info shadow = {};
 
         std::vector<Resource<ShaderPipeline>> postProcessing = {};
     };

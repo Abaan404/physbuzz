@@ -119,6 +119,9 @@ bool Renderer::build() {
     // create renderer
     buildRenderer();
 
+    // create shadows
+    m_Scene->createSystem<Shadow>(m_Info.shadow, m_Info.resolution);
+
     return true;
 }
 
@@ -142,11 +145,11 @@ void Renderer::tick() {
 
     switch (m_Info.type) {
     case Type::Deferred:
-        m_Scene->tickSystem<DeferredRenderer>();
+        m_Scene->tickSystem<Shadow, DeferredRenderer>();
         break;
 
     case Type::Forward:
-        m_Scene->tickSystem<ForwardRenderer>();
+        m_Scene->tickSystem<Shadow, ForwardRenderer>();
         break;
 
     default:
@@ -204,6 +207,7 @@ void Renderer::resize(const glm::ivec2 &resolution) {
     const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
 
     m_Info.resolution = resolution;
+    m_Scene->getSystem<Shadow>()->resize(resolution);
     getRenderer()->resize(resolution);
     camera.resize(resolution);
 }

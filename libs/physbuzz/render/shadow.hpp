@@ -37,12 +37,11 @@ class Shadow : public System<RenderComponent, ShadowComponent> {
     };
 
     struct Info {
-        glm::ivec2 resolution = {1280, 720};
         float orthoSize = 100.0f;
         float depth = 100.0f;
     };
 
-    Shadow(const Info &info);
+    Shadow(const Info &info, const glm::ivec2 &resolution);
 
     bool build();
     bool destroy();

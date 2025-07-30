@@ -64,18 +64,18 @@ bool ShaderShaderDepthCubemap::build() {
 
 } // namespace Builtin
 
-Shadow::Shadow(const Info &info)
+Shadow::Shadow(const Info &info, const glm::ivec2 &resolution)
     : m_Info(info),
       m_Framebuffers({
           .directional = {{
-              .resolution = info.resolution,
+              .resolution = resolution,
               .colors = {},
               .depth = {
                   .storage = Framebuffer::Storage::Texture2D,
               },
           }},
           .point = {{
-              .resolution = glm::ivec2(glm::max(info.resolution.x, info.resolution.y)),
+              .resolution = glm::ivec2(glm::max(resolution.x, resolution.y)),
               .colors = {},
               .depth = {
                   .storage = Framebuffer::Storage::Cubemap,
@@ -180,7 +180,6 @@ void Shadow::tickPoint() const {
 }
 
 void Shadow::resize(const glm::ivec2 &resolution) {
-    m_Info.resolution = resolution;
     m_Framebuffers.directional.resize(resolution);
     m_Framebuffers.point.resize(glm::ivec2(glm::max(resolution.x, resolution.y)));
 }

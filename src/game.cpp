@@ -20,7 +20,6 @@
 #include <physbuzz/render/gl/capabilities.hpp>
 #include <physbuzz/render/renderers/deferred.hpp>
 #include <physbuzz/render/renderers/forward.hpp>
-#include <physbuzz/render/shadow.hpp>
 #include <physbuzz/render/uniforms.hpp>
 #include <physbuzz/window/bindings.hpp>
 #include <random>
@@ -42,7 +41,6 @@ void Game::build() {
         });
 
         scene.getSystem<Physbuzz::Renderer>()->resize(event.resolution);
-        scene.getSystem<Physbuzz::Shadow>()->resize(event.resolution);
     });
 
     // track cursor captures
@@ -285,15 +283,14 @@ void Game::rebuild() {
         scene.createSystem<Physbuzz::Dynamics>(0.0005);
         scene.createSystem<Physbuzz::Bindings>(&window);
         scene.createSystem<Physbuzz::Clock>();
-        scene.createSystem<Physbuzz::Shadow>(Physbuzz::Shadow::Info{
-            .resolution = window.getResolution(),
-            .orthoSize = 1000.0f,
-            .depth = 10000.0f,
-        });
         scene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
             .type = Physbuzz::Renderer::Type::Deferred,
             .camera = playerObject,
             .resolution = window.getResolution(),
+            .shadow = {
+                .orthoSize = 1000.0f,
+                .depth = 10000.0f,
+            },
             .postProcessing = {
                 {"gamma"},
             },
@@ -317,7 +314,7 @@ void Game::loop() {
         // scene.tickSystem<Physbuzz::Dynamics, Collision>();
         scene.tickSystem<Physbuzz::Bindings>();
         scene.tickSystem<Physbuzz::Clock>();
-        scene.tickSystem<Physbuzz::Shadow, Physbuzz::Renderer>();
+        scene.tickSystem<Physbuzz::Renderer>();
         scene.tickSystem<InterfaceManager>();
         window.flip();
     }
