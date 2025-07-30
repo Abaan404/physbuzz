@@ -40,14 +40,13 @@ bool ShaderDeferredGeometry::build() {
                 // load array lengths
                 for (std::size_t i = 0; i < TextureTypeMax; i++) {
                     TextureType type = static_cast<TextureType>(i);
-                    if (!textureLengths.contains(type)) {
-                        continue;
-                    }
-
                     const std::string name = render.model->getTextureTypeName(type);
-                    auto a = textureLengths.at(type);
 
-                    pipeline->setUniform(std::format("PBZ_Texture{}Length", name), textureLengths[type]);
+                    if (!textureLengths.contains(type)) {
+                        pipeline->setUniform<unsigned int>(std::format("PBZ_Texture{}Length", name), 0);
+                    } else {
+                        pipeline->setUniform(std::format("PBZ_Texture{}Length", name), textureLengths[type]);
+                    }
                 }
 
                 // draw mesh
