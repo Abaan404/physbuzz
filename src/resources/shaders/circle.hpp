@@ -5,7 +5,7 @@
 #include <physbuzz/render/renderer.hpp>
 
 inline Physbuzz::ShaderPipeline shaderCircle = {{
-    .vertex = {.file = {.path = "resources/shaders/default/default.vert"}},
+    .vertex = {.file = {.path = "resources/shaders/circle/circle.vert"}},
     .tessControl = {},
     .tessEvaluation = {},
     .geometry = {},

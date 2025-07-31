@@ -65,10 +65,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         .model = modelName,
     };
 
-    Physbuzz::ForwardRenderComponent forward = {
-        .pipeline = info.resources.pipeline,
-    };
-
+    Physbuzz::ForwardRenderComponent forward = {};
     Physbuzz::DeferredRenderComponent deferred = {};
 
     // create a rebuild callback

@@ -8,8 +8,20 @@
 
 namespace Physbuzz {
 
+namespace Builtin {
+
+namespace ShaderForward {
+
+inline Resource<ShaderPipeline> Resource = {"builtin/forward"};
+
+bool build();
+
+} // namespace ShaderDeferredLighting
+
+}
+
 struct ForwardRenderComponent {
-    Resource<ShaderPipeline> pipeline;
+    Resource<ShaderPipeline> pipeline = Builtin::ShaderForward::Resource;
 };
 
 class ForwardRenderer : public IRenderer,

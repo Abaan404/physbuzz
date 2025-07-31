@@ -90,11 +90,8 @@ bool ShaderDeferredLighting::build() {
                 pipeline->setUniform<std::uint32_t>("PBZ_DirectionalLightLength", points.size());
                 pipeline->setUniform<std::uint32_t>("PBZ_SpotLightLength", points.size());
 
-                pipeline->setUniform("PBZ_ShadowFarPlane", shadows->getInfo().depth);
-
                 for (std::size_t i = 0; i < points.size(); i++) {
                     const auto &[_, point] = points[i];
-                    const Framebuffer &shadow = shadowFramebuffers.point; // TODO: implement multiple shadowmaps
 
                     pipeline->setUniform(std::format("PBZ_PointLight[{}].light.ambient", i), point.ambient);
                     pipeline->setUniform(std::format("PBZ_PointLight[{}].light.diffuse", i), point.diffuse);
@@ -103,21 +100,16 @@ bool ShaderDeferredLighting::build() {
                     pipeline->setUniform(std::format("PBZ_PointLight[{}].constant", i), point.constant);
                     pipeline->setUniform(std::format("PBZ_PointLight[{}].linear", i), point.linear);
                     pipeline->setUniform(std::format("PBZ_PointLight[{}].quadratic", i), point.quadratic);
-
-                    pipeline->setUniform(std::format("PBZ_PointShadow", i), shadow.activate(Framebuffer::Type::Depth));
                 }
 
                 for (std::size_t i = 0; i < directionals.size(); i++) {
                     const auto &[_, directional] = directionals[i];
-                    const Framebuffer shadow = shadowFramebuffers.directional; // TODO: implement multiple shadowmaps
 
                     pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].light.ambient", i), directional.ambient);
                     pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].light.diffuse", i), directional.diffuse);
                     pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].light.specular", i), directional.specular);
                     pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].direction", i), directional.direction);
                     pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].matrix", i), directional.matrix);
-
-                    pipeline->setUniform(std::format("PBZ_DirectionalShadow[{}]", i), shadow.activate(Framebuffer::Type::Depth));
                 }
 
                 for (std::size_t i = 0; i < spots.size(); i++) {
@@ -134,6 +126,11 @@ bool ShaderDeferredLighting::build() {
                     pipeline->setUniform(std::format("PBZ_SpotLight[{}].cutOff", i), glm::cos(spot.cutOff));
                     pipeline->setUniform(std::format("PBZ_SpotLight[{}].outerCutOff", i), glm::cos(spot.outerCutOff));
                 }
+
+                // TODO: implement multiple shadowmaps
+                pipeline->setUniform("PBZ_DirectionalShadow", shadowFramebuffers.directional.activate(Framebuffer::Type::Depth));
+                pipeline->setUniform("PBZ_PointShadow", shadowFramebuffers.point.activate(Framebuffer::Type::Depth));
+                pipeline->setUniform("PBZ_ShadowFarPlane", shadows->getInfo().depth);
 
                 for (const auto &[mesh, _] : Builtin::MeshRendererScreenQuad::Resource->getMeshs()) {
                     mesh.draw();

@@ -12,9 +12,6 @@ layout(std140, binding = 2) uniform Time {
 uniform sampler2D u_Texture;
 
 in VS_OUT {
-    mat3 TBN;
-    vec4 fragPositionLightSpace;
-    vec3 normal;
     vec3 fragPosition;
     vec2 texCoord;
 } fs_in;

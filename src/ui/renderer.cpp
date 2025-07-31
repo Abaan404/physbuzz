@@ -104,7 +104,7 @@ void Renderer::draw() {
 
         if (showWindow && selectedColorIndex < gBufferInfo.colors.size()) {
             drawImageWindow(
-                std::format("GBuffer_{}", selectedColorIndex).c_str(),
+                "GBuffer",
                 &showWindow,
                 (ImTextureID)(intptr_t)framebuffers.gBuffer.getImGuiTextureHandle(Physbuzz::Framebuffer::Type::Color, selectedColorIndex),
                 {static_cast<float>(gBufferInfo.resolution.x), static_cast<float>(gBufferInfo.resolution.y)});

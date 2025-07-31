@@ -13,10 +13,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         .model = info.model.resource,
     };
 
-    Physbuzz::ForwardRenderComponent forward = {
-        .pipeline = info.resources.pipeline,
-    };
-
+    Physbuzz::ForwardRenderComponent forward = {};
     Physbuzz::DeferredRenderComponent deferred = {};
 
     scene.setComponent(object, info.model, info.identifier, info.resources, render, forward, deferred, shadow);
