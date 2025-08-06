@@ -4,7 +4,6 @@
 #include "../ecs/defines.hpp"
 #include "../io/file.hpp"
 #include "../resources/defines.hpp"
-#include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <set>
 #include <string>
@@ -40,13 +39,13 @@ concept UniformType =
 class Shader {
   public:
     enum class Type {
-        Vertex = GL_VERTEX_SHADER,
-        TessControl = GL_TESS_CONTROL_SHADER,
-        TessEvaluation = GL_TESS_EVALUATION_SHADER,
-        Geometry = GL_GEOMETRY_SHADER,
-        Fragment = GL_FRAGMENT_SHADER,
-        Compute = GL_COMPUTE_SHADER,
-        Unknown = GL_INVALID_ENUM,
+        Vertex,
+        TessControl,
+        TessEvaluation,
+        Geometry,
+        Fragment,
+        Compute,
+        Unknown,
     };
 
     struct Info {
@@ -61,14 +60,14 @@ class Shader {
 
     bool compile();
 
-    void attach(GLuint program) const;
-    void detach(GLuint program) const;
+    void attach(std::uint32_t program) const;
+    void detach(std::uint32_t program) const;
 
   private:
     const std::string preprocess(const File &file);
     bool preprocessInclude(const File &file, std::string &output, std::size_t position);
 
-    GLuint m_Shader = 0;
+    std::uint32_t m_Shader = 0;
     Type m_Type = Type::Unknown;
 
     std::set<std::filesystem::path> m_Paths;
@@ -106,42 +105,14 @@ class ShaderPipeline {
     void unbind() const;
 
     template <UniformType T>
-    inline void setUniform(const std::string &name, const T &data) const {
-        setUniformInternal(glGetUniformLocation(m_Program, name.c_str()), data);
+    inline void setUniform(const std::string &, const T &) const {
+        // setUniformInternal(glGetUniformLocation(m_Program, name.c_str()), data);
     }
 
     const Info &getInfo() const;
 
   private:
-    void setUniformInternal(const GLint location, const float &data) const;
-    void setUniformInternal(const GLint location, const glm::vec2 &data) const;
-    void setUniformInternal(const GLint location, const glm::vec3 &data) const;
-    void setUniformInternal(const GLint location, const glm::vec4 &data) const;
-
-    void setUniformInternal(const GLint location, const int &data) const;
-    void setUniformInternal(const GLint location, const glm::ivec2 &data) const;
-    void setUniformInternal(const GLint location, const glm::ivec3 &data) const;
-    void setUniformInternal(const GLint location, const glm::ivec4 &data) const;
-
-    void setUniformInternal(const GLint location, const unsigned int &data) const;
-    void setUniformInternal(const GLint location, const glm::uvec2 &data) const;
-    void setUniformInternal(const GLint location, const glm::uvec3 &data) const;
-    void setUniformInternal(const GLint location, const glm::uvec4 &data) const;
-
-    void setUniformInternal(const GLint location, const glm::mat2 &data) const;
-    void setUniformInternal(const GLint location, const glm::mat3 &data) const;
-    void setUniformInternal(const GLint location, const glm::mat4 &data) const;
-
-    void setUniformInternal(const GLint location, const glm::mat2x3 &data) const;
-    void setUniformInternal(const GLint location, const glm::mat3x2 &data) const;
-
-    void setUniformInternal(const GLint location, const glm::mat2x4 &data) const;
-    void setUniformInternal(const GLint location, const glm::mat4x2 &data) const;
-
-    void setUniformInternal(const GLint location, const glm::mat3x4 &data) const;
-    void setUniformInternal(const GLint location, const glm::mat4x3 &data) const;
-
-    GLuint m_Program = 0;
+    std::uint32_t m_Program = 0;
 
     bool m_FailedReload = false;
     bool m_RequestedReload = false;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -16,9 +15,9 @@ class Framebuffer {
     };
 
     enum Mask {
-        Color = GL_COLOR_BUFFER_BIT,
-        Depth = GL_DEPTH_BUFFER_BIT,
-        Stencil = GL_STENCIL_BUFFER_BIT,
+        Color,
+        Depth,
+        Stencil,
     };
 
     enum class Type {
@@ -65,16 +64,16 @@ class Framebuffer {
     void clear() const;
     void blit(const Framebuffer &framebuffer, Rect from, Rect to, Mask mask = Mask::Color) const;
 
-    GLint activate(Type type, std::size_t colorIndex = 0, GLint unit = -1) const;
+    std::int32_t activate(Type type, std::size_t colorIndex = 0, std::int32_t unit = -1) const;
 
     const Info &getInfo() const;
-    GLuint getImGuiTextureHandle(Type type, std::size_t colorIndex = 0) const;
+    std::uint32_t getImGuiTextureHandle(Type type, std::size_t colorIndex = 0) const;
 
   private:
-    GLuint m_Framebuffer = 0;
+    std::uint32_t m_Framebuffer = 0;
 
-    std::vector<GLuint> m_Colors;
-    GLuint m_Depth = 0;
+    std::vector<std::uint32_t> m_Colors;
+    std::uint32_t m_Depth = 0;
 
     Info m_Info;
 };

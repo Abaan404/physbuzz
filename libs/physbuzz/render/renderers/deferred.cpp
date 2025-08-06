@@ -1,7 +1,6 @@
 #include "deferred.hpp"
 
 #include "../../ecs/scene.hpp"
-#include "../gl/units.hpp"
 #include "../lighting.hpp"
 #include "../renderer.hpp"
 
@@ -254,12 +253,12 @@ void DeferredRenderer::tick() const {
 }
 
 void DeferredRenderer::render(ObjectID object) const {
-    const auto [render] = m_Scene->getComponent<RenderComponent>(object);
-
-    GL::detail::TextureUnits::reset();
-    m_Info.passes.geometry->bind();
-    m_Info.passes.geometry->draw(*m_Scene, object);
-    m_Info.passes.geometry->unbind();
+    // const auto [render] = m_Scene->getComponent<RenderComponent>(object);
+    //
+    // GL::detail::TextureUnits::reset();
+    // m_Info.passes.geometry->bind();
+    // m_Info.passes.geometry->draw(*m_Scene, object);
+    // m_Info.passes.geometry->unbind();
 }
 
 void DeferredRenderer::resize(const glm::ivec2 &resolution) {

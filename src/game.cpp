@@ -17,7 +17,6 @@
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/framebuffer.hpp>
-#include <physbuzz/render/gl/capabilities.hpp>
 #include <physbuzz/render/renderers/deferred.hpp>
 #include <physbuzz/render/renderers/forward.hpp>
 #include <physbuzz/render/uniforms.hpp>
@@ -82,10 +81,6 @@ void Game::build() {
 
         camera.update(info);
     });
-
-    // enable backface culling and depth testing
-    Physbuzz::GL::setCapability(Physbuzz::GL::Capabilities::CullFace, true);
-    Physbuzz::GL::setCapability(Physbuzz::GL::Capabilities::DepthTest, true);
 
     // Create a default scene
     rebuild();
@@ -315,7 +310,7 @@ void Game::loop() {
         scene.tickSystem<Physbuzz::Bindings>();
         scene.tickSystem<Physbuzz::Clock>();
         scene.tickSystem<Physbuzz::Renderer>();
-        scene.tickSystem<InterfaceManager>();
+        // scene.tickSystem<InterfaceManager>();
         window.flip();
     }
 }

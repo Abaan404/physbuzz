@@ -2,7 +2,6 @@
 
 #include "../io/image.hpp"
 #include "../resources/defines.hpp"
-#include <glad/gl.h>
 
 namespace Physbuzz {
 
@@ -23,13 +22,13 @@ class Cubemap {
     bool build();
     bool destroy();
 
-    GLint activate(GLint unit = -1) const;
+    std::int32_t activate(std::int32_t unit = -1) const;
 
     const Info &getInfo() const;
 
   private:
     Info m_Info;
-    GLuint m_Texture = 0;
+    std::int32_t m_Texture = 0;
 };
 
 template <>

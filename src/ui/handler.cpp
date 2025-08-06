@@ -1,8 +1,8 @@
 #include "handler.hpp"
 
 #include <imgui.h>
+#include <imgui_impl_vulkan.h>
 #include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
 #include <memory>
 
 #include "camera.hpp"
@@ -28,8 +28,8 @@ bool InterfaceManager::build() {
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows (buggy on wayland)
     io.IniFilename = nullptr; // disable imgui.ini
 
-    ImGui_ImplGlfw_InitForOpenGL(static_cast<GLFWwindow *>(*m_Info.window), true);
-    ImGui_ImplOpenGL3_Init("#version 460");
+    ImGui_ImplGlfw_InitForVulkan(static_cast<GLFWwindow *>(*m_Info.window), true);
+    // ImGui_ImplVulkan_Init();
 
     m_Interfaces["Demo"] = std::make_shared<Demo>(m_Scene);
     // m_Interfaces["ShapePicker"] = std::make_unique<ObjectPicker>(m_Scene);
@@ -44,7 +44,7 @@ bool InterfaceManager::build() {
 }
 
 bool InterfaceManager::destroy() {
-    ImGui_ImplOpenGL3_Shutdown();
+    // ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
@@ -53,7 +53,7 @@ bool InterfaceManager::destroy() {
 
 void InterfaceManager::tick() {
     // draw a new frame
-    ImGui_ImplOpenGL3_NewFrame();
+    // ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
@@ -69,7 +69,7 @@ void InterfaceManager::tick() {
     }
 
     ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData());
 
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();

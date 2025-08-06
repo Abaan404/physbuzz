@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../resources/resources.hpp"
-#include <glad/gl.h>
 #include <type_traits>
 #include <vector>
 
@@ -14,17 +13,17 @@ concept VertexAttributeFormatType =
     std::is_standard_layout_v<T>;
 
 enum class Types {
-    Byte = GL_BYTE,
-    UnsignedByte = GL_UNSIGNED_BYTE,
-    Short = GL_SHORT,
-    UnsignedShort = GL_UNSIGNED_SHORT,
-    Int = GL_INT,
-    UnsignedInt = GL_UNSIGNED_INT,
+    Byte,
+    UnsignedByte,
+    Short,
+    UnsignedShort,
+    Int,
+    UnsignedInt,
 
-    Float = GL_FLOAT,
-    Double = GL_DOUBLE,
-    HalfFloat = GL_HALF_FLOAT,
-    Fixed = GL_FIXED,
+    Float,
+    Double,
+    HalfFloat,
+    Fixed,
 };
 
 using Index = std::uint32_t;
@@ -34,13 +33,13 @@ class VertexAttribute {
     // let the user declare for now, reflection is ass and prone to breaking as of now.
     struct Format {
         Types type;
-        GLuint size;
-        GLuint offset;
+        std::int32_t size;
+        std::int32_t offset;
     };
 
     struct Info {
         std::vector<Format> attributes;
-        GLuint size;
+        std::int32_t size;
     };
 
     VertexAttribute(const Info &info);
@@ -51,10 +50,6 @@ class VertexAttribute {
     const Info &getInfo() const;
 
   private:
-    GLuint VBO = 0;
-    GLuint VAO = 0;
-    GLuint EBO = 0;
-
     Info m_Info;
 
     friend class Mesh;

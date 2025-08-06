@@ -2,7 +2,7 @@
   description = "Physbuzz Engine flake";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
   };
 
   outputs =
@@ -13,16 +13,21 @@
         inherit system;
         config.allowUnfree = true;
       };
-
-      lib = pkgs.lib;
     in
     {
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = [
-          # tooling
+          # compiling
           pkgs.cmake
           pkgs.ninja
+          pkgs.shader-slang
+          pkgs.clang-tools
+          pkgs.shaderc
+
+          # debugging
           pkgs.valgrind
+          pkgs.renderdoc
+          pkgs.tracy
           pkgs.vscode-extensions.vadimcn.vscode-lldb.adapter
 
           # libraries
@@ -31,15 +36,15 @@
           pkgs.spdlog
           pkgs.glm
           pkgs.catch2_3
-          pkgs.python312Packages.glad2
+          pkgs.vulkan-tools
+          pkgs.vulkan-tools-lunarg
+          pkgs.vulkan-headers
+          pkgs.vulkan-loader
+          pkgs.vulkan-utility-libraries
         ];
 
         # https://github.com/NixOS/nixpkgs/issues/18995
         hardeningDisable = [ "all" ];
-
-        shellHook = ''
-          export LD_LIBRARY_PATH="${lib.makeLibraryPath [ pkgs.libGL ]}";
-        '';
       };
     };
 }

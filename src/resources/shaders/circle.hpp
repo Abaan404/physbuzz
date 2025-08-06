@@ -1,7 +1,6 @@
 #pragma once
 
 #include <physbuzz/ecs/scene.hpp>
-#include <physbuzz/render/gl/units.hpp>
 #include <physbuzz/render/renderer.hpp>
 
 inline Physbuzz::ShaderPipeline shaderCircle = {{

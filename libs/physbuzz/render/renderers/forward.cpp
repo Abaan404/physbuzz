@@ -1,7 +1,6 @@
 #include "forward.hpp"
 
 #include "../../ecs/scene.hpp"
-#include "../gl/units.hpp"
 #include "../lighting.hpp"
 #include "../shadow.hpp"
 
@@ -155,17 +154,17 @@ void ForwardRenderer::tick() const {
 }
 
 void ForwardRenderer::render(ObjectID object) const {
-    const auto [forward] = m_Scene->getComponent<ForwardRenderComponent>(object);
-
-    // check for reload before binding
-    if (!forward.pipeline->reload()) {
-        return;
-    }
-
-    GL::detail::TextureUnits::reset();
-    forward.pipeline->bind();
-    forward.pipeline->draw(*m_Scene, object);
-    forward.pipeline->unbind();
+    // const auto [forward] = m_Scene->getComponent<ForwardRenderComponent>(object);
+    //
+    // // check for reload before binding
+    // if (!forward.pipeline->reload()) {
+    //     return;
+    // }
+    //
+    // GL::detail::TextureUnits::reset();
+    // forward.pipeline->bind();
+    // forward.pipeline->draw(*m_Scene, object);
+    // forward.pipeline->unbind();
 }
 
 void ForwardRenderer::resize(const glm::ivec2 &resolution) {

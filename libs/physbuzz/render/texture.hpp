@@ -2,7 +2,6 @@
 
 #include "../io/image.hpp"
 #include "../resources/defines.hpp"
-#include <glad/gl.h>
 
 namespace Physbuzz {
 
@@ -21,14 +20,14 @@ class Texture2D {
     bool build();
     bool destroy();
 
-    GLint activate(GLint unit = -1) const;
+    std::int32_t activate(std::int32_t unit = -1) const;
 
     const Info &getInfo() const;
-    GLuint getImGuiTextureHandle() const;
+    std::uint32_t getImGuiTextureHandle() const;
 
   private:
     Info m_Info;
-    GLuint m_Texture = 0;
+    std::uint32_t m_Texture = 0;
 };
 
 template <>

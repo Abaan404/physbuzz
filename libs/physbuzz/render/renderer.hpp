@@ -48,7 +48,7 @@ struct Format {
     glm::mat4x4 projection;
 };
 
-constexpr GLuint Binding = 0;
+constexpr std::uint32_t Binding = 0;
 
 inline Resource<UniformBuffer<Format>> Resource = {"builtin/renderer/camera"};
 

@@ -2,7 +2,6 @@
 
 #include "../ecs/scene.hpp"
 #include "camera.hpp"
-#include "gl/units.hpp"
 
 namespace Physbuzz {
 
@@ -131,71 +130,71 @@ bool Renderer::destroy() {
 }
 
 void Renderer::tick() {
-    if (!m_Scene->containsComponent<CameraComponent>(m_Info.camera)) {
-        Logger::ERROR("[DeferredRenderer] No camera attached to object {}", m_Info.camera);
-        return;
-    }
-
-    const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
-    Builtin::UniformRendererCamera::Resource->update({
-        .position = camera.getInfo().view.position,
-        .view = camera.getView(),
-        .projection = camera.getProjection(),
-    });
-
-    switch (m_Info.type) {
-    case Type::Deferred:
-        m_Scene->tickSystem<Shadow, DeferredRenderer>();
-        break;
-
-    case Type::Forward:
-        m_Scene->tickSystem<Shadow, ForwardRenderer>();
-        break;
-
-    default:
-        Logger::ERROR("[Renderer] Unknown renderer type provided");
-        return;
-    }
-
-    // disable depth testing for screenquads
-    bool depthTest = glIsEnabled(GL_DEPTH_TEST) == GL_TRUE;
-    glDisable(GL_DEPTH_TEST);
-
-    // get renderer output buffer
-    GL::detail::TextureUnits::reset();
-    const Framebuffer &framebuffer = getRenderer()->getOutput();
-    GLint screenUnit = framebuffer.activate(Framebuffer::Type::Color);
-
-    // add any post processing effects
-    if (m_Info.postProcessing.size() > 0) {
-        framebuffer.bind();
-
-        for (const auto &postProcessing : m_Info.postProcessing) {
-            if (!postProcessing->reload()) {
-                continue;
-            }
-
-            postProcessing->bind();
-            postProcessing->setUniform("PBZ_Framebuffer", screenUnit);
-            postProcessing->draw(*m_Scene, -1);
-            postProcessing->unbind();
-        }
-
-        framebuffer.unbind();
-    }
-
-    // draw to screen if requested
-    if (m_Info.passthrough && Builtin::ShaderRendererPassthrough::Resource->reload()) {
-        Builtin::ShaderRendererPassthrough::Resource->bind();
-        Builtin::ShaderRendererPassthrough::Resource->setUniform("PBZ_Framebuffer", screenUnit);
-        Builtin::ShaderRendererPassthrough::Resource->draw(*m_Scene, -1);
-        Builtin::ShaderRendererPassthrough::Resource->unbind();
-    }
-
-    // restore depth testing
-    if (depthTest) {
-        glEnable(GL_DEPTH_TEST);
-    }
+    // if (!m_Scene->containsComponent<CameraComponent>(m_Info.camera)) {
+    //     Logger::ERROR("[DeferredRenderer] No camera attached to object {}", m_Info.camera);
+    //     return;
+    // }
+    //
+    // const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
+    // Builtin::UniformRendererCamera::Resource->update({
+    //     .position = camera.getInfo().view.position,
+    //     .view = camera.getView(),
+    //     .projection = camera.getProjection(),
+    // });
+    //
+    // switch (m_Info.type) {
+    // case Type::Deferred:
+    //     m_Scene->tickSystem<Shadow, DeferredRenderer>();
+    //     break;
+    //
+    // case Type::Forward:
+    //     m_Scene->tickSystem<Shadow, ForwardRenderer>();
+    //     break;
+    //
+    // default:
+    //     Logger::ERROR("[Renderer] Unknown renderer type provided");
+    //     return;
+    // }
+    //
+    // // disable depth testing for screenquads
+    // bool depthTest = glIsEnabled(GL_DEPTH_TEST) == GL_TRUE;
+    // glDisable(GL_DEPTH_TEST);
+    //
+    // // get renderer output buffer
+    // GL::detail::TextureUnits::reset();
+    // const Framebuffer &framebuffer = getRenderer()->getOutput();
+    // GLint screenUnit = framebuffer.activate(Framebuffer::Type::Color);
+    //
+    // // add any post processing effects
+    // if (m_Info.postProcessing.size() > 0) {
+    //     framebuffer.bind();
+    //
+    //     for (const auto &postProcessing : m_Info.postProcessing) {
+    //         if (!postProcessing->reload()) {
+    //             continue;
+    //         }
+    //
+    //         postProcessing->bind();
+    //         postProcessing->setUniform("PBZ_Framebuffer", screenUnit);
+    //         postProcessing->draw(*m_Scene, -1);
+    //         postProcessing->unbind();
+    //     }
+    //
+    //     framebuffer.unbind();
+    // }
+    //
+    // // draw to screen if requested
+    // if (m_Info.passthrough && Builtin::ShaderRendererPassthrough::Resource->reload()) {
+    //     Builtin::ShaderRendererPassthrough::Resource->bind();
+    //     Builtin::ShaderRendererPassthrough::Resource->setUniform("PBZ_Framebuffer", screenUnit);
+    //     Builtin::ShaderRendererPassthrough::Resource->draw(*m_Scene, -1);
+    //     Builtin::ShaderRendererPassthrough::Resource->unbind();
+    // }
+    //
+    // // restore depth testing
+    // if (depthTest) {
+    //     glEnable(GL_DEPTH_TEST);
+    // }
 }
 
 void Renderer::resize(const glm::ivec2 &resolution) {

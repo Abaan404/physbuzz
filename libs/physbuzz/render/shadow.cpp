@@ -105,15 +105,15 @@ bool Shadow::destroy() {
 }
 
 void Shadow::tick() const {
-    GLint cullMode;
-    glGetIntegerv(GL_CULL_FACE_MODE, &cullMode);
-
-    glCullFace(GL_FRONT);
-
-    tickDirectional();
-    tickPoint();
-
-    glCullFace(static_cast<GLenum>(cullMode));
+    // GLint cullMode;
+    // glGetIntegerv(GL_CULL_FACE_MODE, &cullMode);
+    //
+    // glCullFace(GL_FRONT);
+    //
+    // tickDirectional();
+    // tickPoint();
+    //
+    // glCullFace(static_cast<GLenum>(cullMode));
 }
 
 void Shadow::tickDirectional() const {

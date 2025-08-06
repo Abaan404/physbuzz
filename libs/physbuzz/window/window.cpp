@@ -1,11 +1,13 @@
 #include "window.hpp"
 
-#include "../debug/callbacks.hpp"
 #include "../debug/logging.hpp"
 #include "../events/window.hpp"
-#include "../render/gl/capabilities.hpp"
 
 namespace Physbuzz {
+
+static void glfwErrorCallback(int error, const char *description) {
+    Logger::ERROR("[GLFW] ({}) {}", error, description);
+}
 
 static inline std::unordered_map<GLFWwindow *, Window *> sWindowMap = {};
 
@@ -19,7 +21,7 @@ Window::operator GLFWwindow *() const {
 
 void Window::build(const glm::ivec2 &resolution) {
     // error callback
-    glfwSetErrorCallback(detail::glfwErrorCallback);
+    glfwSetErrorCallback(glfwErrorCallback);
 
     // init glfw
     int isInit = glfwInit();
@@ -35,11 +37,6 @@ void Window::build(const glm::ivec2 &resolution) {
 
     // Setup OpenGL
     glfwMakeContextCurrent(m_Window);
-    gladLoadGL(glfwGetProcAddress);
-
-    // debug context setup
-    GL::setCapability(GL::Capabilities::DebugOutput, true);
-    glDebugMessageCallback(detail::OpenGLDebugCallback, 0);
 
     // static context for callbacks
     sWindowMap[m_Window] = this;

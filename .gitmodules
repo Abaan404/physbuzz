@@ -1,9 +1,6 @@
 [submodule "submodules/imgui"]
 	path = submodules/imgui
 	url = https://github.com/ocornut/imgui
-[submodule "submodules/glad"]
-	path = submodules/glad
-	url = https://github.com/Dav1dde/glad
 [submodule "submodules/stb"]
 	path = submodules/stb
 	url = https://github.com/nothings/stb
