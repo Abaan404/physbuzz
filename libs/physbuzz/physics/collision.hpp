@@ -6,7 +6,7 @@
 
 namespace Physbuzz {
 
-class RigidBodyComponent;
+struct RigidBodyComponent;
 
 struct AABBComponent {
     AABBComponent(const RenderComponent &render, const RigidBodyComponent &mesh);

@@ -116,7 +116,7 @@ class ShaderPipeline {
 
     bool m_FailedReload = false;
     bool m_RequestedReload = false;
-    std::function<void(const ResourceWatcherData &)> m_ReloadCallback;
+    // std::function<void(const ResourceWatcherData &)> m_ReloadCallback;
 
     Info m_Info;
 

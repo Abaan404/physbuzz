@@ -8,7 +8,7 @@
 class InterfaceManager : public Physbuzz::System<> {
   public:
     struct Info {
-        Physbuzz::Window *window;
+        std::shared_ptr<Physbuzz::Window> window;
     };
 
     InterfaceManager(const Info &info);

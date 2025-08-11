@@ -32,7 +32,7 @@ struct BindingComponent {
 
 class Bindings : public System<BindingComponent> {
   public:
-    Bindings(Window *window);
+    Bindings(const std::shared_ptr<Window> &window);
 
     bool build() override;
     bool destroy() override;
@@ -40,7 +40,7 @@ class Bindings : public System<BindingComponent> {
     void tick();
 
   private:
-    Window *m_Window = nullptr;
+    std::shared_ptr<Window> m_Window = nullptr;
 
     struct {
         EventID key;

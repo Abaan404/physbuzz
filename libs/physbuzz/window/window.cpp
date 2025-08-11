@@ -11,32 +11,50 @@ static void glfwErrorCallback(int error, const char *description) {
 
 static inline std::unordered_map<GLFWwindow *, Window *> sWindowMap = {};
 
-Window::Window() {}
-
-Window::~Window() {}
+Window::Window(const Info &info)
+    : m_Info(info) {}
 
 Window::operator GLFWwindow *() const {
     return m_Window;
 }
 
-void Window::build(const glm::ivec2 &resolution) {
+bool Window::operator==(const Window &other) const {
+    return m_Window == other.m_Window;
+}
+
+bool Window::init() {
     // error callback
     glfwSetErrorCallback(glfwErrorCallback);
 
     // init glfw
     int isInit = glfwInit();
-    PBZ_ASSERT(isInit == GLFW_TRUE, "[GLFW] Could not initialize GLFW.");
+    if (isInit == GLFW_FALSE) {
+        Logger::ERROR("[Window] Failed to initialize the GLFW library.");
+        return false;
+    }
 
-    // create a window.
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    m_Window = glfwCreateWindow(resolution.x, resolution.y, "PhysBuzz Engine", nullptr, nullptr);
-    PBZ_ASSERT(m_Window != nullptr, "[GLFW] Could not create a window.");
+    return true;
+}
 
-    // Setup OpenGL
-    glfwMakeContextCurrent(m_Window);
+bool Window::terminate() {
+    glfwTerminate();
+    return true;
+}
+
+bool Window::build(const vk::Instance &instance, const glm::ivec2 &resolution) {
+    if (m_Window != nullptr) {
+        Logger::ERROR("[Window] Could not create a constructed window.");
+        return false;
+    }
+
+    m_Window = glfwCreateWindow(resolution.x, resolution.y, m_Info.title.c_str(), nullptr, nullptr);
+    if (m_Window == nullptr) {
+        Logger::ERROR("[Window] Could not create a GLFWwindow.");
+        return false;
+    }
 
     // static context for callbacks
     sWindowMap[m_Window] = this;
@@ -97,14 +115,26 @@ void Window::build(const glm::ivec2 &resolution) {
     glfwSetWindowIconifyCallback(m_Window, [](GLFWwindow *window, int iconified) {
         sWindowMap[window]->notifyCallbacks<WindowIconifyEvent>({.window = sWindowMap[window], .iconified = static_cast<bool>(iconified & GLFW_ICONIFIED)});
     });
+
+    // create a surface
+    VkSurfaceKHR surface;
+    glfwCreateWindowSurface(instance, m_Window, nullptr, &surface);
+    m_Surface = surface;
+
+    return true;
 }
 
-void Window::destroy() {
+bool Window::destroy() {
+    if (m_Window != nullptr) {
+        Logger::ERROR("[Window] Could not destroy a destructed window.");
+        return false;
+    }
+
     close();
     glfwDestroyWindow(m_Window);
-    glfwTerminate();
-
     sWindowMap.erase(m_Window);
+
+    return true;
 }
 
 void Window::close() const {
@@ -119,10 +149,6 @@ void Window::setPos(const glm::ivec2 &position) const {
     glfwSetWindowPos(m_Window, position.x, position.y);
 }
 
-void Window::swapInterval(int interval) const {
-    glfwSwapInterval(interval);
-}
-
 void Window::iconify() const {
     glfwIconifyWindow(m_Window);
 }
@@ -133,6 +159,10 @@ void Window::restore() const {
 
 void Window::maximize() const {
     glfwMaximizeWindow(m_Window);
+}
+
+void Window::poll() {
+    glfwPollEvents();
 }
 
 void Window::setCursorPos(const glm::ivec2 &position) {
@@ -162,12 +192,8 @@ void Window::setResolution(const glm::ivec2 &resolution) {
     glfwSetWindowSize(m_Window, resolution.x, resolution.y);
 }
 
-void Window::flip() const {
-    glfwSwapBuffers(m_Window);
-}
-
-void Window::poll() {
-    glfwPollEvents();
+const Window::Info &Window::getInfo() const {
+    return m_Info;
 }
 
 void Window::setCursorCapture(bool capture) const {
@@ -176,6 +202,14 @@ void Window::setCursorCapture(bool capture) const {
     } else {
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
+}
+
+std::vector<const char *> Window::requiredExtensions() {
+    // Get the required instance extensions from GLFW.
+    std::uint32_t glfwExtensionCount = 0;
+    const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+    return {glfwExtensions, glfwExtensions + glfwExtensionCount};
 }
 
 } // namespace Physbuzz

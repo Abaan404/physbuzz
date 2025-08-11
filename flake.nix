@@ -36,11 +36,8 @@
           pkgs.spdlog
           pkgs.glm
           pkgs.catch2_3
-          pkgs.vulkan-tools
-          pkgs.vulkan-tools-lunarg
           pkgs.vulkan-headers
           pkgs.vulkan-loader
-          pkgs.vulkan-utility-libraries
         ];
 
         # https://github.com/NixOS/nixpkgs/issues/18995

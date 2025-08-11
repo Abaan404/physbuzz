@@ -41,11 +41,16 @@ set(ENGINE_PATH "libs")
 file(GLOB_RECURSE ENGINE_SRCS "${ENGINE_PATH}/*.cpp")
 add_library(physbuzz SHARED ${ENGINE_SRCS})
 add_compile_definitions(
-  physbuzz GLFW_INCLUDE_NONE # dont include gl, use glad instead
+  physbuzz
+  GLFW_INCLUDE_VULKAN # include vulkan in glfw
   GLM_ENABLE_EXPERIMENTAL # enable glm's quat headers
+  VULKAN_HPP_NO_STRUCT_CONSTRUCTORS # use struct constructors
+  VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 # vulkan extensions
+  VULKAN_HPP_NO_EXCEPTIONS # no throwing hands
 )
 
 target_include_directories(physbuzz PUBLIC ${ENGINE_PATH})
+target_compile_options(physbuzz PRIVATE -Wall -Wextra -Wpedantic)
 
 target_link_libraries(
   physbuzz
@@ -56,17 +61,6 @@ target_link_libraries(
          glfw
          Vulkan::Vulkan
          glm)
-
-# shaders set(RESOURCE_PATH "resources/") file(GLOB_RECURSE SHADERS
-# "${RESOURCE_PATH}/*.slang") find_program(SLANG_EXECUTABLE NAMES slangc)
-#
-# foreach(SHADER ${SHADERS}) get_filename_component(FILE_NAME ${SHADER} NAME)
-# add_custom_command( OUTPUT
-# ${CMAKE_CURRENT_BINARY_DIR}/shaders/${FILE_NAME}.spv COMMAND
-# ${SLANG_EXECUTABLE} -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/${FILE_NAME}.spv
-# ${SHADER} DEPENDS ${SHADER} COMMENT "Compiling shader: ${FILE_NAME}")
-# list(APPEND COMPILED_SHADERS
-# ${CMAKE_CURRENT_BINARY_DIR}/shaders/${FILE_NAME}.spv) endforeach()
 
 add_custom_target(shaders ALL DEPENDS ${COMPILED_SHADERS})
 

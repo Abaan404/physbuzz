@@ -6,7 +6,7 @@
 
 namespace Physbuzz {
 
-Bindings::Bindings(Window *window)
+Bindings::Bindings(const std::shared_ptr<Window> &window)
     : m_Window(window) {}
 
 bool Bindings::build() {

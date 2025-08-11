@@ -15,6 +15,7 @@
 #include "resources/uniforms/window.hpp"
 #include "ui/handler.hpp"
 #include <imgui.h>
+#include <physbuzz/app/application.hpp>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/framebuffer.hpp>
 #include <physbuzz/render/renderers/deferred.hpp>
@@ -24,28 +25,29 @@
 #include <random>
 
 void Game::build() {
+    Physbuzz::App::build();
     Physbuzz::Context::set(this);
-    Physbuzz::Logger::build();
 
-    window.build({1280, 720});
-    window.swapInterval(0);
+    std::shared_ptr<Physbuzz::Window> window = Physbuzz::App::createWindow({}, {1280, 720});
 
     ResourceBuilder resources;
     resources.build();
 
     // notify uniform of window
-    window.addCallback<Physbuzz::WindowResizeEvent>([&](const Physbuzz::WindowResizeEvent &event) {
+    window->addCallback<Physbuzz::WindowResizeEvent>([](const Physbuzz::WindowResizeEvent &event) {
         Physbuzz::Resource<Physbuzz::UniformBuffer<UniformWindow>>("window")->update({
             .resolution = event.resolution,
         });
 
+        Physbuzz::Scene &scene = Physbuzz::App::getGlobalScene();
         scene.getSystem<Physbuzz::Renderer>()->resize(event.resolution);
     });
 
     // track cursor captures
-    window.addCallback<Physbuzz::MousePositionEvent>([&](const Physbuzz::MousePositionEvent &event) {
+    window->addCallback<Physbuzz::MousePositionEvent>([](const Physbuzz::MousePositionEvent &event) {
         static glm::vec2 lastPosition = event.window->getResolution() >> 1;
 
+        Physbuzz::Scene &scene = Physbuzz::App::getGlobalScene();
         std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
         const auto [player, camera, flashlight] = scene.getComponent<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
 
@@ -56,7 +58,7 @@ void Game::build() {
             return;
         }
 
-        window.setCursorCapture(true);
+        event.window->setCursorCapture(true);
 
         const Physbuzz::CameraComponent::Info &info = camera.getInfo();
         glm::quat pitch = glm::angleAxis(glm::radians(offset.x), glm::vec3(0.0f, -1.0f, 0.0f));
@@ -67,7 +69,8 @@ void Game::build() {
     });
 
     // change prespective camera fov when scrolling
-    window.addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
+    window->addCallback<Physbuzz::MouseScrollEvent>([](const Physbuzz::MouseScrollEvent &event) {
+        Physbuzz::Scene &scene = Physbuzz::App::getGlobalScene();
         std::shared_ptr<Physbuzz::Renderer> renderer = scene.getSystem<Physbuzz::Renderer>();
         const auto [player, camera] = scene.getComponent<PlayerComponent, Physbuzz::CameraComponent>(renderer->getInfo().camera);
 
@@ -87,6 +90,9 @@ void Game::build() {
 }
 
 void Game::rebuild() {
+    Physbuzz::Scene &scene = Physbuzz::App::getGlobalScene();
+    const std::shared_ptr<Physbuzz::Window> &window = Physbuzz::App::getWindows().front();
+
     Physbuzz::CameraComponent restoreCamera = {{}};
     for (const auto &[_1, _2, camera] : scene.getComponents<PlayerComponent, Physbuzz::CameraComponent>()) {
         restoreCamera = camera;
@@ -115,7 +121,7 @@ void Game::rebuild() {
                 .view = {
                     .position = {0.0f, 50.0f, 0.0f},
                 },
-                .resolution = window.getResolution(),
+                .resolution = window->getResolution(),
             }},
             .player = {},
         };
@@ -276,12 +282,12 @@ void Game::rebuild() {
     {
         scene.createSystem<Collision>(&scene, 0.9);
         scene.createSystem<Physbuzz::Dynamics>(0.0005);
-        scene.createSystem<Physbuzz::Bindings>(&window);
+        scene.createSystem<Physbuzz::Bindings>(window);
         scene.createSystem<Physbuzz::Clock>();
         scene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
             .type = Physbuzz::Renderer::Type::Deferred,
             .camera = playerObject,
-            .resolution = window.getResolution(),
+            .resolution = window->getResolution(),
             .shadow = {
                 .orthoSize = 1000.0f,
                 .depth = 10000.0f,
@@ -291,7 +297,7 @@ void Game::rebuild() {
             },
         });
         scene.createSystem<InterfaceManager>(InterfaceManager::Info{
-            .window = &window,
+            .window = window,
         });
     }
 }
@@ -299,19 +305,23 @@ void Game::rebuild() {
 void Game::loop() {
     m_IsRunning = true;
 
-    while (m_IsRunning && !window.shouldClose()) {
+    Physbuzz::Scene &scene = Physbuzz::App::getGlobalScene();
+    const std::shared_ptr<Physbuzz::Window> &window = Physbuzz::App::getWindows().front();
+
+    while (m_IsRunning && !window->shouldClose()) {
         auto clock = scene.getSystem<Physbuzz::Clock>();
         Physbuzz::Resource<Physbuzz::UniformBuffer<UniformTime>>("time")->update({
             .time = clock->getTime(),
             .timedelta = clock->getDelta(),
         });
 
+        window->poll();
+
         // scene.tickSystem<Physbuzz::Dynamics, Collision>();
         scene.tickSystem<Physbuzz::Bindings>();
         scene.tickSystem<Physbuzz::Clock>();
         scene.tickSystem<Physbuzz::Renderer>();
         // scene.tickSystem<InterfaceManager>();
-        window.flip();
     }
 }
 
@@ -323,8 +333,7 @@ void Game::destroy() {
 
     m_IsRunning = false;
 
-    scene.clear();
-    window.destroy();
+    Physbuzz::App::destroy();
 }
 
 int main() {
