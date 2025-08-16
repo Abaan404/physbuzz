@@ -5,15 +5,15 @@
 #include <physbuzz/render/renderer.hpp>
 
 inline Physbuzz::ShaderPipeline shaderGamma = {{
-    .vertex = {.file = {.path = "resources/shaders/gamma/gamma.vert"}},
-    .tessControl = {},
-    .tessEvaluation = {},
-    .geometry = {},
-    .fragment = {.file = {.path = "resources/shaders/gamma/gamma.frag"}},
-    .compute = {},
-    .draw = [](const Physbuzz::ShaderPipeline *, Physbuzz::Scene &, Physbuzz::ObjectID) {
-        for (const auto &[mesh, _] : Physbuzz::Builtin::MeshRendererScreenQuad::Resource->getMeshs()) {
-            mesh.draw();
-        }
-    },
+    // .vertex = {.file = {.path = "resources/shaders/gamma/gamma.vert"}},
+    // .tessControl = {},
+    // .tessEvaluation = {},
+    // .geometry = {},
+    // .fragment = {.file = {.path = "resources/shaders/gamma/gamma.frag"}},
+    // .compute = {},
+    // .draw = [](const Physbuzz::ShaderPipeline *, const std::shared_ptr<Physbuzz::RenderCommand> &, Physbuzz::Scene &, Physbuzz::ObjectID ) {
+    //     for (const auto &[mesh, _] : Physbuzz::Builtin::MeshRendererScreenQuad::Resource->getMeshs()) {
+    //         mesh.draw();
+    //     }
+    // },
 }};

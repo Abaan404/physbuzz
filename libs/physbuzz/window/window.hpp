@@ -39,7 +39,7 @@ class Window : public EventSubject {
     void close() const;
     void flip() const;
     bool shouldClose() const;
-    void poll();
+    void poll() const;
 
     void setCursorCapture(bool capture) const;
 
@@ -52,24 +52,31 @@ class Window : public EventSubject {
     const Info &getInfo() const;
 
   private:
-    static bool init();
-    static bool terminate();
-    static std::vector<const char *> requiredExtensions();
-
-    // these functions can only be called with App::createWindow()
-    bool build(const vk::Instance &instance, const glm::ivec2 &resolution);
-    bool destroy();
-
-    GLFWwindow *m_Window = nullptr;
-    vk::SurfaceKHR m_Surface = nullptr;
-
-    // Vulkan objects (created by App)
-    vk::SwapchainKHR m_SwapChain = nullptr;
-    std::vector<vk::ImageView> m_SwapChainViews = {};
+    void buildSwapChain();
+    void destroySwapChain();
+    void recreateSwapChain();
 
     Info m_Info;
+    GLFWwindow *m_Window = nullptr;
+
+    vk::SurfaceKHR m_Surface = nullptr;
+    vk::SwapchainKHR m_SwapChain = nullptr;
+    std::vector<vk::Image> m_SwapChainImages = {};
+    std::vector<vk::ImageView> m_SwapChainImageViews = {};
+
+    bool m_FramebufferResized = false;
 
     friend class App;
+    friend class Renderer;
+
+    // these functions can only be called by App()
+    static bool init();
+    static bool quit();
+
+    bool build(const glm::ivec2 &resolution);
+    bool destroy();
+
+    static std::vector<const char *> requiredExtensions();
 };
 
 } // namespace Physbuzz

@@ -1,15 +1,20 @@
 #include "application.hpp"
+
+#include "../debug/macros.hpp"
 #include <algorithm>
 #include <array>
 #include <glm/common.hpp>
 #include <map>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 
-#ifndef NDEBUG
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+
+#if !defined(NDEBUG)
 #define ENABLE_VALIDATION_LAYERS
 #endif
 
-VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+namespace Physbuzz {
 
 static VKAPI_ATTR vk::Bool32 VKAPI_CALL vulkanDebugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
     if (pCallbackData->pMessage == nullptr) {
@@ -34,13 +39,9 @@ static VKAPI_ATTR vk::Bool32 VKAPI_CALL vulkanDebugCallback(vk::DebugUtilsMessag
     return vk::False;
 }
 
-namespace Physbuzz {
-
-bool App::build() {
-    VULKAN_HPP_DEFAULT_DISPATCHER.init();
-
+bool App::init() {
     // setup logging
-    Logger::build();
+    Logger::init();
 
     // init glfw
     if (!Window::init()) {
@@ -51,16 +52,13 @@ bool App::build() {
     // Get the required instance extensions from GLFW.
     std::vector<const char *> extensions = Window::requiredExtensions();
 
+    VULKAN_HPP_DEFAULT_DISPATCHER.init();
+
 #ifdef ENABLE_VALIDATION_LAYERS
     extensions.emplace_back(vk::EXTDebugUtilsExtensionName);
 #endif
 
-    // Check if the required GLFW extensions are supported by the Vulkan implementation.
-    auto [extensionPropertiesResult, extensionProperties] = vk::enumerateInstanceExtensionProperties();
-    if (extensionPropertiesResult != vk::Result::eSuccess) {
-        Logger::CRITICAL("[App] Could not query loaded vulkan extensions.");
-        return false;
-    }
+    std::vector<vk::ExtensionProperties> extensionProperties = PBZ_VK_CHECK(vk::enumerateInstanceExtensionProperties());
 
     for (const auto &extension : extensions) {
         bool success = std::ranges::none_of(extensionProperties, [extension](const VkExtensionProperties &extensionProperty) {
@@ -77,10 +75,10 @@ bool App::build() {
     constexpr vk::ApplicationInfo appInfo = {
         .pNext = nullptr,
         .pApplicationName = "Game",
-        .applicationVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
+        .applicationVersion = vk::makeApiVersion(0, 0, 1, 0),
         .pEngineName = "Physbuzz",
-        .engineVersion = VK_MAKE_API_VERSION(0, 0, 3, 0),
-        .apiVersion = VK_API_VERSION_1_0,
+        .engineVersion = vk::makeApiVersion(0, 0, 3, 0),
+        .apiVersion = vk::ApiVersion14,
     };
 
     vk::InstanceCreateInfo createInfo = {
@@ -89,12 +87,12 @@ bool App::build() {
         .ppEnabledExtensionNames = extensions.data(),
     };
 
-    if (vk::createInstance(&createInfo, nullptr, &m_Instance) != vk::Result::eSuccess) {
+    if (vk::createInstance(&createInfo, nullptr, &Instance) != vk::Result::eSuccess) {
         Logger::ERROR("[App] Failed to create vulkan instance.");
         return false;
     }
 
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Instance);
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(Instance);
 
 #ifdef ENABLE_VALIDATION_LAYERS
     vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoEXT{
@@ -108,30 +106,24 @@ bool App::build() {
                        vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
         .pfnUserCallback = &vulkanDebugCallback};
 
-    auto [debugMessengerResult, debugMessenger] = m_Instance.createDebugUtilsMessengerEXT(debugUtilsMessengerCreateInfoEXT);
+    auto [debugMessengerResult, debugMessenger] = Instance.createDebugUtilsMessengerEXT(debugUtilsMessengerCreateInfoEXT);
     if (debugMessengerResult != vk::Result::eSuccess) {
         Logger::WARNING("[App] Failed to load debug validation layers.");
     } else {
-        m_DebugMessanger = debugMessenger;
+        DebugMessenger = debugMessenger;
     }
 #endif
 
     // get the device
-    auto [devicesResult, devices] = m_Instance.enumeratePhysicalDevices();
-
-    if (devicesResult != vk::Result::eSuccess) {
-        Logger::CRITICAL("[App] Could not query physical vulkan devices.");
-        return false;
-    }
+    std::vector<vk::PhysicalDevice> devices = PBZ_VK_CHECK(Instance.enumeratePhysicalDevices());
 
     if (devices.empty()) {
         Logger::CRITICAL("[App] No GPU supporting Vulkan found.");
         return false;
     }
 
-    std::multimap<int, vk::PhysicalDevice> deviceCandidates;
-
     // find an appropriate device
+    std::multimap<int, vk::PhysicalDevice> deviceCandidates;
     for (const auto &device : devices) {
         auto deviceProperties = device.getProperties();
         uint32_t score = 0;
@@ -151,16 +143,16 @@ bool App::build() {
         deviceCandidates.insert({score, device});
     }
 
-    auto [score, physicalDevice] = *deviceCandidates.rbegin();
+    const auto [score, physicalDevice] = *deviceCandidates.rbegin();
     if (score <= 0) {
         Logger::CRITICAL("[App] failed to find a suitable GPU!.");
         return false;
     }
 
-    m_PhysicalDevice = physicalDevice;
+    PhysicalDevice = physicalDevice;
 
     // find the needed queues
-    std::vector<vk::QueueFamilyProperties> queueFamilyProperties = m_PhysicalDevice.getQueueFamilyProperties();
+    std::vector<vk::QueueFamilyProperties> queueFamilyProperties = PhysicalDevice.getQueueFamilyProperties();
 
     m_Indices.graphics = 0;
     for (const auto &props : queueFamilyProperties) {
@@ -182,7 +174,7 @@ bool App::build() {
 
     vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> deviceFeatureChain = {
         {
-            m_PhysicalDevice.getFeatures2(),
+            PhysicalDevice.getFeatures2(),
         },
         {
             .dynamicRendering = true, // Enable dynamic rendering from Vulkan 1.3
@@ -217,192 +209,80 @@ bool App::build() {
         .ppEnabledExtensionNames = deviceExtensions.data(),
     };
 
-    auto [deviceResult, device] = m_PhysicalDevice.createDevice(deviceCreateInfo);
+    Device = PBZ_VK_CHECK(PhysicalDevice.createDevice(deviceCreateInfo));
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(Device);
 
-    if (deviceResult != vk::Result::eSuccess) {
-        Logger::CRITICAL("[App] Failed to create a logical vulkan device.");
-        return false;
-    }
-
-    m_Device = device;
-    m_GraphicsQueue = m_Device.getQueue(m_Indices.graphics, 0);
-    m_PresentQueue = m_Device.getQueue(m_Indices.present, 0);
+    GraphicsQueue = Device.getQueue(m_Indices.graphics, 0);
+    PresentQueue = Device.getQueue(m_Indices.present, 0);
 
     return true;
 }
 
-bool App::destroy() {
-    m_Scene.clear();
-
-    for (auto &window : m_Windows) {
-        window->destroy();
+bool App::quit() {
+    {
+        vk::Result result = App::Device.waitIdle();
+        if (result != vk::Result::eSuccess) {
+            Logger::CRITICAL("[App] Failed to wait for device resources to be freed.");
+        }
     }
 
-    if (!Window::terminate()) {
-        Logger::ERROR("[App] Failed to terminate windowing.");
+    GlobalScene.clear();
+
+    for (auto &[name, _] : m_Windows) {
+        if (!getWindow(name)->destroy()) {
+            Logger::ERROR("[App] Failed to destroy window.");
+        }
+    }
+
+    m_Windows.clear();
+
+    if (!Window::quit()) {
+        Logger::ERROR("[App] Failed to destroy GLFW.");
         return false;
     }
 
-    m_Device.destroy();
-    m_Instance.destroy();
+#ifdef ENABLE_VALIDATION_LAYERS
+    Instance.destroyDebugUtilsMessengerEXT(DebugMessenger);
+    DebugMessenger = nullptr;
+#endif
+
+    Device.destroy();
+    Device = nullptr;
+
+    Instance.destroy();
+    Instance = nullptr;
 
     return true;
 }
 
-std::shared_ptr<Window> App::createWindow(const Window::Info &windowInfo, const glm::ivec2 &resolution) {
-    m_Windows.emplace_back(std::make_shared<Window>(windowInfo));
+std::shared_ptr<Window> App::createWindow(const std::string &name, const Window::Info &windowInfo, const glm::ivec2 &resolution) {
+    m_Windows[name] = std::make_shared<Window>(windowInfo);
 
-    std::shared_ptr<Window> &window = m_Windows.back();
-    if (!window->build(m_Instance, resolution)) {
+    if (!m_Windows[name]->build(resolution)) {
         Logger::CRITICAL("[App] Could not create a window.");
         return nullptr;
     }
 
-    auto [surfaceSupportResult, surfaceSupport] = m_PhysicalDevice.getSurfaceSupportKHR(m_Indices.present, window->m_Surface);
-
-    // test queue
-    if (surfaceSupportResult != vk::Result::eSuccess) {
-        Logger::CRITICAL("[App] Could not query present queue support.");
-        destroyWindow(window);
-        return nullptr;
-    }
-
-    if (!surfaceSupport) {
-        Logger::CRITICAL("[App] Graphics and present queue indices do not match, submit a bug report.");
-        destroyWindow(window);
-        return nullptr;
-    }
-
-    // setup swapchain
-    auto [surfaceCapabilitiesResult, surfaceCapabilities] = m_PhysicalDevice.getSurfaceCapabilitiesKHR(window->m_Surface);
-    if (surfaceCapabilitiesResult != vk::Result::eSuccess) {
-        Logger::CRITICAL("[App] Could not query surface capabilities.");
-        destroyWindow(window);
-        return nullptr;
-    }
-
-    auto [availableFormatsResult, availableFormats] = m_PhysicalDevice.getSurfaceFormatsKHR(window->m_Surface);
-    if (surfaceCapabilitiesResult != vk::Result::eSuccess) {
-        Logger::CRITICAL("[App] Could not query available surface formats.");
-        destroyWindow(window);
-        return nullptr;
-    }
-
-    auto [availablePresentModesResult, availablePresentModes] = m_PhysicalDevice.getSurfacePresentModesKHR(window->m_Surface);
-    if (availablePresentModesResult != vk::Result::eSuccess) {
-        Logger::CRITICAL("[App] Could not query available surface modes.");
-        destroyWindow(window);
-        return nullptr;
-    }
-
-    // setup format
-    {
-        auto it = std::find_if(availableFormats.begin(), availableFormats.end(), [&](const vk::SurfaceFormatKHR &format) {
-            return format.format == window->m_Info.swapChain.format && format.colorSpace == window->m_Info.swapChain.colorSpace;
-        });
-
-        vk::SurfaceFormatKHR surfaceFormat = (it != availableFormats.end()) ? *it : availableFormats.front();
-        window->m_Info.swapChain.format = surfaceFormat.format;
-        window->m_Info.swapChain.colorSpace = surfaceFormat.colorSpace;
-    }
-
-    // and present mode
-    {
-        auto it = std::find_if(availablePresentModes.begin(), availablePresentModes.end(), [&](vk::PresentModeKHR presentMode) {
-            return presentMode == window->m_Info.swapChain.presentMode;
-        });
-
-        window->m_Info.swapChain.presentMode = (it != availablePresentModes.end()) ? *it : vk::PresentModeKHR::eFifo;
-    }
-
-    // glm::clamp()
-
-    auto minImageCount = std::max(3u, surfaceCapabilities.minImageCount);
-    if (surfaceCapabilities.maxImageCount > 0 && minImageCount > surfaceCapabilities.maxImageCount) {
-        minImageCount = surfaceCapabilities.maxImageCount;
-    }
-
-    vk::SwapchainCreateInfoKHR swapChainCreateInfo = {
-        .flags = vk::SwapchainCreateFlagsKHR(),
-        .surface = window->m_Surface,
-        .minImageCount = minImageCount,
-        .imageFormat = window->m_Info.swapChain.format,
-        .imageColorSpace = window->m_Info.swapChain.colorSpace,
-        .imageExtent = {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)},
-        .imageArrayLayers = 1,
-        .imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
-        .imageSharingMode = vk::SharingMode::eExclusive,
-        .preTransform = surfaceCapabilities.currentTransform,
-        .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
-        .presentMode = window->m_Info.swapChain.presentMode,
-        .clipped = true,
-        .oldSwapchain = nullptr,
-    };
-
-    auto [swapChainResult, swapChain] = m_Device.createSwapchainKHR(swapChainCreateInfo);
-    if (swapChainResult != vk::Result::eSuccess) {
-        Logger::CRITICAL("[App] Failed to create swapchain.");
-        destroyWindow(window);
-        return nullptr;
-    }
-
-    window->m_SwapChain = swapChain;
-    window->m_SwapChainViews.clear();
-
-    vk::ImageViewCreateInfo imageViewCreateInfo = {
-        .viewType = vk::ImageViewType::e2D,
-        .format = window->m_Info.swapChain.format,
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-        },
-    };
-
-    auto [swapChainImagesResult, swapChainImages] = m_Device.getSwapchainImagesKHR(window->m_SwapChain);
-    if (swapChainImagesResult != vk::Result::eSuccess) {
-        Logger::CRITICAL("[App] Could not query swapchain images.");
-        destroyWindow(window);
-        return nullptr;
-    }
-
-    for (auto image : swapChainImages) {
-        imageViewCreateInfo.image = image;
-        auto [imageViewResult, imageView] = m_Device.createImageView(imageViewCreateInfo);
-
-        if (imageViewResult != vk::Result::eSuccess) {
-            Logger::CRITICAL("[App] Could not query swapchain images view.");
-            destroyWindow(window);
-            return nullptr;
-        }
-
-        window->m_SwapChainViews.push_back(imageView);
-    }
-
-    return window;
+    return m_Windows[name];
 }
 
-bool App::destroyWindow(const std::shared_ptr<Window> &window) {
-    auto windowIt = std::find(m_Windows.begin(), m_Windows.end(), window);
-    if (windowIt == m_Windows.end()) {
+bool App::destroyWindow(const std::string &name) {
+    if (!m_Windows.contains(name)) {
         return false;
     }
 
-    window->m_SwapChainViews.clear();
-    window->destroy();
+    m_Windows[name]->destroy();
+    m_Windows.erase(name);
 
-    m_Windows.erase(windowIt);
     return true;
 }
 
-const std::list<std::shared_ptr<Window>> &App::getWindows() {
-    return m_Windows;
-}
+std::shared_ptr<Window> App::getWindow(const std::string &name) {
+    if (!m_Windows.contains(name)) {
+        return nullptr;
+    }
 
-Scene &App::getGlobalScene() {
-    return m_Scene;
+    return m_Windows[name];
 }
 
 } // namespace Physbuzz

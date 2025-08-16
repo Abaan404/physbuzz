@@ -3,17 +3,19 @@
 #include "../debug/logging.hpp"
 #include "../ecs/defines.hpp"
 #include "../io/file.hpp"
+#include "../render/renderers/defines.hpp"
 #include "../resources/defines.hpp"
 #include <glm/glm.hpp>
-#include <set>
 #include <string>
+#include <unordered_map>
+#include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
 
 class Scene;
 
 template <typename T>
-concept UniformType =
+concept ShaderPODType =
     std::same_as<T, float> ||
     std::same_as<T, glm::vec2> ||
     std::same_as<T, glm::vec3> ||
@@ -36,60 +38,29 @@ concept UniformType =
     std::same_as<T, glm::mat3x4> ||
     std::same_as<T, glm::mat4x3>;
 
-class Shader {
-  public:
-    enum class Type {
-        Vertex,
-        TessControl,
-        TessEvaluation,
-        Geometry,
-        Fragment,
-        Compute,
-        Unknown,
-    };
-
-    struct Info {
-        File::Info file;
-    };
-
-    Shader(const Info &info, const Type &type);
-    ~Shader();
-
-    bool build();
-    bool destroy();
-
-    bool compile();
-
-    void attach(std::uint32_t program) const;
-    void detach(std::uint32_t program) const;
-
-  private:
-    const std::string preprocess(const File &file);
-    bool preprocessInclude(const File &file, std::string &output, std::size_t position);
-
-    std::uint32_t m_Shader = 0;
-    Type m_Type = Type::Unknown;
-
-    std::set<std::filesystem::path> m_Paths;
-
-    Info m_Info;
-
-    friend class ShaderPipeline;
-};
-
 class ShaderPipeline {
   public:
-    struct Info {
-        Shader::Info vertex;
-        Shader::Info tessControl;
-        Shader::Info tessEvaluation;
-        Shader::Info geometry;
-        Shader::Info fragment;
-        Shader::Info compute;
+    using Stage = vk::ShaderStageFlagBits;
+    using DynamicState = vk::DynamicState;
+    using PrimitiveTopology = vk::PrimitiveTopology;
 
-        void (*draw)(const ShaderPipeline *, Scene &, ObjectID) = [](const ShaderPipeline *, Scene &, ObjectID id) {
-            Logger::WARNING("[ShaderPipeline] Uninitialized draw calls for object '{}'", id);
-        };
+    struct Shader {
+        std::string entrypoint;
+    };
+
+    struct Info {
+        File::Info module;
+        PrimitiveTopology topology = PrimitiveTopology::eTriangleList;
+
+        std::unordered_map<std::uint32_t, std::vector<std::byte>> specializations = {};
+        std::unordered_map<Stage, Shader> shaders;
+
+        std::vector<DynamicState> states = {};
+
+        void (*draw)(const ShaderPipeline *, const RenderCommand &command, Scene &, ObjectID) =
+            [](const ShaderPipeline *, const RenderCommand &, Scene &, ObjectID id) {
+                Logger::WARNING("[ShaderPipeline] Uninitialized draw calls for object '{}'", id);
+            };
     };
 
     ShaderPipeline(const Info &info);
@@ -99,12 +70,11 @@ class ShaderPipeline {
     bool destroy();
 
     bool reload();
-    void draw(Scene &scene, ObjectID object) const;
+    void draw(const RenderCommand &command, Scene &scene, ObjectID object) const;
 
-    void bind() const;
-    void unbind() const;
+    void bind(const RenderCommand &command) const;
 
-    template <UniformType T>
+    template <ShaderPODType T>
     inline void setUniform(const std::string &, const T &) const {
         // setUniformInternal(glGetUniformLocation(m_Program, name.c_str()), data);
     }
@@ -112,7 +82,8 @@ class ShaderPipeline {
     const Info &getInfo() const;
 
   private:
-    std::uint32_t m_Program = 0;
+    vk::PipelineLayout m_Layout = nullptr;
+    vk::Pipeline m_Pipeline = nullptr;
 
     bool m_FailedReload = false;
     bool m_RequestedReload = false;

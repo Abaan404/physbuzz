@@ -8,7 +8,7 @@ namespace Physbuzz {
 template <typename T>
 concept UniformBufferType =
     std::is_class_v<T> &&
-    std::is_trivial_v<T> &&
+    std::is_trivially_copyable_v<T> &&
     std::is_standard_layout_v<T>;
 
 template <UniformBufferType T>

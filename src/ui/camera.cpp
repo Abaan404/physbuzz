@@ -31,7 +31,7 @@ void Camera::draw() {
     static int currentProjection = static_cast<int>(info.projection);
 
     if (ImGui::Combo("projection", &currentProjection, projections, IM_ARRAYSIZE(projections))) {
-        glm::vec2 resolution = renderer->getInfo().resolution;
+        glm::vec2 resolution = info.resolution;
         switch (currentProjection) {
         case 0: // Perspective
             info.projection = Physbuzz::CameraComponent::Projection::Perspective;

@@ -43,7 +43,7 @@ namespace UniformRendererCamera {
 
 struct Format {
     glm::vec3 position;
-    float _padding0;
+    float _padding0 = 0;
     glm::mat4x4 view;
     glm::mat4x4 projection;
 };
@@ -68,15 +68,14 @@ class Renderer : public System<> {
     };
 
     struct Info {
-        bool passthrough = true;
         Type type = Type::Deferred;
         ObjectID camera = -1;
-        glm::ivec2 resolution = {1, 1};
 
         ForwardRenderer::Info forward = {};
         DeferredRenderer::Info deferred = {};
         Shadow::Info shadow = {};
 
+        std::shared_ptr<Window> window;
         std::vector<Resource<ShaderPipeline>> postProcessing = {};
     };
 
@@ -97,14 +96,25 @@ class Renderer : public System<> {
 
   private:
     std::shared_ptr<IRenderer> getRenderer() const;
-    bool buildRenderer();
-    bool destroyRenderer();
+    bool buildSystems();
+    bool destroySystems();
 
     Info m_Info;
 
+    RenderCommand m_Command;
+
     struct {
-        EventID resize;
-    } m_Events;
+        std::vector<vk::Semaphore> presentComplete = {};
+        std::vector<vk::Semaphore> renderFinished = {};
+    } m_Semaphores = {};
+
+    struct {
+        std::vector<vk::Fence> inFlight = {};
+    } m_Fence = {};
+
+    struct {
+        EventID resize = -1;
+    } m_Events = {};
 };
 
 } // namespace Physbuzz

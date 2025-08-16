@@ -1,6 +1,6 @@
 #include "texture.hpp"
 
-#include "../debug/logging.hpp"
+#include "../debug/macros.hpp"
 
 namespace Physbuzz {
 

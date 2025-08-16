@@ -30,7 +30,7 @@ class ForwardRenderer : public IRenderer,
     struct Info {
     };
 
-    ForwardRenderer(const Info &info, const glm::ivec2 &resolution);
+    ForwardRenderer(const Info &info, const glm::ivec2 &resolution, const RenderCommand &command);
 
     bool build() override;
     bool destroy() override;

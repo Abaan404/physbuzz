@@ -1,6 +1,6 @@
 #include "framebuffer.hpp"
 
-#include "../debug/logging.hpp"
+#include "../debug/macros.hpp"
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Physbuzz {

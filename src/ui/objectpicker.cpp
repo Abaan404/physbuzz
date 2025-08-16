@@ -43,8 +43,8 @@ ObjectPicker::ObjectPicker(Physbuzz::Scene *scene)
     Skybox skybox;
 
     m_PickerScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
-        .passthrough = false,
-        .resolution = {m_PreviewSize.x, m_PreviewSize.y},
+        // .passthrough = false,
+        // .resolution = {m_PreviewSize.x, m_PreviewSize.y},
     });
 
     ObjectBuilder::create(m_PickerScene, circle);

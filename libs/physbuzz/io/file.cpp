@@ -17,25 +17,21 @@ bool File::destroy() {
 }
 
 bool File::read() {
-    std::ifstream stream = std::ifstream(m_Info.path, std::ios::in | std::ios::binary);
-
+    std::ifstream stream(m_Info.path, std::ios::in | std::ios::binary);
     if (!stream.is_open()) {
         Logger::ERROR("[File] Failed to open file: {}", m_Info.path.string());
         return false;
     }
 
     stream.seekg(0, std::ios::end);
-    m_Data.size = stream.tellg();
+    m_Data.buffer.resize(stream.tellg());
     stream.seekg(0, std::ios::beg);
 
-    m_Data.buffer.resize(m_Data.size);
-    stream.read(m_Data.buffer.data(), m_Data.buffer.size());
-    if (*m_Data.buffer.end() != '\0') {
-        m_Data.buffer.push_back('\0');
-    }
+    stream.read(reinterpret_cast<char *>(m_Data.buffer.data()), m_Data.buffer.size());
 
-    if (stream.fail()) {
+    if (!stream) {
         Logger::ERROR("[File] Failed to read file: {}", m_Info.path.string());
+        m_Data.buffer.clear();
         return false;
     }
 
@@ -50,7 +46,7 @@ bool File::write() {
         return false;
     }
 
-    stream.write(m_Data.buffer.data(), m_Data.buffer.size());
+    stream.write(reinterpret_cast<char *>(m_Data.buffer.data()), m_Data.buffer.size());
 
     if (stream.fail()) {
         Logger::ERROR("[File] Failed to write file: {}", m_Info.path.string());

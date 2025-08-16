@@ -53,7 +53,7 @@ class DeferredRenderer : public IRenderer,
         } passes = {};
     };
 
-    DeferredRenderer(const Info &info, const glm::ivec2 &resolution);
+    DeferredRenderer(const Info &info, const glm::ivec2 &resolution, const RenderCommand &command);
 
     bool build() override;
     bool destroy() override;
@@ -68,8 +68,9 @@ class DeferredRenderer : public IRenderer,
     const Info &getInfo() const;
 
   private:
-    Framebuffers m_Framebuffers;
     Info m_Info;
+
+    Framebuffers m_Framebuffers;
 };
 
 } // namespace Physbuzz

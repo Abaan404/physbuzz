@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../debug/logging.hpp"
+#include "../debug/macros.hpp"
 #include <set>
 #include <unordered_map>
 #include <vector>

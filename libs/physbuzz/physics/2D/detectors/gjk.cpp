@@ -1,6 +1,6 @@
 #include "gjk.hpp"
 
-#include "../../../debug/logging.hpp"
+#include "../../../debug/macros.hpp"
 #include "../../../ecs/scene.hpp"
 #include "../../../physics/dynamics.hpp"
 #include <limits>
@@ -85,7 +85,7 @@ bool Gjk2D::nextSimplex(Simplex &simplex, glm::vec3 &direction) {
         return triangle(simplex, direction);
     }
 
-    UNREACHABLE("Invalid Simplex.");
+    PBZ_UNREACHABLE("Invalid Simplex.");
 }
 
 bool Gjk2D::line(Simplex &simplex, glm::vec3 &direction) {

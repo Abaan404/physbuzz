@@ -2,33 +2,31 @@
 
 #include "../ecs/scene.hpp"
 #include "../window/window.hpp"
-#include <list>
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
 
 class App {
   public:
-    static bool build();
-    static bool destroy();
+    static bool init();
+    static bool quit();
 
-    static Scene &getGlobalScene();
+    // windowing
+    static std::shared_ptr<Window> createWindow(const std::string &name, const Window::Info &windowInfo, const glm::ivec2 &resolution);
+    static bool destroyWindow(const std::string &name);
+    static std::shared_ptr<Window> getWindow(const std::string &name);
 
-    static std::shared_ptr<Window> createWindow(const Window::Info &windowInfo, const glm::ivec2 &resolution);
-    static bool destroyWindow(const std::shared_ptr<Window> &window);
-    static const std::list<std::shared_ptr<Window>> &getWindows();
+    // global ECS registry
+    inline static Scene GlobalScene;
 
   private:
-    // ECS registry
-    inline static Scene m_Scene;
-
     // Vulkan instances and extensions
-    inline static vk::Instance m_Instance = nullptr;
-    inline static vk::DebugUtilsMessengerEXT m_DebugMessanger = nullptr;
+    inline static vk::Instance Instance = nullptr;
+    inline static vk::DebugUtilsMessengerEXT DebugMessenger = nullptr;
 
     // Device info
-    inline static vk::PhysicalDevice m_PhysicalDevice = nullptr;
-    inline static vk::Device m_Device = nullptr;
+    inline static vk::PhysicalDevice PhysicalDevice = nullptr;
+    inline static vk::Device Device = nullptr;
 
     inline static struct {
         std::uint32_t graphics;
@@ -38,17 +36,15 @@ class App {
         .present = 0,
     };
 
-    inline static vk::Queue m_GraphicsQueue = nullptr;
-    inline static vk::Queue m_PresentQueue = nullptr;
-
-    // inline static struct {
-    //     vk::Queue queue;
-    //     std::uint32_t familyIndex;
-    //     float priority;
-    // } m_GraphicsQueue = {};
+    inline static vk::Queue GraphicsQueue = nullptr;
+    inline static vk::Queue PresentQueue = nullptr;
 
     // windows
-    inline static std::list<std::shared_ptr<Window>> m_Windows;
+    inline static std::unordered_map<std::string, std::shared_ptr<Window>> m_Windows;
+
+    friend class Window;
+    friend class ShaderPipeline;
+    friend class Renderer;
 };
 
 } // namespace Physbuzz

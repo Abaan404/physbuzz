@@ -12,8 +12,7 @@ class File {
     };
 
     struct Data {
-        std::string buffer;
-        std::streampos size = 0;
+        std::vector<std::uint8_t> buffer;
     };
 
     File(const Info &file);

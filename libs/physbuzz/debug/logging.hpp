@@ -5,42 +5,11 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#if defined(_MSC_VER)
-#define BREAKPOINT() __debugbreak()
-#elif defined(__clang__) || defined(__GNUC__)
-#define BREAKPOINT() __builtin_trap()
-#else
-#include <csignal>
-#define BREAKPOINT() std::raise(SIGTRAP)
-#endif
-
-#if defined(NDEBUG)
-#define PBZ_ASSERT
-#else
-#define PBZ_ASSERT(condition, message)                                                                          \
-    do {                                                                                                        \
-        if (!(condition)) {                                                                                     \
-            ::Physbuzz::Logger::ERROR("[assert] {} -> {} (in {}:{})", #condition, message, __FILE__, __LINE__); \
-            BREAKPOINT();                                                                                       \
-        }                                                                                                       \
-    } while (false)
-#endif
-
-#if defined(NDEBUG)
-#define UNREACHABLE
-#else
-#define UNREACHABLE(message)                                                                   \
-    do {                                                                                       \
-        ::Physbuzz::Logger::ERROR("[unreachable] {} (in {}:{})", message, __FILE__, __LINE__); \
-        __builtin_unreachable();                                                               \
-    } while (false)
-#endif
-
 namespace Physbuzz {
 
 class Logger {
   public:
-    static void build() {
+    static void init() {
         m_Console->set_level(spdlog::level::debug);
         m_Console->set_pattern("[%H:%M:%S] %^[%g%l] %v%$");
     }

@@ -107,7 +107,7 @@ class Scene : public EventSubject {
         return m_SystemManager.get<T>();
     }
 
-    template <SystemType... T>
+    template <SystemTickable... T>
     inline void tickSystem() {
         m_SystemManager.tick<T...>();
     }
