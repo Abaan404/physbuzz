@@ -7,43 +7,32 @@
 
 namespace Physbuzz {
 
-namespace Builtin {
-
-bool ModelVertexDefault::build() {
-    if (ResourceRegistry<VertexAttribute>::contains(Resource.getIdentifier())) {
-        return true;
-    }
-
-    return ResourceRegistry<VertexAttribute>::insert(
-        Resource.getIdentifier(),
-        {{
-            .attributes = {
-                {
-                    .type = Types::Float,
-                    .size = sizeof(Format::position) / sizeof(decltype(Format::position)::value_type),
-                    .offset = offsetof(Format, position),
-                },
-                {
-                    .type = Types::Float,
-                    .size = sizeof(Format::normal) / sizeof(decltype(Format::normal)::value_type),
-                    .offset = offsetof(Format, normal),
-                },
-                {
-                    .type = Types::Float,
-                    .size = sizeof(Format::tangent) / sizeof(decltype(Format::tangent)::value_type),
-                    .offset = offsetof(Format, tangent),
-                },
-                {
-                    .type = Types::Float,
-                    .size = sizeof(Format::texCoords) / sizeof(decltype(Format::texCoords)::value_type),
-                    .offset = offsetof(Format, texCoords),
-                },
-            },
-            .size = sizeof(Format),
-        }});
-}
-
-} // namespace Builtin
+VertexDescription Model::Vertex::Description = {{
+    .attributes = {
+        {
+            .format = VertexDescription::Format::eR32G32B32Sfloat,
+            .size = sizeof(Vertex::position) / sizeof(decltype(Vertex::position)::value_type),
+            .offset = offsetof(Vertex, position),
+        },
+        {
+            .format = VertexDescription::Format::eR32G32B32Sfloat,
+            .size = sizeof(Vertex::normal) / sizeof(decltype(Vertex::normal)::value_type),
+            .offset = offsetof(Vertex, normal),
+        },
+        {
+            .format = VertexDescription::Format::eR32G32B32Sfloat,
+            .size = sizeof(Vertex::tangent) / sizeof(decltype(Vertex::tangent)::value_type),
+            .offset = offsetof(Vertex, tangent),
+        },
+        {
+            .format = VertexDescription::Format::eR32G32Sfloat,
+            .size = sizeof(Vertex::texCoords) / sizeof(decltype(Vertex::texCoords)::value_type),
+            .offset = offsetof(Vertex, texCoords),
+        },
+    },
+    .size = sizeof(Vertex),
+    .binding = 0,
+}};
 
 Model::Model(const Info &info)
     : m_Info(info) {}
@@ -53,8 +42,6 @@ bool Model::build() {
 
     // if supplied a path, load the model from the filesystem
     if (!m_Info.path.empty()) {
-        success &= Builtin::ModelVertexDefault::build();
-
         Assimp::Importer importer;
         const aiScene *scene = importer.ReadFile(m_Info.path, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -69,7 +56,7 @@ bool Model::build() {
         success &= mesh.build();
     }
 
-    return true;
+    return success;
 }
 
 bool Model::destroy() {
@@ -78,6 +65,24 @@ bool Model::destroy() {
     }
 
     return true;
+}
+
+void Model::draw(const vk::CommandBuffer &commandBuffer) {
+    for (const auto &[mesh, _] : m_Info.meshes) {
+        mesh.draw(commandBuffer);
+    }
+}
+
+const std::vector<std::tuple<Mesh, Model::Meta>> &Model::getMeshs() const {
+    return m_Info.meshes;
+}
+
+const std::vector<Resource<Texture2D>> &Model::getTextures() const {
+    return m_Info.textures;
+}
+
+std::string Model::getTextureTypeName(TextureType texture) {
+    return aiTextureTypeToString(static_cast<aiTextureType>(texture));
 }
 
 bool Model::processNode(const aiNode *ainode, const aiScene *aiscene) {
@@ -94,8 +99,7 @@ bool Model::processNode(const aiNode *ainode, const aiScene *aiscene) {
 }
 
 bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
-    Mesh::Info<Builtin::ModelVertexDefault::Format> mesh = {
-        .attribute = Builtin::ModelVertexDefault::Resource,
+    Mesh::Info<Vertex> mesh = {
         .vertices = {},
         .indices = {},
     };
@@ -177,18 +181,6 @@ void Model::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
             m_Info.textures.emplace_back(name);
         }
     }
-}
-
-const std::vector<std::tuple<Mesh, Model::Meta>> &Model::getMeshs() const {
-    return m_Info.meshes;
-}
-
-const std::vector<Resource<Texture2D>> &Model::getTextures() const {
-    return m_Info.textures;
-}
-
-std::string Model::getTextureTypeName(TextureType texture) {
-    return aiTextureTypeToString(static_cast<aiTextureType>(texture));
 }
 
 } // namespace Physbuzz

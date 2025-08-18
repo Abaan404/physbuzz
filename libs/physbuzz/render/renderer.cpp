@@ -9,37 +9,9 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool VertexRendererScreenQuad::build() {
-    if (ResourceRegistry<VertexAttribute>::contains(Resource.getIdentifier())) {
-        return true;
-    }
-
-    return ResourceRegistry<VertexAttribute>::insert(
-        Resource.getIdentifier(),
-        {{
-            .attributes = {
-                {
-                    .type = Types::Float,
-                    .size = sizeof(Format::position) / sizeof(decltype(Format::position)::value_type),
-                    .offset = offsetof(Format, position),
-                },
-                {
-                    .type = Types::Float,
-                    .size = sizeof(Format::texCoords) / sizeof(decltype(Format::texCoords)::value_type),
-                    .offset = offsetof(Format, texCoords),
-                },
-            },
-            .size = sizeof(Format),
-        }});
-}
-
 bool MeshRendererScreenQuad::build() {
     if (ResourceRegistry<Model>::contains(Resource.getIdentifier())) {
         return true;
-    }
-
-    if (!VertexRendererScreenQuad::build()) {
-        return false;
     }
 
     return ResourceRegistry<Model>::insert(
@@ -48,8 +20,7 @@ bool MeshRendererScreenQuad::build() {
             .meshes = {
                 {
                     {
-                        Mesh::Info<VertexRendererScreenQuad::Format>{
-                            .attribute = {VertexRendererScreenQuad::Resource.getIdentifier()},
+                        Mesh::Info<Renderer::VertexScreenQuad>{
                             .vertices = {
                                 {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
                                 {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
@@ -99,6 +70,23 @@ bool UniformRendererCamera::build() {
 }
 
 } // namespace Builtin
+
+VertexDescription Renderer::VertexScreenQuad::Description = {{
+    .attributes = {
+        {
+            .format = VertexDescription::Format::eR32G32B32Sfloat,
+            .size = sizeof(VertexScreenQuad::position) / sizeof(decltype(VertexScreenQuad::position)::value_type),
+            .offset = offsetof(VertexScreenQuad, position),
+        },
+        {
+            .format = VertexDescription::Format::eR32G32Sfloat,
+            .size = sizeof(VertexScreenQuad::texCoords) / sizeof(decltype(VertexScreenQuad::texCoords)::value_type),
+            .offset = offsetof(VertexScreenQuad, texCoords),
+        },
+    },
+    .size = sizeof(VertexScreenQuad),
+    .binding = 0,
+}};
 
 Renderer::Renderer(const Info &info)
     : m_Info(info) {}
@@ -272,11 +260,11 @@ void Renderer::tick() {
 
     switch (m_Info.type) {
     case Type::Deferred:
-        m_Scene->tickSystem<Shadow, DeferredRenderer>();
+        m_Scene->tickSystem<DeferredRenderer>(m_Command.buffers[m_Command.frameInFlight]);
         break;
 
     case Type::Forward:
-        m_Scene->tickSystem<Shadow, ForwardRenderer>();
+        m_Scene->tickSystem<ForwardRenderer>(m_Command.buffers[m_Command.frameInFlight]);
         break;
 
     default:
@@ -427,11 +415,11 @@ std::shared_ptr<IRenderer> Renderer::getRenderer() const {
 bool Renderer::buildSystems() {
     switch (m_Info.type) {
     case Type::Deferred:
-        m_Scene->createSystem<DeferredRenderer>(m_Info.deferred, m_Info.window->getResolution(), m_Command);
+        m_Scene->createSystem<DeferredRenderer>(m_Info.deferred, m_Info.window->getResolution());
         break;
 
     case Type::Forward:
-        m_Scene->createSystem<ForwardRenderer>(m_Info.forward, m_Info.window->getResolution(), m_Command);
+        m_Scene->createSystem<ForwardRenderer>(m_Info.forward, m_Info.window->getResolution());
         break;
     }
 

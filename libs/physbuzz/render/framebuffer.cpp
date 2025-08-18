@@ -212,8 +212,8 @@ bool Framebuffer::destroy() {
 }
 
 bool Framebuffer::resize(const glm::ivec2 &resolution) {
-    // m_Info.resolution = resolution;
-    //
+    m_Info.resolution = resolution;
+
     // if (!(destroy() && build())) {
     //     Logger::ERROR("[Framebuffer] Could not resize framebuffer.");
     //     return false;

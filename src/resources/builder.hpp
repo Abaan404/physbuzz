@@ -3,7 +3,6 @@
 class ResourceBuilder {
   public:
     inline void build() {
-        buildVertices();
         buildTextures();
         buildModels();
         buildCubemaps();
@@ -12,7 +11,6 @@ class ResourceBuilder {
     }
 
     inline void destroy() {
-        destroyVertices();
         destroyShaders();
         destroyUniforms();
         destroyCubemaps();
@@ -21,9 +19,6 @@ class ResourceBuilder {
     }
 
   private:
-    void buildVertices();
-    void destroyVertices();
-
     void buildTextures();
     void destroyTextures();
 

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../resources/resources.hpp"
-#include <type_traits>
-#include <vector>
+#include "shaders.hpp"
 
 namespace Physbuzz {
+
+struct RenderComponent;
 
 template <typename T>
 concept VertexAttributeFormatType =
@@ -12,82 +12,89 @@ concept VertexAttributeFormatType =
     std::is_trivial_v<T> &&
     std::is_standard_layout_v<T>;
 
-enum class Types {
-    Byte,
-    UnsignedByte,
-    Short,
-    UnsignedShort,
-    Int,
-    UnsignedInt,
-
-    Float,
-    Double,
-    HalfFloat,
-    Fixed,
-};
-
 using Index = std::uint32_t;
 
-class VertexAttribute {
+class VertexDescription {
   public:
-    // let the user declare for now, reflection is ass and prone to breaking as of now.
-    struct Format {
-        Types type;
-        std::int32_t size;
-        std::int32_t offset;
+    using Format = vk::Format;
+    using InputRate = vk::VertexInputRate;
+
+    struct Attribute {
+        Format format;
+        std::uint32_t size;
+        std::uint32_t offset;
     };
 
     struct Info {
-        std::vector<Format> attributes;
-        std::int32_t size;
+        std::vector<Attribute> attributes;
+        std::uint32_t size;
+        std::uint32_t binding;
+        InputRate inputRate = InputRate::eVertex;
     };
 
-    VertexAttribute(const Info &info);
-
-    bool build();
-    bool destroy();
-
-    const Info &getInfo() const;
+    VertexDescription(const Info &info);
 
   private:
     Info m_Info;
 
-    friend class Mesh;
+    std::vector<vk::VertexInputAttributeDescription> m_Attributes;
+    vk::VertexInputBindingDescription m_Binding;
+    vk::PipelineVertexInputStateCreateInfo m_VertexInputStateCreateInfo;
+
+    friend bool ShaderPipeline::build();
 };
 
-template <>
-struct IsResource<VertexAttribute> : std::true_type {};
+template <typename T>
+concept VertexDescriptionType =
+    std::is_class_v<T> &&
+    std::is_trivial_v<T> &&
+    std::is_standard_layout_v<T> &&
+    requires {
+        { T::Description } -> std::same_as<VertexDescription &>;
+    };
 
 class Mesh {
   public:
-    template <VertexAttributeFormatType T>
+    template <VertexDescriptionType T>
     struct Info {
-        Resource<VertexAttribute> attribute;
         std::vector<T> vertices;
         std::vector<Index> indices;
     };
 
-    template <VertexAttributeFormatType T>
+    template <VertexDescriptionType T>
     Mesh(const Info<T> &info)
-        : m_Attribute(info.attribute),
+        : m_Description(&T::Description),
+          m_VertexCount(info.vertices.size()),
           m_Indices(info.indices) {
         m_Vertices.resize(info.vertices.size() * sizeof(T));
-        std::memcpy(m_Vertices.data(), info.vertices.data(), info.vertices.size() * sizeof(T));
+        std::memcpy(m_Vertices.data(), info.vertices.data(), m_Vertices.size());
     }
 
     bool build();
     bool destroy();
 
-    void draw() const;
+    void draw(const vk::CommandBuffer &commandBuffer) const;
 
-    const Resource<VertexAttribute> &getAttribute() const;
-    const std::vector<std::byte> &getVertices() const;
-    const std::vector<Index> &getIndices() const;
+    const VertexDescription *getDescription() const;
 
   private:
-    Resource<VertexAttribute> m_Attribute;
-    std::vector<std::byte> m_Vertices;
-    std::vector<Index> m_Indices;
+    std::uint32_t findMemoryType(std::uint32_t typeFilter, vk::MemoryPropertyFlags properties);
+
+    VertexDescription *m_Description = nullptr;
+    std::uint32_t m_VertexCount = 0;
+
+    struct {
+        vk::Buffer buffer = nullptr;
+        vk::DeviceMemory memory = nullptr;
+    } m_Vertex = {};
+
+    struct {
+        vk::Buffer buffer = nullptr;
+        vk::DeviceMemory memory = nullptr;
+    } m_Index = {};
+
+    std::vector<std::byte> m_Vertices = {};
+    std::vector<Index> m_Indices = {};
 };
 
 } // namespace Physbuzz

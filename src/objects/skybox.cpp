@@ -1,7 +1,24 @@
 #include "skybox.hpp"
 
-#include "../resources/vertex/skybox.hpp"
 #include <physbuzz/render/renderer.hpp>
+
+struct VertexSkybox {
+    glm::vec3 position;
+
+    static Physbuzz::VertexDescription Description;
+};
+
+Physbuzz::VertexDescription VertexSkybox::Description = {{
+    .attributes = {
+        {
+            .format = Physbuzz::VertexDescription::Format::eR32G32B32Sfloat,
+            .size = sizeof(VertexSkybox::position) / sizeof(decltype(VertexSkybox::position)::value_type),
+            .offset = offsetof(VertexSkybox, position),
+        },
+    },
+    .size = sizeof(VertexSkybox),
+    .binding = 0,
+}};
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Skybox &info) {
@@ -10,7 +27,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     constexpr glm::vec3 max = glm::vec3(2.0f, 2.0f, 2.0f);
 
     Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<VertexSkybox>{
-        .attribute = {"skybox"},
         .vertices = {
             {{min.x, min.y, min.z}},
             {{min.x, min.y, max.z}},

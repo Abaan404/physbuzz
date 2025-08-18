@@ -63,6 +63,7 @@ class Logger {
     }
 
     template <typename... Args>
+    [[noreturn]]
     static inline void CRITICAL(spdlog::format_string_t<Args...> fmt, Args &&...args) {
         static std::shared_ptr<spdlog::logger> logger = spdlog::get(m_Active);
         logger->critical(fmt, std::forward<Args>(args)...);
@@ -70,6 +71,7 @@ class Logger {
     }
 
     template <typename T>
+    [[noreturn]]
     static inline void CRITICAL(const T &msg) {
         static std::shared_ptr<spdlog::logger> logger = spdlog::get(m_Active);
         logger->critical(msg);

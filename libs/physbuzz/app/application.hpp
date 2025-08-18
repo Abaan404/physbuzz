@@ -42,6 +42,7 @@ class App {
     // windows
     inline static std::unordered_map<std::string, std::shared_ptr<Window>> m_Windows;
 
+    friend class Mesh;
     friend class Window;
     friend class ShaderPipeline;
     friend class Renderer;

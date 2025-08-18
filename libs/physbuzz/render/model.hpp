@@ -8,25 +8,6 @@
 
 namespace Physbuzz {
 
-namespace Builtin {
-
-namespace ModelVertexDefault {
-
-struct Format {
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec3 tangent;
-    glm::vec2 texCoords;
-};
-
-inline Resource<VertexAttribute> Resource = {"builtin/model/default"};
-
-bool build();
-
-} // namespace ModelVertexDefault
-
-} // namespace Builtin
-
 constexpr std::size_t TextureTypeMax = AI_TEXTURE_TYPE_MAX;
 enum class TextureType {
     None = aiTextureType_NONE,
@@ -59,20 +40,31 @@ enum class TextureType {
 
 class Model {
   public:
+    struct Vertex {
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec3 tangent;
+        glm::vec2 texCoords;
+
+        static VertexDescription Description;
+    };
+
     struct Meta {
         float shininess = 32.0f;
     };
 
     struct Info {
-        std::filesystem::path path;
-        std::vector<std::tuple<Mesh, Meta>> meshes;
-        std::vector<Resource<Texture2D>> textures;
+        std::filesystem::path path = {};
+        std::vector<std::tuple<Mesh, Meta>> meshes = {};
+        std::vector<Resource<Texture2D>> textures = {};
     };
 
     Model(const Info &info);
 
     bool build();
     bool destroy();
+
+    void draw(const vk::CommandBuffer &commandBuffer);
 
     const std::vector<std::tuple<Mesh, Meta>> &getMeshs() const;
     const std::vector<Resource<Texture2D>> &getTextures() const;

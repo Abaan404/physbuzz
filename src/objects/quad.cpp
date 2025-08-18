@@ -8,8 +8,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     glm::vec3 min = glm::vec3(-info.quad.width / 2.0f, -info.quad.height / 2.0f, 0.0f);
     glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
 
-    Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Builtin::ModelVertexDefault::Format>{
-        .attribute = {Physbuzz::Builtin::ModelVertexDefault::Resource.getIdentifier()},
+    Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Model::Vertex>{
         .vertices = {
             {{min.x, min.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, // top-left
             {{min.x, max.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // top-right

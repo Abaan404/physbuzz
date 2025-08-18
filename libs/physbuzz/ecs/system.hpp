@@ -41,11 +41,11 @@ class System : public ISystem {
 template <typename T>
 concept SystemType = std::derived_from<T, ISystem>;
 
-template <typename T>
+template <typename T, typename... Args>
 concept SystemTickable =
     SystemType<T> &&
-    requires(T a, ObjectID id) {
-        { a.tick() } -> std::same_as<void>; // TODO multithread ticking system
+    requires(T a, Args... args) {
+        { a.tick(args...) };
     };
 
 class SystemManager {
@@ -86,10 +86,11 @@ class SystemManager {
         return std::static_pointer_cast<T>(m_Systems.at(id));
     }
 
-    template <SystemTickable... T>
-    inline void tick() {
-        if (contains<T...>()) {
-            (..., get<T>()->tick());
+    template <typename T, typename... Args>
+        requires SystemTickable<T, Args...>
+    inline void tick(Args &&...args) {
+        if (contains<T>()) {
+            get<T>()->tick(std::forward<Args>(args)...);
         }
     }
 

@@ -6,6 +6,30 @@
 #include <physbuzz/render/renderer.hpp>
 #include <physbuzz/render/shaders.hpp>
 
+struct TestVertex {
+    glm::vec2 position;
+    glm::vec3 color;
+
+    static Physbuzz::VertexDescription Description;
+};
+
+Physbuzz::VertexDescription TestVertex::Description = {{
+    .attributes = {
+        {
+            .format = Physbuzz::VertexDescription::Format::eR32G32Sfloat,
+            .size = sizeof(TestVertex::position) / sizeof(decltype(TestVertex::position)::value_type),
+            .offset = offsetof(TestVertex, position),
+        },
+        {
+            .format = Physbuzz::VertexDescription::Format::eR32G32B32Sfloat,
+            .size = sizeof(TestVertex::color) / sizeof(decltype(TestVertex::color)::value_type),
+            .offset = offsetof(TestVertex, color),
+        },
+    },
+    .size = sizeof(TestVertex),
+    .binding = 0,
+}};
+
 void Game::build() {
     Physbuzz::App::init();
     Physbuzz::Context::set(this);
@@ -16,23 +40,34 @@ void Game::build() {
         "test_shader",
         {{
             .module = {"./spirv/shaders/test/triangle.slang.spv"},
+            .description = &TestVertex::Description,
             .shaders = {
                 {Physbuzz::ShaderPipeline::Stage::eVertex, {"vertMain"}},
                 {Physbuzz::ShaderPipeline::Stage::eFragment, {"fragMain"}},
             },
-            .draw = [](const Physbuzz::ShaderPipeline *, const Physbuzz::RenderCommand &command, Physbuzz::Scene &, Physbuzz::ObjectID) {
-                std::shared_ptr<Physbuzz::Window> window = Physbuzz::App::getWindow("main");
-                glm::ivec2 resolution = window->getResolution();
+        }});
 
-                command.buffers[command.frameInFlight].setViewport(0, vk::Viewport(0.0f, 0.0f, resolution.x, resolution.y, 0.0f, 1.0f));
-                command.buffers[command.frameInFlight].setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), {static_cast<uint32_t>(resolution.x), static_cast<uint32_t>(resolution.y)}));
-                command.buffers[command.frameInFlight].draw(3, 1, 0, 0);
+    Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
+        "test_model",
+        {{
+            .meshes = {
+                {
+                    Physbuzz::Mesh::Info<TestVertex>{
+                        .vertices = {
+                            {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+                            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+                            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+                        },
+                        .indices = {0, 1, 2, 2, 3, 0},
+                    },
+                    {},
+                },
             },
         }});
 
     Physbuzz::RenderComponent render = {
         .transform = {},
-        .model = {""},
+        .model = {"test_model"},
     };
 
     Physbuzz::ForwardRenderComponent forward = {

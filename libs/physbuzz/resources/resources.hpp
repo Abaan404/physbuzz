@@ -139,12 +139,12 @@ class Resource {
         : m_Identifier(identifier) {}
 
     T *operator->() const {
-        return get();
+        return &get();
     }
 
-    T *get() const {
+    T &get() const {
         PBZ_ASSERT(ResourceRegistry<T>::contains(m_Identifier), std::format("[Resource] Resource \"{}\" does not exist for type", m_Identifier));
-        return &ResourceRegistry<T>::m_Container.get(m_Identifier);
+        return ResourceRegistry<T>::m_Container.get(m_Identifier);
     }
 
     const ResourceID &getIdentifier() const {

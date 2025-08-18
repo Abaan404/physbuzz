@@ -26,9 +26,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     std::vector<glm::vec2> texCoords = generateTexCoords(positions);
     std::vector<NormalTangent> NT = generateNormalTangent(indices, positions, texCoords);
 
-    Physbuzz::Mesh::Info<Physbuzz::Builtin::ModelVertexDefault::Format> mesh = {
-        .attribute = Physbuzz::Builtin::ModelVertexDefault::Resource,
-        .vertices = {positions.size(), Physbuzz::Builtin::ModelVertexDefault::Format{}},
+    Physbuzz::Mesh::Info<Physbuzz::Model::Vertex> mesh = {
+        .vertices = {positions.size(), Physbuzz::Model::Vertex{}},
         .indices = indices,
     };
 

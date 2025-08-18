@@ -126,7 +126,7 @@ bool App::init() {
     std::multimap<int, vk::PhysicalDevice> deviceCandidates;
     for (const auto &device : devices) {
         auto deviceProperties = device.getProperties();
-        uint32_t score = 0;
+        std::uint32_t score = 0;
 
         // Discrete GPUs have a significant performance advantage
         if (deviceProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) {
@@ -203,7 +203,7 @@ bool App::init() {
 
     vk::DeviceCreateInfo deviceCreateInfo = {
         .pNext = &deviceFeatureChain.get<vk::PhysicalDeviceFeatures2>(),
-        .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+        .queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size()),
         .pQueueCreateInfos = queueCreateInfos.data(),
         .enabledExtensionCount = static_cast<std::uint32_t>(deviceExtensions.size()),
         .ppEnabledExtensionNames = deviceExtensions.data(),

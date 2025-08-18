@@ -53,14 +53,14 @@ class DeferredRenderer : public IRenderer,
         } passes = {};
     };
 
-    DeferredRenderer(const Info &info, const glm::ivec2 &resolution, const RenderCommand &command);
+    DeferredRenderer(const Info &info, const glm::ivec2 &resolution);
 
     bool build() override;
     bool destroy() override;
 
     void resize(const glm::ivec2 &resolution) override;
 
-    void tick() const;
+    void tick(const vk::CommandBuffer &commandBuffer) const;
     void render(ObjectID id) const;
 
     const Framebuffers &getFramebuffers() const;

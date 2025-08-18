@@ -107,9 +107,10 @@ class Scene : public EventSubject {
         return m_SystemManager.get<T>();
     }
 
-    template <SystemTickable... T>
-    inline void tickSystem() {
-        m_SystemManager.tick<T...>();
+    template <typename... T, typename... Args>
+        requires(SystemTickable<T, Args...> && ...)
+    void tickSystem(Args &&...args) {
+        (..., m_SystemManager.tick<T>(std::forward<Args>(args)...));
     }
 
     void buildSystems();

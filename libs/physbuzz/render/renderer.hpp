@@ -10,19 +10,6 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-namespace VertexRendererScreenQuad {
-
-struct Format {
-    glm::vec3 position;
-    glm::vec2 texCoords;
-};
-
-inline Resource<VertexAttribute> Resource = {"builtin/renderer/screenquad"};
-
-bool build();
-
-} // namespace VertexRendererScreenQuad
-
 namespace MeshRendererScreenQuad {
 
 inline Resource<Model> Resource = {"builtin/renderer/screenquad"};
@@ -62,6 +49,13 @@ class Window;
 
 class Renderer : public System<> {
   public:
+    struct VertexScreenQuad {
+        glm::vec3 position;
+        glm::vec2 texCoords;
+
+        static VertexDescription Description;
+    };
+
     enum class Type {
         Deferred,
         Forward,
@@ -101,7 +95,13 @@ class Renderer : public System<> {
 
     Info m_Info;
 
-    RenderCommand m_Command;
+    struct {
+        std::uint32_t frameInFlight = 0;
+        std::uint32_t maxFramesInFlight = 2;
+
+        vk::CommandPool pool = nullptr;
+        std::vector<vk::CommandBuffer> buffers = {};
+    } m_Command = {};
 
     struct {
         std::vector<vk::Semaphore> presentComplete = {};

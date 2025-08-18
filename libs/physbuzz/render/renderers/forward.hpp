@@ -16,9 +16,9 @@ inline Resource<ShaderPipeline> Resource = {"builtin/forward"};
 
 bool build();
 
-} // namespace ShaderDeferredLighting
+} // namespace ShaderForward
 
-}
+} // namespace Builtin
 
 struct ForwardRenderComponent {
     Resource<ShaderPipeline> pipeline = Builtin::ShaderForward::Resource;
@@ -30,15 +30,16 @@ class ForwardRenderer : public IRenderer,
     struct Info {
     };
 
-    ForwardRenderer(const Info &info, const glm::ivec2 &resolution, const RenderCommand &command);
+    ForwardRenderer(const Info &info, const glm::ivec2 &resolution);
 
     bool build() override;
     bool destroy() override;
 
     void resize(const glm::ivec2 &resolution) override;
 
-    void tick() const;
-    void render(ObjectID id) const;
+    void tick(const vk::CommandBuffer &commandBuffer);
+
+    void render(const vk::CommandBuffer &commandBuffer, ObjectID id);
 
     const Framebuffer &getOutput() const override;
     const Info &getInfo() const;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <physbuzz/ecs/defines.hpp>
 #include <physbuzz/render/mesh.hpp>
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/texture.hpp>

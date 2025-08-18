@@ -132,9 +132,8 @@ bool ShaderDeferredLighting::build() {
 
 } // namespace Builtin
 
-DeferredRenderer::DeferredRenderer(const Info &info, const glm::ivec2 &resolution, const RenderCommand &command)
-    : IRenderer(command),
-      m_Info(info),
+DeferredRenderer::DeferredRenderer(const Info &info, const glm::ivec2 &resolution)
+    : m_Info(info),
       m_Framebuffers({
           .gBuffer = {{
               .resolution = resolution,
@@ -191,7 +190,7 @@ bool DeferredRenderer::destroy() {
     return success;
 }
 
-void DeferredRenderer::tick() const {
+void DeferredRenderer::tick(const vk::CommandBuffer &commandBuffer) const {
     // // check for reloads before rendering
     // if (!m_Info.passes.geometry->reload()) {
     //     return;

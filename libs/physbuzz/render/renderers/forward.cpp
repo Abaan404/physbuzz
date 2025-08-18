@@ -1,6 +1,6 @@
 #include "forward.hpp"
 
-#include "../../app/application.hpp"
+#include "../../ecs/scene.hpp"
 
 namespace Physbuzz {
 
@@ -113,9 +113,8 @@ bool ShaderForward::build() {
 
 } // namespace Builtin
 
-ForwardRenderer::ForwardRenderer(const Info &info, const glm::ivec2 &resolution, const RenderCommand &command)
-    : IRenderer(command),
-      m_Info(info),
+ForwardRenderer::ForwardRenderer(const Info &info, const glm::ivec2 &resolution)
+    : m_Info(info),
       m_Output({
           .resolution = resolution,
           .colors = {
@@ -143,28 +142,35 @@ bool ForwardRenderer::destroy() {
     return m_Output.destroy();
 }
 
-void ForwardRenderer::tick() const {
+void ForwardRenderer::tick(const vk::CommandBuffer &commandBuffer) {
     m_Output.bind();
     m_Output.clear();
 
     for (const auto &object : m_Objects) {
-        render(object);
+        render(commandBuffer, object);
     }
 
     m_Output.unbind();
 }
 
-void ForwardRenderer::render(ObjectID object) const {
-    const auto [forward] = m_Scene->getComponent<ForwardRenderComponent>(object);
+void ForwardRenderer::render(const vk::CommandBuffer &commandBuffer, ObjectID object) {
+    const auto [render, forward] = m_Scene->getComponent<RenderComponent, ForwardRenderComponent>(object);
 
-    // check for reload before binding
-    // if (!forward.pipeline->reload()) {
-    //     return;
-    // }
+    glm::ivec2 resolution = m_Output.getInfo().resolution;
 
-    // GL::detail::TextureUnits::reset();
-    forward.pipeline->bind(*m_Command);
-    forward.pipeline->draw(*m_Command, *m_Scene, object);
+    forward.pipeline->bind(commandBuffer);
+
+    commandBuffer.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(resolution.x), static_cast<float>(resolution.y), 0.0f, 1.0f});
+    commandBuffer.setScissor(0, vk::Rect2D{{0, 0}, {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)}});
+
+    for (const auto &[mesh, _] : render.model->getMeshs()) {
+        if (mesh.getDescription() != forward.pipeline->getInfo().description) {
+            Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
+            return;
+        }
+    }
+
+    render.model->draw(commandBuffer);
 }
 
 void ForwardRenderer::resize(const glm::ivec2 &resolution) {

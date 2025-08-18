@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../debug/logging.hpp"
-#include "../ecs/defines.hpp"
 #include "../io/file.hpp"
-#include "../render/renderers/defines.hpp"
 #include "../resources/defines.hpp"
 #include <glm/glm.hpp>
 #include <string>
@@ -12,6 +9,7 @@
 
 namespace Physbuzz {
 
+class VertexDescription;
 class Scene;
 
 template <typename T>
@@ -52,15 +50,12 @@ class ShaderPipeline {
         File::Info module;
         PrimitiveTopology topology = PrimitiveTopology::eTriangleList;
 
+        VertexDescription *description;
+
         std::unordered_map<std::uint32_t, std::vector<std::byte>> specializations = {};
         std::unordered_map<Stage, Shader> shaders;
 
         std::vector<DynamicState> states = {};
-
-        void (*draw)(const ShaderPipeline *, const RenderCommand &command, Scene &, ObjectID) =
-            [](const ShaderPipeline *, const RenderCommand &, Scene &, ObjectID id) {
-                Logger::WARNING("[ShaderPipeline] Uninitialized draw calls for object '{}'", id);
-            };
     };
 
     ShaderPipeline(const Info &info);
@@ -70,9 +65,8 @@ class ShaderPipeline {
     bool destroy();
 
     bool reload();
-    void draw(const RenderCommand &command, Scene &scene, ObjectID object) const;
 
-    void bind(const RenderCommand &command) const;
+    void bind(const vk::CommandBuffer &commandBuffer) const;
 
     template <ShaderPODType T>
     inline void setUniform(const std::string &, const T &) const {

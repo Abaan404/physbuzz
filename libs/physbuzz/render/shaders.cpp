@@ -2,8 +2,8 @@
 
 #include "../app/application.hpp"
 #include "../debug/macros.hpp"
+#include "mesh.hpp"
 #include <glm/gtc/type_ptr.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 namespace Physbuzz {
 
@@ -40,7 +40,7 @@ bool ShaderPipeline::build() {
 
     vk::ShaderModule shaderModule = PBZ_VK_CHECK(App::Device.createShaderModule({
         .codeSize = data.buffer.size(),
-        .pCode = reinterpret_cast<const uint32_t *>(data.buffer.data()),
+        .pCode = reinterpret_cast<const std::uint32_t *>(data.buffer.data()),
     }));
 
     std::vector<vk::PipelineShaderStageCreateInfo> stages;
@@ -54,12 +54,8 @@ bool ShaderPipeline::build() {
     }
 
     vk::PipelineDynamicStateCreateInfo dynamicState = {
-        .dynamicStateCount = static_cast<uint32_t>(m_Info.states.size()),
+        .dynamicStateCount = static_cast<std::uint32_t>(m_Info.states.size()),
         .pDynamicStates = m_Info.states.data(),
-    };
-
-    vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {
-
     };
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {
@@ -117,9 +113,9 @@ bool ShaderPipeline::build() {
 
     vk::GraphicsPipelineCreateInfo pipelineInfo = {
         .pNext = &pipelineRenderingCreateInfo,
-        .stageCount = static_cast<uint32_t>(stages.size()),
+        .stageCount = static_cast<std::uint32_t>(stages.size()),
         .pStages = stages.data(),
-        .pVertexInputState = &vertexInputInfo,
+        .pVertexInputState = &m_Info.description->m_VertexInputStateCreateInfo,
         .pInputAssemblyState = &inputAssembly,
         .pViewportState = &viewportState,
         .pRasterizationState = &rasterizer,
@@ -175,18 +171,8 @@ bool ShaderPipeline::reload() {
     return true;
 }
 
-void ShaderPipeline::draw(const RenderCommand &command, Scene &scene, ObjectID object) const {
-    // dont draw this shader on a failed reload
-    if (m_FailedReload) {
-        return;
-    }
-
-    // PBZ_ASSERT(m_Program != 0, "[ShaderPipeline] trying to draw an incomplete pipeline.");
-    m_Info.draw(this, command, scene, object);
-}
-
-void ShaderPipeline::bind(const RenderCommand &command) const {
-    command.buffers[command.frameInFlight].bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline);
+void ShaderPipeline::bind(const vk::CommandBuffer &commandBuffer) const {
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline);
 }
 
 const ShaderPipeline::Info &ShaderPipeline::getInfo() const {
