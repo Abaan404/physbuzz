@@ -110,7 +110,7 @@ class Renderer : public System<> {
 
     struct {
         std::vector<vk::Fence> inFlight = {};
-    } m_Fence = {};
+    } m_Fences = {};
 
     struct {
         EventID resize = -1;

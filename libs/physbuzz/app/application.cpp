@@ -2,7 +2,6 @@
 
 #include "../debug/macros.hpp"
 #include <algorithm>
-#include <array>
 #include <glm/common.hpp>
 #include <map>
 #include <vulkan/vulkan.hpp>
@@ -154,22 +153,30 @@ bool App::init() {
     // find the needed queues
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties = PhysicalDevice.getQueueFamilyProperties();
 
-    m_Indices.graphics = 0;
-    for (const auto &props : queueFamilyProperties) {
-        if (props.queueFlags & vk::QueueFlagBits::eGraphics) {
-            break;
+    for (std::size_t i = 0; i < queueFamilyProperties.size(); i++) {
+        if ((queueFamilyProperties[i].queueFlags & (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute)) == (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute)) {
+            // Assume graphics and present queues share the same index, this _could_ break for any physical
+            // devices that would support present on other queues for some reason. We dont know the surface
+            // the user will be using here yet. If a scenario like that happens, this needs will need a better
+            // implementation.
+
+            Indices.graphics = i;
+            Indices.present = i;
         }
 
-        m_Indices.graphics++;
+        else if (queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eTransfer) {
+            Indices.transfer = i;
+        }
     }
 
-    // Assume graphics and present queues share the same index, this _could_ break for any physical devices that would support present on other queues for some reason.
-    // We dont know the surface the user will be using here yet. If a scenario like that happens, this needs will need a better implementation.
-    m_Indices.present = m_Indices.graphics;
-
-    if ((m_Indices.graphics == queueFamilyProperties.size()) || (m_Indices.present == queueFamilyProperties.size())) {
+    if ((Indices.graphics == -1u) || (Indices.present == -1u)) {
         Logger::CRITICAL("[App] Could not find a queue for graphics or present.");
         return false;
+    }
+
+    // if no dedicated transfer queue was found, use the graphics+compute family bit since they implicitly support transfer
+    if (Indices.transfer == -1u) {
+        Indices.transfer = Indices.graphics;
     }
 
     vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> deviceFeatureChain = {
@@ -184,15 +191,15 @@ bool App::init() {
         },
     };
 
-    constexpr std::array graphicsQueuePriorities = {0.0f};
-
-    std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos = {
-        {{
-            .queueFamilyIndex = m_Indices.graphics,
-            .queueCount = graphicsQueuePriorities.size(),
-            .pQueuePriorities = graphicsQueuePriorities.data(),
-        }},
-    };
+    float queuePriority = 1.0f;
+    std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
+    for (const auto &queueFamilyIndex : {Indices.graphics, Indices.present, Indices.transfer}) {
+        queueCreateInfos.push_back({
+            .queueFamilyIndex = queueFamilyIndex,
+            .queueCount = 1,
+            .pQueuePriorities = &queuePriority,
+        });
+    }
 
     std::vector<const char *> deviceExtensions = {
         vk::KHRSwapchainExtensionName,
@@ -212,8 +219,11 @@ bool App::init() {
     Device = PBZ_VK_CHECK(PhysicalDevice.createDevice(deviceCreateInfo));
     VULKAN_HPP_DEFAULT_DISPATCHER.init(Device);
 
-    GraphicsQueue = Device.getQueue(m_Indices.graphics, 0);
-    PresentQueue = Device.getQueue(m_Indices.present, 0);
+    Queues = {
+        .graphics = Device.getQueue(Indices.graphics, 0),
+        .present = Device.getQueue(Indices.present, 0),
+        .transfer = Device.getQueue(Indices.transfer, 0),
+    };
 
     return true;
 }
@@ -226,7 +236,7 @@ bool App::quit() {
         }
     }
 
-    GlobalScene.clear();
+    GScene.clear();
 
     for (auto &[name, _] : m_Windows) {
         if (!getWindow(name)->destroy()) {

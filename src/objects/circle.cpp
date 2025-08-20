@@ -27,6 +27,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     std::vector<NormalTangent> NT = generateNormalTangent(indices, positions, texCoords);
 
     Physbuzz::Mesh::Info<Physbuzz::Model::Vertex> mesh = {
+        .transfer = scene.getSystem<Physbuzz::Transfer>(),
         .vertices = {positions.size(), Physbuzz::Model::Vertex{}},
         .indices = indices,
     };

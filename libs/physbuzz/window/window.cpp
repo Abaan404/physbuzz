@@ -134,7 +134,7 @@ bool Window::build(const glm::ivec2 &resolution) {
     glfwCreateWindowSurface(App::Instance, m_Window, nullptr, &surface);
     m_Surface = surface;
 
-    if (!PBZ_VK_CHECK(App::PhysicalDevice.getSurfaceSupportKHR(App::m_Indices.present, m_Surface))) {
+    if (!PBZ_VK_CHECK(App::PhysicalDevice.getSurfaceSupportKHR(App::Indices.present, m_Surface))) {
         Logger::CRITICAL("[App] Graphics and present queue indices do not match, submit a bug report.");
         destroy();
         return false;

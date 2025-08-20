@@ -32,7 +32,7 @@ struct BindingComponent {
 
 class Bindings : public System<BindingComponent> {
   public:
-    Bindings(const std::shared_ptr<Window> &window);
+    Bindings(const std::shared_ptr<Window> window);
 
     bool build() override;
     bool destroy() override;

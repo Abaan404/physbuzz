@@ -17,7 +17,7 @@ class App {
     static std::shared_ptr<Window> getWindow(const std::string &name);
 
     // global ECS registry
-    inline static Scene GlobalScene;
+    inline static Scene GScene;
 
   private:
     // Vulkan instances and extensions
@@ -31,18 +31,29 @@ class App {
     inline static struct {
         std::uint32_t graphics;
         std::uint32_t present;
-    } m_Indices = {
-        .graphics = 0,
-        .present = 0,
+        std::uint32_t transfer;
+    } Indices = {
+        .graphics = -1u,
+        .present = -1u,
+        .transfer = -1u,
     };
 
-    inline static vk::Queue GraphicsQueue = nullptr;
-    inline static vk::Queue PresentQueue = nullptr;
+    inline static struct {
+        vk::Queue graphics;
+        vk::Queue present;
+        vk::Queue transfer;
+    } Queues = {
+        .graphics = nullptr,
+        .present = nullptr,
+        .transfer = nullptr,
+    };
 
     // windows
     inline static std::unordered_map<std::string, std::shared_ptr<Window>> m_Windows;
 
-    friend class Mesh;
+    friend class Transfer;
+    friend class Buffer;
+
     friend class Window;
     friend class ShaderPipeline;
     friend class Renderer;

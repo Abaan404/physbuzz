@@ -30,91 +30,97 @@ VertexDescription::VertexDescription(const Info &info)
     };
 }
 
+const VertexDescription::Info &VertexDescription::getInfo() const {
+    return m_Info;
+}
+
 bool Mesh::build() {
-    if (m_Vertex.buffer != nullptr) {
+    if (m_Vertex.has_value()) {
         Logger::WARNING("[Mesh] Trying to build a constructed mesh.");
         return true;
     }
 
-    m_Vertex.buffer = PBZ_VK_CHECK(App::Device.createBuffer({
-        .size = m_Vertices.size(),
-        .usage = vk::BufferUsageFlagBits::eVertexBuffer,
-        .sharingMode = vk::SharingMode::eExclusive,
-    }));
-
-    m_Index.buffer = PBZ_VK_CHECK(App::Device.createBuffer({
-        .size = m_Indices.size(),
-        .usage = vk::BufferUsageFlagBits::eIndexBuffer,
-        .sharingMode = vk::SharingMode::eExclusive,
-    }));
-
-    vk::MemoryRequirements memRequirements = App::Device.getBufferMemoryRequirements(m_Vertex.buffer);
-
-    m_Vertex.memory = PBZ_VK_CHECK(App::Device.allocateMemory({
-        .allocationSize = memRequirements.size,
-        .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent),
-    }));
-
-    m_Index.memory = PBZ_VK_CHECK(App::Device.allocateMemory({
-        .allocationSize = memRequirements.size,
-        .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent),
-    }));
-
-    void *vertex = PBZ_VK_CHECK(App::Device.mapMemory(m_Vertex.memory, 0, m_Vertices.size()));
-    memcpy(vertex, m_Vertices.data(), m_Vertices.size());
-    App::Device.unmapMemory(m_Vertex.memory);
-
-    vk::Result result = App::Device.bindBufferMemory(m_Vertex.buffer, m_Vertex.memory, 0);
-
-    if (result != vk::Result::eSuccess) {
-        Logger::CRITICAL("[Mesh] Failed to bind vertex memory");
+    if (m_Transfer == nullptr) {
+        Logger::ERROR("[Mesh] Transfer is null.");
+        return false;
     }
 
-    void *index = PBZ_VK_CHECK(App::Device.mapMemory(m_Index.memory, 0, m_Indices.size()));
-    memcpy(index, m_Indices.data(), m_Indices.size());
-    App::Device.unmapMemory(m_Index.memory);
+    std::optional<Buffer> stagingVertexBuffer = m_Transfer->createBuffer({
+        .size = m_Vertices.size() * sizeof(m_Vertices[0]),
+        .usage = Buffer::BufferUsageFlagBits::eTransferSrc,
+        .properties = Buffer::MemoryPropertyFlagBits::eHostVisible | Buffer::MemoryPropertyFlagBits::eHostCoherent,
+    });
+
+    m_Vertex = m_Transfer->createBuffer({
+        .size = m_Vertices.size() * sizeof(m_Vertices[0]),
+        .usage = Buffer::BufferUsageFlagBits::eVertexBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
+        .properties = Buffer::MemoryPropertyFlagBits::eDeviceLocal,
+    });
+
+    std::optional<Buffer> stagingIndexBuffer = m_Transfer->createBuffer({
+        .size = m_Indices.size() * sizeof(m_Indices[0]),
+        .usage = Buffer::BufferUsageFlagBits::eTransferSrc,
+        .properties = Buffer::MemoryPropertyFlagBits::eHostVisible | Buffer::MemoryPropertyFlagBits::eHostCoherent,
+    });
+
+    m_Index = m_Transfer->createBuffer({
+        .size = m_Indices.size() * sizeof(m_Indices[0]),
+        .usage = Buffer::BufferUsageFlagBits::eIndexBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
+        .properties = Buffer::MemoryPropertyFlagBits::eDeviceLocal,
+    });
+
+    if (!stagingVertexBuffer.has_value() || !m_Vertex.has_value() || !m_Index.has_value()) {
+        if (stagingVertexBuffer.has_value()) {
+            m_Transfer->eraseBuffer(stagingVertexBuffer.value());
+        }
+
+        destroy();
+        return false;
+    }
+
+    bool success = true;
+
+    success &= stagingVertexBuffer->map(m_Vertices);
+    success &= m_Transfer->copy(stagingVertexBuffer.value(), m_Vertex.value(), stagingVertexBuffer->getInfo().size, true);
+
+    success &= stagingIndexBuffer->map(m_Indices);
+    success &= m_Transfer->copy(stagingIndexBuffer.value(), m_Index.value(), stagingIndexBuffer->getInfo().size, true);
+
+    if (!success) {
+        destroy();
+        return false;
+    }
 
     return true;
 }
 
 bool Mesh::destroy() {
-    if (m_Vertex.buffer == nullptr) {
+    if (!m_Index.has_value() && !m_Vertex.has_value()) {
         Logger::WARNING("[Mesh] Trying to destroy a destructed mesh.");
         return true;
     }
 
-    App::Device.freeMemory(m_Index.memory);
-    App::Device.destroyBuffer(m_Index.buffer);
-    m_Index = {
-        .buffer = nullptr,
-        .memory = nullptr,
-    };
+    bool success = true;
 
-    App::Device.freeMemory(m_Vertex.memory);
-    App::Device.destroyBuffer(m_Vertex.buffer);
-    m_Vertex = {
-        .buffer = nullptr,
-        .memory = nullptr,
-    };
+    if (m_Index.has_value()) {
+        success &= m_Transfer->eraseBuffer(m_Index.value());
+    }
 
-    return true;
+    if (m_Vertex.has_value()) {
+        success &= m_Transfer->eraseBuffer(m_Vertex.value());
+    }
+
+    return success;
 }
 
 void Mesh::draw(const vk::CommandBuffer &commandBuffer) const {
-    commandBuffer.bindVertexBuffers(0, {m_Vertex.buffer}, {0});
-    commandBuffer.draw(m_VertexCount, 1, 0, 0);
-}
+    const Buffer::Data &vertex = m_Vertex->getData();
+    const Buffer::Data &index = m_Index->getData();
 
-std::uint32_t Mesh::findMemoryType(std::uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
-    vk::PhysicalDeviceMemoryProperties memProperties = App::PhysicalDevice.getMemoryProperties();
+    commandBuffer.bindVertexBuffers(0, vertex.buffer, {0});
+    commandBuffer.bindIndexBuffer(index.buffer, 0, vk::IndexType::eUint16);
 
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            return i;
-        }
-    }
-
-    Logger::CRITICAL("[Mesh] failed to find suitable memory type!");
+    commandBuffer.drawIndexed(m_Indices.size(), 1, 0, 0, 0);
 }
 
 const VertexDescription *Mesh::getDescription() const {

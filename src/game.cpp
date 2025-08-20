@@ -36,6 +36,12 @@ void Game::build() {
 
     std::shared_ptr<Physbuzz::Window> window = Physbuzz::App::createWindow("main", {}, {1280, 720});
 
+    Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
+    Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
+        .type = Physbuzz::Renderer::Type::Forward,
+        .window = window,
+    });
+
     Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert(
         "test_shader",
         {{
@@ -53,11 +59,12 @@ void Game::build() {
             .meshes = {
                 {
                     Physbuzz::Mesh::Info<TestVertex>{
+                        .transfer = Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>(),
                         .vertices = {
-                            {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-                            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                        },
+                            {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                            {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+                            {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+                            {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}},
                         .indices = {0, 1, 2, 2, 3, 0},
                     },
                     {},
@@ -74,13 +81,9 @@ void Game::build() {
         .pipeline = {"test_shader"},
     };
 
-    Physbuzz::ObjectID obj = Physbuzz::App::GlobalScene.createObject();
+    Physbuzz::ObjectID obj = Physbuzz::App::GScene.createObject();
 
-    Physbuzz::App::GlobalScene.setComponent(obj, render, forward);
-    Physbuzz::App::GlobalScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
-        .type = Physbuzz::Renderer::Type::Forward,
-        .window = window,
-    });
+    Physbuzz::App::GScene.setComponent(obj, render, forward);
 }
 
 void Game::rebuild() {
@@ -93,7 +96,8 @@ void Game::loop() {
 
     while (m_IsRunning && !window->shouldClose()) {
         window->poll();
-        Physbuzz::App::GlobalScene.tickSystem<Physbuzz::Renderer>();
+        Physbuzz::App::GScene.tickSystem<Physbuzz::Renderer>();
+        Physbuzz::App::GScene.tickSystem<Physbuzz::Transfer>();
     }
 }
 

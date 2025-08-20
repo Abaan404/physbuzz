@@ -10,6 +10,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     glm::vec3 max = glm::vec3(info.line.thickness / 2.0f, info.line.length, 0.0f);
 
     Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Model::Vertex>{
+        .transfer = scene.getSystem<Physbuzz::Transfer>(),
         .vertices = {
             {{min.x, min.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, // top-left
             {{min.x, max.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // top-right

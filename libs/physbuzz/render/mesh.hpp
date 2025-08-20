@@ -1,5 +1,6 @@
 #pragma once
 
+#include "buffer.hpp"
 #include "shaders.hpp"
 
 namespace Physbuzz {
@@ -12,7 +13,7 @@ concept VertexAttributeFormatType =
     std::is_trivial_v<T> &&
     std::is_standard_layout_v<T>;
 
-using Index = std::uint32_t;
+using Index = std::uint16_t;
 
 class VertexDescription {
   public:
@@ -34,6 +35,8 @@ class VertexDescription {
 
     VertexDescription(const Info &info);
 
+    const Info &getInfo() const;
+
   private:
     Info m_Info;
 
@@ -42,6 +45,7 @@ class VertexDescription {
     vk::PipelineVertexInputStateCreateInfo m_VertexInputStateCreateInfo;
 
     friend bool ShaderPipeline::build();
+    friend class Mesh;
 };
 
 template <typename T>
@@ -57,6 +61,7 @@ class Mesh {
   public:
     template <VertexDescriptionType T>
     struct Info {
+        std::shared_ptr<Transfer> transfer;
         std::vector<T> vertices;
         std::vector<Index> indices;
     };
@@ -64,7 +69,7 @@ class Mesh {
     template <VertexDescriptionType T>
     Mesh(const Info<T> &info)
         : m_Description(&T::Description),
-          m_VertexCount(info.vertices.size()),
+          m_Transfer(info.transfer),
           m_Indices(info.indices) {
         m_Vertices.resize(info.vertices.size() * sizeof(T));
         std::memcpy(m_Vertices.data(), info.vertices.data(), m_Vertices.size());
@@ -78,21 +83,12 @@ class Mesh {
     const VertexDescription *getDescription() const;
 
   private:
-    std::uint32_t findMemoryType(std::uint32_t typeFilter, vk::MemoryPropertyFlags properties);
-
     VertexDescription *m_Description = nullptr;
-    std::uint32_t m_VertexCount = 0;
 
-    struct {
-        vk::Buffer buffer = nullptr;
-        vk::DeviceMemory memory = nullptr;
-    } m_Vertex = {};
+    std::optional<Buffer> m_Vertex;
+    std::optional<Buffer> m_Index;
 
-    struct {
-        vk::Buffer buffer = nullptr;
-        vk::DeviceMemory memory = nullptr;
-    } m_Index = {};
-
+    std::shared_ptr<Transfer> m_Transfer = nullptr;
     std::vector<std::byte> m_Vertices = {};
     std::vector<Index> m_Indices = {};
 };

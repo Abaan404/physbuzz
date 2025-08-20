@@ -17,22 +17,22 @@ bool MeshRendererScreenQuad::build() {
     return ResourceRegistry<Model>::insert(
         Resource.getIdentifier(),
         {{
-            .meshes = {
-                {
-                    {
-                        Mesh::Info<Renderer::VertexScreenQuad>{
-                            .vertices = {
-                                {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
-                                {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
-                                {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-                                {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-                            },
-                            .indices = {0, 1, 2, 2, 3, 0},
-                        },
-                        {},
-                    },
-                },
-            },
+            // .meshes = {
+            //     {
+            //         {
+            //             Mesh::Info<Renderer::VertexScreenQuad>{
+            //                 .vertices = {
+            //                     {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
+            //                     {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
+            //                     {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+            //                     {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+            //                 },
+            //                 .indices = {0, 1, 2, 2, 3, 0},
+            //             },
+            //             {},
+            //         },
+            //     },
+            // },
         }});
 }
 
@@ -109,7 +109,7 @@ bool Renderer::build() {
     // create command objects
     m_Command.pool = PBZ_VK_CHECK(App::Device.createCommandPool({
         .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-        .queueFamilyIndex = App::m_Indices.graphics,
+        .queueFamilyIndex = App::Indices.graphics,
     }));
 
     m_Command.buffers = PBZ_VK_CHECK(App::Device.allocateCommandBuffers({
@@ -122,7 +122,7 @@ bool Renderer::build() {
     for (std::size_t i = 0; i < m_Command.maxFramesInFlight; i++) {
         m_Semaphores.presentComplete.emplace_back(PBZ_VK_CHECK(App::Device.createSemaphore({})));
         m_Semaphores.renderFinished.emplace_back(PBZ_VK_CHECK(App::Device.createSemaphore({})));
-        m_Fence.inFlight.emplace_back(PBZ_VK_CHECK(App::Device.createFence({
+        m_Fences.inFlight.emplace_back(PBZ_VK_CHECK(App::Device.createFence({
             .flags = vk::FenceCreateFlagBits::eSignaled,
         })));
     }
@@ -155,12 +155,12 @@ bool Renderer::destroy() {
         App::Device.destroySemaphore(m_Semaphores.presentComplete[i]);
         App::Device.destroySemaphore(m_Semaphores.renderFinished[i]);
 
-        App::Device.destroyFence(m_Fence.inFlight[i]);
+        App::Device.destroyFence(m_Fences.inFlight[i]);
     }
 
     m_Semaphores.renderFinished.clear();
     m_Semaphores.presentComplete.clear();
-    m_Fence.inFlight.clear();
+    m_Fences.inFlight.clear();
 
     // destroy command objects
     App::Device.freeCommandBuffers(m_Command.pool, m_Command.buffers.size(), m_Command.buffers.data());
@@ -173,7 +173,7 @@ bool Renderer::destroy() {
 }
 
 void Renderer::tick() {
-    while (vk::Result::eTimeout == App::Device.waitForFences(m_Fence.inFlight[m_Command.frameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max())) {
+    while (vk::Result::eTimeout == App::Device.waitForFences(m_Fences.inFlight[m_Command.frameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max())) {
     }
 
     // fetch the next available swapchain image
@@ -192,7 +192,7 @@ void Renderer::tick() {
         Logger::CRITICAL("[Renderer] Failed to acquire swap chain image.");
     }
 
-    App::Device.resetFences(m_Fence.inFlight[m_Command.frameInFlight]);
+    App::Device.resetFences(m_Fences.inFlight[m_Command.frameInFlight]);
     m_Command.buffers[m_Command.frameInFlight].reset();
 
     {
@@ -319,19 +319,19 @@ void Renderer::tick() {
     //     .projection = camera.getProjection(),
     // });
 
-    vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-    const vk::SubmitInfo submitInfo = {
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &m_Semaphores.presentComplete[m_Command.frameInFlight],
-        .pWaitDstStageMask = &waitDestinationStageMask,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &m_Command.buffers[m_Command.frameInFlight],
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &m_Semaphores.renderFinished[m_Command.frameInFlight],
-    };
-
     {
-        vk::Result result = App::GraphicsQueue.submit(submitInfo, m_Fence.inFlight[m_Command.frameInFlight]);
+        vk::PipelineStageFlags waitDestinationStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+        const vk::SubmitInfo submitInfo = {
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &m_Semaphores.presentComplete[m_Command.frameInFlight],
+            .pWaitDstStageMask = &waitDestinationStageMask,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &m_Command.buffers[m_Command.frameInFlight],
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &m_Semaphores.renderFinished[m_Command.frameInFlight],
+        };
+
+        vk::Result result = App::Queues.graphics.submit(submitInfo, m_Fences.inFlight[m_Command.frameInFlight]);
 
         if (result != vk::Result::eSuccess) {
             Logger::ERROR("[Renderer] Queue submission failed ({})", vk::to_string(result));
@@ -340,7 +340,7 @@ void Renderer::tick() {
     }
 
     {
-        vk::Result result = App::PresentQueue.presentKHR({
+        vk::Result result = App::Queues.present.presentKHR({
             .waitSemaphoreCount = 1,
             .pWaitSemaphores = &m_Semaphores.renderFinished[m_Command.frameInFlight],
             .swapchainCount = 1,
