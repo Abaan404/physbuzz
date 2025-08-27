@@ -12,7 +12,7 @@ class File {
     };
 
     struct Data {
-        std::vector<std::uint8_t> buffer;
+        std::vector<std::byte> buffer;
     };
 
     File(const Info &file);

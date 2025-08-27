@@ -3,7 +3,7 @@
 #include <physbuzz/render/renderer.hpp>
 #include <physbuzz/ecs/scene.hpp>
 
-inline Physbuzz::ShaderPipeline shaderDebugNormal = {{
+inline Physbuzz::RenderPipeline shaderDebugNormal = {{
     // .vertex = {.file = {.path = "resources/shaders/debug/normal.vert"}},
     // .tessControl = {},
     // .tessEvaluation = {},

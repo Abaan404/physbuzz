@@ -8,7 +8,6 @@
 #include <imgui.h>
 #include <physbuzz/render/camera.hpp>
 #include <physbuzz/render/renderer.hpp>
-#include <physbuzz/render/uniforms.hpp>
 
 struct PickableComponent {
     bool selected = false;

@@ -2,64 +2,38 @@
 
 #include "../app/application.hpp"
 #include "../debug/macros.hpp"
+#include "layout.hpp"
 #include "mesh.hpp"
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Physbuzz {
 
-ShaderPipeline::ShaderPipeline(const Info &info)
+RenderPipeline::RenderPipeline(const Info &info)
     : m_Info(info) {}
 
-ShaderPipeline::~ShaderPipeline() {}
+RenderPipeline::~RenderPipeline() {}
 
-bool ShaderPipeline::build() {
-    PBZ_ASSERT(App::Device != nullptr, "[ShaderPipeline] App::build() not called.");
+bool RenderPipeline::build() {
+    PBZ_ASSERT(App::Device != nullptr, "[RenderPipeline] App::build() not called.");
 
     if (m_Pipeline != nullptr) {
-        Logger::WARNING("[ShaderPipeline] Trying to build a constructed pipeline.");
+        Logger::WARNING("[RenderPipeline] Trying to build a constructed pipeline.");
         return true;
     }
 
-    if (m_Info.module.path.empty()) {
+    if (m_Info.blend.attachments.size() < 1) {
+        Logger::ERROR("[RenderPipeline] No blend attachments attached.");
         return false;
-    }
-
-    File file = File(m_Info.module);
-    if (!file.build()) {
-        Logger::ERROR("[Shader] Could not build file '{}'", m_Info.module.path.string());
-        return false;
-    }
-
-    if (!file.read()) {
-        Logger::ERROR("[Shader] Could not read file '{}'", m_Info.module.path.string());
-        file.destroy();
-        return false;
-    }
-
-    const File::Data &data = file.getData();
-
-    vk::ShaderModule shaderModule = PBZ_VK_CHECK(App::Device.createShaderModule({
-        .codeSize = data.buffer.size(),
-        .pCode = reinterpret_cast<const std::uint32_t *>(data.buffer.data()),
-    }));
-
-    std::vector<vk::PipelineShaderStageCreateInfo> stages;
-    for (const auto &[stage, shader] : m_Info.shaders) {
-        stages.emplace_back<vk::PipelineShaderStageCreateInfo>({
-            .stage = stage,
-            .module = shaderModule,
-            .pName = shader.entrypoint.c_str(),
-            .pSpecializationInfo = nullptr, // TODO
-        });
     }
 
     vk::PipelineDynamicStateCreateInfo dynamicState = {
-        .dynamicStateCount = static_cast<std::uint32_t>(m_Info.states.size()),
-        .pDynamicStates = m_Info.states.data(),
+        .dynamicStateCount = static_cast<std::uint32_t>(m_Info.dynamicStates.size()),
+        .pDynamicStates = m_Info.dynamicStates.data(),
     };
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {
-        .topology = m_Info.topology,
+        .topology = m_Info.assembly.topology,
+        .primitiveRestartEnable = m_Info.assembly.primitiveRestartEnable ? vk::True : vk::False,
     };
 
     vk::PipelineViewportStateCreateInfo viewportState = {
@@ -68,77 +42,99 @@ bool ShaderPipeline::build() {
     };
 
     vk::PipelineRasterizationStateCreateInfo rasterizer = {
-        .depthClampEnable = vk::False,
-        .rasterizerDiscardEnable = vk::False,
-        .polygonMode = vk::PolygonMode::eFill,
-        .cullMode = vk::CullModeFlagBits::eBack,
-        .frontFace = vk::FrontFace::eClockwise,
-        .depthBiasEnable = vk::False,
-        .depthBiasSlopeFactor = 1.0f,
-        .lineWidth = 1.0f,
+        .depthClampEnable = m_Info.rasterization.depthClampEnable ? vk::True : vk::False,
+        .rasterizerDiscardEnable = m_Info.rasterization.rasterizerDiscardEnable ? vk::True : vk::False,
+        .polygonMode = m_Info.rasterization.polygonMode,
+        .cullMode = m_Info.rasterization.cullMode,
+        .frontFace = m_Info.rasterization.frontFace,
+        .depthBiasEnable = m_Info.rasterization.depthBiasEnable ? vk::True : vk::False,
+        .depthBiasSlopeFactor = m_Info.rasterization.depthBiasSlopeFactor,
+        .lineWidth = m_Info.rasterization.lineWidth,
     };
 
-    vk::PipelineColorBlendAttachmentState colorBlendAttachment = {
-        .blendEnable = vk::False,
-        .colorWriteMask = vk::ColorComponentFlagBits::eR |
-                          vk::ColorComponentFlagBits::eG |
-                          vk::ColorComponentFlagBits::eB |
-                          vk::ColorComponentFlagBits::eA,
-    };
+    std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments;
+    for (const auto &attachment : m_Info.blend.attachments) {
+        colorBlendAttachments.emplace_back<vk::PipelineColorBlendAttachmentState>({
+            .blendEnable = attachment.blendEnable ? vk::True : vk::False,
+            .srcColorBlendFactor = attachment.srcColorBlendFactor,
+            .dstColorBlendFactor = attachment.dstColorBlendFactor,
+            .colorBlendOp = attachment.colorBlendOp,
+            .srcAlphaBlendFactor = attachment.srcAlphaBlendFactor,
+            .dstAlphaBlendFactor = attachment.dstAlphaBlendFactor,
+            .alphaBlendOp = attachment.alphaBlendOp,
+            .colorWriteMask = attachment.colorWriteMask,
+        });
+    }
 
-    vk::PipelineColorBlendStateCreateInfo colorBlending{
-        .logicOpEnable = vk::False,
-        .logicOp = vk::LogicOp::eCopy,
-        .attachmentCount = 1,
-        .pAttachments = &colorBlendAttachment,
+    vk::PipelineColorBlendStateCreateInfo colorBlending = {
+        .logicOpEnable = m_Info.blend.logicOpEnable ? vk::True : vk::False,
+        .logicOp = m_Info.blend.logicOp,
+        .attachmentCount = static_cast<std::uint32_t>(colorBlendAttachments.size()),
+        .pAttachments = colorBlendAttachments.data(),
+        .blendConstants = m_Info.blend.blendConstants,
     };
-
-    vk::PipelineLayoutCreateInfo pipelineLayoutInfo = {
-        .setLayoutCount = 0,
-        .pushConstantRangeCount = 0,
-    };
-
-    m_Layout = PBZ_VK_CHECK(App::Device.createPipelineLayout(pipelineLayoutInfo));
 
     vk::PipelineMultisampleStateCreateInfo multisampling = {
-        .rasterizationSamples = vk::SampleCountFlagBits::e1,
-        .sampleShadingEnable = vk::False,
+        .rasterizationSamples = m_Info.multisample.rasterizationSamples,
+        .sampleShadingEnable = m_Info.multisample.sampleShadingEnable ? vk::True : vk::False,
     };
 
-    vk::Format colorFormat = vk::Format::eR8G8B8A8Snorm;
-    vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
-        .colorAttachmentCount = 1,
-        .pColorAttachmentFormats = &colorFormat,
-    };
-
-    vk::GraphicsPipelineCreateInfo pipelineInfo = {
-        .pNext = &pipelineRenderingCreateInfo,
-        .stageCount = static_cast<std::uint32_t>(stages.size()),
-        .pStages = stages.data(),
-        .pVertexInputState = &m_Info.description->m_VertexInputStateCreateInfo,
-        .pInputAssemblyState = &inputAssembly,
-        .pViewportState = &viewportState,
-        .pRasterizationState = &rasterizer,
-        .pMultisampleState = &multisampling,
-        .pColorBlendState = &colorBlending,
-        .pDynamicState = &dynamicState,
-        .layout = m_Layout,
-        .renderPass = nullptr,
-    };
-
-    m_Pipeline = PBZ_VK_CHECK(App::Device.createGraphicsPipeline(nullptr, pipelineInfo));
-
-    App::Device.destroyShaderModule(shaderModule);
-
-    if (!file.destroy()) {
-        Logger::ERROR("[Shader] Could not destroy file '{}'", m_Info.module.path.string());
+    std::unordered_map<ShaderStageFlags, vk::ShaderModule> modules;
+    if (!buildShaders(m_Info.shaders, modules)) {
+        Logger::ERROR("[RenderPipeline] Failed to build pipeline shaders.");
+        destroyShaders(modules);
         return false;
     }
+
+    std::vector<vk::PipelineShaderStageCreateInfo> stages;
+    for (const auto &[stage, module] : modules) {
+        stages.emplace_back<vk::PipelineShaderStageCreateInfo>({
+            .stage = stage,
+            .module = module,
+            .pName = m_Info.shaders[stage].entrypoint.c_str(),
+            .pSpecializationInfo = nullptr, // TODO
+        });
+    }
+
+    std::vector<vk::DescriptorSetLayout> layouts;
+    for (const auto &layout : m_Info.layouts) {
+        layouts.emplace_back(layout->m_Layout);
+    }
+
+    m_Layout = PBZ_VK_CHECK(App::Device.createPipelineLayout({
+        .setLayoutCount = static_cast<std::uint32_t>(layouts.size()),
+        .pSetLayouts = layouts.data(),
+        .pushConstantRangeCount = 0,
+    }));
+
+    vk::Format colorFormat = vk::Format::eR8G8B8A8Unorm;
+    vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> chain = {
+        {
+            .stageCount = static_cast<std::uint32_t>(stages.size()),
+            .pStages = stages.data(),
+            .pVertexInputState = &m_Info.description->m_VertexInputStateCreateInfo,
+            .pInputAssemblyState = &inputAssembly,
+            .pViewportState = &viewportState,
+            .pRasterizationState = &rasterizer,
+            .pMultisampleState = &multisampling,
+            .pColorBlendState = &colorBlending,
+            .pDynamicState = &dynamicState,
+            .layout = m_Layout,
+            .renderPass = nullptr,
+        },
+        {
+            .colorAttachmentCount = 1,
+            .pColorAttachmentFormats = &colorFormat,
+        },
+    };
+
+    m_Pipeline = PBZ_VK_CHECK(App::Device.createGraphicsPipeline(nullptr, chain.get()));
+    destroyShaders(modules);
 
     return true;
 }
 
-bool ShaderPipeline::destroy() {
+bool RenderPipeline::destroy() {
     if (m_Pipeline == nullptr) {
         Logger::WARNING("[ShaderPipeline] Trying to destroy a destructed pipeline.");
         return true;
@@ -149,34 +145,64 @@ bool ShaderPipeline::destroy() {
     return true;
 }
 
-bool ShaderPipeline::reload() {
-    if (!m_RequestedReload) {
-        // no reload was necessary, expected behaviour
-        return true;
-    }
-
-    m_RequestedReload = false;
-
-    if (!m_FailedReload && !destroy()) {
-        Logger::ERROR("[ShaderPipeline] Reload failed.");
-        return false;
-    }
-
-    if (!build()) {
-        m_FailedReload = true;
-        return false;
-    }
-
-    m_FailedReload = false;
-    return true;
-}
-
-void ShaderPipeline::bind(const vk::CommandBuffer &commandBuffer) const {
+void RenderPipeline::bind(const vk::CommandBuffer &commandBuffer) const {
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline);
 }
 
-const ShaderPipeline::Info &ShaderPipeline::getInfo() const {
+const RenderPipeline::Info &RenderPipeline::getInfo() const {
     return m_Info;
+}
+
+bool RenderPipeline::buildShaders(const std::unordered_map<ShaderStageFlags, ShaderInfo> &shaders, std::unordered_map<ShaderStageFlags, vk::ShaderModule> &modules) {
+    bool success = true;
+
+    for (const auto &[stage, shader] : shaders) {
+        if (shader.module.path.empty()) {
+            Logger::ERROR("[RenderPipeline] Missing module path for stage {}", vk::to_string(stage));
+            success = false;
+            break;
+        }
+
+        File file = {shader.module};
+
+        if (!file.build()) {
+            Logger::ERROR("[RenderPipeline] Could not build file '{}'", shader.module.path.string());
+            success = false;
+            continue;
+        }
+
+        if (!file.read()) {
+            Logger::ERROR("[RenderPipeline] Could not read file '{}'", shader.module.path.string());
+            file.destroy();
+            success = false;
+            continue;
+        }
+
+        const std::vector<std::byte> &buffer = file.getData().buffer;
+
+        vk::ShaderModuleCreateInfo createInfo = {
+            .codeSize = buffer.size(),
+            .pCode = reinterpret_cast<const std::uint32_t *>(buffer.data()),
+        };
+
+        modules[stage] = PBZ_VK_CHECK(App::Device.createShaderModule(createInfo));
+
+        if (!file.destroy()) {
+            Logger::ERROR("[RenderPipeline] Could not destroy file '{}'", shader.module.path.string());
+            success = false;
+            continue;
+        }
+    }
+
+    return success;
+}
+
+bool RenderPipeline::destroyShaders(const std::unordered_map<ShaderStageFlags, vk::ShaderModule> &modules) {
+    for (auto &[_, module] : modules) {
+        App::Device.destroyShaderModule(module);
+    }
+
+    return true;
 }
 
 } // namespace Physbuzz

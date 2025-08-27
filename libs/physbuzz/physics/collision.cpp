@@ -2,6 +2,7 @@
 
 #include "../ecs/scene.hpp"
 #include "../events/collision.hpp"
+#include "../render/model.hpp"
 #include "dynamics.hpp"
 
 namespace Physbuzz {

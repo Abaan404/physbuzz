@@ -13,7 +13,7 @@ concept VertexAttributeFormatType =
     std::is_trivial_v<T> &&
     std::is_standard_layout_v<T>;
 
-using Index = std::uint16_t;
+using Index = std::uint32_t;
 
 class VertexDescription {
   public:
@@ -44,7 +44,7 @@ class VertexDescription {
     vk::VertexInputBindingDescription m_Binding;
     vk::PipelineVertexInputStateCreateInfo m_VertexInputStateCreateInfo;
 
-    friend bool ShaderPipeline::build();
+    friend bool RenderPipeline::build();
     friend class Mesh;
 };
 

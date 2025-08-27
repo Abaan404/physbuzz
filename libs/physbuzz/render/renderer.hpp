@@ -4,7 +4,6 @@
 #include "renderers/deferred.hpp"
 #include "renderers/forward.hpp"
 #include "shadow.hpp"
-#include "uniforms.hpp"
 
 namespace Physbuzz {
 
@@ -20,28 +19,26 @@ bool build();
 
 namespace ShaderRendererPassthrough {
 
-inline Resource<ShaderPipeline> Resource = {"builtin/renderer/passthrough"};
+inline Resource<RenderPipeline> Resource = {"builtin/renderer/passthrough"};
 
 bool build();
 
 } // namespace ShaderRendererPassthrough
 
-namespace UniformRendererCamera {
+namespace LayoutRenderer {
 
-struct Format {
-    glm::vec3 position;
-    float _padding0 = 0;
-    glm::mat4x4 view;
-    glm::mat4x4 projection;
+struct Camera {
+    alignas(16) glm::vec3 position;
+    alignas(16) glm::mat4x4 view;
+    alignas(16) glm::mat4x4 projection;
+    static constexpr std::uint32_t Binding = 0;
 };
 
-constexpr std::uint32_t Binding = 0;
-
-inline Resource<UniformBuffer<Format>> Resource = {"builtin/renderer/camera"};
+inline Resource<PipelineLayout> Resource = {"builtin/renderer/layout"};
 
 bool build();
 
-} // namespace UniformRendererCamera
+} // namespace LayoutRenderer
 
 } // namespace Builtin
 
@@ -70,7 +67,7 @@ class Renderer : public System<> {
         Shadow::Info shadow = {};
 
         std::shared_ptr<Window> window;
-        std::vector<Resource<ShaderPipeline>> postProcessing = {};
+        std::vector<Resource<RenderPipeline>> postProcessing = {};
     };
 
     Renderer(const Info &info);
@@ -95,26 +92,30 @@ class Renderer : public System<> {
 
     Info m_Info;
 
-    struct {
-        std::uint32_t frameInFlight = 0;
-        std::uint32_t maxFramesInFlight = 2;
+    struct Frames {
+        std::uint32_t inFlight = 0;
+        static constexpr std::uint32_t MAX_IN_FLIGHT = 2;
+    } m_Frame;
 
+    struct {
         vk::CommandPool pool = nullptr;
         std::vector<vk::CommandBuffer> buffers = {};
     } m_Command = {};
 
     struct {
-        std::vector<vk::Semaphore> presentComplete = {};
-        std::vector<vk::Semaphore> renderFinished = {};
+        std::array<vk::Semaphore, Frames::MAX_IN_FLIGHT> presentComplete = {};
+        std::array<vk::Semaphore, Frames::MAX_IN_FLIGHT> renderFinished = {};
     } m_Semaphores = {};
 
     struct {
-        std::vector<vk::Fence> inFlight = {};
+        std::array<vk::Fence, Frames::MAX_IN_FLIGHT> inFlight = {};
     } m_Fences = {};
 
     struct {
         EventID resize = -1;
     } m_Events = {};
+
+    friend class PipelineLayoutAllocator;
 };
 
 } // namespace Physbuzz

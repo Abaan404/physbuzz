@@ -12,7 +12,7 @@ namespace Builtin {
 
 namespace ShaderDeferredGeometry {
 
-inline Resource<ShaderPipeline> Resource = {"builtin/deferred/geometry"};
+inline Resource<RenderPipeline> Resource = {"builtin/deferred/geometry"};
 
 bool build();
 
@@ -20,7 +20,7 @@ bool build();
 
 namespace ShaderDeferredLighting {
 
-inline Resource<ShaderPipeline> Resource = {"builtin/deferred/lighting"};
+inline Resource<RenderPipeline> Resource = {"builtin/deferred/lighting"};
 
 bool build();
 
@@ -32,7 +32,7 @@ struct RenderComponent;
 
 struct DeferredRenderComponent {
     struct ForwardPass {
-        Resource<ShaderPipeline> pipeline;
+        Resource<RenderPipeline> pipeline;
     };
 };
 
@@ -48,8 +48,8 @@ class DeferredRenderer : public IRenderer,
         std::uint32_t gBufferCount = 3;
 
         struct {
-            Resource<ShaderPipeline> geometry = Builtin::ShaderDeferredGeometry::Resource;
-            Resource<ShaderPipeline> lighting = Builtin::ShaderDeferredLighting::Resource;
+            Resource<RenderPipeline> geometry = Builtin::ShaderDeferredGeometry::Resource;
+            Resource<RenderPipeline> lighting = Builtin::ShaderDeferredLighting::Resource;
         } passes = {};
     };
 

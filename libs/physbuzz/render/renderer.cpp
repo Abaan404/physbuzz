@@ -4,6 +4,9 @@
 #include "../ecs/scene.hpp"
 #include "../events/window.hpp"
 #include "camera.hpp"
+#include "layout.hpp"
+#include "model.hpp"
+#include "renderers/defines.hpp"
 
 namespace Physbuzz {
 
@@ -37,7 +40,7 @@ bool MeshRendererScreenQuad::build() {
 }
 
 bool ShaderRendererPassthrough::build() {
-    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
         return true;
     }
 
@@ -58,13 +61,23 @@ bool ShaderRendererPassthrough::build() {
     return true;
 }
 
-bool UniformRendererCamera::build() {
-    if (ResourceRegistry<UniformBuffer<Format>>::contains(Resource.getIdentifier())) {
+bool LayoutRenderer::build() {
+    if (ResourceRegistry<PipelineLayout>::contains(Resource)) {
         return true;
     }
 
-    bool success = ResourceRegistry<UniformBuffer<Format>>::insert(Resource.getIdentifier(), {});
-    Resource->bindPipeline(Binding);
+    bool success = ResourceRegistry<PipelineLayout>::insert(
+        Resource,
+        {{
+            .bindings = {
+                {
+                    .size = sizeof(Camera),
+                    .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
+                    .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                },
+            },
+        }});
+    // Resource->bindPipeline(Binding);
 
     return success;
 }
@@ -97,8 +110,8 @@ bool Renderer::build() {
         return true;
     }
 
-    if (!Builtin::UniformRendererCamera::build()) {
-        Logger::ERROR("[Renderer] Could not create a constant camera buffer.");
+    if (!Builtin::LayoutRenderer::build()) {
+        Logger::ERROR("[Renderer] Could not create the builtin pipeline layout.");
         return false;
     }
 
@@ -115,14 +128,14 @@ bool Renderer::build() {
     m_Command.buffers = PBZ_VK_CHECK(App::Device.allocateCommandBuffers({
         .commandPool = m_Command.pool,
         .level = vk::CommandBufferLevel::ePrimary,
-        .commandBufferCount = m_Command.maxFramesInFlight,
+        .commandBufferCount = Renderer::Frames::MAX_IN_FLIGHT,
     }));
 
     // create sync objects
-    for (std::size_t i = 0; i < m_Command.maxFramesInFlight; i++) {
-        m_Semaphores.presentComplete.emplace_back(PBZ_VK_CHECK(App::Device.createSemaphore({})));
-        m_Semaphores.renderFinished.emplace_back(PBZ_VK_CHECK(App::Device.createSemaphore({})));
-        m_Fences.inFlight.emplace_back(PBZ_VK_CHECK(App::Device.createFence({
+    for (std::size_t i = 0; i < Renderer::Frames::MAX_IN_FLIGHT; i++) {
+        m_Semaphores.presentComplete[i] = PBZ_VK_CHECK(App::Device.createSemaphore({}));
+        m_Semaphores.renderFinished[i] = PBZ_VK_CHECK(App::Device.createSemaphore({}));
+        m_Fences.inFlight[i] = (PBZ_VK_CHECK(App::Device.createFence({
             .flags = vk::FenceCreateFlagBits::eSignaled,
         })));
     }
@@ -151,16 +164,16 @@ bool Renderer::destroy() {
     }
 
     // destroy sync objects
-    for (std::size_t i = 0; i < m_Command.maxFramesInFlight; i++) {
+    for (std::size_t i = 0; i < Renderer::Frames::MAX_IN_FLIGHT; i++) {
         App::Device.destroySemaphore(m_Semaphores.presentComplete[i]);
         App::Device.destroySemaphore(m_Semaphores.renderFinished[i]);
 
         App::Device.destroyFence(m_Fences.inFlight[i]);
     }
 
-    m_Semaphores.renderFinished.clear();
-    m_Semaphores.presentComplete.clear();
-    m_Fences.inFlight.clear();
+    m_Semaphores.renderFinished.fill(nullptr);
+    m_Semaphores.presentComplete.fill(nullptr);
+    m_Fences.inFlight.fill(nullptr);
 
     // destroy command objects
     App::Device.freeCommandBuffers(m_Command.pool, m_Command.buffers.size(), m_Command.buffers.data());
@@ -173,11 +186,11 @@ bool Renderer::destroy() {
 }
 
 void Renderer::tick() {
-    while (vk::Result::eTimeout == App::Device.waitForFences(m_Fences.inFlight[m_Command.frameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max())) {
+    while (vk::Result::eTimeout == App::Device.waitForFences(m_Fences.inFlight[m_Frame.inFlight], vk::True, std::numeric_limits<std::uint64_t>::max())) {
     }
 
     // fetch the next available swapchain image
-    auto [acquireNextImageResult, imageIndex] = App::Device.acquireNextImageKHR(m_Info.window->m_SwapChain, std::numeric_limits<std::uint32_t>::max(), m_Semaphores.presentComplete[m_Command.frameInFlight], nullptr);
+    auto [acquireNextImageResult, imageIndex] = App::Device.acquireNextImageKHR(m_Info.window->m_SwapChain, std::numeric_limits<std::uint32_t>::max(), m_Semaphores.presentComplete[m_Frame.inFlight], nullptr);
 
     switch (acquireNextImageResult) {
     case vk::Result::eSuccess:
@@ -192,12 +205,50 @@ void Renderer::tick() {
         Logger::CRITICAL("[Renderer] Failed to acquire swap chain image.");
     }
 
-    App::Device.resetFences(m_Fences.inFlight[m_Command.frameInFlight]);
-    m_Command.buffers[m_Command.frameInFlight].reset();
+    auto allocator = Physbuzz::App::GScene.getSystem<Physbuzz::PipelineLayoutAllocator>();
+
+    static auto startTime = std::chrono::high_resolution_clock::now();
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float>(currentTime - startTime).count();
+
+    struct Camera {
+        alignas(16) glm::mat4 model;
+        alignas(16) glm::mat4 view;
+        alignas(16) glm::mat4 proj;
+    };
+
+    Camera camera = {};
+
+    camera.model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    camera.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    camera.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Info.window->getResolution().x) / static_cast<float>(m_Info.window->getResolution().y), 0.1f, 10.0f);
+    camera.proj[1][1] *= -1;
+
+    allocator->update<Camera>(
+        {"camera"},
+        0,
+        {
+            camera,
+        });
+
+    // const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
+    //
+    // allocator->update<Builtin::LayoutRenderer::Camera>(
+    //     Builtin::LayoutRenderer::Handle,
+    //     Builtin::LayoutRenderer::Camera::Binding,
+    //     {{
+    //         .position = camera.getInfo().view.position,
+    //         .view = camera.getView(),
+    //         .projection = camera.getProjection(),
+    //     }});
+
+    App::Device.resetFences(m_Fences.inFlight[m_Frame.inFlight]);
+    m_Command.buffers[m_Frame.inFlight].reset();
 
     {
         vk::CommandBufferBeginInfo commandBufferBeginInfo = {};
-        vk::Result result = m_Command.buffers[m_Command.frameInFlight].begin(commandBufferBeginInfo);
+        vk::Result result = m_Command.buffers[m_Frame.inFlight].begin(commandBufferBeginInfo);
 
         if (result != vk::Result::eSuccess) {
             Logger::ERROR("[Renderer] Rendering begin failed ({})", vk::to_string(result));
@@ -213,8 +264,8 @@ void Renderer::tick() {
             .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
             .oldLayout = vk::ImageLayout::eUndefined,
             .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
             .image = m_Info.window->m_SwapChainImages[imageIndex],
             .subresourceRange = {
                 .aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -231,7 +282,7 @@ void Renderer::tick() {
             .pImageMemoryBarriers = &barrier,
         };
 
-        m_Command.buffers[m_Command.frameInFlight].pipelineBarrier2(dependencyInfo);
+        m_Command.buffers[m_Frame.inFlight].pipelineBarrier2(dependencyInfo);
     }
 
     // setup attachments
@@ -248,7 +299,7 @@ void Renderer::tick() {
     // setup rendering
     glm::ivec2 resolution = m_Info.window->getResolution();
 
-    m_Command.buffers[m_Command.frameInFlight].beginRendering({
+    m_Command.buffers[m_Frame.inFlight].beginRendering({
         .renderArea = {
             .offset = {0, 0},
             .extent = {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)},
@@ -260,11 +311,11 @@ void Renderer::tick() {
 
     switch (m_Info.type) {
     case Type::Deferred:
-        m_Scene->tickSystem<DeferredRenderer>(m_Command.buffers[m_Command.frameInFlight]);
+        m_Scene->tickSystem<DeferredRenderer>(m_Command.buffers[m_Frame.inFlight]);
         break;
 
     case Type::Forward:
-        m_Scene->tickSystem<ForwardRenderer>(m_Command.buffers[m_Command.frameInFlight]);
+        m_Scene->tickSystem<ForwardRenderer>(m_Command.buffers[m_Frame.inFlight]);
         break;
 
     default:
@@ -272,7 +323,7 @@ void Renderer::tick() {
         return;
     }
 
-    m_Command.buffers[m_Command.frameInFlight].endRendering();
+    m_Command.buffers[m_Frame.inFlight].endRendering();
 
     // transition image
     {
@@ -282,8 +333,8 @@ void Renderer::tick() {
             .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
             .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
             .newLayout = vk::ImageLayout::eUndefined,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
             .image = m_Info.window->m_SwapChainImages[imageIndex],
             .subresourceRange = {
                 .aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -300,11 +351,11 @@ void Renderer::tick() {
             .pImageMemoryBarriers = &barrier,
         };
 
-        m_Command.buffers[m_Command.frameInFlight].pipelineBarrier2(dependencyInfo);
+        m_Command.buffers[m_Frame.inFlight].pipelineBarrier2(dependencyInfo);
     }
 
     {
-        vk::Result result = m_Command.buffers[m_Command.frameInFlight].end();
+        vk::Result result = m_Command.buffers[m_Frame.inFlight].end();
 
         if (result != vk::Result::eSuccess) {
             Logger::ERROR("[Renderer] Rendering end failed ({})", vk::to_string(result));
@@ -323,15 +374,15 @@ void Renderer::tick() {
         vk::PipelineStageFlags waitDestinationStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
         const vk::SubmitInfo submitInfo = {
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &m_Semaphores.presentComplete[m_Command.frameInFlight],
+            .pWaitSemaphores = &m_Semaphores.presentComplete[m_Frame.inFlight],
             .pWaitDstStageMask = &waitDestinationStageMask,
             .commandBufferCount = 1,
-            .pCommandBuffers = &m_Command.buffers[m_Command.frameInFlight],
+            .pCommandBuffers = &m_Command.buffers[m_Frame.inFlight],
             .signalSemaphoreCount = 1,
-            .pSignalSemaphores = &m_Semaphores.renderFinished[m_Command.frameInFlight],
+            .pSignalSemaphores = &m_Semaphores.renderFinished[m_Frame.inFlight],
         };
 
-        vk::Result result = App::Queues.graphics.submit(submitInfo, m_Fences.inFlight[m_Command.frameInFlight]);
+        vk::Result result = App::Queues.graphics.submit(submitInfo, m_Fences.inFlight[m_Frame.inFlight]);
 
         if (result != vk::Result::eSuccess) {
             Logger::ERROR("[Renderer] Queue submission failed ({})", vk::to_string(result));
@@ -342,7 +393,7 @@ void Renderer::tick() {
     {
         vk::Result result = App::Queues.present.presentKHR({
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &m_Semaphores.renderFinished[m_Command.frameInFlight],
+            .pWaitSemaphores = &m_Semaphores.renderFinished[m_Frame.inFlight],
             .swapchainCount = 1,
             .pSwapchains = &m_Info.window->m_SwapChain,
             .pImageIndices = &imageIndex,
@@ -366,7 +417,7 @@ void Renderer::tick() {
         }
     }
 
-    m_Command.frameInFlight = (m_Command.frameInFlight + 1) % m_Command.maxFramesInFlight;
+    m_Frame.inFlight = (m_Frame.inFlight + 1) % Renderer::Frames::MAX_IN_FLIGHT;
 }
 
 void Renderer::resize(const glm::ivec2 &resolution) {

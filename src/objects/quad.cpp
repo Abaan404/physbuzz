@@ -1,5 +1,6 @@
 #include "quad.hpp"
 
+#include <physbuzz/render/model.hpp>
 #include <physbuzz/physics/collision.hpp>
 
 template <>

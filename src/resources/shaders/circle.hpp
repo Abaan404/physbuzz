@@ -3,7 +3,7 @@
 #include <physbuzz/ecs/scene.hpp>
 #include <physbuzz/render/renderer.hpp>
 
-inline Physbuzz::ShaderPipeline shaderCircle = {{
+inline Physbuzz::RenderPipeline shaderCircle = {{
     // .vertex = {.file = {.path = "resources/shaders/circle/circle.vert"}},
     // .tessControl = {},
     // .tessEvaluation = {},

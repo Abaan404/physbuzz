@@ -4,6 +4,7 @@
 #include "../events/handler.hpp"
 #include "../events/resources.hpp"
 #include "defines.hpp"
+#include <glm/detail/type_quat.hpp>
 
 namespace Physbuzz {
 
@@ -128,21 +129,33 @@ class ResourceRegistry {
     inline static efsw::FileWatcher m_Watcher;
     inline static std::filesystem::path m_ResourceDirectory;
 
-    template <ResourceType>
+    template <typename>
     friend class Resource;
 };
 
-template <ResourceType T>
+template <typename T>
 class Resource {
   public:
     Resource(const ResourceID &identifier)
         : m_Identifier(identifier) {}
 
-    T *operator->() const {
+    T *operator->() const
+        requires ResourceType<T>
+    {
         return &get();
     }
 
-    T &get() const {
+    operator const ResourceID &() const {
+        return m_Identifier;
+    }
+
+    bool operator==(const Resource<T> &other) const {
+        return m_Identifier == other.m_Identifier;
+    }
+
+    T &get() const
+        requires ResourceType<T>
+    {
         PBZ_ASSERT(ResourceRegistry<T>::contains(m_Identifier), std::format("[Resource] Resource \"{}\" does not exist for type", m_Identifier));
         return ResourceRegistry<T>::m_Container.get(m_Identifier);
     }
@@ -156,3 +169,10 @@ class Resource {
 };
 
 } // namespace Physbuzz
+
+template <typename T>
+struct std::hash<Physbuzz::Resource<T>> {
+    std::size_t operator()(const Physbuzz::Resource<T> &resource) const noexcept {
+        return std::hash<std::string>{}(resource.getIdentifier());
+    }
+};

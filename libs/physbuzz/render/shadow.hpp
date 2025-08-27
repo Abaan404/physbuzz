@@ -11,7 +11,7 @@ namespace Builtin {
 
 namespace ShaderShadowDepth2D {
 
-inline Resource<ShaderPipeline> Resource = {"builtin/depth/2D"};
+inline Resource<RenderPipeline> Resource = {"builtin/depth/2D"};
 
 bool build();
 
@@ -19,7 +19,7 @@ bool build();
 
 namespace ShaderShaderDepthCubemap {
 
-inline Resource<ShaderPipeline> Resource = {"builtin/depth/cubemap"};
+inline Resource<RenderPipeline> Resource = {"builtin/depth/cubemap"};
 
 bool build();
 

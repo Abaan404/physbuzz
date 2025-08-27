@@ -21,7 +21,7 @@ struct ResourceComponent {
         {"default/diffuse"},
         {"default/specular"},
     };
-    Physbuzz::Resource<Physbuzz::ShaderPipeline> pipeline = {"default"};
+    Physbuzz::Resource<Physbuzz::RenderPipeline> pipeline = {"default"};
 };
 
 struct NormalTangent {

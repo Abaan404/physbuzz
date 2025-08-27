@@ -4,7 +4,7 @@
 #include <physbuzz/render/lighting.hpp>
 #include <physbuzz/render/renderer.hpp>
 
-inline Physbuzz::ShaderPipeline shaderGamma = {{
+inline Physbuzz::RenderPipeline shaderGamma = {{
     // .vertex = {.file = {.path = "resources/shaders/gamma/gamma.vert"}},
     // .tessControl = {},
     // .tessEvaluation = {},

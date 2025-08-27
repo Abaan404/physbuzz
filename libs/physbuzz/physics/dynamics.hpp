@@ -2,6 +2,7 @@
 
 #include "../ecs/scene.hpp"
 #include "../misc/clock.hpp"
+#include "../render/mesh.hpp"
 #include "../render/renderer.hpp"
 #include <glm/glm.hpp>
 

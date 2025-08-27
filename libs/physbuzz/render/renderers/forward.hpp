@@ -12,7 +12,7 @@ namespace Builtin {
 
 namespace ShaderForward {
 
-inline Resource<ShaderPipeline> Resource = {"builtin/forward"};
+inline Resource<RenderPipeline> Resource = {"builtin/forward"};
 
 bool build();
 
@@ -21,7 +21,7 @@ bool build();
 } // namespace Builtin
 
 struct ForwardRenderComponent {
-    Resource<ShaderPipeline> pipeline = Builtin::ShaderForward::Resource;
+    Resource<RenderPipeline> pipeline = Builtin::ShaderForward::Resource;
 };
 
 class ForwardRenderer : public IRenderer,
@@ -38,8 +38,6 @@ class ForwardRenderer : public IRenderer,
     void resize(const glm::ivec2 &resolution) override;
 
     void tick(const vk::CommandBuffer &commandBuffer);
-
-    void render(const vk::CommandBuffer &commandBuffer, ObjectID id);
 
     const Framebuffer &getOutput() const override;
     const Info &getInfo() const;

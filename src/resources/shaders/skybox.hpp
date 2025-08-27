@@ -3,7 +3,7 @@
 #include "../../objects/skybox.hpp"
 #include <physbuzz/render/renderer.hpp>
 
-inline Physbuzz::ShaderPipeline shaderSkybox = {{
+inline Physbuzz::RenderPipeline shaderSkybox = {{
     // .vertex = {.file = {.path = "resources/shaders/skybox/skybox.vert"}},
     // .tessControl = {},
     // .tessEvaluation = {},

@@ -118,7 +118,7 @@ void Mesh::draw(const vk::CommandBuffer &commandBuffer) const {
     const Buffer::Data &index = m_Index->getData();
 
     commandBuffer.bindVertexBuffers(0, vertex.buffer, {0});
-    commandBuffer.bindIndexBuffer(index.buffer, 0, vk::IndexType::eUint16);
+    commandBuffer.bindIndexBuffer(index.buffer, 0, vk::IndexType::eUint32);
 
     commandBuffer.drawIndexed(m_Indices.size(), 1, 0, 0, 0);
 }

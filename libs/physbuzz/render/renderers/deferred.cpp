@@ -9,7 +9,7 @@ namespace Physbuzz {
 namespace Builtin {
 
 bool ShaderDeferredGeometry::build() {
-    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
 
@@ -55,7 +55,7 @@ bool ShaderDeferredGeometry::build() {
 }
 
 bool ShaderDeferredLighting::build() {
-    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
 

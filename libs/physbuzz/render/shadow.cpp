@@ -11,7 +11,7 @@ namespace Physbuzz {
 namespace Builtin {
 
 bool ShaderShadowDepth2D::build() {
-    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
 
@@ -33,7 +33,7 @@ bool ShaderShadowDepth2D::build() {
 }
 
 bool ShaderShaderDepthCubemap::build() {
-    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
 

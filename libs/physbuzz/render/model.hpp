@@ -2,11 +2,12 @@
 
 #include "../resources/resources.hpp"
 #include "mesh.hpp"
-#include "texture.hpp"
 #include <assimp/scene.h>
 #include <filesystem>
 
 namespace Physbuzz {
+
+class Texture2D;
 
 constexpr std::size_t TextureTypeMax = AI_TEXTURE_TYPE_MAX;
 enum class TextureType {

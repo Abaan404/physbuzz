@@ -3,6 +3,8 @@
 #include <imgui.h>
 #include <physbuzz/app/application.hpp>
 #include <physbuzz/misc/context.hpp>
+#include <physbuzz/render/layout.hpp>
+#include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
 #include <physbuzz/render/shaders.hpp>
 
@@ -30,6 +32,12 @@ Physbuzz::VertexDescription TestVertex::Description = {{
     .binding = 0,
 }};
 
+struct Camera {
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
+};
+
 void Game::build() {
     Physbuzz::App::init();
     Physbuzz::Context::set(this);
@@ -37,19 +45,46 @@ void Game::build() {
     std::shared_ptr<Physbuzz::Window> window = Physbuzz::App::createWindow("main", {}, {1280, 720});
 
     Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
+    Physbuzz::App::GScene.createSystem<Physbuzz::PipelineLayoutAllocator>(Physbuzz::PipelineLayoutAllocator::Info{});
     Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
         .type = Physbuzz::Renderer::Type::Forward,
         .window = window,
     });
 
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::insert(
+    Physbuzz::ResourceRegistry<Physbuzz::PipelineLayout>::insert(
+        "camera",
+        {{
+            .bindings = {
+                {
+                    .size = sizeof(Camera),
+                    .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
+                    .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                },
+            },
+        }});
+
+    Physbuzz::ResourceRegistry<Physbuzz::RenderPipeline>::insert(
         "test_shader",
         {{
-            .module = {"./spirv/shaders/test/triangle.slang.spv"},
+            .layouts = {
+                {"camera"},
+            },
             .description = &TestVertex::Description,
             .shaders = {
-                {Physbuzz::ShaderPipeline::Stage::eVertex, {"vertMain"}},
-                {Physbuzz::ShaderPipeline::Stage::eFragment, {"fragMain"}},
+                {
+                    Physbuzz::RenderPipeline::ShaderStageFlags::eVertex,
+                    {
+                        .module = {"./spirv/shaders/test/triangle.slang.spv"},
+                        .entrypoint = "vertMain",
+                    },
+                },
+                {
+                    Physbuzz::RenderPipeline::ShaderStageFlags::eFragment,
+                    {
+                        .module = {"./spirv/shaders/test/triangle.slang.spv"},
+                        .entrypoint = "fragMain",
+                    },
+                },
             },
         }});
 
@@ -93,6 +128,7 @@ void Game::loop() {
     m_IsRunning = true;
 
     const std::shared_ptr<Physbuzz::Window> &window = Physbuzz::App::getWindow("main");
+    auto allocator = Physbuzz::App::GScene.getSystem<Physbuzz::PipelineLayoutAllocator>();
 
     while (m_IsRunning && !window->shouldClose()) {
         window->poll();
@@ -104,7 +140,7 @@ void Game::loop() {
 void Game::destroy() {
     m_IsRunning = false;
 
-    Physbuzz::ResourceRegistry<Physbuzz::ShaderPipeline>::erase("test_shader");
+    Physbuzz::ResourceRegistry<Physbuzz::RenderPipeline>::erase("test_shader");
 
     Physbuzz::App::quit();
 }

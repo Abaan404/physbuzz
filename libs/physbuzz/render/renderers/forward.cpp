@@ -1,13 +1,15 @@
 #include "forward.hpp"
 
 #include "../../ecs/scene.hpp"
+#include "../layout.hpp"
+#include "../model.hpp"
 
 namespace Physbuzz {
 
 namespace Builtin {
 
 bool ShaderForward::build() {
-    if (ResourceRegistry<ShaderPipeline>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
 
@@ -146,31 +148,30 @@ void ForwardRenderer::tick(const vk::CommandBuffer &commandBuffer) {
     m_Output.bind();
     m_Output.clear();
 
+    auto allocator = m_Scene->getSystem<PipelineLayoutAllocator>();
+
     for (const auto &object : m_Objects) {
-        render(commandBuffer, object);
+        const auto [render, forward] = m_Scene->getComponent<RenderComponent, ForwardRenderComponent>(object);
+
+        glm::ivec2 resolution = m_Output.getInfo().resolution;
+
+        forward.pipeline->bind(commandBuffer);
+        allocator->bind(commandBuffer, forward.pipeline);
+
+        commandBuffer.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(resolution.x), static_cast<float>(resolution.y), 0.0f, 1.0f});
+        commandBuffer.setScissor(0, vk::Rect2D{{0, 0}, {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)}});
+
+        for (const auto &[mesh, _] : render.model->getMeshs()) {
+            if (mesh.getDescription() != forward.pipeline->getInfo().description) {
+                Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
+                return;
+            }
+        }
+
+        render.model->draw(commandBuffer);
     }
 
     m_Output.unbind();
-}
-
-void ForwardRenderer::render(const vk::CommandBuffer &commandBuffer, ObjectID object) {
-    const auto [render, forward] = m_Scene->getComponent<RenderComponent, ForwardRenderComponent>(object);
-
-    glm::ivec2 resolution = m_Output.getInfo().resolution;
-
-    forward.pipeline->bind(commandBuffer);
-
-    commandBuffer.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(resolution.x), static_cast<float>(resolution.y), 0.0f, 1.0f});
-    commandBuffer.setScissor(0, vk::Rect2D{{0, 0}, {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)}});
-
-    for (const auto &[mesh, _] : render.model->getMeshs()) {
-        if (mesh.getDescription() != forward.pipeline->getInfo().description) {
-            Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
-            return;
-        }
-    }
-
-    render.model->draw(commandBuffer);
 }
 
 void ForwardRenderer::resize(const glm::ivec2 &resolution) {

@@ -1,11 +1,12 @@
 #pragma once
 
-#include "../model.hpp"
+#include "../../resources/resources.hpp"
 #include "../transform.hpp"
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
 
+class Model;
 class Framebuffer;
 
 class IRenderer {

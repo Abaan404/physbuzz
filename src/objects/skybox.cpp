@@ -1,5 +1,6 @@
 #include "skybox.hpp"
 
+#include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
 
 struct VertexSkybox {
