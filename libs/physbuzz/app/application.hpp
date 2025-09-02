@@ -2,6 +2,7 @@
 
 #include "../ecs/scene.hpp"
 #include "../window/window.hpp"
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
@@ -27,6 +28,9 @@ class App {
     // Device info
     inline static vk::PhysicalDevice PhysicalDevice = nullptr;
     inline static vk::Device Device = nullptr;
+
+    // VMA
+    inline static VmaAllocator Allocator = VK_NULL_HANDLE;
 
     inline static struct {
         std::uint32_t graphics;

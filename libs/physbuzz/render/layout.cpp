@@ -66,6 +66,16 @@ bool PipelineLayoutAllocator::destroy() {
         return false;
     }
 
+    for (auto [layout, alloc] : m_AllocatedLayouts) {
+        App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets);
+
+        for (auto &buffer : alloc.buffers) {
+            buffer.destroy();
+        }
+    }
+
+    m_AllocatedLayouts.clear();
+
     App::Device.destroyDescriptorPool(m_CurrentPool);
     m_CurrentPool = nullptr;
 
@@ -123,8 +133,8 @@ bool PipelineLayoutAllocator::allocate(const Resource<PipelineLayout> &layout) {
         return false;
     }
 
-    std::shared_ptr<Transfer> transfer = m_Scene->getSystem<Transfer>();
     std::vector<Buffer> buffers;
+    buffers.reserve(Renderer::Frames::MAX_IN_FLIGHT);
 
     const auto &layoutBindings = layout->getInfo().bindings;
 
@@ -133,24 +143,20 @@ bool PipelineLayoutAllocator::allocate(const Resource<PipelineLayout> &layout) {
 
         switch (binding.type) {
         case vk::DescriptorType::eUniformBuffer: {
-            std::optional<Buffer> buffer = transfer->createBuffer({
-                .size = binding.size * binding.count,
-                .usage = vk::BufferUsageFlagBits::eUniformBuffer,
-                .properties = vk::MemoryPropertyFlagBits::eHostVisible |
-                              vk::MemoryPropertyFlagBits::eHostCoherent,
-            });
-
-            if (!buffer) {
-                Logger::ERROR("[PipelineLayoutAllocator] Failed to create uniform buffer.");
-                App::Device.freeDescriptorSets(m_CurrentPool, sets);
-                continue;
-            }
-
-            buffers.push_back(*buffer);
-
             for (uint32_t frame = 0; frame < Renderer::Frames::MAX_IN_FLIGHT; frame++) {
+                Buffer &buffer = buffers.emplace_back<Buffer>({{
+                    .bufferUsage = Buffer::BufferUsageFlagBits::eUniformBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
+                    .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+                }});
+
+                if (!buffer.build(binding.size * binding.count)) {
+                    Logger::ERROR("[PipelineLayoutAllocator] Failed to create uniform buffer.");
+                    App::Device.freeDescriptorSets(m_CurrentPool, sets);
+                    continue;
+                }
+
                 vk::DescriptorBufferInfo bufferInfo = {
-                    .buffer = buffer->getData().buffer,
+                    .buffer = buffer.getData().buffer,
                     .offset = 0,
                     .range = binding.size * binding.count,
                 };
@@ -188,8 +194,12 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
         return false;
     }
 
-    const Allocation &alloc = m_AllocatedLayouts[layout];
+    Allocation &alloc = m_AllocatedLayouts[layout];
     App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets);
+
+    for (auto &buffer : alloc.buffers) {
+        buffer.destroy();
+    }
 
     return true;
 }

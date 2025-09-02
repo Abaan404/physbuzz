@@ -133,7 +133,6 @@ void Game::loop() {
     while (m_IsRunning && !window->shouldClose()) {
         window->poll();
         Physbuzz::App::GScene.tickSystem<Physbuzz::Renderer>();
-        Physbuzz::App::GScene.tickSystem<Physbuzz::Transfer>();
     }
 }
 

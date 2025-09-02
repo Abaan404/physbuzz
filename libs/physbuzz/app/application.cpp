@@ -1,11 +1,16 @@
 #include "application.hpp"
 
 #include "../debug/macros.hpp"
+#include "../render/layout.hpp"
+#include "../render/model.hpp"
 #include <algorithm>
 #include <glm/common.hpp>
 #include <map>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
+
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -219,6 +224,18 @@ bool App::init() {
     Device = PBZ_VK_CHECK(PhysicalDevice.createDevice(deviceCreateInfo));
     VULKAN_HPP_DEFAULT_DISPATCHER.init(Device);
 
+    VmaVulkanFunctions vulkanFunctions{};
+    vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+    vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+
+    VmaAllocatorCreateInfo allocatorInfo{};
+    allocatorInfo.physicalDevice = PhysicalDevice;
+    allocatorInfo.device = Device;
+    allocatorInfo.instance = Instance;
+    allocatorInfo.pVulkanFunctions = &vulkanFunctions;
+
+    vmaCreateAllocator(&allocatorInfo, &Allocator);
+
     Queues = {
         .graphics = Device.getQueue(Indices.graphics, 0),
         .present = Device.getQueue(Indices.present, 0),
@@ -236,8 +253,16 @@ bool App::quit() {
         }
     }
 
+    // clear the scene completely
     GScene.clear();
 
+    // cleanup vulkan buffers
+    ResourceRegistry<Model>::clear();
+    ResourceRegistry<PipelineLayout>::clear();
+
+    vmaDestroyAllocator(Allocator);
+
+    // destroy every window
     for (auto &[name, _] : m_Windows) {
         if (!getWindow(name)->destroy()) {
             Logger::ERROR("[App] Failed to destroy window.");
@@ -246,6 +271,7 @@ bool App::quit() {
 
     m_Windows.clear();
 
+    // quit glfw
     if (!Window::quit()) {
         Logger::ERROR("[App] Failed to destroy GLFW.");
         return false;
@@ -256,6 +282,7 @@ bool App::quit() {
     DebugMessenger = nullptr;
 #endif
 
+    // release vulkan resources
     Device.destroy();
     Device = nullptr;
 

@@ -69,6 +69,14 @@ class Mesh {
     template <VertexDescriptionType T>
     Mesh(const Info<T> &info)
         : m_Description(&T::Description),
+          m_Vertex({
+              .bufferUsage = Buffer::BufferUsageFlagBits::eVertexBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
+              .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+          }),
+          m_Index({
+              .bufferUsage = Buffer::BufferUsageFlagBits::eIndexBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
+              .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+          }),
           m_Transfer(info.transfer),
           m_Indices(info.indices) {
         m_Vertices.resize(info.vertices.size() * sizeof(T));
@@ -85,8 +93,8 @@ class Mesh {
   private:
     VertexDescription *m_Description = nullptr;
 
-    std::optional<Buffer> m_Vertex;
-    std::optional<Buffer> m_Index;
+    Buffer m_Vertex;
+    Buffer m_Index;
 
     std::shared_ptr<Transfer> m_Transfer = nullptr;
     std::vector<std::byte> m_Vertices = {};

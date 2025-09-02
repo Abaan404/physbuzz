@@ -35,56 +35,23 @@ const VertexDescription::Info &VertexDescription::getInfo() const {
 }
 
 bool Mesh::build() {
-    if (m_Vertex.has_value()) {
-        Logger::WARNING("[Mesh] Trying to build a constructed mesh.");
-        return true;
-    }
-
     if (m_Transfer == nullptr) {
-        Logger::ERROR("[Mesh] Transfer is null.");
-        return false;
-    }
-
-    std::optional<Buffer> stagingVertexBuffer = m_Transfer->createBuffer({
-        .size = m_Vertices.size() * sizeof(m_Vertices[0]),
-        .usage = Buffer::BufferUsageFlagBits::eTransferSrc,
-        .properties = Buffer::MemoryPropertyFlagBits::eHostVisible | Buffer::MemoryPropertyFlagBits::eHostCoherent,
-    });
-
-    m_Vertex = m_Transfer->createBuffer({
-        .size = m_Vertices.size() * sizeof(m_Vertices[0]),
-        .usage = Buffer::BufferUsageFlagBits::eVertexBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
-        .properties = Buffer::MemoryPropertyFlagBits::eDeviceLocal,
-    });
-
-    std::optional<Buffer> stagingIndexBuffer = m_Transfer->createBuffer({
-        .size = m_Indices.size() * sizeof(m_Indices[0]),
-        .usage = Buffer::BufferUsageFlagBits::eTransferSrc,
-        .properties = Buffer::MemoryPropertyFlagBits::eHostVisible | Buffer::MemoryPropertyFlagBits::eHostCoherent,
-    });
-
-    m_Index = m_Transfer->createBuffer({
-        .size = m_Indices.size() * sizeof(m_Indices[0]),
-        .usage = Buffer::BufferUsageFlagBits::eIndexBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
-        .properties = Buffer::MemoryPropertyFlagBits::eDeviceLocal,
-    });
-
-    if (!stagingVertexBuffer.has_value() || !m_Vertex.has_value() || !m_Index.has_value()) {
-        if (stagingVertexBuffer.has_value()) {
-            m_Transfer->eraseBuffer(stagingVertexBuffer.value());
-        }
-
-        destroy();
+        Logger::ERROR("[Mesh] No transfer system provided for mesh.");
         return false;
     }
 
     bool success = true;
 
-    success &= stagingVertexBuffer->map(m_Vertices);
-    success &= m_Transfer->copy(stagingVertexBuffer.value(), m_Vertex.value(), stagingVertexBuffer->getInfo().size, true);
+    success &= m_Vertex.build(m_Vertices.size());
+    success &= m_Index.build(m_Indices.size() * sizeof(Index));
 
-    success &= stagingIndexBuffer->map(m_Indices);
-    success &= m_Transfer->copy(stagingIndexBuffer.value(), m_Index.value(), stagingIndexBuffer->getInfo().size, true);
+    if (!success) {
+        destroy();
+        return false;
+    }
+
+    success &= m_Transfer->map(m_Vertex, m_Vertices);
+    success &= m_Transfer->map(m_Index, m_Indices);
 
     if (!success) {
         destroy();
@@ -95,27 +62,17 @@ bool Mesh::build() {
 }
 
 bool Mesh::destroy() {
-    if (!m_Index.has_value() && !m_Vertex.has_value()) {
-        Logger::WARNING("[Mesh] Trying to destroy a destructed mesh.");
-        return true;
-    }
-
     bool success = true;
 
-    if (m_Index.has_value()) {
-        success &= m_Transfer->eraseBuffer(m_Index.value());
-    }
-
-    if (m_Vertex.has_value()) {
-        success &= m_Transfer->eraseBuffer(m_Vertex.value());
-    }
+    success &= m_Vertex.destroy();
+    success &= m_Index.destroy();
 
     return success;
 }
 
 void Mesh::draw(const vk::CommandBuffer &commandBuffer) const {
-    const Buffer::Data &vertex = m_Vertex->getData();
-    const Buffer::Data &index = m_Index->getData();
+    const Buffer::Data &vertex = m_Vertex.getData();
+    const Buffer::Data &index = m_Index.getData();
 
     commandBuffer.bindVertexBuffers(0, vertex.buffer, {0});
     commandBuffer.bindIndexBuffer(index.buffer, 0, vk::IndexType::eUint32);

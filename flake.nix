@@ -38,6 +38,7 @@
           pkgs.catch2_3
           pkgs.vulkan-headers
           pkgs.vulkan-loader
+          pkgs.vulkan-memory-allocator
         ];
 
         # https://github.com/NixOS/nixpkgs/issues/18995

@@ -85,7 +85,9 @@ class PipelineLayoutAllocator : public System<> {
         PBZ_ASSERT(data.size() <= layout->getInfo().bindings[binding].count, "[PipelineLayoutAllocator] Too much data to update.");
 
         const std::shared_ptr<Renderer> renderer = m_Scene->getSystem<Renderer>();
-        return m_AllocatedLayouts[layout].buffers[renderer->m_Frame.inFlight + binding].map<T>(data);
+        const std::shared_ptr<Transfer> transfer = m_Scene->getSystem<Transfer>();
+
+        return transfer->map(m_AllocatedLayouts[layout].buffers[renderer->m_Frame.inFlight + binding], data);
     }
 
     void reset();
