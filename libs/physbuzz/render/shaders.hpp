@@ -64,6 +64,9 @@ class RenderPipeline {
     // layout
     using DescriptorType = vk::DescriptorType;
 
+    // format
+    using Format = vk::Format;
+
     struct ShaderInfo {
         File::Info module;
         std::string entrypoint;
@@ -118,6 +121,8 @@ class RenderPipeline {
             std::vector<ColorBlendAttachmentInfo> attachments = {1, {{}}};
             std::array<float, 4> blendConstants = {0.0f, 0.0f, 0.0f, 0.0f};
         } blend = {};
+
+        Format format = Format::eB8G8R8A8Srgb;
 
         std::vector<Resource<PipelineLayout>> layouts = {};
 

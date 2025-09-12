@@ -39,10 +39,16 @@
           pkgs.vulkan-headers
           pkgs.vulkan-loader
           pkgs.vulkan-memory-allocator
+          pkgs.vulkan-tools
+          pkgs.vulkan-tools-lunarg
+          pkgs.vulkan-validation-layers
         ];
 
         # https://github.com/NixOS/nixpkgs/issues/18995
         hardeningDisable = [ "all" ];
+        shellHook = ''
+          export VK_LAYER_PATH="${pkgs.vulkan-validation-layers}/share/vulkan/explicit_layer.d";
+        '';
       };
     };
 }

@@ -29,8 +29,6 @@ class Buffer {
     struct Data {
         vk::Buffer buffer = nullptr;
         vk::BufferCreateInfo bufferInfo = {};
-        vk::AccessFlags accessMask = {};
-        vk::PipelineStageFlags stageMask = {};
     };
 
     Buffer(const Info &info);
@@ -38,7 +36,7 @@ class Buffer {
     bool build(std::size_t size);
     bool destroy();
 
-    bool map(const vk::CommandBuffer &commandBuffer, const std::span<const std::byte> &data) const;
+    bool map(const std::span<const std::byte> &data) const;
     void copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer) const;
 
     const Info &getInfo() const;

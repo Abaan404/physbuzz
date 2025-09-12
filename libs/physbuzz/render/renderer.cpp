@@ -330,7 +330,7 @@ void Renderer::tick() {
             .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
             .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
             .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .newLayout = vk::ImageLayout::eUndefined,
+            .newLayout = vk::ImageLayout::ePresentSrcKHR,
             .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
             .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
             .image = m_Info.window->m_SwapChainImages[imageIndex],

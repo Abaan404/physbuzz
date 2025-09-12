@@ -3,10 +3,10 @@
 #include "../debug/macros.hpp"
 #include "../render/layout.hpp"
 #include "../render/model.hpp"
-#include "../render/uniform.hpp"
 #include "../render/textures/texture.hpp"
+#include "../render/uniform.hpp"
 #include <algorithm>
-#include <glm/common.hpp>
+#include <glm/glm.hpp>
 #include <map>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
@@ -57,23 +57,35 @@ bool App::init() {
 
     // Get the required instance extensions from GLFW.
     std::vector<const char *> extensions = Window::requiredExtensions();
+    std::vector<const char *> layers;
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init();
 
 #ifdef ENABLE_VALIDATION_LAYERS
     extensions.emplace_back(vk::EXTDebugUtilsExtensionName);
+    layers.emplace_back("VK_LAYER_KHRONOS_validation");
 #endif
 
     std::vector<vk::ExtensionProperties> extensionProperties = PBZ_VK_CHECK(vk::enumerateInstanceExtensionProperties());
+    std::vector<vk::LayerProperties> layerProperties = PBZ_VK_CHECK(vk::enumerateInstanceLayerProperties());
 
     for (const auto &extension : extensions) {
-        bool success = std::ranges::none_of(extensionProperties, [extension](const VkExtensionProperties &extensionProperty) {
+        bool success = std::ranges::none_of(extensionProperties, [extension](const vk::ExtensionProperties &extensionProperty) {
             return strcmp(extensionProperty.extensionName, extension) == 0;
         });
 
         if (success) {
-            Logger::CRITICAL("[App] Required GLFW extensions not supported: {}", std::string_view(extension));
-            return false;
+            Logger::CRITICAL("[App] Required extensions not supported: {}", extension);
+        }
+    }
+
+    for (const auto &layer : layers) {
+        bool success = std::ranges::none_of(layerProperties, [layer](const vk::LayerProperties &layerProperty) {
+            return strcmp(layerProperty.layerName, layer) == 0;
+        });
+
+        if (success) {
+            Logger::CRITICAL("[App] Required GLFW extensions not supported: {}", layer);
         }
     }
 
@@ -89,6 +101,8 @@ bool App::init() {
 
     vk::InstanceCreateInfo createInfo = {
         .pApplicationInfo = &appInfo,
+        .enabledLayerCount = static_cast<std::uint32_t>(layers.size()),
+        .ppEnabledLayerNames = layers.data(),
         .enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
         .ppEnabledExtensionNames = extensions.data(),
     };
@@ -101,16 +115,16 @@ bool App::init() {
     VULKAN_HPP_DEFAULT_DISPATCHER.init(Instance);
 
 #ifdef ENABLE_VALIDATION_LAYERS
-    vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoEXT{
+    vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoEXT = {
         .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
                            vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
                            vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
                            vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
         .messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
-                       vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding |
                        vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
                        vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
-        .pfnUserCallback = &vulkanDebugCallback};
+        .pfnUserCallback = &vulkanDebugCallback,
+    };
 
     auto [debugMessengerResult, debugMessenger] = Instance.createDebugUtilsMessengerEXT(debugUtilsMessengerCreateInfoEXT);
     if (debugMessengerResult != vk::Result::eSuccess) {
@@ -177,7 +191,7 @@ bool App::init() {
     }
 
     if ((Indices.graphics == -1u) || (Indices.present == -1u)) {
-        Logger::CRITICAL("[App] Could not find a queue for graphics or present.");
+        Logger::CRITICAL("[App] Could not find a queue family for graphics or present.");
         return false;
     }
 
@@ -192,6 +206,7 @@ bool App::init() {
     vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> deviceFeatureChain = {
         deviceFeatures,
         {
+            .synchronization2 = true,
             .dynamicRendering = true, // Enable dynamic rendering from Vulkan 1.3
         },
         {
@@ -201,7 +216,9 @@ bool App::init() {
 
     float queuePriority = 1.0f;
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-    for (const auto &queueFamilyIndex : {Indices.graphics, Indices.present, Indices.transfer}) {
+    std::set<std::uint32_t> queueFamilyIndices = {Indices.graphics, Indices.present, Indices.transfer};
+
+    for (const auto &queueFamilyIndex : queueFamilyIndices) {
         queueCreateInfos.push_back({
             .queueFamilyIndex = queueFamilyIndex,
             .queueCount = 1,

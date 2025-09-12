@@ -42,62 +42,16 @@ bool Buffer::build(std::size_t size) {
         break;
     }
 
-    if (m_Info.usage & vk::BufferUsageFlagBits::eVertexBuffer) {
-        m_Data.accessMask |= vk::AccessFlagBits::eVertexAttributeRead;
-        m_Data.stageMask |= vk::PipelineStageFlagBits::eVertexInput;
-    }
-
-    if (m_Info.usage & vk::BufferUsageFlagBits::eIndexBuffer) {
-        m_Data.accessMask |= vk::AccessFlagBits::eIndexRead;
-        m_Data.stageMask |= vk::PipelineStageFlagBits::eVertexInput;
-    }
-
-    if (m_Info.usage & vk::BufferUsageFlagBits::eUniformBuffer) {
-        m_Data.accessMask |= vk::AccessFlagBits::eUniformRead;
-        m_Data.stageMask |= vk::PipelineStageFlagBits::eVertexShader |
-                            vk::PipelineStageFlagBits::eFragmentShader;
-    }
-
-    if (m_Info.usage & vk::BufferUsageFlagBits::eStorageBuffer) {
-        m_Data.accessMask |= vk::AccessFlagBits::eShaderRead |
-                             vk::AccessFlagBits::eShaderWrite;
-        m_Data.stageMask |= vk::PipelineStageFlagBits::eComputeShader |
-                            vk::PipelineStageFlagBits::eVertexShader |
-                            vk::PipelineStageFlagBits::eFragmentShader;
-    }
-
-    if (m_Info.usage & vk::BufferUsageFlagBits::eTransferSrc) {
-        m_Data.accessMask |= vk::AccessFlagBits::eTransferRead;
-        m_Data.stageMask |= vk::PipelineStageFlagBits::eTransfer;
-    }
-
-    if (m_Info.usage & vk::BufferUsageFlagBits::eTransferDst) {
-        m_Data.accessMask |= vk::AccessFlagBits::eTransferWrite;
-        m_Data.stageMask |= vk::PipelineStageFlagBits::eTransfer;
-    }
-
-    if (!m_Data.accessMask) {
-        Logger::ERROR("[Buffer] No access flag for buffer usage. ({})", vk::to_string(m_Info.usage));
-    }
-
-    if (!m_Data.stageMask) {
-        m_Data.stageMask = vk::PipelineStageFlagBits::eTransfer;
-    }
-
-    vk::BufferCreateInfo bufferInfo = {
+    m_Data.bufferInfo = {
         .size = size,
         .usage = m_Info.usage,
         .sharingMode = m_Info.sharingMode,
     };
 
-    VkBufferCreateInfo bufferInfo2 = static_cast<VkBufferCreateInfo>(bufferInfo);
+    VkBufferCreateInfo bufferInfo = static_cast<VkBufferCreateInfo>(m_Data.bufferInfo);
     VkBuffer buffer = static_cast<VkBuffer>(m_Data.buffer);
-    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCreateBuffer(App::Allocator, &bufferInfo2, &allocInfo, &buffer, &m_Allocation, nullptr)));
-
-    m_Data = {
-        .buffer = buffer,
-        .bufferInfo = bufferInfo,
-    };
+    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCreateBuffer(App::Allocator, &bufferInfo, &allocInfo, &buffer, &m_Allocation, nullptr)));
+    m_Data.buffer = buffer;
 
     return true;
 }
@@ -133,21 +87,9 @@ void Buffer::copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffe
     };
 
     commandBuffer.copyBuffer(srcBuffer.m_Data.buffer, m_Data.buffer, 1, &copy);
-
-    vk::BufferMemoryBarrier barrier = {
-        .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
-        .dstAccessMask = m_Data.accessMask,
-        .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-        .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-        .buffer = m_Data.buffer,
-        .offset = 0,
-        .size = vk::WholeSize,
-    };
-
-    commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, m_Data.stageMask, {}, nullptr, barrier, nullptr);
 }
 
-bool Buffer::map(const vk::CommandBuffer &commandBuffer, const std::span<const std::byte> &data) const {
+bool Buffer::map(const std::span<const std::byte> &data) const {
     PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, data.data(), m_Allocation, 0, data.size())));
 
     VkMemoryPropertyFlags memProps = 0;
@@ -156,18 +98,6 @@ bool Buffer::map(const vk::CommandBuffer &commandBuffer, const std::span<const s
         vmaFlushAllocation(App::Allocator, m_Allocation, 0, data.size());
     }
 
-    vk::BufferMemoryBarrier barrier = {
-        .srcAccessMask = vk::AccessFlagBits::eHostWrite,
-        .dstAccessMask = m_Data.accessMask,
-        .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-        .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-        .buffer = m_Data.buffer,
-        .offset = 0,
-        .size = vk::WholeSize,
-    };
-
-    commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eHost, m_Data.stageMask, {}, nullptr, barrier, nullptr);
-
     return true;
 }
 
@@ -175,7 +105,7 @@ Image::Image(const Info &info)
     : m_Info(info) {}
 
 bool Image::build(const glm::uvec3 &extent) {
-    vk::ImageCreateInfo imageInfo = {
+    m_Data.imageInfo = {
         .imageType = m_Info.type,
         .format = m_Info.format,
         .extent = {extent.x, extent.y, extent.z},
@@ -195,13 +125,9 @@ bool Image::build(const glm::uvec3 &extent) {
     allocCreateInfo.priority = 1.0f;
 
     VkImage image;
-    VkImageCreateInfo imageInfo2 = static_cast<VkImageCreateInfo>(imageInfo);
-    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCreateImage(App::Allocator, &imageInfo2, &allocCreateInfo, &image, &m_Allocation, nullptr)));
-
-    m_Data = {
-        .image = image,
-        .imageInfo = imageInfo,
-    };
+    VkImageCreateInfo imageInfo = static_cast<VkImageCreateInfo>(m_Data.imageInfo);
+    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCreateImage(App::Allocator, &imageInfo, &allocCreateInfo, &image, &m_Allocation, nullptr)));
+    m_Data.image = image;
 
     return true;
 }
@@ -343,7 +269,7 @@ bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes
 
     // if the buffer can be read by the CPU (i.e. integrated gpus)
     if (memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-        if (!buffer.map(m_Command.buffer, bytes)) {
+        if (!buffer.map(bytes)) {
             Logger::ERROR("[Transfer] Failed to map buffer.");
             PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
             return false;
@@ -358,7 +284,7 @@ bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes
             return false;
         }
 
-        if (!stagingBuffer.map(m_Command.buffer, bytes)) {
+        if (!stagingBuffer.map(bytes)) {
             Logger::ERROR("[Transfer] Failed to map staging buffer.");
             stagingBuffer.destroy();
             PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
@@ -414,7 +340,7 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &data) {
         return false;
     }
 
-    if (!stagingBuffer.map(m_Command.buffer, data)) {
+    if (!stagingBuffer.map(data)) {
         Logger::ERROR("[Transfer] Failed to map staging buffer.");
         stagingBuffer.destroy();
         PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
@@ -433,6 +359,7 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &data) {
     };
 
     PBZ_VK_CHECK_RESULT(App::Queues.transfer.submit(submitInfo, m_Fences.submit));
+    PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
 
     // release the staging buffer
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));

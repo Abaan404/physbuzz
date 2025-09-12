@@ -26,6 +26,18 @@ bool RenderPipeline::build() {
         return false;
     }
 
+    if (std::ranges::none_of(m_Info.dynamicStates, [](vk::DynamicState state) {
+            return state == vk::DynamicState::eViewport;
+        })) {
+        m_Info.dynamicStates.push_back(vk::DynamicState::eViewport);
+    }
+
+    if (std::ranges::none_of(m_Info.dynamicStates, [](vk::DynamicState state) {
+            return state == vk::DynamicState::eScissor;
+        })) {
+        m_Info.dynamicStates.push_back(vk::DynamicState::eScissor);
+    }
+
     vk::PipelineDynamicStateCreateInfo dynamicState = {
         .dynamicStateCount = static_cast<std::uint32_t>(m_Info.dynamicStates.size()),
         .pDynamicStates = m_Info.dynamicStates.data(),
@@ -107,7 +119,6 @@ bool RenderPipeline::build() {
         .pushConstantRangeCount = 0,
     }));
 
-    vk::Format colorFormat = vk::Format::eR8G8B8A8Unorm;
     vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> chain = {
         {
             .stageCount = static_cast<std::uint32_t>(stages.size()),
@@ -124,7 +135,7 @@ bool RenderPipeline::build() {
         },
         {
             .colorAttachmentCount = 1,
-            .pColorAttachmentFormats = &colorFormat,
+            .pColorAttachmentFormats = &m_Info.format,
         },
     };
 
