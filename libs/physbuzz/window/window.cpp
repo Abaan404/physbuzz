@@ -135,7 +135,7 @@ bool Window::build(const glm::ivec2 &resolution) {
     m_Surface = surface;
 
     if (!PBZ_VK_CHECK(App::PhysicalDevice.getSurfaceSupportKHR(App::Indices.present, m_Surface))) {
-        Logger::CRITICAL("[App] Graphics and present queue indices do not match, submit a bug report.");
+        Logger::CRITICAL("[Window] Graphics and present queue indices do not match, submit a bug report.");
         destroy();
         return false;
     }
@@ -340,12 +340,7 @@ void Window::recreateSwapChain() {
 
     // wait for resources to be ready
     // Note: It is possible to create a new swap chain while drawing commands on an image from the old swap chain are still in-flight. You need to pass the previous swap chain to the oldSwapchain field in the VkSwapchainCreateInfoKHR struct and destroy the old swap chain as soon as you’ve finished using it. (https://docs.vulkan.org/tutorial/latest/03_Drawing_a_triangle/04_Swap_chain_recreation.html#_recreating_the_swap_chain)
-    {
-        vk::Result result = App::Device.waitIdle();
-        if (result != vk::Result::eSuccess) {
-            Logger::CRITICAL("[Window] Failed to wait for device resources to be freed.");
-        }
-    }
+    PBZ_VK_CHECK_RESULT(App::Device.waitIdle(), "[Window] Failed to wait for device resources to be freed.");
 
     destroySwapChain();
     buildSwapChain();

@@ -52,9 +52,20 @@
     ([&]() {                                                                                                                              \
         auto [result, value] = (resval);                                                                                                  \
         if (result != ::vk::Result::eSuccess) {                                                                                           \
-            ::Physbuzz::Logger::CRITICAL("[vk_check] ({} -> {}) {} (in {}:{})", vk::to_string(result), msg, #resval, __FILE__, __LINE__); \
+            ::Physbuzz::Logger::CRITICAL("[vk_check] ({} -> {}) {} (in {}:{})", #resval, vk::to_string(result), msg, __FILE__, __LINE__); \
         }                                                                                                                                 \
         return value;                                                                                                                     \
     }())
+
+#define PBZ_VK_CHECK_RESULT(...) PBZ_GET_MACRO(__VA_ARGS__, PBZ_VK_CHECK_RESULT_IMPL, PBZ_VK_CHECK_RESULT_IMPL_DEFAULT)(__VA_ARGS__)
+
+#define PBZ_VK_CHECK_RESULT_IMPL_DEFAULT(resval) PBZ_VK_CHECK_RESULT_IMPL(resval, "")
+#define PBZ_VK_CHECK_RESULT_IMPL(resval, msg)                                                                                             \
+    do {                                                                                                                                  \
+        auto result = (resval);                                                                                                           \
+        if (result != ::vk::Result::eSuccess) {                                                                                           \
+            ::Physbuzz::Logger::CRITICAL("[vk_check] ({} -> {}) {} (in {}:{})", #resval, vk::to_string(result), msg, __FILE__, __LINE__); \
+        }                                                                                                                                 \
+    } while (false)
 
 #endif

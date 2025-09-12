@@ -7,6 +7,8 @@
 
 namespace Physbuzz {
 
+class Uniform;
+
 namespace Builtin {
 
 namespace MeshRendererScreenQuad {
@@ -25,16 +27,23 @@ bool build();
 
 } // namespace ShaderRendererPassthrough
 
-namespace LayoutRenderer {
+namespace UniformCamera {
 
 struct Camera {
-    alignas(16) glm::vec3 position;
-    alignas(16) glm::mat4x4 view;
-    alignas(16) glm::mat4x4 projection;
-    static constexpr std::uint32_t Binding = 0;
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
 };
 
-inline Resource<PipelineLayout> Resource = {"builtin/renderer/layout"};
+inline Resource<Uniform> Resource = {"builtin/renderer/camera"};
+
+bool build();
+
+} // namespace UniformCamera
+
+namespace LayoutRenderer {
+
+inline Resource<PipelineLayout> Resource = {"builtin/renderer"};
 
 bool build();
 
@@ -84,6 +93,7 @@ class Renderer : public System<> {
 
     const Framebuffer &getFramebuffer() const;
     const Info &getInfo() const;
+    std::uint32_t getFrameInFlight() const;
 
   private:
     std::shared_ptr<IRenderer> getRenderer() const;
@@ -92,10 +102,7 @@ class Renderer : public System<> {
 
     Info m_Info;
 
-    struct Frames {
-        std::uint32_t inFlight = 0;
-        static constexpr std::uint32_t MAX_IN_FLIGHT = 2;
-    } m_Frame;
+    std::uint32_t m_FrameInFlight = 0;
 
     struct {
         vk::CommandPool pool = nullptr;
@@ -103,19 +110,17 @@ class Renderer : public System<> {
     } m_Command = {};
 
     struct {
-        std::array<vk::Semaphore, Frames::MAX_IN_FLIGHT> presentComplete = {};
-        std::array<vk::Semaphore, Frames::MAX_IN_FLIGHT> renderFinished = {};
+        std::array<vk::Semaphore, detail::MAX_FRAMES_IN_FLIGHT> presentComplete = {};
+        std::array<vk::Semaphore, detail::MAX_FRAMES_IN_FLIGHT> renderFinished = {};
     } m_Semaphores = {};
 
     struct {
-        std::array<vk::Fence, Frames::MAX_IN_FLIGHT> inFlight = {};
+        std::array<vk::Fence, detail::MAX_FRAMES_IN_FLIGHT> inFlight = {};
     } m_Fences = {};
 
     struct {
         EventID resize = -1;
     } m_Events = {};
-
-    friend class PipelineLayoutAllocator;
 };
 
 } // namespace Physbuzz

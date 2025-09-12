@@ -42,7 +42,7 @@ bool Mesh::build() {
 
     bool success = true;
 
-    success &= m_Vertex.build(m_Vertices.size());
+    success &= m_Vertex.build(m_Vertices.size() * sizeof(std::byte));
     success &= m_Index.build(m_Indices.size() * sizeof(Index));
 
     if (!success) {
@@ -50,8 +50,18 @@ bool Mesh::build() {
         return false;
     }
 
-    success &= m_Transfer->map(m_Vertex, m_Vertices);
-    success &= m_Transfer->map(m_Index, m_Indices);
+    std::span<const std::byte> vertices = {
+        reinterpret_cast<const std::byte *>(m_Vertices.data()),
+        m_Vertices.size() * sizeof(std::byte),
+    };
+
+    std::span<const std::byte> indices = {
+        reinterpret_cast<const std::byte *>(m_Indices.data()),
+        m_Indices.size() * sizeof(Index),
+    };
+
+    success &= m_Transfer->map(m_Vertex, vertices);
+    success &= m_Transfer->map(m_Index, indices);
 
     if (!success) {
         destroy();

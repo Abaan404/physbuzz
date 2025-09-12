@@ -7,6 +7,7 @@
 #include "layout.hpp"
 #include "model.hpp"
 #include "renderers/defines.hpp"
+#include "uniform.hpp"
 
 namespace Physbuzz {
 
@@ -61,25 +62,33 @@ bool ShaderRendererPassthrough::build() {
     return true;
 }
 
+bool UniformCamera::build() {
+    if (ResourceRegistry<Uniform>::contains(Resource)) {
+        return true;
+    }
+
+    return ResourceRegistry<Uniform>::insert(
+        Resource,
+        Uniform::Info<Camera>{
+            .count = 1,
+        });
+}
+
 bool LayoutRenderer::build() {
     if (ResourceRegistry<PipelineLayout>::contains(Resource)) {
         return true;
     }
 
-    bool success = ResourceRegistry<PipelineLayout>::insert(
+    return ResourceRegistry<PipelineLayout>::insert(
         Resource,
         {{
             .bindings = {
                 {
-                    .size = sizeof(Camera),
                     .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
                     .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
                 },
             },
         }});
-    // Resource->bindPipeline(Binding);
-
-    return success;
 }
 
 } // namespace Builtin
@@ -110,6 +119,11 @@ bool Renderer::build() {
         return true;
     }
 
+    if (!Builtin::UniformCamera::build()) {
+        Logger::ERROR("[Renderer] Could not create the builtin camera uniform.");
+        return false;
+    }
+
     if (!Builtin::LayoutRenderer::build()) {
         Logger::ERROR("[Renderer] Could not create the builtin pipeline layout.");
         return false;
@@ -118,6 +132,8 @@ bool Renderer::build() {
     if (!Builtin::ShaderRendererPassthrough::build()) {
         return false;
     }
+
+    m_Scene->getSystem<PipelineLayoutAllocator>()->attach(Builtin::LayoutRenderer::Resource, 0, Builtin::UniformCamera::Resource);
 
     // create command objects
     m_Command.pool = PBZ_VK_CHECK(App::Device.createCommandPool({
@@ -128,11 +144,11 @@ bool Renderer::build() {
     m_Command.buffers = PBZ_VK_CHECK(App::Device.allocateCommandBuffers({
         .commandPool = m_Command.pool,
         .level = vk::CommandBufferLevel::ePrimary,
-        .commandBufferCount = Renderer::Frames::MAX_IN_FLIGHT,
+        .commandBufferCount = detail::MAX_FRAMES_IN_FLIGHT,
     }));
 
     // create sync objects
-    for (std::size_t i = 0; i < Renderer::Frames::MAX_IN_FLIGHT; i++) {
+    for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         m_Semaphores.presentComplete[i] = PBZ_VK_CHECK(App::Device.createSemaphore({}));
         m_Semaphores.renderFinished[i] = PBZ_VK_CHECK(App::Device.createSemaphore({}));
         m_Fences.inFlight[i] = (PBZ_VK_CHECK(App::Device.createFence({
@@ -164,7 +180,7 @@ bool Renderer::destroy() {
     }
 
     // destroy sync objects
-    for (std::size_t i = 0; i < Renderer::Frames::MAX_IN_FLIGHT; i++) {
+    for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         App::Device.destroySemaphore(m_Semaphores.presentComplete[i]);
         App::Device.destroySemaphore(m_Semaphores.renderFinished[i]);
 
@@ -186,11 +202,11 @@ bool Renderer::destroy() {
 }
 
 void Renderer::tick() {
-    while (vk::Result::eTimeout == App::Device.waitForFences(m_Fences.inFlight[m_Frame.inFlight], vk::True, std::numeric_limits<std::uint64_t>::max())) {
+    while (vk::Result::eTimeout == App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max())) {
     }
 
     // fetch the next available swapchain image
-    auto [acquireNextImageResult, imageIndex] = App::Device.acquireNextImageKHR(m_Info.window->m_SwapChain, std::numeric_limits<std::uint32_t>::max(), m_Semaphores.presentComplete[m_Frame.inFlight], nullptr);
+    auto [acquireNextImageResult, imageIndex] = App::Device.acquireNextImageKHR(m_Info.window->m_SwapChain, std::numeric_limits<std::uint32_t>::max(), m_Semaphores.presentComplete[m_FrameInFlight], nullptr);
 
     switch (acquireNextImageResult) {
     case vk::Result::eSuccess:
@@ -212,25 +228,14 @@ void Renderer::tick() {
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float>(currentTime - startTime).count();
 
-    struct Camera {
-        alignas(16) glm::mat4 model;
-        alignas(16) glm::mat4 view;
-        alignas(16) glm::mat4 proj;
-    };
-
-    Camera camera = {};
+    Builtin::UniformCamera::Camera camera = {};
 
     camera.model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     camera.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     camera.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Info.window->getResolution().x) / static_cast<float>(m_Info.window->getResolution().y), 0.1f, 10.0f);
     camera.proj[1][1] *= -1;
 
-    allocator->update<Camera>(
-        {"camera"},
-        0,
-        {
-            camera,
-        });
+    Builtin::UniformCamera::Resource->update<Builtin::UniformCamera::Camera>(m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(), {camera});
 
     // const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
     //
@@ -243,18 +248,11 @@ void Renderer::tick() {
     //         .projection = camera.getProjection(),
     //     }});
 
-    App::Device.resetFences(m_Fences.inFlight[m_Frame.inFlight]);
-    m_Command.buffers[m_Frame.inFlight].reset();
+    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.inFlight[m_FrameInFlight]));
+    m_Command.buffers[m_FrameInFlight].reset();
 
-    {
-        vk::CommandBufferBeginInfo commandBufferBeginInfo = {};
-        vk::Result result = m_Command.buffers[m_Frame.inFlight].begin(commandBufferBeginInfo);
-
-        if (result != vk::Result::eSuccess) {
-            Logger::ERROR("[Renderer] Rendering begin failed ({})", vk::to_string(result));
-            return;
-        }
-    }
+    vk::CommandBufferBeginInfo commandBufferBeginInfo = {};
+    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].begin(commandBufferBeginInfo));
 
     // transition image
     {
@@ -282,7 +280,7 @@ void Renderer::tick() {
             .pImageMemoryBarriers = &barrier,
         };
 
-        m_Command.buffers[m_Frame.inFlight].pipelineBarrier2(dependencyInfo);
+        m_Command.buffers[m_FrameInFlight].pipelineBarrier2(dependencyInfo);
     }
 
     // setup attachments
@@ -299,7 +297,7 @@ void Renderer::tick() {
     // setup rendering
     glm::ivec2 resolution = m_Info.window->getResolution();
 
-    m_Command.buffers[m_Frame.inFlight].beginRendering({
+    m_Command.buffers[m_FrameInFlight].beginRendering({
         .renderArea = {
             .offset = {0, 0},
             .extent = {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)},
@@ -311,11 +309,11 @@ void Renderer::tick() {
 
     switch (m_Info.type) {
     case Type::Deferred:
-        m_Scene->tickSystem<DeferredRenderer>(m_Command.buffers[m_Frame.inFlight]);
+        m_Scene->tickSystem<DeferredRenderer>(m_Command.buffers[m_FrameInFlight]);
         break;
 
     case Type::Forward:
-        m_Scene->tickSystem<ForwardRenderer>(m_Command.buffers[m_Frame.inFlight]);
+        m_Scene->tickSystem<ForwardRenderer>(m_Command.buffers[m_FrameInFlight]);
         break;
 
     default:
@@ -323,7 +321,7 @@ void Renderer::tick() {
         return;
     }
 
-    m_Command.buffers[m_Frame.inFlight].endRendering();
+    m_Command.buffers[m_FrameInFlight].endRendering();
 
     // transition image
     {
@@ -351,17 +349,10 @@ void Renderer::tick() {
             .pImageMemoryBarriers = &barrier,
         };
 
-        m_Command.buffers[m_Frame.inFlight].pipelineBarrier2(dependencyInfo);
+        m_Command.buffers[m_FrameInFlight].pipelineBarrier2(dependencyInfo);
     }
 
-    {
-        vk::Result result = m_Command.buffers[m_Frame.inFlight].end();
-
-        if (result != vk::Result::eSuccess) {
-            Logger::ERROR("[Renderer] Rendering end failed ({})", vk::to_string(result));
-            return;
-        }
-    }
+    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].end());
 
     // const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
     // Builtin::UniformRendererCamera::Resource->update({
@@ -370,54 +361,45 @@ void Renderer::tick() {
     //     .projection = camera.getProjection(),
     // });
 
-    {
-        vk::PipelineStageFlags waitDestinationStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-        const vk::SubmitInfo submitInfo = {
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &m_Semaphores.presentComplete[m_Frame.inFlight],
-            .pWaitDstStageMask = &waitDestinationStageMask,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &m_Command.buffers[m_Frame.inFlight],
-            .signalSemaphoreCount = 1,
-            .pSignalSemaphores = &m_Semaphores.renderFinished[m_Frame.inFlight],
-        };
+    vk::PipelineStageFlags waitDestinationStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    const vk::SubmitInfo submitInfo = {
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &m_Semaphores.presentComplete[m_FrameInFlight],
+        .pWaitDstStageMask = &waitDestinationStageMask,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &m_Command.buffers[m_FrameInFlight],
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = &m_Semaphores.renderFinished[m_FrameInFlight],
+    };
 
-        vk::Result result = App::Queues.graphics.submit(submitInfo, m_Fences.inFlight[m_Frame.inFlight]);
+    PBZ_VK_CHECK_RESULT(App::Queues.graphics.submit(submitInfo, m_Fences.inFlight[m_FrameInFlight]));
 
-        if (result != vk::Result::eSuccess) {
-            Logger::ERROR("[Renderer] Queue submission failed ({})", vk::to_string(result));
-            return;
-        }
+    vk::Result presentResult = App::Queues.present.presentKHR({
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &m_Semaphores.renderFinished[m_FrameInFlight],
+        .swapchainCount = 1,
+        .pSwapchains = &m_Info.window->m_SwapChain,
+        .pImageIndices = &imageIndex,
+    });
+
+    switch (presentResult) {
+    case vk::Result::eSuccess:
+        break;
+    case vk::Result::eErrorOutOfDateKHR:
+    case vk::Result::eSuboptimalKHR:
+        m_Info.window->recreateSwapChain();
+        break;
+    default:
+        Logger::ERROR("[Renderer] Failed to present swapchain image! ({})", vk::to_string(presentResult));
+        return;
     }
 
-    {
-        vk::Result result = App::Queues.present.presentKHR({
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &m_Semaphores.renderFinished[m_Frame.inFlight],
-            .swapchainCount = 1,
-            .pSwapchains = &m_Info.window->m_SwapChain,
-            .pImageIndices = &imageIndex,
-        });
-
-        switch (result) {
-        case vk::Result::eSuccess:
-            break;
-        case vk::Result::eErrorOutOfDateKHR:
-        case vk::Result::eSuboptimalKHR:
-            m_Info.window->recreateSwapChain();
-            break;
-        default:
-            Logger::ERROR("[Renderer] Failed to present swapchain image! ({})", vk::to_string(result));
-            return;
-        }
-
-        if (m_Info.window->m_FramebufferResized) {
-            m_Info.window->m_FramebufferResized = false;
-            m_Info.window->recreateSwapChain();
-        }
+    if (m_Info.window->m_FramebufferResized) {
+        m_Info.window->m_FramebufferResized = false;
+        m_Info.window->recreateSwapChain();
     }
 
-    m_Frame.inFlight = (m_Frame.inFlight + 1) % Renderer::Frames::MAX_IN_FLIGHT;
+    m_FrameInFlight = (m_FrameInFlight + 1) % detail::MAX_FRAMES_IN_FLIGHT;
 }
 
 void Renderer::resize(const glm::ivec2 &resolution) {
@@ -451,6 +433,10 @@ const Renderer::Info &Renderer::getInfo() const {
     return m_Info;
 }
 
+std::uint32_t Renderer::getFrameInFlight() const {
+    return m_FrameInFlight;
+}
+
 std::shared_ptr<IRenderer> Renderer::getRenderer() const {
     switch (m_Info.type) {
     case Type::Deferred:
@@ -472,9 +458,12 @@ bool Renderer::buildSystems() {
     case Type::Forward:
         m_Scene->createSystem<ForwardRenderer>(m_Info.forward, m_Info.window->getResolution());
         break;
+
+    default:
+        return false;
     }
 
-    return false;
+    return true;
 }
 
 bool Renderer::destroySystems() {
@@ -484,9 +473,12 @@ bool Renderer::destroySystems() {
 
     case Type::Forward:
         return m_Scene->eraseSystem<ForwardRenderer>();
+
+    default:
+        return false;
     }
 
-    return false;
+    return true;
 }
 
 } // namespace Physbuzz

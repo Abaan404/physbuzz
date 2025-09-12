@@ -1,10 +1,13 @@
 #pragma once
 
 #include "../app/application.hpp"
-#include "buffer.hpp"
-#include "renderer.hpp"
+#include "../resources/resources.hpp"
 
 namespace Physbuzz {
+
+class Texture;
+class Uniform;
+class RenderPipeline;
 
 class PipelineLayout {
   public:
@@ -14,9 +17,8 @@ class PipelineLayout {
     using ShaderStageFlags = vk::ShaderStageFlagBits;
 
     struct Binding {
-        std::uint32_t size;
-        std::uint32_t count = 1;
         Type type;
+        std::uint32_t count = 1;
         ShaderStage stage;
     };
 
@@ -45,21 +47,23 @@ struct IsResource<PipelineLayout> : std::true_type {};
 
 class PipelineLayoutAllocator : public System<> {
   public:
+    using Type = vk::DescriptorType;
+
     struct PoolSize {
-        vk::DescriptorType type;
+        Type type;
         float multiplier;
     };
 
     struct Info {
         uint32_t chunkSize = 100;
         std::vector<PoolSize> poolSizes = {
-            {vk::DescriptorType::eSampler, 0.5f},
-            {vk::DescriptorType::eCombinedImageSampler, 4.f},
-            {vk::DescriptorType::eSampledImage, 4.f},
-            {vk::DescriptorType::eStorageImage, 1.f},
-            {vk::DescriptorType::eUniformBuffer, 2.f},
-            {vk::DescriptorType::eStorageBuffer, 2.f},
-            {vk::DescriptorType::eInputAttachment, 0.5f},
+            {Type::eSampler, 0.5f},
+            {Type::eCombinedImageSampler, 4.f},
+            {Type::eSampledImage, 4.f},
+            {Type::eStorageImage, 1.f},
+            {Type::eUniformBuffer, 2.f},
+            {Type::eStorageBuffer, 2.f},
+            {Type::eInputAttachment, 0.5f},
         };
     };
 
@@ -71,24 +75,8 @@ class PipelineLayoutAllocator : public System<> {
     bool allocate(const Resource<PipelineLayout> &layouts);
     bool deallocate(const Resource<PipelineLayout> &layouts);
 
-    template <typename T>
-    bool update(const Resource<PipelineLayout> &layout, std::uint32_t binding, const std::vector<T> &data) {
-        if (!m_AllocatedLayouts.contains(layout)) {
-            Logger::DEBUG("[PipelineLayoutAllocator] Allocating layout \"{}\"", layout.getIdentifier());
-            if (!allocate(layout)) {
-                return false;
-            }
-        }
-
-        PBZ_ASSERT(binding < layout->getInfo().bindings.size(), "[PipelineLayoutAllocator] Invalid binding to update.");
-        PBZ_ASSERT(sizeof(T) == layout->getInfo().bindings[binding].size, "[PipelineLayoutAllocator] Invalid stride for layout to update.");
-        PBZ_ASSERT(data.size() <= layout->getInfo().bindings[binding].count, "[PipelineLayoutAllocator] Too much data to update.");
-
-        const std::shared_ptr<Renderer> renderer = m_Scene->getSystem<Renderer>();
-        const std::shared_ptr<Transfer> transfer = m_Scene->getSystem<Transfer>();
-
-        return transfer->map(m_AllocatedLayouts[layout].buffers[renderer->m_Frame.inFlight + binding], data);
-    }
+    bool attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<Uniform> &uniform);
+    bool attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<Texture> &texture);
 
     void reset();
 
@@ -100,7 +88,6 @@ class PipelineLayoutAllocator : public System<> {
     struct Allocation {
         vk::DescriptorPool allocatorPool = nullptr;
         std::vector<vk::DescriptorSet> sets;
-        std::vector<Buffer> buffers;
     };
 
     std::unordered_map<Resource<PipelineLayout>, Allocation> m_AllocatedLayouts;

@@ -40,7 +40,7 @@ bool ImageFile::read() {
 }
 
 bool ImageFile::write(const Info &info, const Data &data) {
-    if (data.resolution.x * data.resolution.y * data.channels != data.image.size()) {
+    if (data.resolution.x * data.resolution.y * data.channels != static_cast<std::int32_t>(data.image.size())) {
         Logger::ERROR("[ImageFile] Image size or properties are invalid");
         return false;
     }

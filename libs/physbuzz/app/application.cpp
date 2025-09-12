@@ -3,6 +3,8 @@
 #include "../debug/macros.hpp"
 #include "../render/layout.hpp"
 #include "../render/model.hpp"
+#include "../render/uniform.hpp"
+#include "../render/textures/texture.hpp"
 #include <algorithm>
 #include <glm/common.hpp>
 #include <map>
@@ -184,10 +186,11 @@ bool App::init() {
         Indices.transfer = Indices.graphics;
     }
 
+    vk::PhysicalDeviceFeatures2 deviceFeatures = PhysicalDevice.getFeatures2();
+    deviceFeatures.features.samplerAnisotropy = true;
+
     vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> deviceFeatureChain = {
-        {
-            PhysicalDevice.getFeatures2(),
-        },
+        deviceFeatures,
         {
             .dynamicRendering = true, // Enable dynamic rendering from Vulkan 1.3
         },
@@ -246,19 +249,16 @@ bool App::init() {
 }
 
 bool App::quit() {
-    {
-        vk::Result result = App::Device.waitIdle();
-        if (result != vk::Result::eSuccess) {
-            Logger::CRITICAL("[App] Failed to wait for device resources to be freed.");
-        }
-    }
+    PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
 
     // clear the scene completely
     GScene.clear();
 
-    // cleanup vulkan buffers
+    // cleanup vulkan resources
     ResourceRegistry<Model>::clear();
     ResourceRegistry<PipelineLayout>::clear();
+    ResourceRegistry<Uniform>::clear();
+    ResourceRegistry<Texture>::clear();
 
     vmaDestroyAllocator(Allocator);
 

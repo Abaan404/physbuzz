@@ -51,23 +51,11 @@ void Game::build() {
         .window = window,
     });
 
-    Physbuzz::ResourceRegistry<Physbuzz::PipelineLayout>::insert(
-        "camera",
-        {{
-            .bindings = {
-                {
-                    .size = sizeof(Camera),
-                    .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
-                    .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
-                },
-            },
-        }});
-
     Physbuzz::ResourceRegistry<Physbuzz::RenderPipeline>::insert(
         "test_shader",
         {{
             .layouts = {
-                {"camera"},
+                Physbuzz::Builtin::LayoutRenderer::Resource,
             },
             .description = &TestVertex::Description,
             .shaders = {

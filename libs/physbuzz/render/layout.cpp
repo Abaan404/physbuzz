@@ -1,5 +1,9 @@
 #include "layout.hpp"
 
+#include "renderers/defines.hpp"
+#include "textures/texture.hpp"
+#include "uniform.hpp"
+
 namespace Physbuzz {
 
 PipelineLayout::PipelineLayout(const Info &info)
@@ -12,15 +16,15 @@ bool PipelineLayout::build() {
     }
 
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings;
-    layoutBindings.resize(m_Info.bindings.size());
+    layoutBindings.reserve(m_Info.bindings.size());
 
     for (std::uint32_t i = 0; i < m_Info.bindings.size(); i++) {
-        layoutBindings[i] = {
+        layoutBindings.emplace_back<vk::DescriptorSetLayoutBinding>({
             .binding = i,
             .descriptorType = m_Info.bindings[i].type,
             .descriptorCount = m_Info.bindings[i].count,
             .stageFlags = m_Info.bindings[i].stage,
-        };
+        });
     }
 
     m_Layout = PBZ_VK_CHECK(App::Device.createDescriptorSetLayout({
@@ -68,10 +72,6 @@ bool PipelineLayoutAllocator::destroy() {
 
     for (auto [layout, alloc] : m_AllocatedLayouts) {
         App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets);
-
-        for (auto &buffer : alloc.buffers) {
-            buffer.destroy();
-        }
     }
 
     m_AllocatedLayouts.clear();
@@ -99,11 +99,11 @@ bool PipelineLayoutAllocator::allocate(const Resource<PipelineLayout> &layout) {
         return true;
     }
 
-    std::vector<vk::DescriptorSetLayout> setLayouts(Renderer::Frames::MAX_IN_FLIGHT, layout->m_Layout);
+    std::vector<vk::DescriptorSetLayout> setLayouts(detail::MAX_FRAMES_IN_FLIGHT, layout->m_Layout);
 
     vk::DescriptorSetAllocateInfo allocateInfo = {
         .descriptorPool = m_CurrentPool,
-        .descriptorSetCount = Renderer::Frames::MAX_IN_FLIGHT,
+        .descriptorSetCount = detail::MAX_FRAMES_IN_FLIGHT,
         .pSetLayouts = setLayouts.data(),
     };
 
@@ -133,57 +133,9 @@ bool PipelineLayoutAllocator::allocate(const Resource<PipelineLayout> &layout) {
         return false;
     }
 
-    std::vector<Buffer> buffers;
-    buffers.reserve(Renderer::Frames::MAX_IN_FLIGHT);
-
-    const auto &layoutBindings = layout->getInfo().bindings;
-
-    for (std::size_t i = 0; i < layoutBindings.size(); i++) {
-        const auto &binding = layoutBindings[i];
-
-        switch (binding.type) {
-        case vk::DescriptorType::eUniformBuffer: {
-            for (uint32_t frame = 0; frame < Renderer::Frames::MAX_IN_FLIGHT; frame++) {
-                Buffer &buffer = buffers.emplace_back<Buffer>({{
-                    .bufferUsage = Buffer::BufferUsageFlagBits::eUniformBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
-                    .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
-                }});
-
-                if (!buffer.build(binding.size * binding.count)) {
-                    Logger::ERROR("[PipelineLayoutAllocator] Failed to create uniform buffer.");
-                    App::Device.freeDescriptorSets(m_CurrentPool, sets);
-                    continue;
-                }
-
-                vk::DescriptorBufferInfo bufferInfo = {
-                    .buffer = buffer.getData().buffer,
-                    .offset = 0,
-                    .range = binding.size * binding.count,
-                };
-
-                vk::WriteDescriptorSet write = {
-                    .dstSet = sets[frame],
-                    .dstBinding = static_cast<std::uint32_t>(i),
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .descriptorType = vk::DescriptorType::eUniformBuffer,
-                    .pBufferInfo = &bufferInfo,
-                };
-
-                App::Device.updateDescriptorSets(write, {});
-            }
-        } break;
-
-        default:
-            Logger::ERROR("[PipelineLayoutAllocator] Unsupported PipelineLayout type.");
-            return false;
-        }
-    }
-
     m_AllocatedLayouts[layout] = {
         .allocatorPool = m_CurrentPool,
         .sets = sets,
-        .buffers = buffers,
     };
 
     return true;
@@ -197,10 +149,73 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
     Allocation &alloc = m_AllocatedLayouts[layout];
     App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets);
 
-    for (auto &buffer : alloc.buffers) {
-        buffer.destroy();
+    m_AllocatedLayouts.erase(layout);
+    return true;
+}
+
+bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<Uniform> &uniform) {
+    if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eUniformBuffer) {
+        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
+        return false;
     }
 
+    if (!m_AllocatedLayouts.contains(layout)) {
+        allocate(layout);
+    }
+
+    const std::vector<Buffer> &buffers = uniform->getBuffers();
+
+    for (uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; frame++) {
+        vk::DescriptorBufferInfo bufferInfo = {
+            .buffer = buffers[frame].getData().buffer,
+            .offset = 0,
+            .range = uniform->getRange(),
+        };
+
+        vk::WriteDescriptorSet write = {
+            .dstSet = m_AllocatedLayouts[layout].sets[frame],
+            .dstBinding = static_cast<std::uint32_t>(binding),
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = vk::DescriptorType::eUniformBuffer,
+            .pBufferInfo = &bufferInfo,
+        };
+
+        App::Device.updateDescriptorSets(write, {});
+    }
+
+    return true;
+}
+
+bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<Texture> &texture) {
+    if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eCombinedImageSampler) {
+        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
+        return false;
+    }
+
+    if (!m_AllocatedLayouts.contains(layout)) {
+        allocate(layout);
+    }
+
+    vk::DescriptorImageInfo imageInfo = {
+        .sampler = texture->getSampler(),
+        .imageView = texture->getImageView(),
+        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+    };
+
+    std::vector<vk::WriteDescriptorSet> writes;
+    for (uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; frame++) {
+        writes.emplace_back<vk::WriteDescriptorSet>({
+            .dstSet = m_AllocatedLayouts[layout].sets[frame],
+            .dstBinding = static_cast<std::uint32_t>(binding),
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+            .pImageInfo = &imageInfo,
+        });
+    }
+
+    App::Device.updateDescriptorSets(writes, {});
     return true;
 }
 
@@ -214,10 +229,13 @@ void PipelineLayoutAllocator::reset() {
         App::Device.resetDescriptorPool(pool);
     }
 
-    m_AllocatedLayouts.clear();
+    for (const auto &pool : m_FreePools) {
+        App::Device.resetDescriptorPool(pool);
+    }
 
     m_FreePools.insert(m_FreePools.end(), std::make_move_iterator(m_UsedPools.begin()), std::make_move_iterator(m_UsedPools.end()));
     m_UsedPools.clear();
+    m_AllocatedLayouts.clear();
 }
 
 void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline) {
@@ -232,7 +250,7 @@ void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const
             }
         }
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, 0, m_AllocatedLayouts[layout].sets[renderer->m_Frame.inFlight], nullptr);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, 0, m_AllocatedLayouts[layout].sets[renderer->getFrameInFlight()], nullptr);
     }
 }
 
@@ -241,13 +259,13 @@ vk::DescriptorPool PipelineLayoutAllocator::createPool() {
     for (auto &[type, multiplier] : m_Info.poolSizes) {
         sizes.push_back({
             .type = type,
-            .descriptorCount = Renderer::Frames::MAX_IN_FLIGHT * static_cast<std::uint32_t>(m_Info.chunkSize * multiplier),
+            .descriptorCount = detail::MAX_FRAMES_IN_FLIGHT * static_cast<std::uint32_t>(m_Info.chunkSize * multiplier),
         });
     }
 
     return PBZ_VK_CHECK(App::Device.createDescriptorPool({
         .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        .maxSets = m_Info.chunkSize * Renderer::Frames::MAX_IN_FLIGHT,
+        .maxSets = m_Info.chunkSize * detail::MAX_FRAMES_IN_FLIGHT,
         .poolSizeCount = static_cast<std::uint32_t>(sizes.size()),
         .pPoolSizes = sizes.data(),
     }));

@@ -61,6 +61,11 @@ class App {
 
     friend class Transfer;
     friend class Buffer;
+    friend class Image;
+
+    friend class Texture2D;
+    friend class Texture;
+    friend class Cubemap;
 
     friend class Window;
     friend class Renderer;
