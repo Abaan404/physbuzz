@@ -26,26 +26,30 @@ bool ImageFile::destroy() {
 bool ImageFile::read() {
     stbi_set_flip_vertically_on_load(m_Info.flipVertically);
 
-    stbi_uc *buffer = stbi_load(m_Info.file.path.c_str(), &m_Data.resolution.x, &m_Data.resolution.y, &m_Data.channels, 0);
+    stbi_uc *buffer = stbi_load(m_Info.file.path.c_str(), &m_Data.resolution.x, &m_Data.resolution.y, nullptr, STBI_rgb_alpha);
 
     if (!buffer) {
         Logger::ERROR("[ImageFile] Could not read image from {}: {}", m_Info.file.path.string(), stbi_failure_reason());
         return false;
     }
 
-    m_Data.image = {buffer, buffer + (m_Data.resolution.x * m_Data.resolution.y * m_Data.channels)};
+    m_Data.image.assign(
+        reinterpret_cast<std::byte *>(buffer),
+        reinterpret_cast<std::byte *>(buffer) + (m_Data.resolution.x * m_Data.resolution.y * STBI_rgb_alpha)
+    );
+
     stbi_image_free(buffer);
 
     return true;
 }
 
 bool ImageFile::write(const Info &info, const Data &data) {
-    if (data.resolution.x * data.resolution.y * data.channels != static_cast<std::int32_t>(data.image.size())) {
+    if (data.resolution.x * data.resolution.y * STBI_rgb_alpha != static_cast<std::int32_t>(data.image.size())) {
         Logger::ERROR("[ImageFile] Image size or properties are invalid");
         return false;
     }
 
-    bool ret = stbi_write_png(info.file.path.c_str(), data.resolution.x, data.resolution.y, data.channels, data.image.data(), data.resolution.x * data.channels);
+    bool ret = stbi_write_png(info.file.path.c_str(), data.resolution.x, data.resolution.y, STBI_rgb_alpha, data.image.data(), data.resolution.x * STBI_rgb_alpha);
 
     if (!ret) {
         Logger::ERROR("[ImageFile] Failed to write image to {}", info.file.path.string());

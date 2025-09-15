@@ -147,8 +147,6 @@ void Game::loop() {
 void Game::destroy() {
     m_IsRunning = false;
 
-    Physbuzz::ResourceRegistry<Physbuzz::RenderPipeline>::erase("test_shader");
-
     Physbuzz::App::quit();
 }
 

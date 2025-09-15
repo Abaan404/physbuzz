@@ -184,7 +184,7 @@ void Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer
     {
         vk::ImageMemoryBarrier barrier = {
             .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
-            .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+            .dstAccessMask = vk::AccessFlagBits::eTransferRead,
             .oldLayout = vk::ImageLayout::eTransferDstOptimal,
             .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
             .image = m_Data.image,

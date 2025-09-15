@@ -197,12 +197,12 @@ void Window::setCursorPos(const glm::ivec2 &position) {
     glfwSetCursorPos(m_Window, position.x, position.y);
 }
 
-const glm::ivec2 Window::getResolution() const {
+const glm::uvec2 Window::getResolution() const {
     int width;
     int height;
 
     glfwGetFramebufferSize(m_Window, &width, &height);
-    return glm::ivec2(width, height);
+    return {width, height};
 }
 
 const glm::dvec2 Window::getCursorPos() const {
@@ -216,7 +216,7 @@ bool Window::shouldClose() const {
     return glfwWindowShouldClose(m_Window);
 }
 
-void Window::setResolution(const glm::ivec2 &resolution) {
+void Window::setResolution(const glm::uvec2 &resolution) {
     glfwSetWindowSize(m_Window, resolution.x, resolution.y);
 }
 
@@ -312,6 +312,8 @@ void Window::buildSwapChain() {
         imageViewCreateInfo.image = image;
         m_SwapChainImageViews.push_back(PBZ_VK_CHECK(App::Device.createImageView(imageViewCreateInfo)));
     }
+
+    m_SwapChainExtent = resolution;
 }
 
 void Window::destroySwapChain() {

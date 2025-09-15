@@ -46,8 +46,8 @@ class Window : public EventSubject {
     const glm::dvec2 getCursorPos() const;
     void setCursorPos(const glm::ivec2 &position);
 
-    const glm::ivec2 getResolution() const;
-    void setResolution(const glm::ivec2 &resolution);
+    const glm::uvec2 getResolution() const;
+    void setResolution(const glm::uvec2 &resolution);
 
     const Info &getInfo() const;
 
@@ -65,6 +65,7 @@ class Window : public EventSubject {
     std::vector<vk::ImageView> m_SwapChainImageViews = {};
 
     bool m_FramebufferResized = false;
+    glm::uvec2 m_SwapChainExtent = {0, 0};
 
     friend class App;
     friend class Renderer;

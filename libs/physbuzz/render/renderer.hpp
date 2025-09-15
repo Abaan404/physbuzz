@@ -111,7 +111,7 @@ class Renderer : public System<> {
 
     struct {
         std::array<vk::Semaphore, detail::MAX_FRAMES_IN_FLIGHT> presentComplete = {};
-        std::array<vk::Semaphore, detail::MAX_FRAMES_IN_FLIGHT> renderFinished = {};
+        std::vector<vk::Semaphore> renderFinished = {};
     } m_Semaphores = {};
 
     struct {

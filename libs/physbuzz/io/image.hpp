@@ -14,9 +14,8 @@ class ImageFile {
     };
 
     struct Data {
-        std::vector<std::uint8_t> image;
+        std::vector<std::byte> image;
         glm::ivec2 resolution = {0, 0};
-        int channels = 0;
     };
 
     ImageFile(const Info &image);

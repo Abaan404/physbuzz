@@ -155,10 +155,13 @@ bool Renderer::build() {
     // create sync objects
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         m_Semaphores.presentComplete[i] = PBZ_VK_CHECK(App::Device.createSemaphore({}));
-        m_Semaphores.renderFinished[i] = PBZ_VK_CHECK(App::Device.createSemaphore({}));
         m_Fences.inFlight[i] = (PBZ_VK_CHECK(App::Device.createFence({
             .flags = vk::FenceCreateFlagBits::eSignaled,
         })));
+    }
+
+    for (std::size_t i = 0; i < m_Info.window->m_SwapChainImages.size(); i++) {
+        m_Semaphores.renderFinished.emplace_back(PBZ_VK_CHECK(App::Device.createSemaphore({})));
     }
 
     // setup resize event
@@ -187,12 +190,15 @@ bool Renderer::destroy() {
     // destroy sync objects
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         App::Device.destroySemaphore(m_Semaphores.presentComplete[i]);
-        App::Device.destroySemaphore(m_Semaphores.renderFinished[i]);
 
         App::Device.destroyFence(m_Fences.inFlight[i]);
     }
 
-    m_Semaphores.renderFinished.fill(nullptr);
+    for (std::size_t i = 0; i < m_Info.window->m_SwapChainImages.size(); i++) {
+        App::Device.destroySemaphore(m_Semaphores.renderFinished[i]);
+    }
+
+    m_Semaphores.renderFinished.clear();
     m_Semaphores.presentComplete.fill(nullptr);
     m_Fences.inFlight.fill(nullptr);
 
@@ -300,7 +306,7 @@ void Renderer::tick() {
     };
 
     // setup rendering
-    glm::ivec2 resolution = m_Info.window->getResolution();
+    glm::ivec2 resolution = m_Info.window->m_SwapChainExtent;
 
     m_Command.buffers[m_FrameInFlight].beginRendering({
         .renderArea = {
@@ -374,14 +380,14 @@ void Renderer::tick() {
         .commandBufferCount = 1,
         .pCommandBuffers = &m_Command.buffers[m_FrameInFlight],
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &m_Semaphores.renderFinished[m_FrameInFlight],
+        .pSignalSemaphores = &m_Semaphores.renderFinished[imageIndex],
     };
 
     PBZ_VK_CHECK_RESULT(App::Queues.graphics.submit(submitInfo, m_Fences.inFlight[m_FrameInFlight]));
 
     vk::Result presentResult = App::Queues.present.presentKHR({
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &m_Semaphores.renderFinished[m_FrameInFlight],
+        .pWaitSemaphores = &m_Semaphores.renderFinished[imageIndex],
         .swapchainCount = 1,
         .pSwapchains = &m_Info.window->m_SwapChain,
         .pImageIndices = &imageIndex,

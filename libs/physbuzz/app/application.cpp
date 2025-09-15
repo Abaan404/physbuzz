@@ -273,6 +273,7 @@ bool App::quit() {
 
     // cleanup vulkan resources
     ResourceRegistry<Model>::clear();
+    ResourceRegistry<RenderPipeline>::clear();
     ResourceRegistry<PipelineLayout>::clear();
     ResourceRegistry<Uniform>::clear();
     ResourceRegistry<Texture>::clear();
