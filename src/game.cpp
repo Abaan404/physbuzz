@@ -7,10 +7,12 @@
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
 #include <physbuzz/render/shaders.hpp>
+#include <physbuzz/render/textures/texture.hpp>
 
 struct TestVertex {
     glm::vec2 position;
     glm::vec3 color;
+    glm::vec2 texCoord;
 
     static Physbuzz::VertexDescription Description;
 };
@@ -27,6 +29,11 @@ Physbuzz::VertexDescription TestVertex::Description = {{
             .size = sizeof(TestVertex::color) / sizeof(decltype(TestVertex::color)::value_type),
             .offset = offsetof(TestVertex, color),
         },
+        {
+            .format = Physbuzz::VertexDescription::Format::eR32G32Sfloat,
+            .size = sizeof(TestVertex::texCoord) / sizeof(decltype(TestVertex::texCoord)::value_type),
+            .offset = offsetof(TestVertex, texCoord),
+        },
     },
     .size = sizeof(TestVertex),
     .binding = 0,
@@ -42,9 +49,21 @@ void Game::build() {
     Physbuzz::App::init();
     Physbuzz::Context::set(this);
 
+    Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
+
+    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        "test_texture",
+        {{
+            .transfer = Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>(),
+            .file = {
+                .file = {
+                    .path = "resources/textures/default/diffuse.png",
+                },
+            },
+        }});
+
     std::shared_ptr<Physbuzz::Window> window = Physbuzz::App::createWindow("main", {}, {1280, 720});
 
-    Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
     Physbuzz::App::GScene.createSystem<Physbuzz::PipelineLayoutAllocator>(Physbuzz::PipelineLayoutAllocator::Info{});
     Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
         .type = Physbuzz::Renderer::Type::Forward,
@@ -84,10 +103,11 @@ void Game::build() {
                     Physbuzz::Mesh::Info<TestVertex>{
                         .transfer = Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>(),
                         .vertices = {
-                            {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                            {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                            {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                            {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}},
+                            {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+                            {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+                            {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+                            {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+                        },
                         .indices = {0, 1, 2, 2, 3, 0},
                     },
                     {},

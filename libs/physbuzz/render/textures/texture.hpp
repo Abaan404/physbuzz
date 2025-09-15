@@ -11,7 +11,6 @@ class Texture {
     struct Info {
         std::shared_ptr<Transfer> transfer;
         ImageFile::Info file;
-        Image::Info image;
     };
 
     Texture(const Info &info);
@@ -27,7 +26,6 @@ class Texture {
 
   private:
     Info m_Info;
-
     Image m_Image;
 
     vk::ImageView m_View;

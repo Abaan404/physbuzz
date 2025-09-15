@@ -1,10 +1,16 @@
 #include "texture.hpp"
+#include <span>
 
 namespace Physbuzz {
 
 Texture::Texture(const Info &info)
     : m_Info(info),
-      m_Image(info.image) {}
+      m_Image({
+          .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eTransferDst,
+          .type = Image::Type::e2D,
+          .mipLevels = 1,
+          .arrayLayers = 1,
+      }) {}
 
 bool Texture::build() {
     if (m_Info.file.file.path.empty()) {
@@ -28,6 +34,7 @@ bool Texture::build() {
     const ImageFile::Data imageData = image.getData();
 
     m_Image.build({imageData.resolution, 1});
+    m_Info.transfer->map(m_Image, imageData.image);
 
     if (!image.destroy()) {
         Logger::ERROR("[Texture] Could not destroy image: {}", m_Info.file.file.path.string());

@@ -146,8 +146,6 @@ bool Image::destroy() {
 }
 
 void Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer) const {
-    PBZ_ASSERT(srcBuffer.getData().bufferInfo.size <= (m_Data.imageInfo.extent.width * m_Data.imageInfo.extent.height * m_Data.imageInfo.extent.depth), "[Image] Destination Image size too small.");
-
     vk::BufferImageCopy region = {
         .bufferOffset = 0,
         .bufferRowLength = 0,
@@ -199,7 +197,7 @@ void Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer
             },
         };
 
-        commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, {}, {}, nullptr, barrier);
+        commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, {}, {}, nullptr, barrier);
     }
 }
 

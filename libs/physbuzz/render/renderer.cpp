@@ -87,6 +87,10 @@ bool LayoutRenderer::build() {
                     .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
                     .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
                 },
+                {
+                    .type = Physbuzz::PipelineLayout::Type::eCombinedImageSampler,
+                    .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                },
             },
         }});
 }
@@ -134,6 +138,7 @@ bool Renderer::build() {
     }
 
     m_Scene->getSystem<PipelineLayoutAllocator>()->attach(Builtin::LayoutRenderer::Resource, 0, Builtin::UniformCamera::Resource);
+    m_Scene->getSystem<PipelineLayoutAllocator>()->attach(Builtin::LayoutRenderer::Resource, 1, Resource<Texture>("test_texture"));
 
     // create command objects
     m_Command.pool = PBZ_VK_CHECK(App::Device.createCommandPool({
