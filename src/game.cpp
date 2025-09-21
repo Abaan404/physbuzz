@@ -53,14 +53,13 @@ void Game::build() {
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "test_texture",
-        {{
-            .transfer = Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>(),
+        Physbuzz::Texture::Tex2D,
+        Physbuzz::ImageFile::Info{
             .file = {
-                .file = {
-                    .path = "resources/textures/default/diffuse.png",
-                },
+                .path = "resources/textures/default/diffuse.png",
             },
-        }});
+        },
+        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
 
     std::shared_ptr<Physbuzz::Window> window = Physbuzz::App::createWindow("main", {}, {1280, 720});
 
@@ -101,7 +100,6 @@ void Game::build() {
             .meshes = {
                 {
                     Physbuzz::Mesh::Info<TestVertex>{
-                        .transfer = Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>(),
                         .vertices = {
                             {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
                             {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
@@ -113,7 +111,8 @@ void Game::build() {
                     {},
                 },
             },
-        }});
+        }},
+        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
 
     Physbuzz::RenderComponent render = {
         .transform = {},

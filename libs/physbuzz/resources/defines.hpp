@@ -30,8 +30,14 @@ template <typename T>
 concept ResourceType =
     IsResource<T>::value &&
     requires(T a) {
-        { a.build() } -> std::same_as<bool>;
         { a.destroy() } -> std::same_as<bool>;
+    };
+
+template <typename T, typename... Args>
+concept ResourceBuildableType =
+    ResourceType<T> &&
+    requires(T a, Args... args) {
+        { a.build(args...) } -> std::same_as<bool>;
     };
 
 } // namespace Physbuzz

@@ -13,7 +13,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     glm::vec3 max = glm::vec3(info.cube.width / 2.0f, info.cube.height / 2.0f, info.cube.length / 2.0f);
 
     Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Model::Vertex>{
-        .transfer = scene.getSystem<Physbuzz::Transfer>(),
         .vertices = {
             {{min.x, min.y, min.z}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
             {{min.x, min.y, max.z}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
@@ -56,7 +55,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             .path = {},
             .meshes = {{mesh, {}}},
             .textures = info.resources.textures,
-        }});
+        }},
+        scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
     info.transform.update();

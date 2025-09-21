@@ -36,13 +36,15 @@ class ResourceFileWatcher : public efsw::FileWatchListener {
 template <ResourceType T>
 class ResourceRegistry {
   public:
-    inline static bool insert(const ResourceID &identifier, T &&resource) {
+    template <typename... Args>
+        requires ResourceBuildableType<T, Args...>
+    inline static bool insert(const ResourceID &identifier, T &&resource, Args... args) {
         if (contains(identifier)) {
             Logger::ERROR("[ResourceRegistry] resource \"{}\" was already loaded.", identifier);
             return false;
         }
 
-        if (!resource.build()) {
+        if (!resource.build(std::forward<Args>(args)...)) {
             Logger::ERROR("[ResourceRegistry] Failed to build resource \"{}\".", identifier);
             return false;
         }

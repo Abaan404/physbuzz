@@ -34,8 +34,8 @@ const VertexDescription::Info &VertexDescription::getInfo() const {
     return m_Info;
 }
 
-bool Mesh::build() {
-    if (m_Transfer == nullptr) {
+bool Mesh::build(const std::shared_ptr<Transfer> transfer) {
+    if (transfer == nullptr) {
         Logger::ERROR("[Mesh] No transfer system provided for mesh.");
         return false;
     }
@@ -60,8 +60,8 @@ bool Mesh::build() {
         m_Indices.size() * sizeof(Index),
     };
 
-    success &= m_Transfer->map(m_Vertex, vertices);
-    success &= m_Transfer->map(m_Index, indices);
+    success &= transfer->map(m_Vertex, vertices);
+    success &= transfer->map(m_Index, indices);
 
     if (!success) {
         destroy();

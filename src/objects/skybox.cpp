@@ -28,7 +28,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     constexpr glm::vec3 max = glm::vec3(2.0f, 2.0f, 2.0f);
 
     Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<VertexSkybox>{
-        .transfer = scene.getSystem<Physbuzz::Transfer>(),
         .vertices = {
             {{min.x, min.y, min.z}},
             {{min.x, min.y, max.z}},
@@ -70,7 +69,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             .path = {},
             .meshes = {{mesh, {}}},
             .textures = info.resources.textures,
-        }});
+        }},
+        scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
     info.transform.update();

@@ -43,6 +43,7 @@ bool Buffer::build(std::size_t size) {
     }
 
     m_Data.bufferInfo = {
+        .flags = m_Info.flags,
         .size = size,
         .usage = m_Info.usage,
         .sharingMode = m_Info.sharingMode,
@@ -106,6 +107,7 @@ Image::Image(const Info &info)
 
 bool Image::build(const glm::uvec3 &extent) {
     m_Data.imageInfo = {
+        .flags = m_Info.flags,
         .imageType = m_Info.type,
         .format = m_Info.format,
         .extent = {extent.x, extent.y, extent.z},

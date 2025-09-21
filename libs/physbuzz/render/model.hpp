@@ -62,7 +62,7 @@ class Model {
 
     Model(const Info &info);
 
-    bool build();
+    bool build(std::shared_ptr<Transfer> transfer);
     bool destroy();
 
     void draw(const vk::CommandBuffer &commandBuffer);

@@ -12,6 +12,9 @@ class Buffer {
     using BufferUsageFlags = vk::BufferUsageFlags;
     using SharingMode = vk::SharingMode;
 
+    using FlagBits = vk::BufferCreateFlagBits;
+    using Flags = vk::BufferCreateFlags;
+
     enum class MemoryUsage {
         Auto,
         CPUOnly,
@@ -22,6 +25,7 @@ class Buffer {
 
     struct Info {
         BufferUsageFlags usage;
+        Flags flags = {};
         MemoryUsage memoryUsage = MemoryUsage::Auto;
         SharingMode sharingMode = SharingMode::eExclusive;
     };
@@ -60,6 +64,9 @@ class Image {
     using Type = vk::ImageType;
     using Format = vk::Format;
 
+    using FlagBits = vk::ImageCreateFlagBits;
+    using Flags = vk::ImageCreateFlags;
+
     enum class MemoryUsage {
         Auto,
         CPUOnly,
@@ -73,6 +80,7 @@ class Image {
         Type type;
         std::uint32_t mipLevels;
         std::uint32_t arrayLayers;
+        Flags flags = {};
         Format format = Format::eR8G8B8A8Unorm;
         MemoryUsage memoryUsage = MemoryUsage::Auto;
         SharingMode sharingMode = SharingMode::eExclusive;

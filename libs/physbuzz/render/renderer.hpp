@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ecs/system.hpp"
+#include "buffer.hpp"
 #include "renderers/deferred.hpp"
 #include "renderers/forward.hpp"
 #include "shadow.hpp"
@@ -103,6 +104,11 @@ class Renderer : public System<> {
     Info m_Info;
 
     std::uint32_t m_FrameInFlight = 0;
+
+    struct {
+        Image image;
+        vk::ImageView view;
+    } m_Depth;
 
     struct {
         vk::CommandPool pool = nullptr;

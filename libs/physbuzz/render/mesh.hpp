@@ -61,7 +61,6 @@ class Mesh {
   public:
     template <VertexDescriptionType T>
     struct Info {
-        std::shared_ptr<Transfer> transfer;
         std::vector<T> vertices;
         std::vector<Index> indices;
     };
@@ -77,13 +76,12 @@ class Mesh {
               .usage = Buffer::BufferUsageFlagBits::eIndexBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
               .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
           }),
-          m_Transfer(info.transfer),
           m_Indices(info.indices) {
         m_Vertices.resize(info.vertices.size() * sizeof(T));
         std::memcpy(m_Vertices.data(), info.vertices.data(), m_Vertices.size());
     }
 
-    bool build();
+    bool build(const std::shared_ptr<Transfer> transfer);
     bool destroy();
 
     void draw(const vk::CommandBuffer &commandBuffer) const;
@@ -96,7 +94,6 @@ class Mesh {
     Buffer m_Vertex;
     Buffer m_Index;
 
-    std::shared_ptr<Transfer> m_Transfer = nullptr;
     std::vector<std::byte> m_Vertices = {};
     std::vector<Index> m_Indices = {};
 };

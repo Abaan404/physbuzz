@@ -5,39 +5,51 @@ namespace Physbuzz {
 
 Texture::Texture(const Info &info)
     : m_Info(info),
-      m_Image({
-          .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eTransferDst,
-          .type = Image::Type::e2D,
-          .mipLevels = 1,
-          .arrayLayers = 1,
-      }) {}
+      m_Image(info.image) {}
 
-bool Texture::build() {
-    if (m_Info.file.file.path.empty()) {
+bool Texture::build(ImageFile::Info imageInfo, std::shared_ptr<Transfer> transfer) {
+    if (imageInfo.file.path.empty()) {
         return false;
     }
 
-    // // OpenGL's origin for textures are on its top-left
-    // m_Info.image.flipVertically = true;
-    ImageFile image = ImageFile(m_Info.file);
-    if (!image.build()) {
-        Logger::ERROR("[Texture] Could not build image: {}", m_Info.file.file.path.string());
+    if (transfer == nullptr) {
+        Logger::ERROR("[Texture] No transfer system provided for texture.");
         return false;
     }
 
-    if (!image.read()) {
-        Logger::ERROR("[Texture] Could not load image: {}", m_Info.file.file.path.string());
-        image.destroy();
+    ImageFile imageFile = ImageFile(imageInfo);
+    if (!imageFile.build()) {
+        Logger::ERROR("[Texture] Could not build image: {}", imageInfo.file.path.string());
         return false;
     }
 
-    const ImageFile::Data imageData = image.getData();
+    if (!imageFile.read()) {
+        Logger::ERROR("[Texture] Could not load image: {}", imageInfo.file.path.string());
+        imageFile.destroy();
+        return false;
+    }
 
-    m_Image.build({imageData.resolution, 1});
-    m_Info.transfer->map(m_Image, imageData.image);
+    const ImageFile::Data imageData = imageFile.getData();
 
-    if (!image.destroy()) {
-        Logger::ERROR("[Texture] Could not destroy image: {}", m_Info.file.file.path.string());
+    build({imageData.resolution, 1});
+    transfer->map(m_Image, imageData.image);
+
+    if (!imageFile.destroy()) {
+        Logger::ERROR("[Texture] Could not destroy image: {}", imageInfo.file.path.string());
+        return false;
+    }
+
+    return true;
+}
+
+bool Texture::build(const glm::uvec3 &extent) {
+    if (m_View) {
+        Logger::WARNING("[Texture] Trying to construct a built texture.");
+        return true;
+    }
+
+    if (!m_Image.build(extent)) {
+        Logger::ERROR("[Texture] Failed to build image.");
         return false;
     }
 
@@ -66,13 +78,13 @@ bool Texture::build() {
         .addressModeU = vk::SamplerAddressMode::eRepeat,
         .addressModeV = vk::SamplerAddressMode::eRepeat,
         .addressModeW = vk::SamplerAddressMode::eRepeat,
-        .mipLodBias = 0,
-        .anisotropyEnable = 1,
+        .mipLodBias = 0.0f,
+        .anisotropyEnable = vk::True,
         .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
         .compareEnable = vk::False,
         .compareOp = vk::CompareOp::eAlways,
         .minLod = 0.0f,
-        .maxLod = 0.0f,
+        .maxLod = static_cast<float>(m_Info.image.mipLevels),
         .borderColor = vk::BorderColor::eIntOpaqueBlack,
         .unnormalizedCoordinates = vk::False,
     }));
@@ -81,6 +93,11 @@ bool Texture::build() {
 }
 
 bool Texture::destroy() {
+    if (!m_View) {
+        Logger::WARNING("[Texture] Trying to destroy a destructed texture.");
+        return true;
+    }
+
     App::Device.destroySampler(m_Sampler);
     m_Sampler = nullptr;
 

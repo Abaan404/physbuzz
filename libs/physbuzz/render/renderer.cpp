@@ -18,26 +18,28 @@ bool MeshRendererScreenQuad::build() {
         return true;
     }
 
-    return ResourceRegistry<Model>::insert(
-        Resource.getIdentifier(),
-        {{
-            // .meshes = {
-            //     {
-            //         {
-            //             Mesh::Info<Renderer::VertexScreenQuad>{
-            //                 .vertices = {
-            //                     {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
-            //                     {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
-            //                     {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-            //                     {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-            //                 },
-            //                 .indices = {0, 1, 2, 2, 3, 0},
-            //             },
-            //             {},
-            //         },
-            //     },
-            // },
-        }});
+    // return ResourceRegistry<Model>::insert(
+    //     Resource.getIdentifier(),
+    //     {{
+    //         // .meshes = {
+    //         //     {
+    //         //         {
+    //         //             Mesh::Info<Renderer::VertexScreenQuad>{
+    //         //                 .vertices = {
+    //         //                     {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
+    //         //                     {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
+    //         //                     {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+    //         //                     {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+    //         //                 },
+    //         //                 .indices = {0, 1, 2, 2, 3, 0},
+    //         //             },
+    //         //             {},
+    //         //         },
+    //         //     },
+    //         // },
+    //     }});
+
+    return true;
 }
 
 bool ShaderRendererPassthrough::build() {

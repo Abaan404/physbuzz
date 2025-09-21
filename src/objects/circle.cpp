@@ -27,7 +27,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     std::vector<NormalTangent> NT = generateNormalTangent(indices, positions, texCoords);
 
     Physbuzz::Mesh::Info<Physbuzz::Model::Vertex> mesh = {
-        .transfer = scene.getSystem<Physbuzz::Transfer>(),
         .vertices = {positions.size(), Physbuzz::Model::Vertex{}},
         .indices = indices,
     };
@@ -48,7 +47,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             .path = {},
             .meshes = {{mesh, {}}},
             .textures = info.resources.textures,
-        }});
+        }},
+        scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
     info.transform.update();

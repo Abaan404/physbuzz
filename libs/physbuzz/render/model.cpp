@@ -37,7 +37,7 @@ VertexDescription Model::Vertex::Description = {{
 Model::Model(const Info &info)
     : m_Info(info) {}
 
-bool Model::build() {
+bool Model::build(std::shared_ptr<Transfer> transfer) {
     bool success = true;
 
     // if supplied a path, load the model from the filesystem
@@ -53,7 +53,7 @@ bool Model::build() {
     }
 
     for (auto &[mesh, _] : m_Info.meshes) {
-        success &= mesh.build();
+        success &= mesh.build(transfer);
     }
 
     return success;
