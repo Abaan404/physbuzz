@@ -2,7 +2,9 @@
 
 #include "../../ecs/scene.hpp"
 #include "../layout.hpp"
+#include "../layouts/storage.hpp"
 #include "../model.hpp"
+#include "../renderer.hpp"
 
 namespace Physbuzz {
 
@@ -152,6 +154,13 @@ void ForwardRenderer::tick(const vk::CommandBuffer &commandBuffer) {
 
     for (const auto &object : m_Objects) {
         const auto [render, forward] = m_Scene->getComponent<RenderComponent, ForwardRenderComponent>(object);
+
+        Builtin::LayoutRenderer::ModelBuffer->update<glm::mat4>(
+            m_Scene->getSystem<Renderer>(),
+            m_Scene->getSystem<Transfer>(),
+            {{
+                render.transform.matrix,
+            }});
 
         glm::ivec2 resolution = m_Output.getInfo().resolution;
 

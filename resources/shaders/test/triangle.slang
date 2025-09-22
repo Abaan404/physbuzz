@@ -1,31 +1,45 @@
 struct VSInput {
-    float3 inPosition;
-    float3 inColor;
-    float2 inTexCoord;
+    float3 inPosition : POSITION;
+    float3 inColor : COLOR;
+    float2 inTexCoord : TEXCOORD0;
 };
 
-struct UniformBuffer {
-    float4x4 model;
+struct CameraUBO {
+    float3 position;
     float4x4 view;
-    float4x4 proj;
+    float4x4 projection;
 };
-ConstantBuffer<UniformBuffer> ubo;
+
+[[vk::binding(0, 0)]]
+ConstantBuffer<CameraUBO> ubo;
+
+struct InstanceData {
+    float4x4 model;
+};
+
+[[vk::binding(1, 0)]]
+StructuredBuffer<InstanceData> models;
 
 struct VSOutput {
     float4 pos : SV_Position;
-    float3 fragColor;
-    float2 fragTexCoord;
+    float3 fragColor : COLOR;
+    float2 fragTexCoord : TEXCOORD0;
 };
 
 [shader("vertex")]
 VSOutput vertMain(VSInput input) {
     VSOutput output;
-    output.pos = mul(ubo.proj, mul(ubo.view, mul(ubo.model, float4(input.inPosition, 1.0))));
+
+    // TODO instancing
+    float4x4 model = models[0].model;
+
+    output.pos = mul(ubo.projection, mul(ubo.view, mul(model, float4(input.inPosition, 1.0))));
     output.fragColor = input.inColor;
     output.fragTexCoord = input.inTexCoord;
     return output;
 }
 
+[[vk::binding(0, 1)]]
 Sampler2D texture;
 
 [shader("fragment")]

@@ -7,10 +7,9 @@
 
 namespace Physbuzz {
 
-class Texture2D;
+class Texture;
 
-constexpr std::size_t TextureTypeMax = AI_TEXTURE_TYPE_MAX;
-enum class TextureType {
+enum class TextureType : std::uint32_t {
     None = aiTextureType_NONE,
     Diffuse = aiTextureType_DIFFUSE,
     Specular = aiTextureType_SPECULAR,
@@ -37,6 +36,7 @@ enum class TextureType {
     MayaSpecular = aiTextureType_MAYA_SPECULAR,
     MayaSpecularColor = aiTextureType_MAYA_SPECULAR_COLOR,
     MayaSpecularRoughness = aiTextureType_MAYA_SPECULAR_ROUGHNESS,
+    Max = AI_TEXTURE_TYPE_MAX,
 };
 
 class Model {
@@ -57,7 +57,7 @@ class Model {
     struct Info {
         std::filesystem::path path = {};
         std::vector<std::tuple<Mesh, Meta>> meshes = {};
-        std::vector<Resource<Texture2D>> textures = {};
+        std::vector<Resource<Texture>> textures = {};
     };
 
     Model(const Info &info);
@@ -68,7 +68,7 @@ class Model {
     void draw(const vk::CommandBuffer &commandBuffer);
 
     const std::vector<std::tuple<Mesh, Meta>> &getMeshs() const;
-    const std::vector<Resource<Texture2D>> &getTextures() const;
+    const std::vector<Resource<Texture>> &getTextures() const;
 
     static std::string getTextureTypeName(TextureType texture);
 

@@ -60,6 +60,8 @@ void CameraComponent::updateProjection() {
         m_Projection = glm::mat4(1.0f);
         break;
     }
+
+    m_Projection[1][1] *= -1;
 }
 
 const glm::mat4 &CameraComponent::getProjection() const {

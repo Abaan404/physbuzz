@@ -1,7 +1,7 @@
 #include "model.hpp"
 
 #include "../debug/logging.hpp"
-#include "texture.hpp"
+#include "layouts/texture.hpp"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
@@ -77,7 +77,7 @@ const std::vector<std::tuple<Mesh, Model::Meta>> &Model::getMeshs() const {
     return m_Info.meshes;
 }
 
-const std::vector<Resource<Texture2D>> &Model::getTextures() const {
+const std::vector<Resource<Texture>> &Model::getTextures() const {
     return m_Info.textures;
 }
 
@@ -138,7 +138,7 @@ bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
     if (aimesh->mMaterialIndex >= 0) {
         aiMaterial *material = scene->mMaterials[aimesh->mMaterialIndex];
 
-        for (std::size_t i = 0; i < TextureTypeMax; i++) {
+        for (std::size_t i = 0; i < static_cast<std::size_t>(TextureType::Max); i++) {
             loadTextures(material, static_cast<aiTextureType>(i));
         }
 
@@ -165,21 +165,21 @@ void Model::loadTextures(const aiMaterial *aimaterial, aiTextureType type) {
 
         std::string path = m_Info.path.parent_path() / aiPath.C_Str();
 
-        Texture2D::Info info = {
-            .image = {
-                .file = {
-                    .path = path,
-                },
-            },
-            .type = static_cast<TextureType>(type),
-        };
+        // Texture::Info info = {
+        //     .image = {
+        //         .file = {
+        //             .path = path,
+        //         },
+        //     },
+        //     .type = static_cast<TextureType>(type),
+        // };
 
         ResourceID name = std::format("model@{}", path);
 
-        if (!ResourceRegistry<Texture2D>::contains(name)) {
-            ResourceRegistry<Texture2D>::insert(name, info);
-            m_Info.textures.emplace_back(name);
-        }
+        // if (!ResourceRegistry<Texture>::contains(name)) {
+        //     ResourceRegistry<Texture>::insert(name, info);
+        //     m_Info.textures.emplace_back(name);
+        // }
     }
 }
 

@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../resources/defines.hpp"
-#include "buffer.hpp"
-#include "renderer.hpp"
+#include "../../resources/defines.hpp"
+#include "../buffer.hpp"
+#include "../renderer.hpp"
 #include <vector>
 
 namespace Physbuzz {
 
-class Uniform {
+class UniformBuffer {
   public:
     template <typename T>
     struct Info {
@@ -15,7 +15,7 @@ class Uniform {
     };
 
     template <typename T>
-    Uniform(const Info<T> &info)
+    UniformBuffer(const Info<T> &info)
         : m_Stride(sizeof(T)),
           m_Count(info.count) {}
 
@@ -47,6 +47,6 @@ class Uniform {
 };
 
 template <>
-struct IsResource<Uniform> : std::true_type {};
+struct IsResource<UniformBuffer> : std::true_type {};
 
 } // namespace Physbuzz

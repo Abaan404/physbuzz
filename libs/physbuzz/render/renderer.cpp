@@ -5,9 +5,9 @@
 #include "../events/window.hpp"
 #include "camera.hpp"
 #include "layout.hpp"
+#include "layouts/storage.hpp"
+#include "layouts/uniform.hpp"
 #include "model.hpp"
-#include "renderers/defines.hpp"
-#include "uniform.hpp"
 
 namespace Physbuzz {
 
@@ -64,57 +64,55 @@ bool ShaderRendererPassthrough::build() {
     return true;
 }
 
-bool UniformCamera::build() {
-    if (ResourceRegistry<Uniform>::contains(Resource)) {
-        return true;
-    }
-
-    return ResourceRegistry<Uniform>::insert(
-        Resource,
-        Uniform::Info<Camera>{
-            .count = 1,
-        });
-}
-
-bool LayoutRenderer::build() {
+bool LayoutRenderer::build(const std::shared_ptr<PipelineLayoutAllocator> allocator) {
     if (ResourceRegistry<PipelineLayout>::contains(Resource)) {
         return true;
     }
 
-    return ResourceRegistry<PipelineLayout>::insert(
+    if (!ResourceRegistry<UniformBuffer>::contains(CameraBuffer)) {
+        ResourceRegistry<UniformBuffer>::insert(
+            CameraBuffer,
+            UniformBuffer::Info<Camera>{
+                .count = 1,
+            });
+    }
+
+    if (!ResourceRegistry<StorageBuffer>::contains(ModelBuffer)) {
+        ResourceRegistry<StorageBuffer>::insert(
+            ModelBuffer,
+            StorageBuffer::Info<Model>{
+                .count = 500,
+            });
+    }
+
+    bool success = ResourceRegistry<PipelineLayout>::insert(
         Resource,
         {{
             .bindings = {
                 {
+                    // view, proj
                     .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
                     .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
                 },
                 {
-                    .type = Physbuzz::PipelineLayout::Type::eCombinedImageSampler,
+                    // model
+                    .type = Physbuzz::PipelineLayout::Type::eStorageBuffer,
                     .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
                 },
             },
         }});
+
+    if (!success) {
+        return false;
+    }
+
+    success &= allocator->attach(Builtin::LayoutRenderer::Resource, 0, CameraBuffer);
+    success &= allocator->attach(Builtin::LayoutRenderer::Resource, 1, ModelBuffer);
+
+    return success;
 }
 
 } // namespace Builtin
-
-VertexDescription Renderer::VertexScreenQuad::Description = {{
-    .attributes = {
-        {
-            .format = VertexDescription::Format::eR32G32B32Sfloat,
-            .size = sizeof(VertexScreenQuad::position) / sizeof(decltype(VertexScreenQuad::position)::value_type),
-            .offset = offsetof(VertexScreenQuad, position),
-        },
-        {
-            .format = VertexDescription::Format::eR32G32Sfloat,
-            .size = sizeof(VertexScreenQuad::texCoords) / sizeof(decltype(VertexScreenQuad::texCoords)::value_type),
-            .offset = offsetof(VertexScreenQuad, texCoords),
-        },
-    },
-    .size = sizeof(VertexScreenQuad),
-    .binding = 0,
-}};
 
 Renderer::Renderer(const Info &info)
     : m_Info(info) {}
@@ -125,12 +123,7 @@ bool Renderer::build() {
         return true;
     }
 
-    if (!Builtin::UniformCamera::build()) {
-        Logger::ERROR("[Renderer] Could not create the builtin camera uniform.");
-        return false;
-    }
-
-    if (!Builtin::LayoutRenderer::build()) {
+    if (!Builtin::LayoutRenderer::build(m_Scene->getSystem<PipelineLayoutAllocator>())) {
         Logger::ERROR("[Renderer] Could not create the builtin pipeline layout.");
         return false;
     }
@@ -138,9 +131,6 @@ bool Renderer::build() {
     if (!Builtin::ShaderRendererPassthrough::build()) {
         return false;
     }
-
-    m_Scene->getSystem<PipelineLayoutAllocator>()->attach(Builtin::LayoutRenderer::Resource, 0, Builtin::UniformCamera::Resource);
-    m_Scene->getSystem<PipelineLayoutAllocator>()->attach(Builtin::LayoutRenderer::Resource, 1, Resource<Texture>("test_texture"));
 
     // create command objects
     m_Command.pool = PBZ_VK_CHECK(App::Device.createCommandPool({
@@ -261,32 +251,15 @@ void Renderer::tick() {
         Logger::CRITICAL("[Renderer] Failed to acquire swap chain image.");
     }
 
-    auto allocator = Physbuzz::App::GScene.getSystem<Physbuzz::PipelineLayoutAllocator>();
-
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float>(currentTime - startTime).count();
-
-    Builtin::UniformCamera::Camera camera = {};
-
-    camera.model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    camera.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    camera.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Info.window->m_SwapChainExtent.x) / static_cast<float>(m_Info.window->m_SwapChainExtent.y), 0.1f, 10.0f);
-    camera.proj[1][1] *= -1;
-
-    Builtin::UniformCamera::Resource->update<Builtin::UniformCamera::Camera>(m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(), {camera});
-
-    // const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
-    //
-    // allocator->update<Builtin::LayoutRenderer::Camera>(
-    //     Builtin::LayoutRenderer::Handle,
-    //     Builtin::LayoutRenderer::Camera::Binding,
-    //     {{
-    //         .position = camera.getInfo().view.position,
-    //         .view = camera.getView(),
-    //         .projection = camera.getProjection(),
-    //     }});
+    const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
+    Builtin::LayoutRenderer::CameraBuffer->update<Builtin::LayoutRenderer::Camera>(
+        m_Scene->getSystem<Renderer>(),
+        m_Scene->getSystem<Transfer>(),
+        {{
+            .position = camera.getInfo().view.position,
+            .view = camera.getView(),
+            .projection = camera.getProjection(),
+        }});
 
     PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.inFlight[m_FrameInFlight]));
     m_Command.buffers[m_FrameInFlight].reset();

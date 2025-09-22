@@ -2,9 +2,10 @@
 
 #include "../debug/macros.hpp"
 #include "../render/layout.hpp"
+#include "../render/layouts/texture.hpp"
+#include "../render/layouts/uniform.hpp"
+#include "../render/layouts/storage.hpp"
 #include "../render/model.hpp"
-#include "../render/textures/texture.hpp"
-#include "../render/uniform.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <map>
@@ -275,7 +276,8 @@ bool App::quit() {
     ResourceRegistry<Model>::clear();
     ResourceRegistry<RenderPipeline>::clear();
     ResourceRegistry<PipelineLayout>::clear();
-    ResourceRegistry<Uniform>::clear();
+    ResourceRegistry<UniformBuffer>::clear();
+    ResourceRegistry<StorageBuffer>::clear();
     ResourceRegistry<Texture>::clear();
 
     vmaDestroyAllocator(Allocator);
@@ -310,8 +312,8 @@ bool App::quit() {
     return true;
 }
 
-std::shared_ptr<Window> App::createWindow(const std::string &name, const Window::Info &windowInfo, const glm::ivec2 &resolution) {
-    m_Windows[name] = std::make_shared<Window>(windowInfo);
+std::shared_ptr<Window> App::createWindow(const std::string &name, const Window::Info &info, const glm::ivec2 &resolution) {
+    m_Windows[name] = std::make_shared<Window>(info);
 
     if (!m_Windows[name]->build(resolution)) {
         Logger::CRITICAL("[App] Could not create a window.");

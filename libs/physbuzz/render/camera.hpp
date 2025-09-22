@@ -72,8 +72,8 @@ class CameraComponent {
     void updateProjection();
     void updateView();
 
-    glm::mat4 m_Projection{1.0f};
-    glm::mat4 m_View{1.0f};
+    glm::mat4 m_Projection = {1.0f};
+    glm::mat4 m_View = {1.0f};
 
     Info m_Info;
 };

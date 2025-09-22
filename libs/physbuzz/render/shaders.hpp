@@ -13,30 +13,6 @@ namespace Physbuzz {
 class PipelineLayout;
 class VertexDescription;
 
-template <typename T>
-concept ShaderPODType =
-    std::same_as<T, float> ||
-    std::same_as<T, glm::vec2> ||
-    std::same_as<T, glm::vec3> ||
-    std::same_as<T, glm::vec4> ||
-    std::same_as<T, int> ||
-    std::same_as<T, glm::ivec2> ||
-    std::same_as<T, glm::ivec3> ||
-    std::same_as<T, glm::ivec4> ||
-    std::same_as<T, unsigned int> ||
-    std::same_as<T, glm::uvec2> ||
-    std::same_as<T, glm::uvec3> ||
-    std::same_as<T, glm::uvec4> ||
-    std::same_as<T, glm::mat2> ||
-    std::same_as<T, glm::mat3> ||
-    std::same_as<T, glm::mat4> ||
-    std::same_as<T, glm::mat2x3> ||
-    std::same_as<T, glm::mat3x2> ||
-    std::same_as<T, glm::mat2x4> ||
-    std::same_as<T, glm::mat4x2> ||
-    std::same_as<T, glm::mat3x4> ||
-    std::same_as<T, glm::mat4x3>;
-
 class RenderPipeline {
   public:
     using ShaderStageFlags = vk::ShaderStageFlagBits;
@@ -149,11 +125,6 @@ class RenderPipeline {
     bool destroy();
 
     void bind(const vk::CommandBuffer &commandBuffer) const;
-
-    template <ShaderPODType T>
-    inline void setUniform(const std::string &, const T &) const {
-        // setUniformInternal(glGetUniformLocation(m_Program, name.c_str()), data);
-    }
 
     const Info &getInfo() const;
 

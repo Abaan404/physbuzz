@@ -2,17 +2,17 @@
 
 namespace Physbuzz {
 
-const std::vector<Buffer> &Uniform::getBuffers() const {
+const std::vector<Buffer> &UniformBuffer::getBuffers() const {
     return m_Buffers;
 }
 
-std::size_t Uniform::getRange() const {
+std::size_t UniformBuffer::getRange() const {
     return m_Stride * m_Count;
 }
 
-bool Uniform::build() {
+bool UniformBuffer::build() {
     if (m_Buffers.size() != 0) {
-        Logger::WARNING("[Uniform] Trying to build a constructed uniform.");
+        Logger::WARNING("[UniformBuffer] Trying to build a constructed uniform.");
         return true;
     }
 
@@ -32,9 +32,9 @@ bool Uniform::build() {
     return true;
 }
 
-bool Uniform::destroy() {
+bool UniformBuffer::destroy() {
     if (m_Buffers.size() == 0) {
-        Logger::WARNING("[Uniform] Trying to destroy a destructed uniform.");
+        Logger::WARNING("[UniformBuffer] Trying to destroy a destructed uniform.");
         return true;
     }
 

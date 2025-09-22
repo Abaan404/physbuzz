@@ -1,13 +1,15 @@
 #include "game.hpp"
 
+#include "objects/player.hpp"
 #include <imgui.h>
 #include <physbuzz/app/application.hpp>
+#include <physbuzz/events/window.hpp>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/layout.hpp>
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
 #include <physbuzz/render/shaders.hpp>
-#include <physbuzz/render/textures/texture.hpp>
+#include <physbuzz/window/bindings.hpp>
 
 struct TestVertex {
     glm::vec3 position;
@@ -39,41 +41,81 @@ Physbuzz::VertexDescription TestVertex::Description = {{
     .binding = 0,
 }};
 
-struct Camera {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-};
-
 void Game::build() {
     Physbuzz::App::init();
     Physbuzz::Context::set(this);
 
-    Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
-
-    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
-        "test_texture",
-        Physbuzz::Texture::Tex2D,
-        Physbuzz::ImageFile::Info{
-            .file = {
-                .path = "resources/textures/floor.png",
-            },
-        },
-        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
-
     std::shared_ptr<Physbuzz::Window> window = Physbuzz::App::createWindow("main", {}, {1280, 720});
 
+    // track cursor captures
+    window->addCallback<Physbuzz::MousePositionEvent>([](const Physbuzz::MousePositionEvent &event) {
+        static glm::vec2 lastPosition = event.window->getResolution() >> 1u;
+
+        std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>();
+        const auto [player, camera, flashlight] = Physbuzz::App::GScene.getComponent<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
+
+        glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * player.sensitivity;
+        lastPosition = event.position;
+
+        // if (player.captureMouse || Physbuzz::App::GScene.getSystem<InterfaceManager>()->draw) {
+        if (player.captureMouse) {
+            return;
+        }
+
+        event.window->setCursorCapture(true);
+
+        const Physbuzz::CameraComponent::Info &info = camera.getInfo();
+        glm::quat pitch = glm::angleAxis(glm::radians(offset.x), glm::vec3(0.0f, -1.0f, 0.0f));
+        glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.getUp(), camera.getFacing()));
+
+        camera.setOrientation(pitch * yaw * info.view.orientation);
+        flashlight.direction = camera.getFacing();
+    });
+
+    // change prespective camera fov when scrolling
+    window->addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
+        std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>();
+        const auto [player, camera] = Physbuzz::App::GScene.getComponent<PlayerComponent, Physbuzz::CameraComponent>(renderer->getInfo().camera);
+
+        Physbuzz::CameraComponent::Info info = camera.getInfo();
+
+        if (player.captureMouse || ImGui::GetIO().WantCaptureMouse || info.projection != Physbuzz::CameraComponent::Projection::Perspective) {
+            return;
+        }
+
+        info.perspective.fovy = glm::clamp(info.perspective.fovy + glm::radians<float>(event.offset.y), glm::radians(30.0f), glm::radians(135.0f));
+
+        camera.update(info);
+    });
+
+    Physbuzz::ObjectID playerObject = Physbuzz::App::GScene.createObject();
+
+    Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
     Physbuzz::App::GScene.createSystem<Physbuzz::PipelineLayoutAllocator>(Physbuzz::PipelineLayoutAllocator::Info{});
+    Physbuzz::App::GScene.createSystem<Physbuzz::Bindings>(window);
     Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
         .type = Physbuzz::Renderer::Type::Forward,
+        .camera = playerObject,
         .window = window,
     });
+
+    Physbuzz::ResourceRegistry<Physbuzz::PipelineLayout>::insert(
+        "test_layout",
+        Physbuzz::PipelineLayout::Info{
+            .bindings = {
+                {
+                    .type = Physbuzz::PipelineLayout::Type::eCombinedImageSampler,
+                    .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                },
+            },
+        });
 
     Physbuzz::ResourceRegistry<Physbuzz::RenderPipeline>::insert(
         "test_shader",
         {{
             .layouts = {
                 Physbuzz::Builtin::LayoutRenderer::Resource,
+                {"test_layout"},
             },
             .description = &TestVertex::Description,
             .shaders = {
@@ -118,18 +160,50 @@ void Game::build() {
         }},
         Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
 
+    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        "test_texture",
+        Physbuzz::Texture::Tex2D,
+        Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/floor.png"}},
+        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+
+    Physbuzz::App::GScene.getSystem<Physbuzz::PipelineLayoutAllocator>()->attach({"test_layout"}, 0, Physbuzz::Resource<Physbuzz::Texture>{"test_texture"});
+
     Physbuzz::RenderComponent render = {
         .transform = {},
         .model = {"test_model"},
     };
 
+    render.transform.update();
+
     Physbuzz::ForwardRenderComponent forward = {
         .pipeline = {"test_shader"},
     };
 
-    Physbuzz::ObjectID obj = Physbuzz::App::GScene.createObject();
+    Physbuzz::ObjectID testObject = Physbuzz::App::GScene.createObject();
+    Physbuzz::App::GScene.setComponent(testObject, render, forward);
 
-    Physbuzz::App::GScene.setComponent(obj, render, forward);
+    Player player = {
+        .camera = {{
+            .projection = Physbuzz::CameraComponent::Projection::Perspective,
+            .orthographic = {},
+            .perspective = {
+                .fovy = glm::radians(45.0f),
+            },
+            .depth = {
+                .near = 1.0f,
+                .far = 10000.0f,
+            },
+            .view = {
+                .position = {2.0f, 2.0f, 2.0f},
+            },
+            .resolution = window->getResolution(),
+        }},
+        .player = {
+            .speed = 0.01f
+        },
+    };
+
+    ObjectBuilder::create(Physbuzz::App::GScene, playerObject, player);
 }
 
 void Game::rebuild() {
@@ -139,10 +213,9 @@ void Game::loop() {
     m_IsRunning = true;
 
     const std::shared_ptr<Physbuzz::Window> &window = Physbuzz::App::getWindow("main");
-    auto allocator = Physbuzz::App::GScene.getSystem<Physbuzz::PipelineLayoutAllocator>();
 
     while (m_IsRunning && !window->shouldClose()) {
-        window->poll();
+        Physbuzz::App::GScene.tickSystem<Physbuzz::Bindings>();
         Physbuzz::App::GScene.tickSystem<Physbuzz::Renderer>();
     }
 }

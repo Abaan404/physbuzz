@@ -4,7 +4,7 @@
 #include <physbuzz/ecs/defines.hpp>
 #include <physbuzz/render/mesh.hpp>
 #include <physbuzz/render/shaders.hpp>
-#include <physbuzz/render/texture.hpp>
+#include <physbuzz/render/layouts/texture.hpp>
 #include <physbuzz/resources/resources.hpp>
 
 struct IdentifiableComponent {
@@ -17,7 +17,7 @@ struct RebuildableComponent {
 };
 
 struct ResourceComponent {
-    std::vector<Physbuzz::Resource<Physbuzz::Texture2D>> textures = {
+    std::vector<Physbuzz::Resource<Physbuzz::Texture>> textures = {
         {"default/diffuse"},
         {"default/specular"},
     };

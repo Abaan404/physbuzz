@@ -1,8 +1,9 @@
 #include "layout.hpp"
 
+#include "layouts/storage.hpp"
+#include "layouts/texture.hpp"
+#include "layouts/uniform.hpp"
 #include "renderers/defines.hpp"
-#include "textures/texture.hpp"
-#include "uniform.hpp"
 
 namespace Physbuzz {
 
@@ -153,7 +154,44 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
     return true;
 }
 
-bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<Uniform> &uniform) {
+bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<StorageBuffer> &storage) {
+    if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eStorageBuffer) {
+        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
+        return false;
+    }
+
+    if (!m_AllocatedLayouts.contains(layout)) {
+        allocate(layout);
+    }
+
+    const std::vector<Buffer> &buffers = storage->getBuffers();
+
+    std::vector<vk::DescriptorBufferInfo> bufferInfos(detail::MAX_FRAMES_IN_FLIGHT);
+    std::vector<vk::WriteDescriptorSet> writes(detail::MAX_FRAMES_IN_FLIGHT);
+
+    for (uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; ++frame) {
+        bufferInfos[frame] = vk::DescriptorBufferInfo{
+            .buffer = buffers[frame].getData().buffer,
+            .offset = 0,
+            .range = storage->getRange(),
+        };
+
+        writes[frame] = {
+            .dstSet = m_AllocatedLayouts[layout].sets[frame],
+            .dstBinding = binding,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = vk::DescriptorType::eStorageBuffer,
+            .pBufferInfo = &bufferInfos[frame],
+        };
+    }
+
+    App::Device.updateDescriptorSets(writes, {});
+
+    return true;
+}
+
+bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<UniformBuffer> &uniform) {
     if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eUniformBuffer) {
         Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
         return false;
@@ -165,24 +203,27 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std
 
     const std::vector<Buffer> &buffers = uniform->getBuffers();
 
-    for (uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; frame++) {
-        vk::DescriptorBufferInfo bufferInfo = {
+    std::vector<vk::DescriptorBufferInfo> bufferInfos(detail::MAX_FRAMES_IN_FLIGHT);
+    std::vector<vk::WriteDescriptorSet> writes(detail::MAX_FRAMES_IN_FLIGHT);
+
+    for (uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; ++frame) {
+        bufferInfos[frame] = vk::DescriptorBufferInfo{
             .buffer = buffers[frame].getData().buffer,
             .offset = 0,
             .range = uniform->getRange(),
         };
 
-        vk::WriteDescriptorSet write = {
+        writes[frame] = {
             .dstSet = m_AllocatedLayouts[layout].sets[frame],
-            .dstBinding = static_cast<std::uint32_t>(binding),
+            .dstBinding = binding,
             .dstArrayElement = 0,
             .descriptorCount = 1,
             .descriptorType = vk::DescriptorType::eUniformBuffer,
-            .pBufferInfo = &bufferInfo,
+            .pBufferInfo = &bufferInfos[frame],
         };
-
-        App::Device.updateDescriptorSets(write, {});
     }
+
+    App::Device.updateDescriptorSets(writes, {});
 
     return true;
 }
@@ -241,7 +282,9 @@ void PipelineLayoutAllocator::reset() {
 void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline) {
     const std::shared_ptr<Renderer> renderer = m_Scene->getSystem<Renderer>();
 
-    for (const auto &layout : pipeline->getInfo().layouts) {
+    for (std::size_t i = 0; i < pipeline->getInfo().layouts.size(); i++) {
+        const Resource<PipelineLayout> &layout = pipeline->getInfo().layouts[i];
+
         if (!m_AllocatedLayouts.contains(layout)) {
             Logger::DEBUG("[PipelineLayoutAllocator] Allocating layout \"{}\" for pipeline \"{}\"", layout.getIdentifier(), pipeline.getIdentifier());
             if (!allocate(layout)) {
@@ -250,7 +293,7 @@ void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const
             }
         }
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, 0, m_AllocatedLayouts[layout].sets[renderer->getFrameInFlight()], nullptr);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[renderer->getFrameInFlight()], nullptr);
     }
 }
 

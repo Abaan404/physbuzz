@@ -8,7 +8,10 @@
 
 namespace Physbuzz {
 
-class Uniform;
+class PipelineLayoutAllocator;
+
+class UniformBuffer;
+class StorageBuffer;
 
 namespace Builtin {
 
@@ -28,25 +31,24 @@ bool build();
 
 } // namespace ShaderRendererPassthrough
 
-namespace UniformCamera {
+namespace LayoutRenderer {
 
 struct Camera {
-    alignas(16) glm::mat4 model;
+    alignas(16) glm::vec3 position;
     alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
+    alignas(16) glm::mat4 projection;
 };
 
-inline Resource<Uniform> Resource = {"builtin/renderer/camera"};
+struct Model {
+    alignas(16) glm::mat4 model;
+};
 
-bool build();
-
-} // namespace UniformCamera
-
-namespace LayoutRenderer {
+inline Resource<UniformBuffer> CameraBuffer = {"builtin/renderer/camera"};
+inline Resource<StorageBuffer> ModelBuffer = {"builtin/renderer/model"};
 
 inline Resource<PipelineLayout> Resource = {"builtin/renderer"};
 
-bool build();
+bool build(const std::shared_ptr<PipelineLayoutAllocator> allocator);
 
 } // namespace LayoutRenderer
 
@@ -56,13 +58,6 @@ class Window;
 
 class Renderer : public System<> {
   public:
-    struct VertexScreenQuad {
-        glm::vec3 position;
-        glm::vec2 texCoords;
-
-        static VertexDescription Description;
-    };
-
     enum class Type {
         Deferred,
         Forward,
