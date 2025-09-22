@@ -91,6 +91,13 @@ bool RenderPipeline::build() {
         .sampleShadingEnable = m_Info.multisample.sampleShadingEnable ? vk::True : vk::False,
     };
 
+    vk::PipelineDepthStencilStateCreateInfo depthStencil = {
+        .depthTestEnable = m_Info.depthStencil.depthTestEnable,
+        .depthWriteEnable = m_Info.depthStencil.depthWriteEnable,
+        .depthCompareOp = m_Info.depthStencil.depthCompareOp,
+        .stencilTestEnable = m_Info.depthStencil.stencilTestEnable,
+    };
+
     std::unordered_map<ShaderStageFlags, vk::ShaderModule> modules;
     if (!buildShaders(m_Info.shaders, modules)) {
         Logger::ERROR("[RenderPipeline] Failed to build pipeline shaders.");
@@ -128,6 +135,7 @@ bool RenderPipeline::build() {
             .pViewportState = &viewportState,
             .pRasterizationState = &rasterizer,
             .pMultisampleState = &multisampling,
+            .pDepthStencilState = &depthStencil,
             .pColorBlendState = &colorBlending,
             .pDynamicState = &dynamicState,
             .layout = m_Layout,
@@ -136,6 +144,7 @@ bool RenderPipeline::build() {
         {
             .colorAttachmentCount = 1,
             .pColorAttachmentFormats = &m_Info.format,
+            .depthAttachmentFormat = vk::Format::eD32Sfloat,
         },
     };
 

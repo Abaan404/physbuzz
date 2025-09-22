@@ -44,6 +44,7 @@ add_compile_definitions(
   physbuzz
   GLFW_INCLUDE_VULKAN # include vulkan in glfw
   GLM_ENABLE_EXPERIMENTAL # enable glm's quat headers
+  GLM_FORCE_DEPTH_ZERO_TO_ONE # vulkan uses 0.0f to 1.0f depth
   VULKAN_HPP_NO_STRUCT_CONSTRUCTORS # use struct constructors
   VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 # vulkan extensions
   VULKAN_HPP_NO_EXCEPTIONS # no throwing hands

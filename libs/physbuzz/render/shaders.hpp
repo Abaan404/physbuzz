@@ -61,6 +61,9 @@ class RenderPipeline {
     using PolygonMode = vk::PolygonMode;
     using FrontFace = vk::FrontFace;
 
+    // depthStencil
+    using CompareOp = vk::CompareOp;
+
     // layout
     using DescriptorType = vk::DescriptorType;
 
@@ -114,6 +117,13 @@ class RenderPipeline {
             bool sampleShadingEnable = false;
             SampleCountFlags rasterizationSamples = SampleCountFlags::e1;
         } multisample = {};
+
+        struct {
+            bool depthTestEnable = vk::True;
+            bool depthWriteEnable = vk::True;
+            CompareOp depthCompareOp = vk::CompareOp::eLessOrEqual;
+            bool stencilTestEnable = vk::False;
+        } depthStencil = {};
 
         struct {
             bool logicOpEnable = false;

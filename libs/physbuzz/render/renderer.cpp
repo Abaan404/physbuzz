@@ -168,7 +168,7 @@ bool Renderer::build() {
 
     // setup resize event
     m_Events = {
-        .resize = m_Info.window->addCallback<WindowResizeEvent>([&](const auto &event) {
+        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const auto &event) {
             resize(event.resolution);
         }),
     };
@@ -177,22 +177,49 @@ bool Renderer::build() {
     buildSystems();
 
     // create shadows
-    m_Scene->createSystem<Shadow>(m_Info.shadow, m_Info.window->getResolution());
+    m_Scene->createSystem<Shadow>(m_Info.shadow, m_Info.window->m_SwapChainExtent);
+
+    // setup depth buffer
+    if (!m_Depth.image.build({m_Info.window->m_SwapChainExtent, 1})) {
+        Logger::ERROR("[Renderer] Could not build a renderer depth buffer.");
+        return false;
+    }
+
+    m_Depth.view = PBZ_VK_CHECK(App::Device.createImageView({
+        .flags = {},
+        .image = m_Depth.image.getData().image,
+        .viewType = vk::ImageViewType::e2D,
+        .format = m_Depth.image.getInfo().format,
+        .components = {},
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eDepth,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+    }));
 
     return true;
 }
 
 bool Renderer::destroy() {
     // destroyRenderer(); // System::destroy() should not destroy other systems
+
     if (m_Command.pool == nullptr) {
-        Logger::WARNING("[Renderer] Trying to destroy a destructed renderer");
+        Logger::WARNING("[Renderer] Trying to destroy a destructed renderer.");
         return true;
     }
+
+    if (!m_Depth.image.destroy()) {
+        Logger::ERROR("[Renderer] Failed to destroy depth buffer.");
+    }
+
+    App::Device.destroyImageView(m_Depth.view);
 
     // destroy sync objects
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         App::Device.destroySemaphore(m_Semaphores.presentComplete[i]);
-
         App::Device.destroyFence(m_Fences.inFlight[i]);
     }
 
@@ -245,7 +272,7 @@ void Renderer::tick() {
 
     camera.model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     camera.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    camera.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Info.window->getResolution().x) / static_cast<float>(m_Info.window->getResolution().y), 0.1f, 10.0f);
+    camera.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Info.window->m_SwapChainExtent.x) / static_cast<float>(m_Info.window->m_SwapChainExtent.y), 0.1f, 10.0f);
     camera.proj[1][1] *= -1;
 
     Builtin::UniformCamera::Resource->update<Builtin::UniformCamera::Camera>(m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(), {camera});
@@ -296,8 +323,17 @@ void Renderer::tick() {
         m_Command.buffers[m_FrameInFlight].pipelineBarrier2(dependencyInfo);
     }
 
+    // depth
+    vk::RenderingAttachmentInfo depthAttachment = {
+        .imageView = m_Depth.view,
+        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+        .loadOp = vk::AttachmentLoadOp::eClear,
+        .storeOp = vk::AttachmentStoreOp::eDontCare,
+        .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
+    };
+
     // setup attachments
-    std::vector<vk::RenderingAttachmentInfo> attachments = {
+    std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
         {
             .imageView = m_Info.window->m_SwapChainImageViews[imageIndex],
             .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -306,6 +342,32 @@ void Renderer::tick() {
             .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
         },
     };
+
+    {
+        vk::ImageMemoryBarrier2 barrier = {
+            .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
+            .srcAccessMask = {},
+            .dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests,
+            .dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+            .oldLayout = vk::ImageLayout::eUndefined,
+            .newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+            .image = m_Depth.image.getData().image,
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eDepth,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+        };
+
+        vk::DependencyInfo dependencyInfo = {
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers = &barrier,
+        };
+
+        m_Command.buffers[m_FrameInFlight].pipelineBarrier2(dependencyInfo);
+    }
 
     // setup rendering
     glm::ivec2 resolution = m_Info.window->m_SwapChainExtent;
@@ -316,8 +378,10 @@ void Renderer::tick() {
             .extent = {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)},
         },
         .layerCount = 1,
-        .colorAttachmentCount = static_cast<std::uint32_t>(attachments.size()),
-        .pColorAttachments = attachments.data(),
+        .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
+        .pColorAttachments = colorAttachments.data(),
+        .pDepthAttachment = &depthAttachment,
+        .pStencilAttachment = {},
     });
 
     switch (m_Info.type) {
@@ -416,12 +480,39 @@ void Renderer::tick() {
 }
 
 void Renderer::resize(const glm::ivec2 &resolution) {
+    PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
+
     // if (!m_Scene->containsComponent<CameraComponent>(m_Info.camera)) {
     //     Logger::ERROR("[Renderer] No camera attached to object {}", m_Info.camera);
     //     return;
     // }
     //
     // const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
+
+    if (!m_Depth.image.destroy()) {
+        Logger::WARNING("[Renderer] Could not destroy old depth image");
+    }
+
+    if (!m_Depth.image.build({resolution, 1})) {
+        Logger::ERROR("[Renderer] Could not rebuild depth image.");
+    }
+
+    App::Device.destroyImageView(m_Depth.view);
+
+    m_Depth.view = PBZ_VK_CHECK(App::Device.createImageView({
+        .flags = {},
+        .image = m_Depth.image.getData().image,
+        .viewType = vk::ImageViewType::e2D,
+        .format = m_Depth.image.getInfo().format,
+        .components = {},
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eDepth,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+    }));
 
     m_Scene->getSystem<Shadow>()->resize(resolution);
     getRenderer()->resize(resolution);
@@ -465,11 +556,11 @@ std::shared_ptr<IRenderer> Renderer::getRenderer() const {
 bool Renderer::buildSystems() {
     switch (m_Info.type) {
     case Type::Deferred:
-        m_Scene->createSystem<DeferredRenderer>(m_Info.deferred, m_Info.window->getResolution());
+        m_Scene->createSystem<DeferredRenderer>(m_Info.deferred, m_Info.window->m_SwapChainExtent);
         break;
 
     case Type::Forward:
-        m_Scene->createSystem<ForwardRenderer>(m_Info.forward, m_Info.window->getResolution());
+        m_Scene->createSystem<ForwardRenderer>(m_Info.forward, m_Info.window->m_SwapChainExtent);
         break;
 
     default:

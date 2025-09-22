@@ -106,7 +106,13 @@ class Renderer : public System<> {
     std::uint32_t m_FrameInFlight = 0;
 
     struct {
-        Image image;
+        Image image = {{
+            .usage = Image::ImageUsageFlagBits::eDepthStencilAttachment,
+            .type = Image::Type::e2D,
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .format = Image::Format::eD32Sfloat,
+        }};
         vk::ImageView view;
     } m_Depth;
 

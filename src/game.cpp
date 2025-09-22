@@ -10,7 +10,7 @@
 #include <physbuzz/render/textures/texture.hpp>
 
 struct TestVertex {
-    glm::vec2 position;
+    glm::vec3 position;
     glm::vec3 color;
     glm::vec2 texCoord;
 
@@ -20,7 +20,7 @@ struct TestVertex {
 Physbuzz::VertexDescription TestVertex::Description = {{
     .attributes = {
         {
-            .format = Physbuzz::VertexDescription::Format::eR32G32Sfloat,
+            .format = Physbuzz::VertexDescription::Format::eR32G32B32Sfloat,
             .size = sizeof(TestVertex::position) / sizeof(decltype(TestVertex::position)::value_type),
             .offset = offsetof(TestVertex, position),
         },
@@ -56,7 +56,7 @@ void Game::build() {
         Physbuzz::Texture::Tex2D,
         Physbuzz::ImageFile::Info{
             .file = {
-                .path = "resources/textures/default/diffuse.png",
+                .path = "resources/textures/floor.png",
             },
         },
         Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
@@ -101,13 +101,17 @@ void Game::build() {
                 {
                     Physbuzz::Mesh::Info<TestVertex>{
                         .vertices = {
-                            {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-                            {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-                            {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-                            {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+                            {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+                            {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+                            {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+                            {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+
+                            {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+                            {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+                            {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+                            {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
                         },
-                        .indices = {0, 1, 2, 2, 3, 0},
-                    },
+                        .indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4}},
                     {},
                 },
             },

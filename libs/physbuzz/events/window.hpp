@@ -68,6 +68,12 @@ struct WindowResizeEvent {
     glm::ivec2 resolution;
 };
 
+struct WindowSwapchainResizeEvent {
+    Window *window;
+
+    glm::ivec2 resolution;
+};
+
 struct WindowCloseEvent {
     Window *window;
 };

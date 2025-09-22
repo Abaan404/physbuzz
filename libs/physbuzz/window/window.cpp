@@ -346,6 +346,8 @@ void Window::recreateSwapChain() {
 
     destroySwapChain();
     buildSwapChain();
+
+    notifyCallbacks<WindowSwapchainResizeEvent>({.window = this, .resolution = {width, height}});
 }
 
 } // namespace Physbuzz
