@@ -341,7 +341,7 @@ TEST_CASE("Physbuzz::Scene") {
             const auto components = scene.getComponents<TestComponent1>();
             CHECK(components.size() == 2);
 
-            for (const auto [comp1] : components) {
+            for (const auto [_, comp1] : components) {
                 CHECK(comp1.x == 12);
             }
         }
@@ -350,7 +350,7 @@ TEST_CASE("Physbuzz::Scene") {
             const auto components = scene.getComponents<TestComponent1, TestComponent2>();
             CHECK(components.size() == 1);
 
-            for (const auto [comp1, comp2] : components) {
+            for (const auto [_, comp1, comp2] : components) {
                 CHECK(comp1.x == 12);
                 CHECK(comp2.x == -10);
             }
@@ -360,7 +360,7 @@ TEST_CASE("Physbuzz::Scene") {
             const auto components = scene.getComponents<TestComponent1, TestComponent3>();
             CHECK(components.size() == 2);
 
-            for (const auto [comp1, comp3] : components) {
+            for (const auto [_, comp1, comp3] : components) {
                 CHECK(comp1.x == 12);
                 CHECK(comp3.z == 15);
             }
@@ -370,7 +370,7 @@ TEST_CASE("Physbuzz::Scene") {
             const auto components = scene.getComponents<TestComponent2, TestComponent3>();
             CHECK(components.size() == 2);
 
-            for (const auto [comp2, comp3] : components) {
+            for (const auto [_, comp2, comp3] : components) {
                 CHECK(comp2.x == -10);
                 CHECK(comp3.z == 15);
             }
