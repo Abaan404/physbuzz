@@ -31,6 +31,7 @@ class ComponentArray : public IComponentArray {
     }
 
     inline T &get(ObjectID id) {
+        PBZ_ASSERT(m_Map.contains(id), "[Scene] Component not found.");
         return m_Map.get(id);
     }
 

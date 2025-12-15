@@ -7,8 +7,6 @@ Clock::Clock() {
     m_Prev = m_Init;
 }
 
-Clock::~Clock() {}
-
 std::uint32_t Clock::getTime() const {
     auto now = std::chrono::steady_clock::now();
     return std::chrono::duration_cast<std::chrono::milliseconds>(now - m_Init).count();

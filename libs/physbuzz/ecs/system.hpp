@@ -17,7 +17,7 @@ class ISystem {
 
   protected:
     std::set<ObjectID> m_Objects;
-    Scene *m_Scene;
+    Scene *m_Scene = nullptr;
 
   private:
     virtual inline bool containsSignature(ComponentManager &componentManager, ObjectID id) = 0;
@@ -83,6 +83,7 @@ class SystemManager {
     template <SystemType T>
     inline std::shared_ptr<T> get() const {
         SignatureID id = Signature::ID<T>();
+        PBZ_ASSERT(m_Systems.contains(id), "[Scene] System not found.");
         return std::static_pointer_cast<T>(m_Systems.at(id));
     }
 

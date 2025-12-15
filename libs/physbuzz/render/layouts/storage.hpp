@@ -2,7 +2,6 @@
 
 #include "../../resources/defines.hpp"
 #include "../buffer.hpp"
-#include "../renderer.hpp"
 #include <vector>
 
 namespace Physbuzz {
@@ -23,7 +22,7 @@ class StorageBuffer {
     bool destroy();
 
     template <typename T>
-    bool update(const std::shared_ptr<Renderer> renderer, const std::shared_ptr<Transfer> transfer, const std::vector<T> &data) const {
+    bool update(std::uint32_t frameInFlight, const std::shared_ptr<Transfer> transfer, const std::vector<T> &data) const {
         std::span<const std::byte> bytes = {
             reinterpret_cast<const std::byte *>(data.data()),
             data.size() * sizeof(T),
@@ -33,7 +32,7 @@ class StorageBuffer {
         PBZ_ASSERT(sizeof(T) == m_Stride, "[StorageBuffer] Invalid stride.");
         PBZ_ASSERT(data.size() <= m_Count, "[StorageBuffer] Invalid size.");
 
-        return transfer->map(m_Buffers[renderer->getFrameInFlight()], bytes);
+        return transfer->map(m_Buffers[frameInFlight], bytes);
     }
 
     const std::vector<Buffer> &getBuffers() const;

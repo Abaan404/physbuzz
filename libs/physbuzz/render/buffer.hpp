@@ -117,6 +117,7 @@ class Transfer : public System<> {
 
     bool map(const Buffer &buffer, const std::span<const std::byte> &bytes);
     bool map(const Image &image, const std::span<const std::byte> &bytes);
+    void immediate(std::function<void(const vk::CommandBuffer &)> record);
 
   private:
     struct {

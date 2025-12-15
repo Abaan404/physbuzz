@@ -1,13 +1,17 @@
 #include "game.hpp"
 
 #include "objects/player.hpp"
-#include <imgui.h>
+#include "physbuzz/misc/clock.hpp"
+#include "physbuzz/physics/dynamics.hpp"
+#include "ui/handler.hpp"
 #include <physbuzz/app/application.hpp>
+#include <physbuzz/compat/imgui/imgui_impl_physbuzz.hpp>
 #include <physbuzz/events/window.hpp>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/layout.hpp>
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
+#include <physbuzz/render/renderers/forward.hpp>
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/window/bindings.hpp>
 
@@ -92,12 +96,22 @@ void Game::build() {
 
     Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
     Physbuzz::App::GScene.createSystem<Physbuzz::PipelineLayoutAllocator>(Physbuzz::PipelineLayoutAllocator::Info{});
-    Physbuzz::App::GScene.createSystem<Physbuzz::Bindings>(window);
     Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
-        .type = Physbuzz::Renderer::Type::Forward,
         .camera = playerObject,
         .window = window,
     });
+
+    Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>()->setRenderPasses({
+        Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(),
+        Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(Physbuzz::ImGuiRenderer::Info{
+            .window = window,
+        }),
+    });
+
+    Physbuzz::App::GScene.createSystem<Physbuzz::Bindings>(window);
+    Physbuzz::App::GScene.createSystem<Physbuzz::Clock>();
+    Physbuzz::App::GScene.createSystem<Physbuzz::Dynamics>(1.0f);
+    Physbuzz::App::GScene.createSystem<InterfaceManager>();
 
     Physbuzz::ResourceRegistry<Physbuzz::PipelineLayout>::insert(
         "test_layout",
@@ -199,7 +213,7 @@ void Game::build() {
             .resolution = window->getResolution(),
         }},
         .player = {
-            .speed = 0.01f
+            .speed = 0.01f,
         },
     };
 
@@ -215,8 +229,10 @@ void Game::loop() {
     const std::shared_ptr<Physbuzz::Window> &window = Physbuzz::App::getWindow("main");
 
     while (m_IsRunning && !window->shouldClose()) {
+        Physbuzz::App::GScene.tickSystem<Physbuzz::Clock>();
+        Physbuzz::App::GScene.tickSystem<Physbuzz::Dynamics>();
         Physbuzz::App::GScene.tickSystem<Physbuzz::Bindings>();
-        Physbuzz::App::GScene.tickSystem<Physbuzz::Renderer>();
+        Physbuzz::App::GScene.tickSystem<InterfaceManager, Physbuzz::Renderer>();
     }
 }
 

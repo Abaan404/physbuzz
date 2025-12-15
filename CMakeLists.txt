@@ -61,7 +61,8 @@ target_link_libraries(
          efsw
          glfw
          Vulkan::Vulkan
-         glm)
+         glm
+         imgui)
 
 # driver code
 file(GLOB_RECURSE SRCS "${CMAKE_SOURCE_DIR}/src/*.cpp")
@@ -96,8 +97,7 @@ foreach(SHADER ${SHADERS_SRCS})
     COMMAND slangc -target spirv -o ${OUTPUT} ${SHADER}
     DEPENDS ${SHADER}
     COMMENT "Compiling shader ${REL_PATH} to SPIR-V"
-    VERBATIM
-  )
+    VERBATIM)
   list(APPEND SHADER_OUTPUTS ${OUTPUT})
 endforeach()
 
@@ -107,11 +107,10 @@ add_dependencies(game shaders)
 add_custom_command(
   TARGET game
   POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${SPIRV_BUILD_DIR}
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${SPIRV_BUILD_DIR}
           $<TARGET_FILE_DIR:game>/spirv
-  COMMENT "Copying SPIR-V shaders to game output directory"
-)
+  COMMENT "Copying SPIR-V shaders to game output directory")
+
 # tests
 set(TEST_PATH "tests")
 file(GLOB_RECURSE TESTS_SRCS "${TEST_PATH}/*.cpp")

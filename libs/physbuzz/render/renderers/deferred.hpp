@@ -36,7 +36,7 @@ struct DeferredRenderComponent {
     };
 };
 
-class DeferredRenderer : public IRenderer,
+class DeferredRenderer : public IRenderPass,
                          public System<RenderComponent, DeferredRenderComponent> {
   public:
     struct Framebuffers {
@@ -58,13 +58,10 @@ class DeferredRenderer : public IRenderer,
     bool build() override;
     bool destroy() override;
 
-    void resize(const glm::ivec2 &resolution) override;
-
-    void tick(const vk::CommandBuffer &commandBuffer) const;
-    void render(ObjectID id) const;
+    void render(const vk::CommandBuffer &commandBuffer, std::uint32_t frameInFlight) override;
 
     const Framebuffers &getFramebuffers() const;
-    const Framebuffer &getOutput() const override;
+    const Framebuffer &getOutput() const;
     const Info &getInfo() const;
 
   private:

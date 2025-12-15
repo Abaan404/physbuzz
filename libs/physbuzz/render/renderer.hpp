@@ -2,9 +2,9 @@
 
 #include "../ecs/system.hpp"
 #include "buffer.hpp"
-#include "renderers/deferred.hpp"
-#include "renderers/forward.hpp"
+#include "renderers/defines.hpp"
 #include "shadow.hpp"
+#include <memory>
 
 namespace Physbuzz {
 
@@ -58,17 +58,9 @@ class Window;
 
 class Renderer : public System<> {
   public:
-    enum class Type {
-        Deferred,
-        Forward,
-    };
-
     struct Info {
-        Type type = Type::Deferred;
         ObjectID camera = -1;
 
-        ForwardRenderer::Info forward = {};
-        DeferredRenderer::Info deferred = {};
         Shadow::Info shadow = {};
 
         std::shared_ptr<Window> window;
@@ -81,23 +73,17 @@ class Renderer : public System<> {
     bool destroy() override;
 
     void tick();
+    void immediate(std::function<void(const vk::CommandBuffer &)> record);
 
     void resize(const glm::ivec2 &resolution);
 
-    const Type &getType();
-    void setType(const Type &type);
-
-    const Framebuffer &getFramebuffer() const;
+    void setRenderPasses(const std::vector<std::shared_ptr<IRenderPass>> &renderpasses);
     const Info &getInfo() const;
-    std::uint32_t getFrameInFlight() const;
 
   private:
-    std::shared_ptr<IRenderer> getRenderer() const;
-    bool buildSystems();
-    bool destroySystems();
-
     Info m_Info;
 
+    std::vector<std::shared_ptr<IRenderPass>> m_RenderPasses;
     std::uint32_t m_FrameInFlight = 0;
 
     struct {

@@ -3,6 +3,7 @@
 #include <physbuzz/physics/collision.hpp>
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/model.hpp>
+#include <physbuzz/render/renderers/deferred.hpp>
 #include <physbuzz/render/renderers/forward.hpp>
 #include <physbuzz/render/shadow.hpp>
 

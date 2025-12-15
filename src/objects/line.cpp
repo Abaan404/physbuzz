@@ -2,6 +2,8 @@
 
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
+#include <physbuzz/render/renderers/deferred.hpp>
+#include <physbuzz/render/renderers/forward.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Line &info) {

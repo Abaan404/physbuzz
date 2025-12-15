@@ -2,6 +2,8 @@
 
 #include <physbuzz/physics/collision.hpp>
 #include <physbuzz/render/model.hpp>
+#include <physbuzz/render/renderers/forward.hpp>
+#include <physbuzz/render/renderers/deferred.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Circle &info) {

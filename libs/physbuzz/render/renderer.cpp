@@ -163,9 +163,6 @@ bool Renderer::build() {
         }),
     };
 
-    // create renderer
-    buildSystems();
-
     // create shadows
     m_Scene->createSystem<Shadow>(m_Info.shadow, m_Info.window->m_SwapChainExtent);
 
@@ -194,8 +191,6 @@ bool Renderer::build() {
 }
 
 bool Renderer::destroy() {
-    // destroyRenderer(); // System::destroy() should not destroy other systems
-
     if (m_Command.pool == nullptr) {
         Logger::WARNING("[Renderer] Trying to destroy a destructed renderer.");
         return true;
@@ -232,8 +227,7 @@ bool Renderer::destroy() {
 }
 
 void Renderer::tick() {
-    while (vk::Result::eTimeout == App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max())) {
-    }
+    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
 
     // fetch the next available swapchain image
     auto [acquireNextImageResult, imageIndex] = App::Device.acquireNextImageKHR(m_Info.window->m_SwapChain, std::numeric_limits<std::uint32_t>::max(), m_Semaphores.presentComplete[m_FrameInFlight], nullptr);
@@ -253,8 +247,7 @@ void Renderer::tick() {
 
     const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
     Builtin::LayoutRenderer::CameraBuffer->update<Builtin::LayoutRenderer::Camera>(
-        m_Scene->getSystem<Renderer>(),
-        m_Scene->getSystem<Transfer>(),
+        m_FrameInFlight, m_Scene->getSystem<Transfer>(),
         {{
             .position = camera.getInfo().view.position,
             .view = camera.getView(),
@@ -357,18 +350,11 @@ void Renderer::tick() {
         .pStencilAttachment = {},
     });
 
-    switch (m_Info.type) {
-    case Type::Deferred:
-        m_Scene->tickSystem<DeferredRenderer>(m_Command.buffers[m_FrameInFlight]);
-        break;
+    m_Command.buffers[m_FrameInFlight].setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(resolution.x), static_cast<float>(resolution.y), 0.0f, 1.0f});
+    m_Command.buffers[m_FrameInFlight].setScissor(0, vk::Rect2D{{0, 0}, {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)}});
 
-    case Type::Forward:
-        m_Scene->tickSystem<ForwardRenderer>(m_Command.buffers[m_FrameInFlight]);
-        break;
-
-    default:
-        Logger::ERROR("[Renderer] Unknown renderer type provided");
-        return;
+    for (const auto &renderpasses : m_RenderPasses) {
+        renderpasses->render(m_Command.buffers[m_FrameInFlight], m_FrameInFlight);
     }
 
     m_Command.buffers[m_FrameInFlight].endRendering();
@@ -452,6 +438,31 @@ void Renderer::tick() {
     m_FrameInFlight = (m_FrameInFlight + 1) % detail::MAX_FRAMES_IN_FLIGHT;
 }
 
+void Renderer::immediate(std::function<void(const vk::CommandBuffer &)> record) {
+    // prepare the command buffer
+    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
+    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.inFlight[m_FrameInFlight]));
+    m_Command.buffers[m_FrameInFlight].reset();
+
+    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].begin({
+        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+    }));
+
+    record(m_Command.buffers[m_FrameInFlight]);
+
+    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].end());
+
+    vk::SubmitInfo submitInfo = {
+        .commandBufferCount = 1,
+        .pCommandBuffers = &m_Command.buffers[m_FrameInFlight],
+    };
+
+    PBZ_VK_CHECK_RESULT(App::Queues.graphics.submit(submitInfo, m_Fences.inFlight[m_FrameInFlight]));
+    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
+
+    m_FrameInFlight = (m_FrameInFlight + 1) % detail::MAX_FRAMES_IN_FLIGHT;
+}
+
 void Renderer::resize(const glm::ivec2 &resolution) {
     PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
 
@@ -488,74 +499,16 @@ void Renderer::resize(const glm::ivec2 &resolution) {
     }));
 
     m_Scene->getSystem<Shadow>()->resize(resolution);
-    getRenderer()->resize(resolution);
+
     // camera.resize(resolution);
 }
 
-void Renderer::setType(const Type &type) {
-    destroySystems();
-    m_Info.type = type;
-    buildSystems();
-}
-
-const Renderer::Type &Renderer::getType() {
-    return m_Info.type;
-}
-
-const Framebuffer &Renderer::getFramebuffer() const {
-    return getRenderer()->getOutput();
+void Renderer::setRenderPasses(const std::vector<std::shared_ptr<IRenderPass>> &renderpasses) {
+    m_RenderPasses = renderpasses;
 }
 
 const Renderer::Info &Renderer::getInfo() const {
     return m_Info;
-}
-
-std::uint32_t Renderer::getFrameInFlight() const {
-    return m_FrameInFlight;
-}
-
-std::shared_ptr<IRenderer> Renderer::getRenderer() const {
-    switch (m_Info.type) {
-    case Type::Deferred:
-        return m_Scene->getSystem<DeferredRenderer>();
-
-    case Type::Forward:
-        return m_Scene->getSystem<ForwardRenderer>();
-    }
-
-    return nullptr;
-}
-
-bool Renderer::buildSystems() {
-    switch (m_Info.type) {
-    case Type::Deferred:
-        m_Scene->createSystem<DeferredRenderer>(m_Info.deferred, m_Info.window->m_SwapChainExtent);
-        break;
-
-    case Type::Forward:
-        m_Scene->createSystem<ForwardRenderer>(m_Info.forward, m_Info.window->m_SwapChainExtent);
-        break;
-
-    default:
-        return false;
-    }
-
-    return true;
-}
-
-bool Renderer::destroySystems() {
-    switch (m_Info.type) {
-    case Type::Deferred:
-        return m_Scene->eraseSystem<DeferredRenderer>();
-
-    case Type::Forward:
-        return m_Scene->eraseSystem<ForwardRenderer>();
-
-    default:
-        return false;
-    }
-
-    return true;
 }
 
 } // namespace Physbuzz

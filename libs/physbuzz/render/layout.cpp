@@ -279,9 +279,7 @@ void PipelineLayoutAllocator::reset() {
     m_AllocatedLayouts.clear();
 }
 
-void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline) {
-    const std::shared_ptr<Renderer> renderer = m_Scene->getSystem<Renderer>();
-
+void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, std::uint32_t frameInFlight) {
     for (std::size_t i = 0; i < pipeline->getInfo().layouts.size(); i++) {
         const Resource<PipelineLayout> &layout = pipeline->getInfo().layouts[i];
 
@@ -293,7 +291,7 @@ void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const
             }
         }
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[renderer->getFrameInFlight()], nullptr);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[frameInFlight], nullptr);
     }
 }
 

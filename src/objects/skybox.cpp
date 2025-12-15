@@ -2,6 +2,8 @@
 
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
+#include <physbuzz/render/renderers/deferred.hpp>
+#include <physbuzz/render/renderers/forward.hpp>
 
 struct VertexSkybox {
     glm::vec3 position;

@@ -1,9 +1,10 @@
 #include "handler.hpp"
 
 #include <imgui.h>
-#include <imgui_impl_vulkan.h>
 #include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 #include <memory>
+#include <physbuzz/compat/imgui/imgui_impl_physbuzz.hpp>
 
 #include "camera.hpp"
 #include "demo.hpp"
@@ -13,14 +14,10 @@
 #include "overlay.hpp"
 #include "renderer.hpp"
 
-InterfaceManager::InterfaceManager(const Info &info)
-    : m_Info(info) {}
+InterfaceManager::InterfaceManager() {}
 
 bool InterfaceManager::build() {
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
-    (void)io;
 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -28,11 +25,8 @@ bool InterfaceManager::build() {
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows (buggy on wayland)
     io.IniFilename = nullptr; // disable imgui.ini
 
-    ImGui_ImplGlfw_InitForVulkan(static_cast<GLFWwindow *>(*m_Info.window), true);
-    // ImGui_ImplVulkan_Init();
-
     m_Interfaces["Demo"] = std::make_shared<Demo>(m_Scene);
-    // m_Interfaces["ShapePicker"] = std::make_unique<ObjectPicker>(m_Scene);
+    // m_Interfaces["ObjectPicker"] = std::make_unique<ObjectPicker>(m_Scene);
     m_Interfaces["ObjectList"] = std::make_unique<ObjectList>(m_Scene);
     m_Interfaces["Camera"] = std::make_unique<Camera>(m_Scene);
     m_Interfaces["Renderer"] = std::make_unique<Renderer>(m_Scene);
@@ -44,17 +38,11 @@ bool InterfaceManager::build() {
 }
 
 bool InterfaceManager::destroy() {
-    // ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-
     return true;
 }
 
 void InterfaceManager::tick() {
-    // draw a new frame
-    // ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
+    m_Scene->getSystem<Physbuzz::ImGuiRenderer>()->newFrame();
     ImGui::NewFrame();
 
     static FrametimeOverlay frametimeOverlay = {m_Scene};
@@ -69,8 +57,6 @@ void InterfaceManager::tick() {
     }
 
     ImGui::Render();
-    // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData());
-
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();
 }

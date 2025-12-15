@@ -5,6 +5,7 @@
 #include "../layouts/storage.hpp"
 #include "../model.hpp"
 #include "../renderer.hpp"
+#include <memory>
 
 namespace Physbuzz {
 
@@ -117,58 +118,34 @@ bool ShaderForward::build() {
 
 } // namespace Builtin
 
-ForwardRenderer::ForwardRenderer(const Info &info, const glm::ivec2 &resolution)
-    : m_Info(info),
-      m_Output({
-          .resolution = resolution,
-          .colors = {
-              {
-                  .storage = Framebuffer::Storage::Texture2D,
-                  .isDrawn = true,
-              },
-          },
-          .depth = {
-              .storage = Framebuffer::Storage::Renderbuffer,
-              .hasStencil = true,
-          },
-      }) {}
+ForwardRenderer::ForwardRenderer() {}
 
 bool ForwardRenderer::build() {
     bool success = true;
 
-    success &= m_Output.build();
     success &= Builtin::ShaderForward::build();
 
     return success;
 }
 
 bool ForwardRenderer::destroy() {
-    return m_Output.destroy();
+    return true;
 }
 
-void ForwardRenderer::tick(const vk::CommandBuffer &commandBuffer) {
-    m_Output.bind();
-    m_Output.clear();
-
-    auto allocator = m_Scene->getSystem<PipelineLayoutAllocator>();
+void ForwardRenderer::render(const vk::CommandBuffer &commandBuffer, std::uint32_t frameInFlight) {
+    std::shared_ptr<PipelineLayoutAllocator> allocator = m_Scene->getSystem<PipelineLayoutAllocator>();
 
     for (const auto &object : m_Objects) {
         const auto [render, forward] = m_Scene->getComponent<RenderComponent, ForwardRenderComponent>(object);
 
         Builtin::LayoutRenderer::ModelBuffer->update<glm::mat4>(
-            m_Scene->getSystem<Renderer>(),
-            m_Scene->getSystem<Transfer>(),
+            frameInFlight, m_Scene->getSystem<Transfer>(),
             {{
                 render.transform.matrix,
             }});
 
-        glm::ivec2 resolution = m_Output.getInfo().resolution;
-
         forward.pipeline->bind(commandBuffer);
-        allocator->bind(commandBuffer, forward.pipeline);
-
-        commandBuffer.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(resolution.x), static_cast<float>(resolution.y), 0.0f, 1.0f});
-        commandBuffer.setScissor(0, vk::Rect2D{{0, 0}, {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)}});
+        allocator->bind(commandBuffer, forward.pipeline, frameInFlight);
 
         for (const auto &[mesh, _] : render.model->getMeshs()) {
             if (mesh.getDescription() != forward.pipeline->getInfo().description) {
@@ -179,20 +156,6 @@ void ForwardRenderer::tick(const vk::CommandBuffer &commandBuffer) {
 
         render.model->draw(commandBuffer);
     }
-
-    m_Output.unbind();
-}
-
-void ForwardRenderer::resize(const glm::ivec2 &resolution) {
-    m_Output.resize(resolution);
-}
-
-const Framebuffer &ForwardRenderer::getOutput() const {
-    return m_Output;
-}
-
-const ForwardRenderer::Info &ForwardRenderer::getInfo() const {
-    return m_Info;
 }
 
 } // namespace Physbuzz

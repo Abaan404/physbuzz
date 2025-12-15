@@ -190,7 +190,7 @@ bool DeferredRenderer::destroy() {
     return success;
 }
 
-void DeferredRenderer::tick(const vk::CommandBuffer &commandBuffer) const {
+void DeferredRenderer::render(const vk::CommandBuffer &commandBuffer, std::uint32_t frameInFlight) {
     // // check for reloads before rendering
     // if (!m_Info.passes.geometry->reload()) {
     //     return;
@@ -244,19 +244,14 @@ void DeferredRenderer::tick(const vk::CommandBuffer &commandBuffer) const {
     // m_Framebuffers.output.unbind();
 }
 
-void DeferredRenderer::render(ObjectID object) const {
+// void DeferredRenderer::render(ObjectID object) const {
     // const auto [render] = m_Scene->getComponent<RenderComponent>(object);
     //
     // GL::detail::TextureUnits::reset();
     // m_Info.passes.geometry->bind();
     // m_Info.passes.geometry->draw(*m_Scene, object);
     // m_Info.passes.geometry->unbind();
-}
-
-void DeferredRenderer::resize(const glm::ivec2 &resolution) {
-    m_Framebuffers.gBuffer.resize(resolution);
-    m_Framebuffers.output.resize(resolution);
-}
+// }
 
 const DeferredRenderer::Framebuffers &DeferredRenderer::getFramebuffers() const {
     return m_Framebuffers;

@@ -82,7 +82,7 @@ class PipelineLayoutAllocator : public System<> {
 
     void reset();
 
-    void bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline);
+    void bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, std::uint32_t frameInFlight);
 
   private:
     vk::DescriptorPool createPool();

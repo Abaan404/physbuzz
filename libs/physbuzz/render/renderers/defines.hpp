@@ -13,19 +13,17 @@ static constexpr std::uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 }
 
 class Model;
-class Framebuffer;
-
-class IRenderer {
-  public:
-    virtual ~IRenderer() = default;
-
-    virtual void resize(const glm::ivec2 &resolution) = 0;
-    virtual const Framebuffer &getOutput() const = 0;
-};
 
 struct RenderComponent {
     Transform transform;
     Resource<Model> model;
+};
+
+class IRenderPass {
+  public:
+    virtual ~IRenderPass() = default;
+
+    virtual void render(const vk::CommandBuffer &commandBuffer, std::uint32_t frameInFlight) = 0;
 };
 
 } // namespace Physbuzz

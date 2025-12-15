@@ -359,13 +359,35 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &data) {
     };
 
     PBZ_VK_CHECK_RESULT(App::Queues.transfer.submit(submitInfo, m_Fences.submit));
-    PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
 
     // release the staging buffer
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
     stagingBuffer.destroy();
 
     return true;
+}
+
+void Transfer::immediate(std::function<void(const vk::CommandBuffer &)> record) {
+    // prepare the command buffer
+    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
+    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.submit));
+    m_Command.buffer.reset();
+
+    PBZ_VK_CHECK_RESULT(m_Command.buffer.begin({
+        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+    }));
+
+    record(m_Command.buffer);
+
+    PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
+
+    vk::SubmitInfo submitInfo = {
+        .commandBufferCount = 1,
+        .pCommandBuffers = &m_Command.buffer,
+    };
+
+    PBZ_VK_CHECK_RESULT(App::Queues.transfer.submit(submitInfo, m_Fences.submit));
+    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
 }
 
 } // namespace Physbuzz

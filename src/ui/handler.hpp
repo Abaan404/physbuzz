@@ -7,20 +7,15 @@
 
 class InterfaceManager : public Physbuzz::System<> {
   public:
-    struct Info {
-        std::shared_ptr<Physbuzz::Window> window;
-    };
-
-    InterfaceManager(const Info &info);
+    InterfaceManager();
 
     bool build() override;
     bool destroy() override;
+
     void tick();
 
     bool draw = false;
 
   private:
-    Info m_Info;
-
     std::unordered_map<std::string, std::shared_ptr<IUserInterface>> m_Interfaces;
 };

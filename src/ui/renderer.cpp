@@ -56,60 +56,60 @@ void Renderer::draw() {
         return;
     }
 
-    const char *types[] = {"Deferred", "Forward"};
-    static int currentType = static_cast<int>(renderer->getInfo().type);
-
-    if (ImGui::Combo("Type", &currentType, types, IM_ARRAYSIZE(types))) {
-        switch (currentType) {
-        case 0: // Deferred
-            renderer->setType(Physbuzz::Renderer::Type::Deferred);
-            break;
-
-        case 1: // Forward
-            renderer->setType(Physbuzz::Renderer::Type::Forward);
-            break;
-
-        default:
-            break;
-        }
-    }
-
-    if (renderer->getInfo().type == Physbuzz::Renderer::Type::Deferred) {
-        const std::shared_ptr<Physbuzz::DeferredRenderer> deferred = m_Scene->getSystem<Physbuzz::DeferredRenderer>();
-        const Physbuzz::DeferredRenderer::Framebuffers &framebuffers = deferred->getFramebuffers();
-
-        const Physbuzz::Framebuffer::Info &gBufferInfo = framebuffers.gBuffer.getInfo();
-
-        static bool showWindow = false;
-        static std::size_t selectedColorIndex;
-
-        if (ImGui::Button("GBuffers")) {
-            ImGui::OpenPopup("popup-gbuffer");
-        }
-
-        if (ImGui::BeginPopup("popup-gbuffer")) {
-            ImGui::SeparatorText("Select GBuffer");
-
-            for (std::size_t i = 0; i < gBufferInfo.colors.size(); i++) {
-                if (gBufferInfo.colors[i].isDrawn && gBufferInfo.colors[i].storage == Physbuzz::Framebuffer::Storage::Texture2D) {
-                    if (ImGui::Selectable(std::format("Buffer {}", i).c_str())) {
-                        selectedColorIndex = i;
-                        showWindow = true;
-                    }
-                }
-            }
-
-            ImGui::EndPopup();
-        }
-
-        if (showWindow && selectedColorIndex < gBufferInfo.colors.size()) {
-            drawImageWindow(
-                "GBuffer",
-                &showWindow,
-                (ImTextureID)(intptr_t)framebuffers.gBuffer.getImGuiTextureHandle(Physbuzz::Framebuffer::Type::Color, selectedColorIndex),
-                {static_cast<float>(gBufferInfo.resolution.x), static_cast<float>(gBufferInfo.resolution.y)});
-        }
-    }
+    // const char *types[] = {"Deferred", "Forward"};
+    // static int currentType = static_cast<int>(renderer->getInfo().type);
+    //
+    // if (ImGui::Combo("Type", &currentType, types, IM_ARRAYSIZE(types))) {
+    //     switch (currentType) {
+    //     case 0: // Deferred
+    //         renderer->setType(Physbuzz::Renderer::Type::Deferred);
+    //         break;
+    //
+    //     case 1: // Forward
+    //         renderer->setType(Physbuzz::Renderer::Type::Forward);
+    //         break;
+    //
+    //     default:
+    //         break;
+    //     }
+    // }
+    //
+    // if (renderer->getInfo().type == Physbuzz::Renderer::Type::Deferred) {
+    //     const std::shared_ptr<Physbuzz::DeferredRenderer> deferred = m_Scene->getSystem<Physbuzz::DeferredRenderer>();
+    //     const Physbuzz::DeferredRenderer::Framebuffers &framebuffers = deferred->getFramebuffers();
+    //
+    //     const Physbuzz::Framebuffer::Info &gBufferInfo = framebuffers.gBuffer.getInfo();
+    //
+    //     static bool showWindow = false;
+    //     static std::size_t selectedColorIndex;
+    //
+    //     if (ImGui::Button("GBuffers")) {
+    //         ImGui::OpenPopup("popup-gbuffer");
+    //     }
+    //
+    //     if (ImGui::BeginPopup("popup-gbuffer")) {
+    //         ImGui::SeparatorText("Select GBuffer");
+    //
+    //         for (std::size_t i = 0; i < gBufferInfo.colors.size(); i++) {
+    //             if (gBufferInfo.colors[i].isDrawn && gBufferInfo.colors[i].storage == Physbuzz::Framebuffer::Storage::Texture2D) {
+    //                 if (ImGui::Selectable(std::format("Buffer {}", i).c_str())) {
+    //                     selectedColorIndex = i;
+    //                     showWindow = true;
+    //                 }
+    //             }
+    //         }
+    //
+    //         ImGui::EndPopup();
+    //     }
+    //
+    //     if (showWindow && selectedColorIndex < gBufferInfo.colors.size()) {
+    //         drawImageWindow(
+    //             "GBuffer",
+    //             &showWindow,
+    //             (ImTextureID)(intptr_t)framebuffers.gBuffer.getImGuiTextureHandle(Physbuzz::Framebuffer::Type::Color, selectedColorIndex),
+    //             {static_cast<float>(gBufferInfo.resolution.x), static_cast<float>(gBufferInfo.resolution.y)});
+    //     }
+    // }
 
     ImGui::End();
 }
