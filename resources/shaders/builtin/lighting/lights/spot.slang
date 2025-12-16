@@ -1,0 +1,29 @@
+implementing "../lights";
+
+namespace Physbuzz {
+
+struct SpotLight : ILight {
+    float3 position;
+    float3 direction;
+    float3 intensity;
+
+    float cutOff;
+    float outerCutOff;
+
+    float3 illuminate<B : IBRDF>(Geometry geometry, B brdf, float3 viewDirection) {
+        float3 L = this.position - geometry.position;
+        float distance = length(L);
+        float3 incident = normalize(L);
+
+        float theta = dot(incident, -this.direction);
+        float epsilon = this.cutOff - this.outerCutOff;
+        float spotFactor = clamp((theta - this.outerCutOff) / epsilon, 0.0f, 1.0f);
+
+        float NdotL = max(dot(geometry.normal, incident), 0.0f);
+        float3 illuminance = this.intensity / (distance * distance);
+
+        return illuminance * brdf.evaluate(incident, viewDirection, geometry.normal) * NdotL * spotFactor;
+    }
+};
+
+}
