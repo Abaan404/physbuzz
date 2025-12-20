@@ -35,7 +35,7 @@ VSOutput vertMain(VSInput input) {
     // TODO instancing
     float4x4 model = models[0].model;
 
-    output.pos = mul(ubo.projection, mul(ubo.view, mul(model, float4(input.inPosition, 1.0))));
+    output.pos = mul(mul(mul(float4(input.inPosition, 1.0), model), ubo.view), ubo.projection);
     output.fragColor = input.inColor;
     output.fragTexCoord = input.inTexCoord;
     return output;

@@ -105,19 +105,11 @@ bool RenderPipeline::build() {
     std::array targets = {slang::TargetDesc{.format = SLANG_SPIRV}};
     std::array searchPaths = {resourcePath.c_str()};
 
-    std::array compilerOptions = {
-        slang::CompilerOptionEntry{
-            .name = slang::CompilerOptionName::MatrixLayoutColumn,
-            .value = {.intValue0 = true}},
-    };
-
     slang::SessionDesc sessionDesc = {
         .targets = targets.data(),
         .targetCount = targets.size(),
         .searchPaths = searchPaths.data(),
         .searchPathCount = searchPaths.size(),
-        .compilerOptionEntries = compilerOptions.data(),
-        .compilerOptionEntryCount = compilerOptions.size(),
     };
 
     App::SlangSession->createSession(sessionDesc, m_Session.writeRef());
