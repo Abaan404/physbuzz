@@ -38,7 +38,7 @@ bool File::read() {
     return true;
 }
 
-bool File::write() {
+bool File::write(const Data &data) {
     std::ofstream stream = std::ofstream(m_Info.path, std::ios::out | std::ios::binary);
 
     if (!stream.is_open()) {
@@ -46,12 +46,14 @@ bool File::write() {
         return false;
     }
 
-    stream.write(reinterpret_cast<char *>(m_Data.buffer.data()), m_Data.buffer.size());
+    stream.write(reinterpret_cast<const char *>(data.buffer.data()), data.buffer.size());
 
     if (stream.fail()) {
         Logger::ERROR("[File] Failed to write file: {}", m_Info.path.string());
         return false;
     }
+
+    m_Data = data;
 
     return true;
 }

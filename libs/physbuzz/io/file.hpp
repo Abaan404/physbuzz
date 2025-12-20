@@ -21,7 +21,7 @@ class File {
     bool destroy();
 
     bool read();
-    bool write();
+    bool write(const Data &data);
 
     const Info &getInfo() const;
     const Data &getData() const;
