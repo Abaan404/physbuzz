@@ -5,6 +5,7 @@
 
 #include "../../app/application.hpp"
 #include "../../debug/macros.hpp"
+#include "../../events/window.hpp"
 #include "../../render/renderer.hpp"
 #include "../../render/renderers/defines.hpp"
 #include <vulkan/vulkan_core.h>
@@ -13,8 +14,7 @@
 
 namespace Physbuzz {
 
-ImGuiRenderer::ImGuiRenderer(const Info &info)
-    : m_Info(info) {}
+ImGuiRenderer::ImGuiRenderer() {}
 
 bool ImGuiRenderer::build() {
     std::vector<vk::DescriptorPoolSize> pool_sizes = {
@@ -41,7 +41,10 @@ bool ImGuiRenderer::build() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    if (!ImGui_ImplGlfw_InitForVulkan(*m_Info.window, true)) {
+    std::shared_ptr<Window> window = m_Scene->getSystem<Renderer>()->getInfo().window;
+    m_Resolution = window->getResolution();
+
+    if (!ImGui_ImplGlfw_InitForVulkan(*window, true)) {
         return false;
     }
 
@@ -58,7 +61,7 @@ bool ImGuiRenderer::build() {
         .ImageCount = detail::MAX_FRAMES_IN_FLIGHT,
         .MSAASamples = static_cast<VkSampleCountFlagBits>(vk::SampleCountFlagBits::e1),
         .UseDynamicRendering = true,
-        .ColorAttachmentFormat = static_cast<VkFormat>(m_Info.window->getInfo().swapChain.format),
+        .ColorAttachmentFormat = static_cast<VkFormat>(window->getInfo().swapChain.format),
         .Allocator = {},
         .CheckVkResultFn = [](VkResult err) {
             PBZ_VK_CHECK_RESULT(vk::Result(err));
@@ -77,10 +80,18 @@ bool ImGuiRenderer::build() {
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 
+    m_Events = {
+        .resize = window->addCallback<WindowSwapchainResizeEvent>([&](const auto &event) {
+            resize(event.resolution);
+        }),
+    };
+
     return ret;
 }
 
 bool ImGuiRenderer::destroy() {
+    m_Scene->getSystem<Renderer>()->getInfo().window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
+
     App::Device.destroyDescriptorPool(m_Pool);
     m_Pool = nullptr;
 
@@ -96,8 +107,92 @@ void ImGuiRenderer::newFrame() {
     ImGui_ImplGlfw_NewFrame();
 }
 
-void ImGuiRenderer::render(const vk::CommandBuffer &commandBuffer, [[maybe_unused]] std::uint32_t frameInFlight) {
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+void ImGuiRenderer::render(const RenderContext &context) {
+    {
+        std::array barriers = {
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
+                .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+                .oldLayout = vk::ImageLayout::eUndefined,
+                .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .image = context.image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            },
+        };
+
+        context.command.pipelineBarrier2({
+            .dependencyFlags = {},
+            .imageMemoryBarrierCount = barriers.size(),
+            .pImageMemoryBarriers = barriers.data(),
+        });
+    }
+
+    std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
+        {
+            .imageView = context.imageView,
+            .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .loadOp = vk::AttachmentLoadOp::eLoad,
+            .storeOp = vk::AttachmentStoreOp::eStore,
+        },
+    };
+
+    context.command.beginRendering({
+        .renderArea = {
+            .offset = {0, 0},
+            .extent = {static_cast<std::uint32_t>(m_Resolution.x), static_cast<std::uint32_t>(m_Resolution.y)},
+        },
+        .layerCount = 1,
+        .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
+        .pColorAttachments = colorAttachments.data(),
+        .pDepthAttachment = {},
+        .pStencilAttachment = {},
+    });
+
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), context.command);
+
+    context.command.endRendering();
+
+    // transition image
+    {
+        vk::ImageMemoryBarrier2 barrier = {
+            .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+            .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
+            .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .newLayout = vk::ImageLayout::ePresentSrcKHR,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .image = context.image,
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+        };
+
+        vk::DependencyInfo dependencyInfo = {
+            .dependencyFlags = {},
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers = &barrier,
+        };
+
+        context.command.pipelineBarrier2(dependencyInfo);
+    }
+}
+
+void ImGuiRenderer::resize(const glm::uvec2 &resolution) {
+    m_Resolution = resolution;
 }
 
 } // namespace Physbuzz

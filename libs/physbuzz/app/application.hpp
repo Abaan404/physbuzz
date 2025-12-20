@@ -74,6 +74,7 @@ class App {
     friend class Window;
     friend class Renderer;
     friend class ImGuiRenderer;
+    friend class ForwardRenderer;
 };
 
 } // namespace Physbuzz

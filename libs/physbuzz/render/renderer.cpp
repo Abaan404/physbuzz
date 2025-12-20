@@ -2,7 +2,6 @@
 
 #include "../app/application.hpp"
 #include "../ecs/scene.hpp"
-#include "../events/window.hpp"
 #include "camera.hpp"
 #include "layout.hpp"
 #include "layouts/storage.hpp"
@@ -156,37 +155,6 @@ bool Renderer::build() {
         m_Semaphores.renderFinished.emplace_back(PBZ_VK_CHECK(App::Device.createSemaphore({})));
     }
 
-    // setup resize event
-    m_Events = {
-        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const auto &event) {
-            resize(event.resolution);
-        }),
-    };
-
-    // create shadows
-    m_Scene->createSystem<Shadow>(m_Info.shadow, m_Info.window->m_SwapChainExtent);
-
-    // setup depth buffer
-    if (!m_Depth.image.build({m_Info.window->m_SwapChainExtent, 1})) {
-        Logger::ERROR("[Renderer] Could not build a renderer depth buffer.");
-        return false;
-    }
-
-    m_Depth.view = PBZ_VK_CHECK(App::Device.createImageView({
-        .flags = {},
-        .image = m_Depth.image.getData().image,
-        .viewType = vk::ImageViewType::e2D,
-        .format = m_Depth.image.getInfo().format,
-        .components = {},
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eDepth,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-        },
-    }));
-
     return true;
 }
 
@@ -195,12 +163,6 @@ bool Renderer::destroy() {
         Logger::WARNING("[Renderer] Trying to destroy a destructed renderer.");
         return true;
     }
-
-    if (!m_Depth.image.destroy()) {
-        Logger::ERROR("[Renderer] Failed to destroy depth buffer.");
-    }
-
-    App::Device.destroyImageView(m_Depth.view);
 
     // destroy sync objects
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
@@ -242,9 +204,10 @@ void Renderer::tick() {
         return;
 
     default:
-        Logger::CRITICAL("[Renderer] Failed to acquire swap chain image.");
+        PBZ_VK_CHECK_RESULT(acquireNextImageResult, "[Renderer] Failed to acquire swap chain image.");
     }
 
+    // TODO move to camera component
     const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
     Builtin::LayoutRenderer::CameraBuffer->update<Builtin::LayoutRenderer::Camera>(
         m_FrameInFlight, m_Scene->getSystem<Transfer>(),
@@ -260,142 +223,20 @@ void Renderer::tick() {
     vk::CommandBufferBeginInfo commandBufferBeginInfo = {};
     PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].begin(commandBufferBeginInfo));
 
-    // transition image
-    {
-        vk::ImageMemoryBarrier2 barrier = {
-            .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
-            .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-            .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-            .oldLayout = vk::ImageLayout::eUndefined,
-            .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-            .image = m_Info.window->m_SwapChainImages[imageIndex],
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        };
-
-        vk::DependencyInfo dependencyInfo = {
-            .dependencyFlags = {},
-            .imageMemoryBarrierCount = 1,
-            .pImageMemoryBarriers = &barrier,
-        };
-
-        m_Command.buffers[m_FrameInFlight].pipelineBarrier2(dependencyInfo);
-    }
-
-    // depth
-    vk::RenderingAttachmentInfo depthAttachment = {
-        .imageView = m_Depth.view,
-        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-        .loadOp = vk::AttachmentLoadOp::eClear,
-        .storeOp = vk::AttachmentStoreOp::eDontCare,
-        .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
-    };
-
-    // setup attachments
-    std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
-        {
-            .imageView = m_Info.window->m_SwapChainImageViews[imageIndex],
-            .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .loadOp = vk::AttachmentLoadOp::eClear,
-            .storeOp = vk::AttachmentStoreOp::eStore,
-            .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
-        },
-    };
-
-    {
-        vk::ImageMemoryBarrier2 barrier = {
-            .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
-            .srcAccessMask = {},
-            .dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests,
-            .dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-            .oldLayout = vk::ImageLayout::eUndefined,
-            .newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-            .image = m_Depth.image.getData().image,
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eDepth,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        };
-
-        vk::DependencyInfo dependencyInfo = {
-            .imageMemoryBarrierCount = 1,
-            .pImageMemoryBarriers = &barrier,
-        };
-
-        m_Command.buffers[m_FrameInFlight].pipelineBarrier2(dependencyInfo);
-    }
-
-    // setup rendering
-    glm::ivec2 resolution = m_Info.window->m_SwapChainExtent;
-
-    m_Command.buffers[m_FrameInFlight].beginRendering({
-        .renderArea = {
-            .offset = {0, 0},
-            .extent = {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)},
-        },
-        .layerCount = 1,
-        .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
-        .pColorAttachments = colorAttachments.data(),
-        .pDepthAttachment = &depthAttachment,
-        .pStencilAttachment = {},
-    });
-
-    m_Command.buffers[m_FrameInFlight].setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(resolution.x), static_cast<float>(resolution.y), 0.0f, 1.0f});
-    m_Command.buffers[m_FrameInFlight].setScissor(0, vk::Rect2D{{0, 0}, {static_cast<std::uint32_t>(resolution.x), static_cast<std::uint32_t>(resolution.y)}});
+    glm::uvec2 extent = m_Info.window->m_SwapChainExtent;
+    m_Command.buffers[m_FrameInFlight].setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(extent.x), static_cast<float>(extent.y), 0.0f, 1.0f});
+    m_Command.buffers[m_FrameInFlight].setScissor(0, vk::Rect2D{{0, 0}, {static_cast<std::uint32_t>(extent.x), static_cast<std::uint32_t>(extent.y)}});
 
     for (const auto &renderpasses : m_RenderPasses) {
-        renderpasses->render(m_Command.buffers[m_FrameInFlight], m_FrameInFlight);
-    }
-
-    m_Command.buffers[m_FrameInFlight].endRendering();
-
-    // transition image
-    {
-        vk::ImageMemoryBarrier2 barrier = {
-            .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-            .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-            .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
-            .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .newLayout = vk::ImageLayout::ePresentSrcKHR,
-            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+        renderpasses->render({
+            .command = m_Command.buffers[m_FrameInFlight],
             .image = m_Info.window->m_SwapChainImages[imageIndex],
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        };
-
-        vk::DependencyInfo dependencyInfo = {
-            .dependencyFlags = {},
-            .imageMemoryBarrierCount = 1,
-            .pImageMemoryBarriers = &barrier,
-        };
-
-        m_Command.buffers[m_FrameInFlight].pipelineBarrier2(dependencyInfo);
+            .imageView = m_Info.window->m_SwapChainImageViews[imageIndex],
+            .frameInFlight = m_FrameInFlight,
+        });
     }
 
     PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].end());
-
-    // const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
-    // Builtin::UniformRendererCamera::Resource->update({
-    //     .position = camera.getInfo().view.position,
-    //     .view = camera.getView(),
-    //     .projection = camera.getProjection(),
-    // });
 
     vk::PipelineStageFlags waitDestinationStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     const vk::SubmitInfo submitInfo = {
@@ -426,7 +267,7 @@ void Renderer::tick() {
         m_Info.window->recreateSwapChain();
         break;
     default:
-        Logger::ERROR("[Renderer] Failed to present swapchain image! ({})", vk::to_string(presentResult));
+        PBZ_VK_CHECK_RESULT(presentResult, "[Renderer] Failed to present swapchain image!");
         return;
     }
 
@@ -461,46 +302,6 @@ void Renderer::immediate(std::function<void(const vk::CommandBuffer &)> record) 
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
 
     m_FrameInFlight = (m_FrameInFlight + 1) % detail::MAX_FRAMES_IN_FLIGHT;
-}
-
-void Renderer::resize(const glm::ivec2 &resolution) {
-    PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
-
-    // if (!m_Scene->containsComponent<CameraComponent>(m_Info.camera)) {
-    //     Logger::ERROR("[Renderer] No camera attached to object {}", m_Info.camera);
-    //     return;
-    // }
-    //
-    // const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
-
-    if (!m_Depth.image.destroy()) {
-        Logger::WARNING("[Renderer] Could not destroy old depth image");
-    }
-
-    if (!m_Depth.image.build({resolution, 1})) {
-        Logger::ERROR("[Renderer] Could not rebuild depth image.");
-    }
-
-    App::Device.destroyImageView(m_Depth.view);
-
-    m_Depth.view = PBZ_VK_CHECK(App::Device.createImageView({
-        .flags = {},
-        .image = m_Depth.image.getData().image,
-        .viewType = vk::ImageViewType::e2D,
-        .format = m_Depth.image.getInfo().format,
-        .components = {},
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eDepth,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-        },
-    }));
-
-    m_Scene->getSystem<Shadow>()->resize(resolution);
-
-    // camera.resize(resolution);
 }
 
 void Renderer::setRenderPasses(const std::vector<std::shared_ptr<IRenderPass>> &renderpasses) {

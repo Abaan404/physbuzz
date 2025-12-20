@@ -163,43 +163,59 @@ void Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer
     };
 
     {
-        vk::ImageMemoryBarrier barrier = {
-            .srcAccessMask = {},
-            .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
-            .oldLayout = vk::ImageLayout::eUndefined,
-            .newLayout = vk::ImageLayout::eTransferDstOptimal,
-            .image = m_Data.image,
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = m_Info.mipLevels,
-                .baseArrayLayer = 0,
-                .layerCount = m_Info.arrayLayers,
+        std::array barriers = {
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
+                .srcAccessMask = {},
+                .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
+                .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                .oldLayout = vk::ImageLayout::eUndefined,
+                .newLayout = vk::ImageLayout::eTransferDstOptimal,
+                .image = m_Data.image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = m_Info.mipLevels,
+                    .baseArrayLayer = 0,
+                    .layerCount = m_Info.arrayLayers,
+                },
             },
         };
 
-        commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, {}, {}, nullptr, barrier);
+        commandBuffer.pipelineBarrier2({
+            .dependencyFlags = {},
+            .imageMemoryBarrierCount = barriers.size(),
+            .pImageMemoryBarriers = barriers.data(),
+        });
     }
 
     commandBuffer.copyBufferToImage(srcBuffer.getData().buffer, m_Data.image, vk::ImageLayout::eTransferDstOptimal, {region});
 
     {
-        vk::ImageMemoryBarrier barrier = {
-            .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
-            .dstAccessMask = vk::AccessFlagBits::eTransferRead,
-            .oldLayout = vk::ImageLayout::eTransferDstOptimal,
-            .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-            .image = m_Data.image,
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = m_Info.mipLevels,
-                .baseArrayLayer = 0,
-                .layerCount = m_Info.arrayLayers,
+        std::array barriers = {
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
+                .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+                .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+                .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                .image = m_Data.image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = m_Info.mipLevels,
+                    .baseArrayLayer = 0,
+                    .layerCount = m_Info.arrayLayers,
+                },
             },
         };
 
-        commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, {}, {}, nullptr, barrier);
+        commandBuffer.pipelineBarrier2({
+            .dependencyFlags = {},
+            .imageMemoryBarrierCount = barriers.size(),
+            .pImageMemoryBarriers = barriers.data(),
+        });
     }
 }
 
