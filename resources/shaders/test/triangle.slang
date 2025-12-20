@@ -1,3 +1,5 @@
+module triangle;
+
 struct VSInput {
     float3 inPosition : POSITION;
     float3 inColor : COLOR;

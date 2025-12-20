@@ -5,6 +5,8 @@
 #include "layout.hpp"
 #include "mesh.hpp"
 #include <glm/gtc/type_ptr.hpp>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_handles.hpp>
 
 namespace Physbuzz {
 
@@ -98,19 +100,144 @@ bool RenderPipeline::build() {
         .stencilTestEnable = m_Info.depthStencil.stencilTestEnable,
     };
 
-    std::unordered_map<ShaderStageFlags, vk::ShaderModule> modules;
-    if (!buildShaders(m_Info.shaders, modules)) {
-        Logger::ERROR("[RenderPipeline] Failed to build pipeline shaders.");
-        destroyShaders(modules);
+    std::filesystem::path resourcePath = ResourceRegistry<RenderPipeline>::getResourceDirectory() / "shaders";
+
+    std::array targets = {slang::TargetDesc{.format = SLANG_SPIRV}};
+    std::array searchPaths = {resourcePath.c_str()};
+
+    std::array compilerOptions = {
+        slang::CompilerOptionEntry{
+            .name = slang::CompilerOptionName::MatrixLayoutColumn,
+            .value = {.intValue0 = true}},
+    };
+
+    slang::SessionDesc sessionDesc = {
+        .targets = targets.data(),
+        .targetCount = targets.size(),
+        .searchPaths = searchPaths.data(),
+        .searchPathCount = searchPaths.size(),
+        .compilerOptionEntries = compilerOptions.data(),
+        .compilerOptionEntryCount = compilerOptions.size(),
+    };
+
+    App::SlangSession->createSession(sessionDesc, m_Session.writeRef());
+
+    Slang::ComPtr<slang::IBlob> diagnostics;
+    Slang::ComPtr<slang::IModule> module = Slang::ComPtr{m_Session->loadModule(m_Info.module.c_str(), diagnostics.writeRef())};
+
+    if (diagnostics) {
+        Logger::ERROR("[RenderPipeline] Failed loading shader module '{}'", m_Info.module);
+        Logger::ERROR((const char *)diagnostics->getBufferPointer());
         return false;
     }
 
+    std::vector<slang::IComponentType *> components;
+    components.push_back(module);
+
+    for (int i = 0; i < module->getDefinedEntryPointCount(); i++) {
+        Slang::ComPtr<slang::IEntryPoint> entrypoint;
+        module->getDefinedEntryPoint(i, entrypoint.writeRef());
+        components.push_back(entrypoint);
+    }
+
+    Slang::ComPtr<slang::IComponentType> program;
+    m_Session->createCompositeComponentType(components.data(), components.size(), program.writeRef(), diagnostics.writeRef());
+
+    if (diagnostics) {
+        Logger::ERROR("[RenderPipeline] Failed composing shader module '{}'", m_Info.module);
+        Logger::ERROR((const char *)diagnostics->getBufferPointer());
+        return false;
+    }
+
+    slang::ProgramLayout *layout = program->getLayout(0, diagnostics.writeRef());
+
+    if (diagnostics) {
+        Logger::ERROR("[RenderPipeline] Failed loading shader layout for module '{}'", m_Info.module);
+        Logger::ERROR((const char *)diagnostics->getBufferPointer());
+        return false;
+    }
+
+    Slang::ComPtr<slang::IComponentType> linkedProgram;
+    program->link(linkedProgram.writeRef(), diagnostics.writeRef());
+
+    if (diagnostics) {
+        Logger::ERROR("[RenderPipeline] Failed linking shader module '{}'", m_Info.module);
+        Logger::ERROR((const char *)diagnostics->getBufferPointer());
+        return false;
+    }
+
+    std::vector<vk::ShaderModule> modules;
     std::vector<vk::PipelineShaderStageCreateInfo> stages;
-    for (const auto &[stage, module] : modules) {
+
+    for (std::size_t i = 0; i < layout->getEntryPointCount(); i++) {
+        Slang::ComPtr<slang::IBlob> kernel;
+        linkedProgram->getEntryPointCode(i, 0, kernel.writeRef(), diagnostics.writeRef());
+
+        if (diagnostics) {
+            Logger::ERROR("[RenderPipeline] Failed to get entrypoint '{}' code for module '{}'", i, m_Info.module);
+            Logger::ERROR((const char *)diagnostics->getBufferPointer());
+            return false;
+        }
+
+        slang::EntryPointReflection *entrypointLayout = layout->getEntryPointByIndex(i);
+
+        vk::ShaderStageFlagBits stage;
+        switch (entrypointLayout->getStage()) {
+        case SLANG_STAGE_ANY_HIT:
+            stage = vk::ShaderStageFlagBits::eAnyHitKHR;
+            break;
+        case SLANG_STAGE_CALLABLE:
+            stage = vk::ShaderStageFlagBits::eCallableKHR;
+            break;
+        case SLANG_STAGE_CLOSEST_HIT:
+            stage = vk::ShaderStageFlagBits::eClosestHitKHR;
+            break;
+        case SLANG_STAGE_COMPUTE:
+            stage = vk::ShaderStageFlagBits::eCompute;
+            break;
+        case SLANG_STAGE_DOMAIN:
+            stage = vk::ShaderStageFlagBits::eTessellationControl;
+            break;
+        case SLANG_STAGE_FRAGMENT:
+            stage = vk::ShaderStageFlagBits::eFragment;
+            break;
+        case SLANG_STAGE_GEOMETRY:
+            stage = vk::ShaderStageFlagBits::eGeometry;
+            break;
+        case SLANG_STAGE_HULL:
+            stage = vk::ShaderStageFlagBits::eTessellationEvaluation;
+            break;
+        case SLANG_STAGE_INTERSECTION:
+            stage = vk::ShaderStageFlagBits::eIntersectionKHR;
+            break;
+        case SLANG_STAGE_MISS:
+            stage = vk::ShaderStageFlagBits::eMissKHR;
+            break;
+        case SLANG_STAGE_RAY_GENERATION:
+            stage = vk::ShaderStageFlagBits::eRaygenKHR;
+            break;
+        case SLANG_STAGE_VERTEX:
+            stage = vk::ShaderStageFlagBits::eVertex;
+            break;
+        case SLANG_STAGE_MESH:
+            stage = vk::ShaderStageFlagBits::eMeshEXT;
+            break;
+        case SLANG_STAGE_AMPLIFICATION:
+            stage = vk::ShaderStageFlagBits::eTaskEXT;
+            break;
+        default:
+            continue;
+        }
+
+        vk::ShaderModule module = modules.emplace_back(PBZ_VK_CHECK(App::Device.createShaderModule({
+            .codeSize = kernel->getBufferSize(),
+            .pCode = reinterpret_cast<const std::uint32_t *>(kernel->getBufferPointer()),
+        })));
+
         stages.emplace_back<vk::PipelineShaderStageCreateInfo>({
             .stage = stage,
             .module = module,
-            .pName = m_Info.shaders[stage].entrypoint.c_str(),
+            .pName = "main",
             .pSpecializationInfo = nullptr, // TODO
         });
     }
@@ -142,14 +269,17 @@ bool RenderPipeline::build() {
             .renderPass = nullptr,
         },
         {
-            .colorAttachmentCount = 1,
-            .pColorAttachmentFormats = &m_Info.format,
-            .depthAttachmentFormat = vk::Format::eD32Sfloat,
+            .colorAttachmentCount = static_cast<std::uint32_t>(m_Info.formats.color.size()),
+            .pColorAttachmentFormats = m_Info.formats.color.data(),
+            .depthAttachmentFormat = m_Info.formats.depth,
         },
     };
 
     m_Pipeline = PBZ_VK_CHECK(App::Device.createGraphicsPipeline(nullptr, chain.get()));
-    destroyShaders(modules);
+
+    for (const auto &module : modules) {
+        App::Device.destroyShaderModule(module);
+    }
 
     return true;
 }
@@ -171,58 +301,6 @@ void RenderPipeline::bind(const vk::CommandBuffer &commandBuffer) const {
 
 const RenderPipeline::Info &RenderPipeline::getInfo() const {
     return m_Info;
-}
-
-bool RenderPipeline::buildShaders(const std::unordered_map<ShaderStageFlags, ShaderInfo> &shaders, std::unordered_map<ShaderStageFlags, vk::ShaderModule> &modules) {
-    bool success = true;
-
-    for (const auto &[stage, shader] : shaders) {
-        if (shader.module.path.empty()) {
-            Logger::ERROR("[RenderPipeline] Missing module path for stage {}", vk::to_string(stage));
-            success = false;
-            break;
-        }
-
-        File file = {shader.module};
-
-        if (!file.build()) {
-            Logger::ERROR("[RenderPipeline] Could not build file '{}'", shader.module.path.string());
-            success = false;
-            continue;
-        }
-
-        if (!file.read()) {
-            Logger::ERROR("[RenderPipeline] Could not read file '{}'", shader.module.path.string());
-            file.destroy();
-            success = false;
-            continue;
-        }
-
-        const std::vector<std::byte> &buffer = file.getData().buffer;
-
-        vk::ShaderModuleCreateInfo createInfo = {
-            .codeSize = buffer.size(),
-            .pCode = reinterpret_cast<const std::uint32_t *>(buffer.data()),
-        };
-
-        modules[stage] = PBZ_VK_CHECK(App::Device.createShaderModule(createInfo));
-
-        if (!file.destroy()) {
-            Logger::ERROR("[RenderPipeline] Could not destroy file '{}'", shader.module.path.string());
-            success = false;
-            continue;
-        }
-    }
-
-    return success;
-}
-
-bool RenderPipeline::destroyShaders(const std::unordered_map<ShaderStageFlags, vk::ShaderModule> &modules) {
-    for (auto &[_, module] : modules) {
-        App::Device.destroyShaderModule(module);
-    }
-
-    return true;
 }
 
 } // namespace Physbuzz

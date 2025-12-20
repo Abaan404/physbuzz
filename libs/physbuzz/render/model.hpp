@@ -45,7 +45,7 @@ class Model {
         glm::vec3 position;
         glm::vec3 normal;
         glm::vec3 tangent;
-        glm::vec2 texCoords;
+        glm::vec2 texCoord0;
 
         static VertexDescription Description;
     };

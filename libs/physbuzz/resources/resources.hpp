@@ -103,7 +103,7 @@ class ResourceRegistry {
         m_Watcher.followSymlinks(true);
 
         if (m_ResourceDirectory.empty()) {
-            setResourceDirectory(std::filesystem::current_path()); // use cwd by default
+            setResourceDirectory(std::filesystem::current_path() / "resources"); // use cwd by default
         }
 
         m_Watcher.watch();
@@ -121,6 +121,10 @@ class ResourceRegistry {
         m_Watcher.addWatch(directory, &m_Listener, true);
     }
 
+    inline static const std::filesystem::path &getResourceDirectory() {
+        return m_ResourceDirectory;
+    }
+
     // crappy workaround to allow this static class to generate events through a proxy
     static inline EventSubject Events;
 
@@ -129,7 +133,7 @@ class ResourceRegistry {
 
     inline static detail::ResourceFileWatcher<T> m_Listener;
     inline static efsw::FileWatcher m_Watcher;
-    inline static std::filesystem::path m_ResourceDirectory;
+    inline static std::filesystem::path m_ResourceDirectory = std::filesystem::current_path() / "resources";
 
     template <typename>
     friend class Resource;

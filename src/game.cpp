@@ -101,11 +101,12 @@ void Game::build() {
         .window = window,
     });
 
+    Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(Physbuzz::ImGuiRenderer::Info{
+        .window = window,
+    });
+
     Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>()->setRenderPasses({
         Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(),
-        Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(Physbuzz::ImGuiRenderer::Info{
-            .window = window,
-        }),
     });
 
     Physbuzz::App::GScene.createSystem<Physbuzz::Bindings>(window);
@@ -132,22 +133,7 @@ void Game::build() {
                 {"test_layout"},
             },
             .description = &TestVertex::Description,
-            .shaders = {
-                {
-                    Physbuzz::RenderPipeline::ShaderStageFlags::eVertex,
-                    {
-                        .module = {"./spirv/shaders/test/triangle.slang.spv"},
-                        .entrypoint = "vertMain",
-                    },
-                },
-                {
-                    Physbuzz::RenderPipeline::ShaderStageFlags::eFragment,
-                    {
-                        .module = {"./spirv/shaders/test/triangle.slang.spv"},
-                        .entrypoint = "fragMain",
-                    },
-                },
-            },
+            .module = "test/triangle",
         }});
 
     Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
@@ -208,7 +194,7 @@ void Game::build() {
                 .far = 10000.0f,
             },
             .view = {
-                .position = {2.0f, 2.0f, 2.0f},
+                .position = {0.0f, 0.0f, 2.0f},
             },
             .resolution = window->getResolution(),
         }},

@@ -4,6 +4,7 @@
 #include "layouts/texture.hpp"
 #include "layouts/uniform.hpp"
 #include "renderers/defines.hpp"
+#include "shaders.hpp"
 
 namespace Physbuzz {
 

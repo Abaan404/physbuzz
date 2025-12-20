@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../io/file.hpp"
 #include "../resources/defines.hpp"
 #include "../resources/resources.hpp"
 #include <glm/glm.hpp>
+#include <slang-com-ptr.h>
+#include <slang.h>
 #include <string>
-#include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
@@ -15,7 +15,6 @@ class VertexDescription;
 
 class RenderPipeline {
   public:
-    using ShaderStageFlags = vk::ShaderStageFlagBits;
     using DynamicState = vk::DynamicState;
 
     // assembly
@@ -40,16 +39,8 @@ class RenderPipeline {
     // depthStencil
     using CompareOp = vk::CompareOp;
 
-    // layout
-    using DescriptorType = vk::DescriptorType;
-
     // format
     using Format = vk::Format;
-
-    struct ShaderInfo {
-        File::Info module;
-        std::string entrypoint;
-    };
 
     struct ColorBlendAttachmentInfo {
         bool blendEnable = false;
@@ -63,13 +54,6 @@ class RenderPipeline {
                                         ColorComponentFlags::eG |
                                         ColorComponentFlags::eB |
                                         ColorComponentFlags::eA;
-    };
-
-    struct Layout {
-        DescriptorType type;
-        ShaderStageFlags stage;
-        std::uint32_t binding;
-        std::uint32_t count;
     };
 
     struct Info {
@@ -108,13 +92,15 @@ class RenderPipeline {
             std::array<float, 4> blendConstants = {0.0f, 0.0f, 0.0f, 0.0f};
         } blend = {};
 
-        Format format = Format::eB8G8R8A8Srgb;
+        struct {
+            std::vector<Format> color = {Format::eB8G8R8A8Srgb};
+            Format depth = Format::eD32Sfloat;
+        } formats = {};
 
         std::vector<Resource<PipelineLayout>> layouts = {};
-
         VertexDescription *description;
+        std::string module;
 
-        std::unordered_map<ShaderStageFlags, ShaderInfo> shaders;
         std::vector<DynamicState> dynamicStates = {};
     };
 
@@ -132,10 +118,9 @@ class RenderPipeline {
     vk::PipelineLayout m_Layout = nullptr;
     vk::Pipeline m_Pipeline = nullptr;
 
-    Info m_Info;
+    Slang::ComPtr<slang::ISession> m_Session = nullptr;
 
-    bool buildShaders(const std::unordered_map<ShaderStageFlags, ShaderInfo> &shaders, std::unordered_map<ShaderStageFlags, vk::ShaderModule> &modules);
-    bool destroyShaders(const std::unordered_map<ShaderStageFlags, vk::ShaderModule> &modules);
+    Info m_Info;
 
     // template <ResourceType T>
     // friend class ResourceRegistry;
