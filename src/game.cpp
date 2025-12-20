@@ -132,22 +132,7 @@ void Game::build() {
                 {"test_layout"},
             },
             .description = &TestVertex::Description,
-            .shaders = {
-                {
-                    Physbuzz::RenderPipeline::ShaderStageFlags::eVertex,
-                    {
-                        .module = {"./spirv/shaders/test/triangle.slang.spv"},
-                        .entrypoint = "vertMain",
-                    },
-                },
-                {
-                    Physbuzz::RenderPipeline::ShaderStageFlags::eFragment,
-                    {
-                        .module = {"./spirv/shaders/test/triangle.slang.spv"},
-                        .entrypoint = "fragMain",
-                    },
-                },
-            },
+            .module = "test/triangle",
         }});
 
     Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(

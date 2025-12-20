@@ -2,6 +2,7 @@
 
 #include "../ecs/scene.hpp"
 #include "../window/window.hpp"
+#include <slang-com-ptr.h>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
@@ -31,6 +32,9 @@ class App {
 
     // VMA
     inline static VmaAllocator Allocator = VK_NULL_HANDLE;
+
+    // slang
+    inline static Slang::ComPtr<slang::IGlobalSession> SlangSession = nullptr;
 
     inline static struct {
         std::uint32_t graphics;

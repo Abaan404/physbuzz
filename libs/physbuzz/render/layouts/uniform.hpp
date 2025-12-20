@@ -2,7 +2,7 @@
 
 #include "../../resources/defines.hpp"
 #include "../buffer.hpp"
-#include "../renderer.hpp"
+#include "../renderers/defines.hpp"
 #include <vector>
 
 namespace Physbuzz {

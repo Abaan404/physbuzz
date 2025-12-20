@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../io/file.hpp"
 #include "../resources/defines.hpp"
 #include "../resources/resources.hpp"
 #include <glm/glm.hpp>
+#include <slang-com-ptr.h>
+#include <slang.h>
 #include <string>
-#include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
@@ -45,11 +45,6 @@ class RenderPipeline {
 
     // format
     using Format = vk::Format;
-
-    struct ShaderInfo {
-        File::Info module;
-        std::string entrypoint;
-    };
 
     struct ColorBlendAttachmentInfo {
         bool blendEnable = false;
@@ -108,13 +103,15 @@ class RenderPipeline {
             std::array<float, 4> blendConstants = {0.0f, 0.0f, 0.0f, 0.0f};
         } blend = {};
 
-        Format format = Format::eB8G8R8A8Srgb;
+        struct {
+            std::vector<Format> color = {Format::eB8G8R8A8Srgb};
+            Format depth = Format::eD32Sfloat;
+        } formats = {};
 
         std::vector<Resource<PipelineLayout>> layouts = {};
-
         VertexDescription *description;
+        std::string module;
 
-        std::unordered_map<ShaderStageFlags, ShaderInfo> shaders;
         std::vector<DynamicState> dynamicStates = {};
     };
 
@@ -131,11 +128,9 @@ class RenderPipeline {
   private:
     vk::PipelineLayout m_Layout = nullptr;
     vk::Pipeline m_Pipeline = nullptr;
+    Slang::ComPtr<slang::ISession> m_Session = nullptr;
 
     Info m_Info;
-
-    bool buildShaders(const std::unordered_map<ShaderStageFlags, ShaderInfo> &shaders, std::unordered_map<ShaderStageFlags, vk::ShaderModule> &modules);
-    bool destroyShaders(const std::unordered_map<ShaderStageFlags, vk::ShaderModule> &modules);
 
     // template <ResourceType T>
     // friend class ResourceRegistry;

@@ -26,8 +26,8 @@ VertexDescription Model::Vertex::Description = {{
         },
         {
             .format = VertexDescription::Format::eR32G32Sfloat,
-            .size = sizeof(Vertex::texCoords) / sizeof(decltype(Vertex::texCoords)::value_type),
-            .offset = offsetof(Vertex, texCoords),
+            .size = sizeof(Vertex::texCoord0) / sizeof(decltype(Vertex::texCoord0)::value_type),
+            .offset = offsetof(Vertex, texCoord0),
         },
     },
     .size = sizeof(Vertex),
@@ -116,7 +116,7 @@ bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
     // texcoords
     if (aimesh->mTextureCoords[0]) {
         for (std::size_t i = 0; i < aimesh->mNumVertices; ++i) {
-            mesh.vertices[i].texCoords = {aimesh->mTextureCoords[0][i].x, aimesh->mTextureCoords[0][i].y};
+            mesh.vertices[i].texCoord0 = {aimesh->mTextureCoords[0][i].x, aimesh->mTextureCoords[0][i].y};
         }
     }
 

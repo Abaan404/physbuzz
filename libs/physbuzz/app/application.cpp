@@ -2,15 +2,16 @@
 
 #include "../debug/macros.hpp"
 #include "../render/layout.hpp"
+#include "../render/layouts/storage.hpp"
 #include "../render/layouts/texture.hpp"
 #include "../render/layouts/uniform.hpp"
-#include "../render/layouts/storage.hpp"
 #include "../render/model.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <map>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_hpp_macros.hpp>
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -50,6 +51,13 @@ bool App::init() {
     // setup logging
     Logger::init();
 
+    // init slang
+    SlangGlobalSessionDesc desc = {};
+    if (SLANG_FAILED(slang::createGlobalSession(&desc, SlangSession.writeRef()))) {
+        Logger::CRITICAL("[App] Failed to create a slang session.");
+        return false;
+    }
+
     // init glfw
     if (!Window::init()) {
         Logger::CRITICAL("[App] Failed to setup windowing.");
@@ -76,7 +84,7 @@ bool App::init() {
         });
 
         if (success) {
-            Logger::CRITICAL("[App] Required extensions not supported: {}", extension);
+            Logger::CRITICAL("[App] Required extension not supported: {}", extension);
         }
     }
 
@@ -86,7 +94,7 @@ bool App::init() {
         });
 
         if (success) {
-            Logger::CRITICAL("[App] Required GLFW extensions not supported: {}", layer);
+            Logger::CRITICAL("[App] Required layer not supported: {}", layer);
         }
     }
 
@@ -108,11 +116,7 @@ bool App::init() {
         .ppEnabledExtensionNames = extensions.data(),
     };
 
-    if (vk::createInstance(&createInfo, nullptr, &Instance) != vk::Result::eSuccess) {
-        Logger::ERROR("[App] Failed to create vulkan instance.");
-        return false;
-    }
-
+    PBZ_VK_CHECK_RESULT(vk::createInstance(&createInfo, nullptr, &Instance));
     VULKAN_HPP_DEFAULT_DISPATCHER.init(Instance);
 
 #ifdef ENABLE_VALIDATION_LAYERS

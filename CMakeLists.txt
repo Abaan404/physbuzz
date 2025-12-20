@@ -16,6 +16,7 @@ find_package(glfw3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(Catch2 3 REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(slang REQUIRED)
 
 # efsw
 set(EFSW_PATH "${CMAKE_SOURCE_DIR}/submodules/efsw")
@@ -62,14 +63,15 @@ target_link_libraries(
          glfw
          Vulkan::Vulkan
          glm
-         imgui)
+         imgui
+         slang)
 
 # driver code
 file(GLOB_RECURSE SRCS "${CMAKE_SOURCE_DIR}/src/*.cpp")
 add_executable(game ${SRCS})
 
 target_compile_options(game PRIVATE -Wall -Wextra -Wpedantic)
-target_link_libraries(game PRIVATE physbuzz imgui)
+target_link_libraries(game PRIVATE physbuzz spdlog::spdlog imgui)
 
 # resources
 set(RESOURCES_PATH "${CMAKE_SOURCE_DIR}/resources")
@@ -78,38 +80,6 @@ add_custom_command(
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/resources
           $<TARGET_FILE_DIR:game>/resources)
-
-# shaders
-set(RESOURCES_PATH "${CMAKE_SOURCE_DIR}/resources")
-file(GLOB_RECURSE SHADERS_SRCS ${RESOURCES_PATH}/*.slang)
-
-set(SPIRV_BUILD_DIR "${CMAKE_BINARY_DIR}/spirv")
-set(SHADER_OUTPUTS)
-
-foreach(SHADER ${SHADERS_SRCS})
-  file(RELATIVE_PATH REL_PATH ${RESOURCES_PATH} ${SHADER})
-  set(OUTPUT "${SPIRV_BUILD_DIR}/${REL_PATH}.spv")
-  get_filename_component(OUTPUT_DIR ${OUTPUT} DIRECTORY)
-
-  add_custom_command(
-    OUTPUT ${OUTPUT}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}
-    COMMAND slangc -target spirv -o ${OUTPUT} ${SHADER}
-    DEPENDS ${SHADER}
-    COMMENT "Compiling shader ${REL_PATH} to SPIR-V"
-    VERBATIM)
-  list(APPEND SHADER_OUTPUTS ${OUTPUT})
-endforeach()
-
-add_custom_target(shaders ALL DEPENDS ${SHADER_OUTPUTS})
-add_dependencies(game shaders)
-
-add_custom_command(
-  TARGET game
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${SPIRV_BUILD_DIR}
-          $<TARGET_FILE_DIR:game>/spirv
-  COMMENT "Copying SPIR-V shaders to game output directory")
 
 # tests
 set(TEST_PATH "tests")

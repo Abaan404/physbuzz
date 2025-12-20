@@ -38,7 +38,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         mesh.vertices[i].position = positions[i];
         mesh.vertices[i].normal = NT[i].normal;
         mesh.vertices[i].tangent = NT[i].tangent;
-        mesh.vertices[i].texCoords = texCoords[i];
+        mesh.vertices[i].texCoord0 = texCoords[i];
     }
 
     // create model
