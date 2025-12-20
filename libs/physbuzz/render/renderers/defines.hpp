@@ -19,11 +19,18 @@ struct RenderComponent {
     Resource<Model> model;
 };
 
+struct RenderContext {
+    vk::CommandBuffer command;
+    vk::Image image;
+    vk::ImageView imageView;
+    std::uint32_t frameInFlight;
+};
+
 class IRenderPass {
   public:
     virtual ~IRenderPass() = default;
 
-    virtual void render(const vk::CommandBuffer &commandBuffer, std::uint32_t frameInFlight) = 0;
+    virtual void render(const RenderContext &context) = 0;
 };
 
 } // namespace Physbuzz

@@ -190,7 +190,7 @@ bool DeferredRenderer::destroy() {
     return success;
 }
 
-void DeferredRenderer::render(const vk::CommandBuffer &commandBuffer, std::uint32_t frameInFlight) {
+void DeferredRenderer::render(const RenderContext &context) {
     // // check for reloads before rendering
     // if (!m_Info.passes.geometry->reload()) {
     //     return;

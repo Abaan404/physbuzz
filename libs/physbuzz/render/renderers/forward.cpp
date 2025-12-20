@@ -1,11 +1,13 @@
 #include "forward.hpp"
 
 #include "../../ecs/scene.hpp"
+#include "../../events/window.hpp"
 #include "../layout.hpp"
 #include "../layouts/storage.hpp"
 #include "../model.hpp"
 #include "../renderer.hpp"
-#include <memory>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_structs.hpp>
 
 namespace Physbuzz {
 
@@ -121,31 +123,146 @@ bool ShaderForward::build() {
 ForwardRenderer::ForwardRenderer() {}
 
 bool ForwardRenderer::build() {
-    bool success = true;
+    // build pipeline
+    if (!Builtin::ShaderForward::build()) {
+        Logger::ERROR("[Renderer] Could not build forward shader pipeline.");
+        return false;
+    }
 
-    success &= Builtin::ShaderForward::build();
+    std::shared_ptr<Window> window = m_Scene->getSystem<Renderer>()->getInfo().window;
+    m_Resolution = window->getResolution();
 
-    return success;
-}
+    // setup depth buffer
+    if (!m_Depth.image.build({m_Resolution.x, m_Resolution.y, 1})) {
+        Logger::ERROR("[Renderer] Could not build a renderer depth buffer.");
+        return false;
+    }
 
-bool ForwardRenderer::destroy() {
+    m_Depth.view = PBZ_VK_CHECK(App::Device.createImageView({
+        .flags = {},
+        .image = m_Depth.image.getData().image,
+        .viewType = vk::ImageViewType::e2D,
+        .format = m_Depth.image.getInfo().format,
+        .components = {},
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eDepth,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+    }));
+
+    m_Events = {
+        .resize = window->addCallback<WindowSwapchainResizeEvent>([&](const auto &event) {
+            resize(event.resolution);
+        }),
+    };
+
     return true;
 }
 
-void ForwardRenderer::render(const vk::CommandBuffer &commandBuffer, std::uint32_t frameInFlight) {
-    std::shared_ptr<PipelineLayoutAllocator> allocator = m_Scene->getSystem<PipelineLayoutAllocator>();
+bool ForwardRenderer::destroy() {
+    m_Scene->getSystem<Renderer>()->getInfo().window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
+
+    if (!m_Depth.image.destroy()) {
+        Logger::ERROR("[Renderer] Failed to destroy depth buffer.");
+        return false;
+    }
+
+    App::Device.destroyImageView(m_Depth.view);
+
+    return true;
+}
+
+void ForwardRenderer::render(const RenderContext &context) {
+    // transition image
+    {
+        std::array barriers = {
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
+                .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+                .oldLayout = vk::ImageLayout::eUndefined,
+                .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .image = context.image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            },
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
+                .srcAccessMask = {},
+                .dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests,
+                .dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+                .oldLayout = vk::ImageLayout::eUndefined,
+                .newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                .image = m_Depth.image.getData().image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eDepth,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            },
+        };
+
+        context.command.pipelineBarrier2({
+            .dependencyFlags = {},
+            .imageMemoryBarrierCount = barriers.size(),
+            .pImageMemoryBarriers = barriers.data(),
+        });
+    }
+
+    // setup attachments
+    vk::RenderingAttachmentInfo depthAttachment = {
+        .imageView = m_Depth.view,
+        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+        .loadOp = vk::AttachmentLoadOp::eClear,
+        .storeOp = vk::AttachmentStoreOp::eDontCare,
+        .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
+    };
+
+    std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
+        {
+            .imageView = context.imageView,
+            .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .loadOp = vk::AttachmentLoadOp::eClear,
+            .storeOp = vk::AttachmentStoreOp::eStore,
+            .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
+        },
+    };
+
+    context.command.beginRendering({
+        .renderArea = {
+            .offset = {0, 0},
+            .extent = {static_cast<std::uint32_t>(m_Resolution.x), static_cast<std::uint32_t>(m_Resolution.y)},
+        },
+        .layerCount = 1,
+        .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
+        .pColorAttachments = colorAttachments.data(),
+        .pDepthAttachment = &depthAttachment,
+        .pStencilAttachment = {},
+    });
 
     for (const auto &object : m_Objects) {
         const auto [render, forward] = m_Scene->getComponent<RenderComponent, ForwardRenderComponent>(object);
 
         Builtin::LayoutRenderer::ModelBuffer->update<glm::mat4>(
-            frameInFlight, m_Scene->getSystem<Transfer>(),
+            context.frameInFlight, m_Scene->getSystem<Transfer>(),
             {{
                 render.transform.matrix,
             }});
 
-        forward.pipeline->bind(commandBuffer);
-        allocator->bind(commandBuffer, forward.pipeline, frameInFlight);
+        forward.pipeline->bind(context.command);
+        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context.command, forward.pipeline, context.frameInFlight);
 
         for (const auto &[mesh, _] : render.model->getMeshs()) {
             if (mesh.getDescription() != forward.pipeline->getInfo().description) {
@@ -154,8 +271,70 @@ void ForwardRenderer::render(const vk::CommandBuffer &commandBuffer, std::uint32
             }
         }
 
-        render.model->draw(commandBuffer);
+        render.model->draw(context.command);
     }
+
+    context.command.endRendering();
+
+    // transition image
+    {
+        vk::ImageMemoryBarrier2 barrier = {
+            .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+            .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
+            .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .newLayout = vk::ImageLayout::ePresentSrcKHR,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .image = context.image,
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+        };
+
+        vk::DependencyInfo dependencyInfo = {
+            .dependencyFlags = {},
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers = &barrier,
+        };
+
+        context.command.pipelineBarrier2(dependencyInfo);
+    }
+}
+
+void ForwardRenderer::resize(const glm::uvec2 &resolution) {
+    PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
+
+    if (!m_Depth.image.destroy()) {
+        Logger::WARNING("[ForwardRenderer] Could not destroy old depth image");
+    }
+
+    if (!m_Depth.image.build({resolution, 1})) {
+        Logger::ERROR("[ForwardRenderer] Could not rebuild depth image.");
+    }
+
+    App::Device.destroyImageView(m_Depth.view);
+
+    m_Depth.view = PBZ_VK_CHECK(App::Device.createImageView({
+        .flags = {},
+        .image = m_Depth.image.getData().image,
+        .viewType = vk::ImageViewType::e2D,
+        .format = m_Depth.image.getInfo().format,
+        .components = {},
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eDepth,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+    }));
+
+    m_Resolution = resolution;
 }
 
 } // namespace Physbuzz

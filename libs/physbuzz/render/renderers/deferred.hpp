@@ -58,7 +58,7 @@ class DeferredRenderer : public IRenderPass,
     bool build() override;
     bool destroy() override;
 
-    void render(const vk::CommandBuffer &commandBuffer, std::uint32_t frameInFlight) override;
+    void render(const RenderContext &context) override;
 
     const Framebuffers &getFramebuffers() const;
     const Framebuffer &getOutput() const;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../ecs/system.hpp"
-#include "buffer.hpp"
 #include "renderers/defines.hpp"
 #include "shadow.hpp"
 #include <memory>
@@ -87,17 +86,6 @@ class Renderer : public System<> {
     std::uint32_t m_FrameInFlight = 0;
 
     struct {
-        Image image = {{
-            .usage = Image::ImageUsageFlagBits::eDepthStencilAttachment,
-            .type = Image::Type::e2D,
-            .mipLevels = 1,
-            .arrayLayers = 1,
-            .format = Image::Format::eD32Sfloat,
-        }};
-        vk::ImageView view;
-    } m_Depth;
-
-    struct {
         vk::CommandPool pool = nullptr;
         std::vector<vk::CommandBuffer> buffers = {};
     } m_Command = {};
@@ -110,10 +98,6 @@ class Renderer : public System<> {
     struct {
         std::array<vk::Fence, detail::MAX_FRAMES_IN_FLIGHT> inFlight = {};
     } m_Fences = {};
-
-    struct {
-        EventID resize = -1;
-    } m_Events = {};
 };
 
 } // namespace Physbuzz
