@@ -21,14 +21,7 @@ class ImGuiRenderer : public IRenderPass,
     void newFrame();
 
   private:
-    void resize(const glm::uvec2 &resolution);
-
     vk::DescriptorPool m_Pool = nullptr;
-    glm::uvec2 m_Resolution;
-
-    struct {
-        EventID resize = -1;
-    } m_Events = {};
 };
 
 } // namespace Physbuzz

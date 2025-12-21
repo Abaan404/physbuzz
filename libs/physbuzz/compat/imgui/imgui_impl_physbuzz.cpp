@@ -1,5 +1,6 @@
 #include "imgui_impl_physbuzz.hpp"
 
+#include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
@@ -17,35 +18,35 @@ namespace Physbuzz {
 ImGuiRenderer::ImGuiRenderer() {}
 
 bool ImGuiRenderer::build() {
-    std::vector<vk::DescriptorPoolSize> pool_sizes = {
-        {vk::DescriptorType::eSampler, 1000},
-        {vk::DescriptorType::eCombinedImageSampler, 1000},
-        {vk::DescriptorType::eSampledImage, 1000},
-        {vk::DescriptorType::eStorageImage, 1000},
-        {vk::DescriptorType::eUniformTexelBuffer, 1000},
-        {vk::DescriptorType::eStorageTexelBuffer, 1000},
-        {vk::DescriptorType::eUniformBuffer, 1000},
-        {vk::DescriptorType::eStorageBuffer, 1000},
-        {vk::DescriptorType::eUniformBufferDynamic, 1000},
-        {vk::DescriptorType::eStorageBufferDynamic, 1000},
-        {vk::DescriptorType::eInputAttachment, 1000},
-    };
-
-    m_Pool = PBZ_VK_CHECK(App::Device.createDescriptorPool({
-        .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        .maxSets = 1000,
-        .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
-        .pPoolSizes = pool_sizes.data(),
-    }));
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
     std::shared_ptr<Window> window = m_Scene->getSystem<Renderer>()->getInfo().window;
-    m_Resolution = window->getResolution();
-
     if (!ImGui_ImplGlfw_InitForVulkan(*window, true)) {
         return false;
+    }
+
+    if (!m_Pool) {
+        std::vector<vk::DescriptorPoolSize> pool_sizes = {
+            {vk::DescriptorType::eSampler, 1000},
+            {vk::DescriptorType::eCombinedImageSampler, 1000},
+            {vk::DescriptorType::eSampledImage, 1000},
+            {vk::DescriptorType::eStorageImage, 1000},
+            {vk::DescriptorType::eUniformTexelBuffer, 1000},
+            {vk::DescriptorType::eStorageTexelBuffer, 1000},
+            {vk::DescriptorType::eUniformBuffer, 1000},
+            {vk::DescriptorType::eStorageBuffer, 1000},
+            {vk::DescriptorType::eUniformBufferDynamic, 1000},
+            {vk::DescriptorType::eStorageBufferDynamic, 1000},
+            {vk::DescriptorType::eInputAttachment, 1000},
+        };
+
+        m_Pool = PBZ_VK_CHECK(App::Device.createDescriptorPool({
+            .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+            .maxSets = 1000,
+            .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
+            .pPoolSizes = pool_sizes.data(),
+        }));
     }
 
     ImGui_ImplVulkan_InitInfo initInfo = {
@@ -80,20 +81,14 @@ bool ImGuiRenderer::build() {
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 
-    m_Events = {
-        .resize = window->addCallback<WindowSwapchainResizeEvent>([&](const auto &event) {
-            resize(event.resolution);
-        }),
-    };
-
     return ret;
 }
 
 bool ImGuiRenderer::destroy() {
-    m_Scene->getSystem<Renderer>()->getInfo().window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
-
-    App::Device.destroyDescriptorPool(m_Pool);
-    m_Pool = nullptr;
+    if (m_Pool) {
+        App::Device.destroyDescriptorPool(m_Pool);
+        m_Pool = nullptr;
+    }
 
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -108,37 +103,9 @@ void ImGuiRenderer::newFrame() {
 }
 
 void ImGuiRenderer::render(const RenderContext &context) {
-    {
-        std::array barriers = {
-            vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
-                .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-                .oldLayout = vk::ImageLayout::eUndefined,
-                .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-                .image = context.image,
-                .subresourceRange = {
-                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .baseMipLevel = 0,
-                    .levelCount = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1,
-                },
-            },
-        };
-
-        context.command.pipelineBarrier2({
-            .dependencyFlags = {},
-            .imageMemoryBarrierCount = barriers.size(),
-            .pImageMemoryBarriers = barriers.data(),
-        });
-    }
-
     std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
         {
-            .imageView = context.imageView,
+            .imageView = context.color.view,
             .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
             .loadOp = vk::AttachmentLoadOp::eLoad,
             .storeOp = vk::AttachmentStoreOp::eStore,
@@ -148,7 +115,7 @@ void ImGuiRenderer::render(const RenderContext &context) {
     context.command.beginRendering({
         .renderArea = {
             .offset = {0, 0},
-            .extent = {static_cast<std::uint32_t>(m_Resolution.x), static_cast<std::uint32_t>(m_Resolution.y)},
+            .extent = context.extent,
         },
         .layerCount = 1,
         .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
@@ -160,39 +127,6 @@ void ImGuiRenderer::render(const RenderContext &context) {
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), context.command);
 
     context.command.endRendering();
-
-    // transition image
-    {
-        vk::ImageMemoryBarrier2 barrier = {
-            .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-            .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-            .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
-            .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .newLayout = vk::ImageLayout::ePresentSrcKHR,
-            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-            .image = context.image,
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        };
-
-        vk::DependencyInfo dependencyInfo = {
-            .dependencyFlags = {},
-            .imageMemoryBarrierCount = 1,
-            .pImageMemoryBarriers = &barrier,
-        };
-
-        context.command.pipelineBarrier2(dependencyInfo);
-    }
-}
-
-void ImGuiRenderer::resize(const glm::uvec2 &resolution) {
-    m_Resolution = resolution;
 }
 
 } // namespace Physbuzz

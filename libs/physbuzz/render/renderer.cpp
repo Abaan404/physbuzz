@@ -2,6 +2,7 @@
 
 #include "../app/application.hpp"
 #include "../ecs/scene.hpp"
+#include "../events/window.hpp"
 #include "camera.hpp"
 #include "layout.hpp"
 #include "layouts/storage.hpp"
@@ -155,6 +156,34 @@ bool Renderer::build() {
         m_Semaphores.renderFinished.emplace_back(PBZ_VK_CHECK(App::Device.createSemaphore({})));
     }
 
+    // setup depth buffer
+    glm::uvec2 resolution = m_Info.window->getResolution();
+    if (!m_Depth.image.build({resolution.x, resolution.y, 1})) {
+        Logger::ERROR("[Renderer] Could not build a renderer depth buffer.");
+        return false;
+    }
+
+    m_Depth.view = PBZ_VK_CHECK(App::Device.createImageView({
+        .flags = {},
+        .image = m_Depth.image.getData().image,
+        .viewType = vk::ImageViewType::e2D,
+        .format = m_Depth.image.getInfo().format,
+        .components = {},
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eDepth,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+    }));
+
+    m_Events = {
+        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const auto &event) {
+            resize(event.resolution);
+        }),
+    };
+
     return true;
 }
 
@@ -163,6 +192,14 @@ bool Renderer::destroy() {
         Logger::WARNING("[Renderer] Trying to destroy a destructed renderer.");
         return true;
     }
+
+    // destroy depth buffer
+    if (!m_Depth.image.destroy()) {
+        Logger::ERROR("[Renderer] Failed to destroy depth buffer.");
+        return false;
+    }
+
+    App::Device.destroyImageView(m_Depth.view);
 
     // destroy sync objects
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
@@ -220,20 +257,141 @@ void Renderer::tick() {
     PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.inFlight[m_FrameInFlight]));
     m_Command.buffers[m_FrameInFlight].reset();
 
-    vk::CommandBufferBeginInfo commandBufferBeginInfo = {};
-    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].begin(commandBufferBeginInfo));
+    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].begin(vk::CommandBufferBeginInfo{}));
 
-    glm::uvec2 extent = m_Info.window->m_SwapChainExtent;
-    m_Command.buffers[m_FrameInFlight].setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(extent.x), static_cast<float>(extent.y), 0.0f, 1.0f});
-    m_Command.buffers[m_FrameInFlight].setScissor(0, vk::Rect2D{{0, 0}, {static_cast<std::uint32_t>(extent.x), static_cast<std::uint32_t>(extent.y)}});
+    vk::Extent2D extent = {static_cast<std::uint32_t>(m_Info.window->m_SwapChainExtent.x), static_cast<std::uint32_t>(m_Info.window->m_SwapChainExtent.y)};
+
+    m_Command.buffers[m_FrameInFlight].setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f});
+    m_Command.buffers[m_FrameInFlight].setScissor(0, vk::Rect2D{{0, 0}, extent});
+
+    {
+        std::array barriers = {
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
+                .srcAccessMask = {},
+                .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+                .oldLayout = vk::ImageLayout::eUndefined,
+                .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                .image = m_Info.window->m_SwapChainImages[imageIndex],
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            },
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
+                .srcAccessMask = {},
+                .dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests,
+                .dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+                .oldLayout = vk::ImageLayout::eUndefined,
+                .newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                .image = m_Depth.image.getData().image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eDepth,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            },
+        };
+
+        m_Command.buffers[m_FrameInFlight].pipelineBarrier2({
+            .imageMemoryBarrierCount = barriers.size(),
+            .pImageMemoryBarriers = barriers.data(),
+        });
+    }
 
     for (const auto &renderpasses : m_RenderPasses) {
         renderpasses->render({
             .command = m_Command.buffers[m_FrameInFlight],
-            .image = m_Info.window->m_SwapChainImages[imageIndex],
-            .imageView = m_Info.window->m_SwapChainImageViews[imageIndex],
+            .extent = extent,
             .frameInFlight = m_FrameInFlight,
+            .color = {
+                .image = m_Info.window->m_SwapChainImages[imageIndex],
+                .view = m_Info.window->m_SwapChainImageViews[imageIndex],
+            },
+            .depth = {
+                .image = m_Depth.image.getData().image,
+                .view = m_Depth.view,
+            },
         });
+
+        {
+            std::array barriers = {
+                vk::ImageMemoryBarrier2{
+                    .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                    .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+                    .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                    .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+                    .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                    .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                    .image = m_Info.window->m_SwapChainImages[imageIndex],
+                    .subresourceRange = {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .baseMipLevel = 0,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = 1,
+                    },
+                },
+                vk::ImageMemoryBarrier2{
+                    .srcStageMask = vk::PipelineStageFlagBits2::eLateFragmentTests,
+                    .srcAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+                    .dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests,
+                    .dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+                    .oldLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                    .newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                    .image = m_Depth.image.getData().image,
+                    .subresourceRange = {
+                        .aspectMask = vk::ImageAspectFlagBits::eDepth,
+                        .baseMipLevel = 0,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = 1,
+                    },
+                },
+            };
+
+            m_Command.buffers[m_FrameInFlight].pipelineBarrier2({
+                .imageMemoryBarrierCount = barriers.size(),
+                .pImageMemoryBarriers = barriers.data(),
+            });
+        }
+    }
+
+    // transition image
+    {
+        vk::ImageMemoryBarrier2 barrier = {
+            .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+            .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
+            .dstAccessMask = {},
+            .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .newLayout = vk::ImageLayout::ePresentSrcKHR,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .image = m_Info.window->m_SwapChainImages[imageIndex],
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+        };
+
+        vk::DependencyInfo dependencyInfo = {
+            .dependencyFlags = {},
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers = &barrier,
+        };
+
+        m_Command.buffers[m_FrameInFlight].pipelineBarrier2(dependencyInfo);
     }
 
     PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].end());
@@ -310,6 +468,35 @@ void Renderer::setRenderPasses(const std::vector<std::shared_ptr<IRenderPass>> &
 
 const Renderer::Info &Renderer::getInfo() const {
     return m_Info;
+}
+
+void Renderer::resize(const glm::ivec2 &resolution) {
+    PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
+
+    if (!m_Depth.image.destroy()) {
+        Logger::WARNING("[ForwardRenderer] Could not destroy old depth image");
+    }
+
+    App::Device.destroyImageView(m_Depth.view);
+
+    if (!m_Depth.image.build({resolution, 1})) {
+        Logger::ERROR("[ForwardRenderer] Could not rebuild depth image.");
+    }
+
+    m_Depth.view = PBZ_VK_CHECK(App::Device.createImageView({
+        .flags = {},
+        .image = m_Depth.image.getData().image,
+        .viewType = vk::ImageViewType::e2D,
+        .format = m_Depth.image.getInfo().format,
+        .components = {},
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eDepth,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+    }));
 }
 
 } // namespace Physbuzz

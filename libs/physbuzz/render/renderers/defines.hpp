@@ -21,9 +21,19 @@ struct RenderComponent {
 
 struct RenderContext {
     vk::CommandBuffer command;
-    vk::Image image;
-    vk::ImageView imageView;
+    vk::Extent2D extent;
     std::uint32_t frameInFlight;
+
+    struct {
+        vk::Image image;
+        vk::ImageView view;
+    } color;
+
+    struct {
+        vk::Image image;
+        vk::ImageView view;
+    } depth;
+
 };
 
 class IRenderPass {

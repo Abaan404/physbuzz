@@ -101,10 +101,9 @@ void Game::build() {
         .window = window,
     });
 
-    Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>();
-
     Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>()->setRenderPasses({
         Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(),
+        Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(),
     });
 
     Physbuzz::App::GScene.createSystem<Physbuzz::Bindings>(window);
