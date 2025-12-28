@@ -9,6 +9,7 @@ class Texture;
 class UniformBuffer;
 class StorageBuffer;
 class RenderPipeline;
+class Renderer;
 
 class PipelineLayout {
   public:
@@ -76,13 +77,13 @@ class PipelineLayoutAllocator : public System<> {
     bool allocate(const Resource<PipelineLayout> &layouts);
     bool deallocate(const Resource<PipelineLayout> &layouts);
 
-    bool attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<StorageBuffer> &storage);
-    bool attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<UniformBuffer> &uniform);
-    bool attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<Texture> &texture);
+    bool attach(const Resource<PipelineLayout> &layout, const Resource<StorageBuffer> &storage, std::uint32_t binding);
+    bool attach(const Resource<PipelineLayout> &layout, const Resource<UniformBuffer> &uniform, std::uint32_t binding);
+    bool attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding);
 
     void reset();
 
-    void bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, std::uint32_t frameInFlight);
+    void bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, const std::shared_ptr<Renderer> renderer);
 
   private:
     vk::DescriptorPool createPool();

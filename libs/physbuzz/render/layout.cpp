@@ -155,7 +155,7 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
     return true;
 }
 
-bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<StorageBuffer> &storage) {
+bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, const Resource<StorageBuffer> &storage, std::uint32_t binding) {
     if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eStorageBuffer) {
         Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
         return false;
@@ -192,7 +192,7 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std
     return true;
 }
 
-bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<UniformBuffer> &uniform) {
+bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, const Resource<UniformBuffer> &uniform, std::uint32_t binding) {
     if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eUniformBuffer) {
         Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
         return false;
@@ -229,7 +229,7 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std
     return true;
 }
 
-bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, std::uint32_t binding, const Resource<Texture> &texture) {
+bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding) {
     if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eCombinedImageSampler) {
         Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
         return false;
@@ -280,7 +280,7 @@ void PipelineLayoutAllocator::reset() {
     m_AllocatedLayouts.clear();
 }
 
-void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, std::uint32_t frameInFlight) {
+void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, const std::shared_ptr<Renderer> renderer) {
     for (std::size_t i = 0; i < pipeline->getInfo().layouts.size(); i++) {
         const Resource<PipelineLayout> &layout = pipeline->getInfo().layouts[i];
 
@@ -292,7 +292,7 @@ void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const
             }
         }
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[frameInFlight], nullptr);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[renderer->m_FrameInFlight], nullptr);
     }
 }
 

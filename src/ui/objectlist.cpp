@@ -154,12 +154,7 @@ void ObjectList::draw() {
 
                 const auto [pointLight] = m_Scene->getComponent<Physbuzz::PointLightComponent>(object);
                 ImGui::DragFloat3("position", glm::value_ptr(pointLight.position), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("ambient", glm::value_ptr(pointLight.ambient), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("diffuse", glm::value_ptr(pointLight.diffuse), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("specular", glm::value_ptr(pointLight.specular), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat("constant", &pointLight.constant, 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat("linear", &pointLight.linear, 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat("quadratic", &pointLight.quadratic, 1.0f, MIN_VALUE, MAX_VALUE);
+                ImGui::DragFloat3("intensity", glm::value_ptr(pointLight.intensity), 0.01f, MIN_VALUE, MAX_VALUE);
             }
 
             if (m_Scene->containsComponent<Physbuzz::SpotLightComponent>(object)) {
@@ -169,12 +164,7 @@ void ObjectList::draw() {
 
                 ImGui::DragFloat3("position", glm::value_ptr(spotLight.position), 1.0f, MIN_VALUE, MAX_VALUE);
                 ImGui::DragFloat3("direction", glm::value_ptr(spotLight.direction), 0.01f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("ambient", glm::value_ptr(spotLight.ambient), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("diffuse", glm::value_ptr(spotLight.diffuse), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("specular", glm::value_ptr(spotLight.specular), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat("constant", &spotLight.constant, 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat("linear", &spotLight.linear, 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat("quadratic", &spotLight.quadratic, 1.0f, MIN_VALUE, MAX_VALUE);
+                ImGui::DragFloat3("intensity", glm::value_ptr(spotLight.intensity), 0.01f, MIN_VALUE, MAX_VALUE);
                 ImGui::DragFloat("cutOff", &spotLight.cutOff, 1.0f, MIN_VALUE, MAX_VALUE);
                 ImGui::DragFloat("outerCutOff", &spotLight.outerCutOff, 1.0f, MIN_VALUE, MAX_VALUE);
             }
@@ -185,9 +175,7 @@ void ObjectList::draw() {
                 const auto [directionalLight] = m_Scene->getComponent<Physbuzz::DirectionalLightComponent>(object);
 
                 ImGui::DragFloat3("direction", glm::value_ptr(directionalLight.direction), 0.01f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("ambient", glm::value_ptr(directionalLight.ambient), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("diffuse", glm::value_ptr(directionalLight.diffuse), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("specular", glm::value_ptr(directionalLight.specular), 1.0f, MIN_VALUE, MAX_VALUE);
+                ImGui::DragFloat3("intensity", glm::value_ptr(directionalLight.intensity), 0.01f, MIN_VALUE, MAX_VALUE);
 
                 rebuild = true;
             }

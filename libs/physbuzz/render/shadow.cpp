@@ -78,7 +78,7 @@ Shadow::Shadow(const Info &info, const glm::ivec2 &resolution)
 bool Shadow::build() {
     bool success = true;
 
-    success &= Builtin::ShaderRendererPassthrough::build();
+    // success &= Builtin::ShaderRendererPassthrough::build();
     success &= Builtin::ShaderShadowDepth2D::build();
     success &= Builtin::ShaderShaderDepthCubemap::build();
 

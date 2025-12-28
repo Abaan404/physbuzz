@@ -65,7 +65,7 @@ class Model {
     bool build(std::shared_ptr<Transfer> transfer);
     bool destroy();
 
-    void draw(const vk::CommandBuffer &commandBuffer);
+    void draw(const vk::CommandBuffer &commandBuffer, std::uint32_t instances);
 
     const std::vector<std::tuple<Mesh, Meta>> &getMeshs() const;
     const std::vector<Resource<Texture>> &getTextures() const;

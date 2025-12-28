@@ -39,10 +39,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         .model = modelName,
     };
 
-    Physbuzz::ForwardRenderComponent forward = {
-        .pipeline = info.resources.pipeline,
-    };
-
     Physbuzz::DeferredRenderComponent::ForwardPass deferredForward = {
         .pipeline = info.resources.pipeline,
     };
@@ -70,7 +66,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         },
     };
 
-    scene.setComponent(object, info.line, info.identifier, info.resources, render, forward, deferredForward, rebuilder);
+    scene.setComponent(object, info.line, info.identifier, info.resources, render, deferredForward, rebuilder);
 
     return object;
 }

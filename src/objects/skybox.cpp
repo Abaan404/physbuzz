@@ -85,12 +85,8 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         .pipeline = info.resources.pipeline,
     };
 
-    Physbuzz::ForwardRenderComponent forward = {
-        .pipeline = info.resources.pipeline,
-    };
-
     // setup rendering
-    scene.setComponent(object, info.resources, info.skybox, render, forward, deferredForward);
+    scene.setComponent(object, info.resources, info.skybox, render, deferredForward);
 
     return object;
 }

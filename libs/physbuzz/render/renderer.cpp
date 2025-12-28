@@ -1,118 +1,9 @@
 #include "renderer.hpp"
 
 #include "../app/application.hpp"
-#include "../ecs/scene.hpp"
 #include "../events/window.hpp"
-#include "camera.hpp"
-#include "layout.hpp"
-#include "layouts/storage.hpp"
-#include "layouts/uniform.hpp"
-#include "model.hpp"
 
 namespace Physbuzz {
-
-namespace Builtin {
-
-bool MeshRendererScreenQuad::build() {
-    if (ResourceRegistry<Model>::contains(Resource.getIdentifier())) {
-        return true;
-    }
-
-    // return ResourceRegistry<Model>::insert(
-    //     Resource.getIdentifier(),
-    //     {{
-    //         // .meshes = {
-    //         //     {
-    //         //         {
-    //         //             Mesh::Info<Renderer::VertexScreenQuad>{
-    //         //                 .vertices = {
-    //         //                     {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
-    //         //                     {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
-    //         //                     {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-    //         //                     {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-    //         //                 },
-    //         //                 .indices = {0, 1, 2, 2, 3, 0},
-    //         //             },
-    //         //             {},
-    //         //         },
-    //         //     },
-    //         // },
-    //     }});
-
-    return true;
-}
-
-bool ShaderRendererPassthrough::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
-        return true;
-    }
-
-    if (!Builtin::MeshRendererScreenQuad::build()) {
-        return false;
-    }
-
-    // return ResourceRegistry<ShaderPipeline>::insert(
-    //     Resource.getIdentifier(),
-    //     {{
-    //         // .draw = [](const ShaderPipeline *, Scene &, ObjectID) {
-    //         //     for (const auto &[mesh, _] : Builtin::MeshRendererScreenQuad::Resource->getMeshs()) {
-    //         //         mesh.draw();
-    //         //     }
-    //         // },
-    //     }});
-
-    return true;
-}
-
-bool LayoutRenderer::build(const std::shared_ptr<PipelineLayoutAllocator> allocator) {
-    if (ResourceRegistry<PipelineLayout>::contains(Resource)) {
-        return true;
-    }
-
-    if (!ResourceRegistry<UniformBuffer>::contains(CameraBuffer)) {
-        ResourceRegistry<UniformBuffer>::insert(
-            CameraBuffer,
-            UniformBuffer::Info<Camera>{
-                .count = 1,
-            });
-    }
-
-    if (!ResourceRegistry<StorageBuffer>::contains(ModelBuffer)) {
-        ResourceRegistry<StorageBuffer>::insert(
-            ModelBuffer,
-            StorageBuffer::Info<Model>{
-                .count = 500,
-            });
-    }
-
-    bool success = ResourceRegistry<PipelineLayout>::insert(
-        Resource,
-        {{
-            .bindings = {
-                {
-                    // view, proj
-                    .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
-                    .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
-                },
-                {
-                    // model
-                    .type = Physbuzz::PipelineLayout::Type::eStorageBuffer,
-                    .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
-                },
-            },
-        }});
-
-    if (!success) {
-        return false;
-    }
-
-    success &= allocator->attach(Builtin::LayoutRenderer::Resource, 0, CameraBuffer);
-    success &= allocator->attach(Builtin::LayoutRenderer::Resource, 1, ModelBuffer);
-
-    return success;
-}
-
-} // namespace Builtin
 
 Renderer::Renderer(const Info &info)
     : m_Info(info) {}
@@ -121,15 +12,6 @@ bool Renderer::build() {
     if (m_Command.pool != nullptr) {
         Logger::WARNING("[Renderer] Cannot build a constructed renderer.");
         return true;
-    }
-
-    if (!Builtin::LayoutRenderer::build(m_Scene->getSystem<PipelineLayoutAllocator>())) {
-        Logger::ERROR("[Renderer] Could not create the builtin pipeline layout.");
-        return false;
-    }
-
-    if (!Builtin::ShaderRendererPassthrough::build()) {
-        return false;
     }
 
     // create command objects
@@ -243,16 +125,6 @@ void Renderer::tick() {
     default:
         PBZ_VK_CHECK_RESULT(acquireNextImageResult, "[Renderer] Failed to acquire swap chain image.");
     }
-
-    // TODO move to camera component
-    const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
-    Builtin::LayoutRenderer::CameraBuffer->update<Builtin::LayoutRenderer::Camera>(
-        m_FrameInFlight, m_Scene->getSystem<Transfer>(),
-        {{
-            .position = camera.getInfo().view.position,
-            .view = camera.getView(),
-            .projection = camera.getProjection(),
-        }});
 
     PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.inFlight[m_FrameInFlight]));
     m_Command.buffers[m_FrameInFlight].reset();

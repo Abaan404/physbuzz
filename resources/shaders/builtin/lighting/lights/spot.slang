@@ -2,7 +2,7 @@ implementing "../lights";
 
 namespace Physbuzz {
 
-struct SpotLight : ILight {
+public struct SpotLight : ILight {
     float3 position;
     float3 direction;
     float3 intensity;
@@ -10,7 +10,7 @@ struct SpotLight : ILight {
     float cutOff;
     float outerCutOff;
 
-    float3 illuminate<B : IBRDF>(Geometry geometry, B brdf, float3 viewDirection) {
+    public float3 illuminate<B : IBRDF>(Geometry geometry, B brdf, float3 viewDirection) {
         float3 L = this.position - geometry.position;
         float distance = length(L);
         float3 incident = normalize(L);

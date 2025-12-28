@@ -1,5 +1,8 @@
 #include "game.hpp"
 
+#include "objects/cube.hpp"
+#include "objects/lightcube.hpp"
+#include "objects/lightdirectional.hpp"
 #include "objects/player.hpp"
 #include "physbuzz/misc/clock.hpp"
 #include "physbuzz/physics/dynamics.hpp"
@@ -14,6 +17,7 @@
 #include <physbuzz/render/renderers/forward.hpp>
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/window/bindings.hpp>
+#include <random>
 
 struct TestVertex {
     glm::vec3 position;
@@ -56,13 +60,12 @@ void Game::build() {
         static glm::vec2 lastPosition = event.window->getResolution() >> 1u;
 
         std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>();
-        const auto [player, camera, flashlight] = Physbuzz::App::GScene.getComponent<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>(renderer->getInfo().camera);
+        const auto [_, player, camera, flashlight] = Physbuzz::App::GScene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>().front();
 
         glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * player.sensitivity;
         lastPosition = event.position;
 
-        // if (player.captureMouse || Physbuzz::App::GScene.getSystem<InterfaceManager>()->draw) {
-        if (player.captureMouse) {
+        if (player.captureMouse || Physbuzz::App::GScene.getSystem<InterfaceManager>()->draw) {
             return;
         }
 
@@ -79,7 +82,7 @@ void Game::build() {
     // change prespective camera fov when scrolling
     window->addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
         std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>();
-        const auto [player, camera] = Physbuzz::App::GScene.getComponent<PlayerComponent, Physbuzz::CameraComponent>(renderer->getInfo().camera);
+        const auto [_, player, camera] = Physbuzz::App::GScene.getComponents<PlayerComponent, Physbuzz::CameraComponent>().front();
 
         Physbuzz::CameraComponent::Info info = camera.getInfo();
 
@@ -92,17 +95,41 @@ void Game::build() {
         camera.update(info);
     });
 
-    Physbuzz::ObjectID playerObject = Physbuzz::App::GScene.createObject();
+    Physbuzz::ObjectID playerId;
+
+    {
+        Player player = {
+            .camera = {{
+                .resolution = window->getResolution(),
+                .projection = Physbuzz::CameraComponent::Projection::Perspective,
+                .orthographic = {},
+                .perspective = {
+                    .fovy = glm::radians(45.0f),
+                },
+                .depth = {
+                    .near = 1.0f,
+                    .far = 10000.0f,
+                },
+                .view = {
+                    .position = {0.0f, 0.0f, 2.0f},
+                },
+            }},
+            .player = {},
+        };
+
+        playerId = ObjectBuilder::create(Physbuzz::App::GScene, player);
+    }
 
     Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
     Physbuzz::App::GScene.createSystem<Physbuzz::PipelineLayoutAllocator>(Physbuzz::PipelineLayoutAllocator::Info{});
     Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
-        .camera = playerObject,
         .window = window,
     });
 
     Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>()->setRenderPasses({
-        Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(),
+        Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(Physbuzz::ForwardRenderer::Info{
+            .camera = playerId,
+        }),
         Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(),
     });
 
@@ -111,96 +138,72 @@ void Game::build() {
     Physbuzz::App::GScene.createSystem<Physbuzz::Dynamics>(1.0f);
     Physbuzz::App::GScene.createSystem<InterfaceManager>();
 
-    Physbuzz::ResourceRegistry<Physbuzz::PipelineLayout>::insert(
-        "test_layout",
-        Physbuzz::PipelineLayout::Info{
-            .bindings = {
-                {
-                    .type = Physbuzz::PipelineLayout::Type::eCombinedImageSampler,
-                    .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+    std::random_device rd;
+    std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-250, 250);
+
+    // cubes
+    {
+        for (int i = 0; i < 5; ++i) {
+            Cube cube = {
+                .cube = {
+                    .width = 50.0f,
+                    .height = 50.0f,
+                    .length = 50.0f,
                 },
-            },
-        });
+                .transform = {
+                    .position = {distribution(rd), distribution(rd) + 250, distribution(rd) + 250},
+                    .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
+                },
+                .resources = {
+                    .textures = {
+                        {"crate/diffuse"},
+                        {"crate/specular"},
+                    },
+                },
+                .hasPhysics = false,
+            };
 
-    Physbuzz::ResourceRegistry<Physbuzz::RenderPipeline>::insert(
-        "test_shader",
-        {{
-            .layouts = {
-                Physbuzz::Builtin::LayoutRenderer::Resource,
-                {"test_layout"},
-            },
-            .description = &TestVertex::Description,
-            .module = "test/triangle",
-        }});
+            ObjectBuilder::create(Physbuzz::App::GScene, cube);
+        }
+    }
 
-    Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
-        "test_model",
-        {{
-            .meshes = {
-                {
-                    Physbuzz::Mesh::Info<TestVertex>{
-                        .vertices = {
-                            {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-                            {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-                            {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-                            {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-                            {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-                            {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-                            {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-                            {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+    {
+        for (int i = 0; i < 1; ++i) {
+            LightCube lightCube = {
+                .cube = {
+                    .cube = {
+                        .width = 10.0f,
+                        .height = 10.0f,
+                        .length = 10.0f,
+                    },
+                    .transform = {
+                        .position = {distribution(rd), distribution(rd) + 250, distribution(rd)},
+                        .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
+                    },
+                    .identifier = {},
+                    .resources = {
+                        .textures = {
+                            {"default/diffuse"},
+                            {"default/specular"},
                         },
-                        .indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4}},
-                    {},
+                    },
                 },
-            },
-        }},
-        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+                .pointLight = {.intensity = {1.0f, 1.0f, 0.0f}},
+            };
 
-    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
-        "test_texture",
-        Physbuzz::Texture::Tex2D,
-        Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/floor.png"}},
-        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+            ObjectBuilder::create(Physbuzz::App::GScene, lightCube);
+        }
+    }
 
-    Physbuzz::App::GScene.getSystem<Physbuzz::PipelineLayoutAllocator>()->attach({"test_layout"}, 0, Physbuzz::Resource<Physbuzz::Texture>{"test_texture"});
+    {
+        LightDirectional directional = {
+            .directionalLight = {
+                .direction = {1.0f, -1.0f, -1.0f},
+                .intensity = {0.0f, 0.0f, 1.0f}},
+        };
 
-    Physbuzz::RenderComponent render = {
-        .transform = {},
-        .model = {"test_model"},
-    };
-
-    render.transform.update();
-
-    Physbuzz::ForwardRenderComponent forward = {
-        .pipeline = {"test_shader"},
-    };
-
-    Physbuzz::ObjectID testObject = Physbuzz::App::GScene.createObject();
-    Physbuzz::App::GScene.setComponent(testObject, render, forward);
-
-    Player player = {
-        .camera = {{
-            .projection = Physbuzz::CameraComponent::Projection::Perspective,
-            .orthographic = {},
-            .perspective = {
-                .fovy = glm::radians(45.0f),
-            },
-            .depth = {
-                .near = 1.0f,
-                .far = 10000.0f,
-            },
-            .view = {
-                .position = {0.0f, 0.0f, 2.0f},
-            },
-            .resolution = window->getResolution(),
-        }},
-        .player = {
-            .speed = 0.01f,
-        },
-    };
-
-    ObjectBuilder::create(Physbuzz::App::GScene, playerObject, player);
+        ObjectBuilder::create(Physbuzz::App::GScene, directional);
+    }
 }
 
 void Game::rebuild() {

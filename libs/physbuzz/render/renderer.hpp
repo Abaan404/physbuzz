@@ -8,59 +8,11 @@
 
 namespace Physbuzz {
 
-class PipelineLayoutAllocator;
-
-class UniformBuffer;
-class StorageBuffer;
-
-namespace Builtin {
-
-namespace MeshRendererScreenQuad {
-
-inline Resource<Model> Resource = {"builtin/renderer/screenquad"};
-
-bool build();
-
-} // namespace MeshRendererScreenQuad
-
-namespace ShaderRendererPassthrough {
-
-inline Resource<RenderPipeline> Resource = {"builtin/renderer/passthrough"};
-
-bool build();
-
-} // namespace ShaderRendererPassthrough
-
-namespace LayoutRenderer {
-
-struct Camera {
-    alignas(16) glm::vec3 position;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 projection;
-};
-
-struct Model {
-    alignas(16) glm::mat4 model;
-};
-
-inline Resource<UniformBuffer> CameraBuffer = {"builtin/renderer/camera"};
-inline Resource<StorageBuffer> ModelBuffer = {"builtin/renderer/model"};
-
-inline Resource<PipelineLayout> Resource = {"builtin/renderer"};
-
-bool build(const std::shared_ptr<PipelineLayoutAllocator> allocator);
-
-} // namespace LayoutRenderer
-
-} // namespace Builtin
-
 class Window;
 
 class Renderer : public System<> {
   public:
     struct Info {
-        ObjectID camera = -1;
-
         Shadow::Info shadow = {};
 
         std::shared_ptr<Window> window;
@@ -75,12 +27,12 @@ class Renderer : public System<> {
     void tick();
     void immediate(std::function<void(const vk::CommandBuffer &)> record);
 
-    void resize(const glm::ivec2 &resolution);
-
     void setRenderPasses(const std::vector<std::shared_ptr<IRenderPass>> &renderpasses);
     const Info &getInfo() const;
 
   private:
+    void resize(const glm::ivec2 &resolution);
+
     Info m_Info;
 
     std::vector<std::shared_ptr<IRenderPass>> m_RenderPasses;
@@ -114,6 +66,10 @@ class Renderer : public System<> {
     struct {
         EventID resize = -1;
     } m_Events = {};
+
+    friend class StorageBuffer;
+    friend class UniformBuffer;
+    friend class PipelineLayoutAllocator;
 };
 
 } // namespace Physbuzz

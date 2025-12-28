@@ -101,6 +101,11 @@ class ComponentManager {
         return result;
     }
 
+    template <ComponentArrayType T>
+    const std::vector<T> &getComponentArray() {
+        return getComponents<T>()->getArray();
+    }
+
     void objectDestroyed(ObjectID id);
     void clear();
 

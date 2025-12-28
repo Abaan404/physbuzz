@@ -2,11 +2,11 @@ implementing "../lights";
 
 namespace Physbuzz {
 
-struct PointLight : ILight {
+public struct PointLight : ILight {
     float3 position;
     float3 intensity;
 
-    float3 illuminate<B : IBRDF>(Geometry geometry, B brdf, float3 viewDirection) {
+    public float3 illuminate<B : IBRDF>(Geometry geometry, B brdf, float3 viewDirection) {
         float3 L = this.position - geometry.position;
         float distance = length(L);
         float3 incident = normalize(L);

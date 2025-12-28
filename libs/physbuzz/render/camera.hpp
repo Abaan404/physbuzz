@@ -36,13 +36,13 @@ class CameraComponent {
     };
 
     struct Info {
+        glm::ivec2 resolution = {1, 1};
         Projection projection = Projection::Unknown;
+
         Orthographic orthographic;
         Perspective perspective;
         Depth depth;
         View view;
-
-        glm::ivec2 resolution = {1, 1};
     };
 
     CameraComponent(const Info &info);
@@ -72,10 +72,10 @@ class CameraComponent {
     void updateProjection();
     void updateView();
 
+    Info m_Info;
+
     glm::mat4 m_Projection = {1.0f};
     glm::mat4 m_View = {1.0f};
-
-    Info m_Info;
 };
 
 } // namespace Physbuzz

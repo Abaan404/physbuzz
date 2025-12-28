@@ -97,9 +97,9 @@ class RenderPipeline {
             Format depth = Format::eD32Sfloat;
         } formats = {};
 
-        std::vector<Resource<PipelineLayout>> layouts = {};
-        VertexDescription *description;
         std::string module;
+        VertexDescription *description;
+        std::vector<Resource<PipelineLayout>> layouts = {};
 
         std::vector<DynamicState> dynamicStates = {};
     };

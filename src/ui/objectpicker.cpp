@@ -50,6 +50,7 @@ ObjectPicker::ObjectPicker(Physbuzz::Scene *scene)
     ObjectBuilder::create(m_PickerScene, quad);
 
     Physbuzz::CameraComponent camera = {{
+        .resolution = {m_PreviewSize.x, m_PreviewSize.y},
         .projection = Physbuzz::CameraComponent::Projection::Orthographic,
         .orthographic = {
             .left = 0.0f,
@@ -65,7 +66,6 @@ ObjectPicker::ObjectPicker(Physbuzz::Scene *scene)
         .view = {
             .position = {0.0f, 0.0f, -100.0f},
         },
-        .resolution = {m_PreviewSize.x, m_PreviewSize.y},
     }};
 
     Physbuzz::ObjectID object = m_PickerScene.createObject();

@@ -39,7 +39,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         .model = modelName,
     };
 
-    Physbuzz::ForwardRenderComponent forward = {};
     Physbuzz::DeferredRenderComponent deferred = {};
 
     // create a rebuild callback
@@ -70,7 +69,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         },
     };
 
-    scene.setComponent(object, info.quad, info.identifier, info.resources, render, forward, deferred, rebuilder);
+    scene.setComponent(object, info.quad, info.identifier, info.resources, render, deferred, rebuilder);
 
     // generate bounding box
     // if (info.hasPhysics) {

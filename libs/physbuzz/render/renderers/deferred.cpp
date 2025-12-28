@@ -59,10 +59,6 @@ bool ShaderDeferredLighting::build() {
         return true;
     }
 
-    if (!Builtin::MeshRendererScreenQuad::build()) {
-        return false;
-    }
-
     // return ResourceRegistry<ShaderPipeline>::insert(
     //     Resource.getIdentifier(),
     //     {{

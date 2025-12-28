@@ -63,10 +63,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         .pipeline = info.resources.pipeline,
     };
 
-    Physbuzz::ForwardRenderComponent forward = {
-        .pipeline = info.resources.pipeline,
-    };
-
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
@@ -95,7 +91,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         },
     };
 
-    scene.setComponent(object, info.circle, info.identifier, info.resources, render, forward, deferredForward, rebuilder);
+    scene.setComponent(object, info.circle, info.identifier, info.resources, render, deferredForward, rebuilder);
 
     // // generate physics info
     // if (info.hasPhysics) {

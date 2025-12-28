@@ -1,8 +1,11 @@
 #include "forward.hpp"
 
 #include "../../ecs/scene.hpp"
+#include "../../events/window.hpp"
+#include "../camera.hpp"
 #include "../layout.hpp"
 #include "../layouts/storage.hpp"
+#include "../layouts/uniform.hpp"
 #include "../model.hpp"
 #include "../renderer.hpp"
 #include <vulkan/vulkan_enums.hpp>
@@ -12,126 +15,145 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool ShaderForward::build() {
+bool RenderPipelineForward::build() {
     if (ResourceRegistry<RenderPipeline>::contains(Resource.getIdentifier())) {
         return true;
     }
 
-    // return ResourceRegistry<ShaderPipeline>::insert(
-    //     Resource.getIdentifier(),
-    //     {{
-    //         .vertex = {.file = {.path = "resources/shaders/builtin/forward/forward.vert"}},
-    //         .tessControl = {},
-    //         .tessEvaluation = {},
-    //         .geometry = {},
-    //         .fragment = {.file = {.path = "resources/shaders/builtin/forward/forward.frag"}},
-    //         .compute = {},
-    //         .draw = [](const ShaderPipeline *pipeline, Scene &scene, ObjectID object) {
-    //             const auto [render] = scene.getComponent<RenderComponent>(object);
-    //
-    //             const auto &points = scene.getComponents<PointLightComponent>();
-    //             const auto &directionals = scene.getComponents<DirectionalLightComponent>();
-    //             const auto &spots = scene.getComponents<SpotLightComponent>();
-    //
-    //             const auto &shadows = scene.getSystem<Shadow>();
-    //             const Shadow::Framebuffers &shadowFramebuffers = shadows->getFramebuffers();
-    //             const float shadowFarPlane = shadows->getInfo().depth;
-    //
-    //             // bind textures
-    //             std::unordered_map<TextureType, std::uint32_t> textureLengths;
-    //
-    //             for (const auto &texture : render.model->getTextures()) {
-    //                 const TextureType type = texture->getInfo().type;
-    //                 const std::string name = render.model->getTextureTypeName(type);
-    //
-    //                 pipeline->setUniform(std::format("PBZ_Texture{}[{}]", name, textureLengths[type]), texture->activate());
-    //                 textureLengths[type]++;
-    //             }
-    //
-    //             // load array lengths
-    //             for (std::size_t i = 0; i < TextureTypeMax; i++) {
-    //                 TextureType type = static_cast<TextureType>(i);
-    //                 const std::string name = render.model->getTextureTypeName(type);
-    //
-    //                 if (!textureLengths.contains(type)) {
-    //                     pipeline->setUniform<unsigned int>(std::format("PBZ_Texture{}Length", name), 0);
-    //                 } else {
-    //                     pipeline->setUniform(std::format("PBZ_Texture{}Length", name), textureLengths[type]);
-    //                 }
-    //             }
-    //
-    //             pipeline->setUniform<std::uint32_t>("PBZ_PointLightLength", points.size());
-    //             pipeline->setUniform<std::uint32_t>("PBZ_DirectionalLightLength", points.size());
-    //             pipeline->setUniform<std::uint32_t>("PBZ_SpotLightLength", points.size());
-    //
-    //             for (std::size_t i = 0; i < points.size(); i++) {
-    //                 const auto &[_, point] = points[i];
-    //
-    //                 pipeline->setUniform(std::format("PBZ_PointLight[{}].light.ambient", i), point.ambient);
-    //                 pipeline->setUniform(std::format("PBZ_PointLight[{}].light.diffuse", i), point.diffuse);
-    //                 pipeline->setUniform(std::format("PBZ_PointLight[{}].light.specular", i), point.specular);
-    //                 pipeline->setUniform(std::format("PBZ_PointLight[{}].position", i), point.position);
-    //                 pipeline->setUniform(std::format("PBZ_PointLight[{}].constant", i), point.constant);
-    //                 pipeline->setUniform(std::format("PBZ_PointLight[{}].linear", i), point.linear);
-    //                 pipeline->setUniform(std::format("PBZ_PointLight[{}].quadratic", i), point.quadratic);
-    //             }
-    //
-    //             for (std::size_t i = 0; i < directionals.size(); i++) {
-    //                 const auto &[_, directional] = directionals[i];
-    //
-    //                 pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].light.ambient", i), directional.ambient);
-    //                 pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].light.diffuse", i), directional.diffuse);
-    //                 pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].light.specular", i), directional.specular);
-    //                 pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].direction", i), directional.direction);
-    //                 pipeline->setUniform(std::format("PBZ_DirectionalLight[{}].matrix", i), directional.matrix);
-    //             }
-    //
-    //             for (std::size_t i = 0; i < spots.size(); i++) {
-    //                 const auto &[_, spot] = spots[i];
-    //
-    //                 pipeline->setUniform(std::format("PBZ_SpotLight[{}].light.ambient", i), spot.ambient);
-    //                 pipeline->setUniform(std::format("PBZ_SpotLight[{}].light.diffuse", i), spot.diffuse);
-    //                 pipeline->setUniform(std::format("PBZ_SpotLight[{}].light.specular", i), spot.specular);
-    //                 pipeline->setUniform(std::format("PBZ_SpotLight[{}].position", i), spot.position);
-    //                 pipeline->setUniform(std::format("PBZ_SpotLight[{}].direction", i), spot.direction);
-    //                 pipeline->setUniform(std::format("PBZ_SpotLight[{}].constant", i), spot.constant);
-    //                 pipeline->setUniform(std::format("PBZ_SpotLight[{}].linear", i), spot.linear);
-    //                 pipeline->setUniform(std::format("PBZ_SpotLight[{}].quadratic", i), spot.quadratic);
-    //                 pipeline->setUniform(std::format("PBZ_SpotLight[{}].cutOff", i), glm::cos(spot.cutOff));
-    //                 pipeline->setUniform(std::format("PBZ_SpotLight[{}].outerCutOff", i), glm::cos(spot.outerCutOff));
-    //             }
-    //
-    //             // TODO: implement multiple shadowmaps
-    //             pipeline->setUniform("PBZ_DirectionalShadow", shadowFramebuffers.directional.activate(Framebuffer::Type::Depth));
-    //             pipeline->setUniform("PBZ_PointShadow", shadowFramebuffers.point.activate(Framebuffer::Type::Depth));
-    //             pipeline->setUniform("PBZ_ShadowFarPlane", shadows->getInfo().depth);
-    //
-    //             pipeline->setUniform("PBZ_Model", render.transform.matrix);
-    //
-    //             for (const auto &[mesh, _] : render.model->getMeshs()) {
-    //                 mesh.draw();
-    //             }
-    //         },
-    //     }});
+    bool success = true;
 
-    return true;
+    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
+        success &= ResourceRegistry<PipelineLayout>::insert(
+            ResourceLayoutFrame,
+            {{
+                .bindings = {
+                    {
+                        // camera
+                        .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
+                        .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                    },
+                    {
+                        // lights
+                        .type = Physbuzz::PipelineLayout::Type::eStorageBuffer,
+                        .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                    },
+                },
+            }});
+    }
+
+    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutObject)) {
+        success &= ResourceRegistry<PipelineLayout>::insert(
+            ResourceLayoutObject,
+            {{
+                .bindings = {
+                    {
+                        // material
+                        .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
+                        .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                    },
+                    {
+                        // instance
+                        .type = Physbuzz::PipelineLayout::Type::eStorageBuffer,
+                        .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                    },
+                },
+            }});
+    }
+
+    if (!ResourceRegistry<UniformBuffer>::contains(ResourceBufferCamera)) {
+        success &= ResourceRegistry<UniformBuffer>::insert(
+            ResourceBufferCamera,
+            UniformBuffer::Info<CameraBuffer>{
+                .count = 1,
+            });
+    }
+
+    if (!ResourceRegistry<StorageBuffer>::contains(ResourceBufferLight)) {
+        success &= ResourceRegistry<StorageBuffer>::insert(
+            ResourceBufferLight,
+            StorageBuffer::Info<LightBuffer>{
+                .count = 1,
+            });
+    }
+
+    if (!ResourceRegistry<UniformBuffer>::contains(ResourceBufferMaterial)) {
+        success &= ResourceRegistry<UniformBuffer>::insert(
+            ResourceBufferMaterial,
+            UniformBuffer::Info<MaterialBuffer>{
+                .count = 1,
+            });
+    }
+
+    if (!ResourceRegistry<StorageBuffer>::contains(ResourceBufferModel)) {
+        success &= ResourceRegistry<StorageBuffer>::insert(
+            ResourceBufferModel,
+            StorageBuffer::Info<ModelBuffer>{
+                .count = 1,
+            });
+    }
+
+    success &= ResourceRegistry<RenderPipeline>::insert(
+        Resource.getIdentifier(),
+        {{
+            .module = "builtin/forward",
+            .description = &Model::Vertex::Description,
+            .layouts = {
+                ResourceLayoutFrame,
+                ResourceLayoutObject,
+            },
+        }});
+
+    return success;
 }
 
 } // namespace Builtin
 
-ForwardRenderer::ForwardRenderer() {}
+ForwardRenderer::ForwardRenderer(const Info &info)
+    : m_Info(info) {}
 
 bool ForwardRenderer::build() {
     // build pipeline
-    if (!Builtin::ShaderForward::build()) {
+    if (!Builtin::RenderPipelineForward::build()) {
         Logger::ERROR("[Renderer] Could not build forward shader pipeline.");
         return false;
     }
 
-    return true;
+    bool success = true;
+
+    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
+        Builtin::RenderPipelineForward::ResourceLayoutFrame,
+        Builtin::RenderPipelineForward::ResourceBufferCamera,
+        0);
+
+    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
+        Builtin::RenderPipelineForward::ResourceLayoutFrame,
+        Builtin::RenderPipelineForward::ResourceBufferLight,
+        1);
+
+    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
+        Builtin::RenderPipelineForward::ResourceLayoutObject,
+        Builtin::RenderPipelineForward::ResourceBufferMaterial,
+        0);
+
+    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
+        Builtin::RenderPipelineForward::ResourceLayoutObject,
+        Builtin::RenderPipelineForward::ResourceBufferModel,
+        1);
+
+    if (success) {
+        m_Events = {
+            .resize = m_Scene->getSystem<Renderer>()->getInfo().window->addCallback<WindowSwapchainResizeEvent>([&](const auto &event) {
+                const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
+                camera.resize(event.resolution);
+            }),
+        };
+    }
+
+    return success;
 }
 
 bool ForwardRenderer::destroy() {
+    m_Scene->getSystem<Renderer>()->getInfo().window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
     return true;
 }
 
@@ -167,26 +189,65 @@ void ForwardRenderer::render(const RenderContext &context) {
         .pStencilAttachment = {},
     });
 
-    for (const auto &object : m_Objects) {
-        const auto [render, forward] = m_Scene->getComponent<RenderComponent, ForwardRenderComponent>(object);
+    // upload lighting data
+    const std::vector<DirectionalLightComponent> &directionals = m_Scene->getComponentArray<DirectionalLightComponent>();
+    const std::vector<PointLightComponent> &points = m_Scene->getComponentArray<PointLightComponent>();
+    const std::vector<SpotLightComponent> &spots = m_Scene->getComponentArray<SpotLightComponent>();
 
-        Builtin::LayoutRenderer::ModelBuffer->update<glm::mat4>(
-            context.frameInFlight, m_Scene->getSystem<Transfer>(),
+    Builtin::RenderPipelineForward::LightBuffer lightBuffer = {};
+    std::copy_n(directionals.begin(), std::min(directionals.size(), lightBuffer.directionals.max_size()), lightBuffer.directionals.begin());
+    std::copy_n(points.begin(), std::min(points.size(), lightBuffer.points.max_size()), lightBuffer.points.begin());
+    std::copy_n(spots.begin(), std::min(spots.size(), lightBuffer.spots.max_size()), lightBuffer.spots.begin());
+
+    Builtin::RenderPipelineForward::ResourceBufferLight->update<Builtin::RenderPipelineForward::LightBuffer>(
+        m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
+        {lightBuffer});
+
+    // upload camera
+    const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
+    Builtin::RenderPipelineForward::ResourceBufferCamera->update<Builtin::RenderPipelineForward::CameraBuffer>(
+        m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
+        {{
+            .position = camera.getInfo().view.position,
+            .view = camera.getView(),
+            .projection = camera.getProjection(),
+        }});
+
+    // upload instance/object data
+    std::unordered_map<Resource<Model>, std::vector<Builtin::RenderPipelineForward::ModelBuffer>> instances;
+
+    for (const auto &object : m_Objects) {
+        const auto [render] = m_Scene->getComponent<RenderComponent>(object);
+
+        instances[render.model].emplace_back<Builtin::RenderPipelineForward::ModelBuffer>({
+            .model = render.transform.matrix,
+        });
+    }
+
+    for (const auto &[model, buffer] : instances) {
+        Builtin::RenderPipelineForward::ResourceBufferMaterial->update<Builtin::RenderPipelineForward::MaterialBuffer>(
+            m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
             {{
-                render.transform.matrix,
+                .diffuse = {1.0f, 0.0f, 0.0f},
+                .specular = {0.0f, 0.0f, 0.0f},
+                .specularity = 0.0f,
             }});
 
-        forward.pipeline->bind(context.command);
-        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context.command, forward.pipeline, context.frameInFlight);
+        Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(
+            m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
+            buffer);
 
-        for (const auto &[mesh, _] : render.model->getMeshs()) {
-            if (mesh.getDescription() != forward.pipeline->getInfo().description) {
+        Builtin::RenderPipelineForward::Resource->bind(context.command);
+        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context.command, Builtin::RenderPipelineForward::Resource, m_Scene->getSystem<Renderer>());
+
+        for (const auto &[mesh, _] : model->getMeshs()) {
+            if (mesh.getDescription() != Builtin::RenderPipelineForward::Resource->getInfo().description) {
                 Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
                 return;
             }
-        }
 
-        render.model->draw(context.command);
+            model->draw(context.command, buffer.size());
+        }
     }
 
     context.command.endRendering();

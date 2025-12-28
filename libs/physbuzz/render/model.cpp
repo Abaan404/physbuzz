@@ -67,9 +67,9 @@ bool Model::destroy() {
     return true;
 }
 
-void Model::draw(const vk::CommandBuffer &commandBuffer) {
+void Model::draw(const vk::CommandBuffer &commandBuffer, std::uint32_t instances) {
     for (const auto &[mesh, _] : m_Info.meshes) {
-        mesh.draw(commandBuffer);
+        mesh.draw(commandBuffer, instances);
     }
 }
 

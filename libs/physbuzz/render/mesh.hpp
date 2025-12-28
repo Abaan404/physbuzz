@@ -84,7 +84,7 @@ class Mesh {
     bool build(const std::shared_ptr<Transfer> transfer);
     bool destroy();
 
-    void draw(const vk::CommandBuffer &commandBuffer) const;
+    void draw(const vk::CommandBuffer &commandBuffer, std::uint32_t instances) const;
 
     const VertexDescription *getDescription() const;
 

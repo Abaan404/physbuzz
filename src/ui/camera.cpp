@@ -20,9 +20,9 @@ void Camera::draw() {
 
     std::shared_ptr<Physbuzz::Renderer> renderer = m_Scene->getSystem<Physbuzz::Renderer>();
 
-    const auto [camera, player] = m_Scene->getComponent<Physbuzz::CameraComponent, PlayerComponent>(renderer->getInfo().camera);
+    const auto [_, camera, player] = m_Scene->getComponents<Physbuzz::CameraComponent, PlayerComponent>().front();
 
-    ImGui::SeparatorText("Renderer Camera");
+    ImGui::SeparatorText("Camera");
     ImGui::SeparatorText("Projection");
 
     Physbuzz::CameraComponent::Info info = camera.getInfo();

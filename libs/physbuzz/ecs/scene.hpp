@@ -60,6 +60,11 @@ class Scene : public EventSubject {
         return m_ComponentManager.getArray<T...>();
     }
 
+    template <typename T>
+    const std::vector<T> &getComponentArray() {
+        return m_ComponentManager.getComponentArray<T>();
+    }
+
     template <typename... T>
     inline bool containsComponent(ObjectID id) {
         return m_ComponentManager.contains<T...>(id);

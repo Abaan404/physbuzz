@@ -80,14 +80,14 @@ bool Mesh::destroy() {
     return success;
 }
 
-void Mesh::draw(const vk::CommandBuffer &commandBuffer) const {
+void Mesh::draw(const vk::CommandBuffer &commandBuffer, std::uint32_t instances) const {
     const Buffer::Data &vertex = m_Vertex.getData();
     const Buffer::Data &index = m_Index.getData();
 
     commandBuffer.bindVertexBuffers(0, vertex.buffer, {0});
     commandBuffer.bindIndexBuffer(index.buffer, 0, vk::IndexType::eUint32);
 
-    commandBuffer.drawIndexed(m_Indices.size(), 1, 0, 0, 0);
+    commandBuffer.drawIndexed(m_Indices.size(), instances, 0, 0, 0);
 }
 
 const VertexDescription *Mesh::getDescription() const {
