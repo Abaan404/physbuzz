@@ -8,16 +8,23 @@
 
 namespace Physbuzz {
 
-class StorageBuffer {
+class StaticBuffer {
   public:
-    template <typename T>
-    struct Info {
-        std::size_t count;
+    enum class Type {
+        Constant,
+        Structured,
     };
 
     template <typename T>
-    StorageBuffer(const Info<T> &info)
-        : m_Stride(sizeof(T)),
+    struct Info {
+        std::size_t count;
+        Type type;
+    };
+
+    template <typename T>
+    StaticBuffer(const Info<T> &info)
+        : m_Type(info.type),
+          m_Stride(sizeof(T)),
           m_Count(info.count) {}
 
     bool build();
@@ -30,24 +37,26 @@ class StorageBuffer {
             data.size() * sizeof(T),
         };
 
-        PBZ_ASSERT(m_Buffers.size() == detail::MAX_FRAMES_IN_FLIGHT, "[StorageBuffer] Not built uniform.");
-        PBZ_ASSERT(sizeof(T) == m_Stride, "[StorageBuffer] Invalid stride.");
-        PBZ_ASSERT(data.size() <= m_Count, "[StorageBuffer] Invalid size.");
+        PBZ_ASSERT(m_Buffers.size() == detail::MAX_FRAMES_IN_FLIGHT, "[StaticBuffer] Not built uniform.");
+        PBZ_ASSERT(sizeof(T) == m_Stride, "[StaticBuffer] Invalid stride.");
+        PBZ_ASSERT(data.size() <= m_Count, "[StaticBuffer] Invalid size.");
 
-        return transfer->map(m_Buffers[renderer->m_FrameInFlight], bytes);
+        return transfer->map(m_Buffers[renderer->getFrameInFlight()], bytes);
     }
 
     const std::vector<Buffer> &getBuffers() const;
     std::size_t getRange() const;
+    Type getType() const;
 
   private:
     std::vector<Buffer> m_Buffers;
 
-    std::size_t m_Stride;
-    std::size_t m_Count;
+    Type m_Type;
+    std::size_t m_Stride = 0;
+    std::size_t m_Count = 0;
 };
 
 template <>
-struct IsResource<StorageBuffer> : std::true_type {};
+struct IsResource<StaticBuffer> : std::true_type {};
 
 } // namespace Physbuzz

@@ -342,6 +342,10 @@ const Renderer::Info &Renderer::getInfo() const {
     return m_Info;
 }
 
+std::uint32_t Renderer::getFrameInFlight() const {
+    return m_FrameInFlight;
+}
+
 void Renderer::resize(const glm::ivec2 &resolution) {
     PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
 

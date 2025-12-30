@@ -5,9 +5,8 @@
 
 namespace Physbuzz {
 
+class StaticBuffer;
 class Texture;
-class UniformBuffer;
-class StorageBuffer;
 class RenderPipeline;
 class Renderer;
 
@@ -74,11 +73,10 @@ class PipelineLayoutAllocator : public System<> {
     bool build();
     bool destroy();
 
-    bool allocate(const Resource<PipelineLayout> &layouts);
-    bool deallocate(const Resource<PipelineLayout> &layouts);
+    bool allocate(const Resource<PipelineLayout> &layout);
+    bool deallocate(const Resource<PipelineLayout> &layout);
 
-    bool attach(const Resource<PipelineLayout> &layout, const Resource<StorageBuffer> &storage, std::uint32_t binding);
-    bool attach(const Resource<PipelineLayout> &layout, const Resource<UniformBuffer> &uniform, std::uint32_t binding);
+    bool attach(const Resource<PipelineLayout> &layout, const Resource<StaticBuffer> &storage, std::uint32_t binding);
     bool attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding);
 
     void reset();

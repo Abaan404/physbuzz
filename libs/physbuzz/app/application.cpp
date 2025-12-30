@@ -2,9 +2,8 @@
 
 #include "../debug/macros.hpp"
 #include "../render/layout.hpp"
-#include "../render/layouts/storage.hpp"
+#include "../render/layouts/static.hpp"
 #include "../render/layouts/texture.hpp"
-#include "../render/layouts/uniform.hpp"
 #include "../render/model.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
@@ -280,8 +279,7 @@ bool App::quit() {
     ResourceRegistry<Model>::clear();
     ResourceRegistry<RenderPipeline>::clear();
     ResourceRegistry<PipelineLayout>::clear();
-    ResourceRegistry<UniformBuffer>::clear();
-    ResourceRegistry<StorageBuffer>::clear();
+    ResourceRegistry<StaticBuffer>::clear();
     ResourceRegistry<Texture>::clear();
 
     vmaDestroyAllocator(Allocator);

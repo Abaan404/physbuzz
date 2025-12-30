@@ -28,7 +28,9 @@ class Renderer : public System<> {
     void immediate(std::function<void(const vk::CommandBuffer &)> record);
 
     void setRenderPasses(const std::vector<std::shared_ptr<IRenderPass>> &renderpasses);
+
     const Info &getInfo() const;
+    std::uint32_t getFrameInFlight() const;
 
   private:
     void resize(const glm::ivec2 &resolution);
@@ -66,10 +68,6 @@ class Renderer : public System<> {
     struct {
         EventID resize = -1;
     } m_Events = {};
-
-    friend class StorageBuffer;
-    friend class UniformBuffer;
-    friend class PipelineLayoutAllocator;
 };
 
 } // namespace Physbuzz

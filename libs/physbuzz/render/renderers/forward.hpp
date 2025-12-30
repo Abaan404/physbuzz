@@ -7,8 +7,7 @@
 
 namespace Physbuzz {
 
-class UniformBuffer;
-class StorageBuffer;
+class StaticBuffer;
 class PipelineLayout;
 class RenderPipeline;
 
@@ -36,13 +35,14 @@ struct MaterialBuffer {
 
 struct ModelBuffer {
     alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 invModel;
 };
 
-inline Resource<UniformBuffer> ResourceBufferCamera = {"builtin/forward/camera"};
-inline Resource<StorageBuffer> ResourceBufferLight = {"builtin/forward/light"};
+inline Resource<StaticBuffer> ResourceBufferCamera = {"builtin/forward/camera"};
+inline Resource<StaticBuffer> ResourceBufferLight = {"builtin/forward/light"};
 
-inline Resource<UniformBuffer> ResourceBufferMaterial = {"builtin/forward/material"};
-inline Resource<StorageBuffer> ResourceBufferModel = {"builtin/forward/model"};
+inline Resource<StaticBuffer> ResourceBufferMaterial = {"builtin/forward/material"};
+inline Resource<StaticBuffer> ResourceBufferModel = {"builtin/forward/model"};
 
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/forward/frame"};
 inline Resource<PipelineLayout> ResourceLayoutObject = {"builtin/forward/object"};

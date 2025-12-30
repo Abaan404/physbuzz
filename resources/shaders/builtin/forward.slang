@@ -13,19 +13,15 @@ struct Camera {
     float4x4 projection;
 };
 
-struct InstanceData {
-    float4x4 model;
-    float4x4 invModel;
-};
-
 struct Light {
     LightArray<DirectionalLight, 5> directionals;
     LightArray<PointLight, 5> points;
     LightArray<SpotLight, 5> spots;
 };
 
-struct Materials {
-    SimpleMaterial simple;
+struct InstanceData {
+    float4x4 model;
+    float4x4 invModel;
 };
 
 [[vk::binding(0, 0)]]

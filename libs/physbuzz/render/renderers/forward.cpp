@@ -4,8 +4,7 @@
 #include "../../events/window.hpp"
 #include "../camera.hpp"
 #include "../layout.hpp"
-#include "../layouts/storage.hpp"
-#include "../layouts/uniform.hpp"
+#include "../layouts/static.hpp"
 #include "../model.hpp"
 #include "../renderer.hpp"
 #include <vulkan/vulkan_enums.hpp>
@@ -60,35 +59,39 @@ bool RenderPipelineForward::build() {
             }});
     }
 
-    if (!ResourceRegistry<UniformBuffer>::contains(ResourceBufferCamera)) {
-        success &= ResourceRegistry<UniformBuffer>::insert(
+    if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferCamera)) {
+        success &= ResourceRegistry<StaticBuffer>::insert(
             ResourceBufferCamera,
-            UniformBuffer::Info<CameraBuffer>{
+            StaticBuffer::Info<CameraBuffer>{
                 .count = 1,
+                .type = StaticBuffer::Type::Constant,
             });
     }
 
-    if (!ResourceRegistry<StorageBuffer>::contains(ResourceBufferLight)) {
-        success &= ResourceRegistry<StorageBuffer>::insert(
+    if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferLight)) {
+        success &= ResourceRegistry<StaticBuffer>::insert(
             ResourceBufferLight,
-            StorageBuffer::Info<LightBuffer>{
+            StaticBuffer::Info<LightBuffer>{
                 .count = 1,
+                .type = StaticBuffer::Type::Structured,
             });
     }
 
-    if (!ResourceRegistry<UniformBuffer>::contains(ResourceBufferMaterial)) {
-        success &= ResourceRegistry<UniformBuffer>::insert(
+    if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferMaterial)) {
+        success &= ResourceRegistry<StaticBuffer>::insert(
             ResourceBufferMaterial,
-            UniformBuffer::Info<MaterialBuffer>{
+            StaticBuffer::Info<MaterialBuffer>{
                 .count = 1,
+                .type = StaticBuffer::Type::Constant,
             });
     }
 
-    if (!ResourceRegistry<StorageBuffer>::contains(ResourceBufferModel)) {
-        success &= ResourceRegistry<StorageBuffer>::insert(
+    if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferModel)) {
+        success &= ResourceRegistry<StaticBuffer>::insert(
             ResourceBufferModel,
-            StorageBuffer::Info<ModelBuffer>{
+            StaticBuffer::Info<ModelBuffer>{
                 .count = 1,
+                .type = StaticBuffer::Type::Structured,
             });
     }
 
@@ -195,9 +198,9 @@ void ForwardRenderer::render(const RenderContext &context) {
     const std::vector<SpotLightComponent> &spots = m_Scene->getComponentArray<SpotLightComponent>();
 
     Builtin::RenderPipelineForward::LightBuffer lightBuffer = {};
-    std::copy_n(directionals.begin(), std::min(directionals.size(), lightBuffer.directionals.max_size()), lightBuffer.directionals.begin());
-    std::copy_n(points.begin(), std::min(points.size(), lightBuffer.points.max_size()), lightBuffer.points.begin());
-    std::copy_n(spots.begin(), std::min(spots.size(), lightBuffer.spots.max_size()), lightBuffer.spots.begin());
+    std::copy_n(directionals.begin(), std::min(directionals.size(), lightBuffer.directionals.size()), lightBuffer.directionals.begin());
+    std::copy_n(points.begin(), std::min(points.size(), lightBuffer.points.size()), lightBuffer.points.begin());
+    std::copy_n(spots.begin(), std::min(spots.size(), lightBuffer.spots.size()), lightBuffer.spots.begin());
 
     Builtin::RenderPipelineForward::ResourceBufferLight->update<Builtin::RenderPipelineForward::LightBuffer>(
         m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
@@ -221,6 +224,7 @@ void ForwardRenderer::render(const RenderContext &context) {
 
         instances[render.model].emplace_back<Builtin::RenderPipelineForward::ModelBuffer>({
             .model = render.transform.matrix,
+            .invModel = glm::inverse(render.transform.matrix),
         });
     }
 
