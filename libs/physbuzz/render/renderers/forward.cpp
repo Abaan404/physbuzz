@@ -29,12 +29,12 @@ bool RenderPipelineForward::build() {
                     {
                         // camera
                         .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
-                        .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                        .stride = sizeof(CameraBuffer),
                     },
                     {
                         // lights
                         .type = Physbuzz::PipelineLayout::Type::eStorageBuffer,
-                        .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                        .stride = sizeof(LightBuffer),
                     },
                 },
             }});
@@ -48,12 +48,12 @@ bool RenderPipelineForward::build() {
                     {
                         // material
                         .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
-                        .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                        .stride = sizeof(MaterialBuffer),
                     },
                     {
                         // instance
-                        .type = Physbuzz::PipelineLayout::Type::eStorageBuffer,
-                        .stage = Physbuzz::PipelineLayout::ShaderStageFlags::eAll,
+                        .type = Physbuzz::PipelineLayout::Type::eStorageBufferDynamic,
+                        .stride = sizeof(ModelBuffer),
                     },
                 },
             }});
@@ -63,7 +63,6 @@ bool RenderPipelineForward::build() {
         success &= ResourceRegistry<StaticBuffer>::insert(
             ResourceBufferCamera,
             StaticBuffer::Info<CameraBuffer>{
-                .count = 1,
                 .type = StaticBuffer::Type::Constant,
             });
     }
@@ -72,7 +71,6 @@ bool RenderPipelineForward::build() {
         success &= ResourceRegistry<StaticBuffer>::insert(
             ResourceBufferLight,
             StaticBuffer::Info<LightBuffer>{
-                .count = 1,
                 .type = StaticBuffer::Type::Structured,
             });
     }
@@ -81,7 +79,6 @@ bool RenderPipelineForward::build() {
         success &= ResourceRegistry<StaticBuffer>::insert(
             ResourceBufferMaterial,
             StaticBuffer::Info<MaterialBuffer>{
-                .count = 1,
                 .type = StaticBuffer::Type::Constant,
             });
     }
@@ -90,8 +87,8 @@ bool RenderPipelineForward::build() {
         success &= ResourceRegistry<StaticBuffer>::insert(
             ResourceBufferModel,
             StaticBuffer::Info<ModelBuffer>{
-                .count = 1,
-                .type = StaticBuffer::Type::Structured,
+                .type = StaticBuffer::Type::StructuredDynamic,
+                .count = 10,
             });
     }
 
@@ -228,7 +225,8 @@ void ForwardRenderer::render(const RenderContext &context) {
         });
     }
 
-    for (const auto &[model, buffer] : instances) {
+    std::size_t idx = 0;
+    for (const auto &[model, models] : instances) {
         Builtin::RenderPipelineForward::ResourceBufferMaterial->update<Builtin::RenderPipelineForward::MaterialBuffer>(
             m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
             {{
@@ -239,10 +237,10 @@ void ForwardRenderer::render(const RenderContext &context) {
 
         Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(
             m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
-            buffer);
+            models, idx);
 
         Builtin::RenderPipelineForward::Resource->bind(context.command);
-        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context.command, Builtin::RenderPipelineForward::Resource, m_Scene->getSystem<Renderer>());
+        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context.command, Builtin::RenderPipelineForward::Resource, m_Scene->getSystem<Renderer>(), idx);
 
         for (const auto &[mesh, _] : model->getMeshs()) {
             if (mesh.getDescription() != Builtin::RenderPipelineForward::Resource->getInfo().description) {
@@ -250,8 +248,10 @@ void ForwardRenderer::render(const RenderContext &context) {
                 return;
             }
 
-            model->draw(context.command, buffer.size());
+            model->draw(context.command, models.size());
         }
+
+        idx++;
     }
 
     context.command.endRendering();

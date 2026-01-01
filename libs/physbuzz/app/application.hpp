@@ -29,6 +29,7 @@ class App {
     // Device info
     inline static vk::PhysicalDevice PhysicalDevice = nullptr;
     inline static vk::Device Device = nullptr;
+    inline static vk::PhysicalDeviceProperties PhysicalDeviceProperties = {};
 
     // VMA
     inline static VmaAllocator Allocator = VK_NULL_HANDLE;

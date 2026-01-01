@@ -174,6 +174,7 @@ bool App::init() {
     }
 
     PhysicalDevice = physicalDevice;
+    PhysicalDeviceProperties = physicalDevice.getProperties();
 
     // find the needed queues
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties = PhysicalDevice.getQueueFamilyProperties();

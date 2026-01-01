@@ -60,8 +60,8 @@ bool Mesh::build(const std::shared_ptr<Transfer> transfer) {
         m_Indices.size() * sizeof(Index),
     };
 
-    success &= transfer->map(m_Vertex, vertices);
-    success &= transfer->map(m_Index, indices);
+    success &= transfer->map(m_Vertex, vertices, 0);
+    success &= transfer->map(m_Index, indices, 0);
 
     if (!success) {
         destroy();

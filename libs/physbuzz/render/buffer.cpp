@@ -5,7 +5,7 @@ namespace Physbuzz {
 Buffer::Buffer(const Info &info)
     : m_Info(info) {}
 
-bool Buffer::build(std::size_t size) {
+bool Buffer::build(std::uint64_t size) {
     if (m_Data.buffer != nullptr) {
         Logger::WARNING("[Buffer] Trying to build a constructed buffer.");
         return true;
@@ -78,25 +78,20 @@ const Buffer::Data &Buffer::getData() const {
     return m_Data;
 }
 
-void Buffer::copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer) const {
-    PBZ_ASSERT(srcBuffer.m_Data.bufferInfo.size <= m_Data.bufferInfo.size, "[Buffer] Dst buffer size too small.");
+void Buffer::copy(const vk::CommandBuffer &commandBuffer, const vk::BufferCopy &copy, const Buffer &srcBuffer) const {
+    PBZ_ASSERT(srcBuffer.m_Data.bufferInfo.size <= copy.size, "[Buffer] Not enough space in source buffer to copy from.");
+    PBZ_ASSERT(m_Data.bufferInfo.size <= copy.size, "[Buffer] Not enough space in destination buffer to copy to.");
 
-    vk::BufferCopy copy = {
-        .srcOffset = 0,
-        .dstOffset = 0,
-        .size = srcBuffer.m_Data.bufferInfo.size,
-    };
-
-    commandBuffer.copyBuffer(srcBuffer.m_Data.buffer, m_Data.buffer, 1, &copy);
+    commandBuffer.copyBuffer(srcBuffer.m_Data.buffer, m_Data.buffer, {copy});
 }
 
-bool Buffer::map(const std::span<const std::byte> &data) const {
-    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, data.data(), m_Allocation, 0, data.size())));
+bool Buffer::map(const std::span<const std::byte> &data, std::uint64_t offset) const {
+    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, data.data(), m_Allocation, offset, data.size())));
 
     VkMemoryPropertyFlags memProps = 0;
     vmaGetAllocationMemoryProperties(App::Allocator, m_Allocation, &memProps);
     if (!(memProps & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
-        vmaFlushAllocation(App::Allocator, m_Allocation, 0, data.size());
+        vmaFlushAllocation(App::Allocator, m_Allocation, offset, data.size());
     }
 
     return true;
@@ -260,7 +255,7 @@ bool Transfer::destroy() {
     return true;
 }
 
-bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes) {
+bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes, std::uint64_t offset) {
     if (buffer.m_Allocation == nullptr) {
         Logger::ERROR("[Transfer] Cannot Transfer an uninitialized allocation.");
         return false;
@@ -285,7 +280,7 @@ bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes
 
     // if the buffer can be read by the CPU (i.e. integrated gpus)
     if (memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-        if (!buffer.map(bytes)) {
+        if (!buffer.map(bytes, offset)) {
             Logger::ERROR("[Transfer] Failed to map buffer.");
             PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
             return false;
@@ -300,14 +295,20 @@ bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes
             return false;
         }
 
-        if (!stagingBuffer.map(bytes)) {
+        if (!stagingBuffer.map(bytes, 0)) {
             Logger::ERROR("[Transfer] Failed to map staging buffer.");
             stagingBuffer.destroy();
             PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
             return false;
         }
 
-        buffer.copy(m_Command.buffer, stagingBuffer);
+        vk::BufferCopy copy = {
+            .srcOffset = 0,
+            .dstOffset = offset,
+            .size = bytes.size(),
+        };
+
+        buffer.copy(m_Command.buffer, copy, stagingBuffer);
     }
 
     // submit
@@ -356,7 +357,7 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &data) {
         return false;
     }
 
-    if (!stagingBuffer.map(data)) {
+    if (!stagingBuffer.map(data, 0)) {
         Logger::ERROR("[Transfer] Failed to map staging buffer.");
         stagingBuffer.destroy();
         PBZ_VK_CHECK_RESULT(m_Command.buffer.end());

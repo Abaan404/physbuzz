@@ -157,13 +157,27 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
 
 bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, const Resource<StaticBuffer> &storage, std::uint32_t binding) {
     vk::DescriptorType type;
+    vk::DeviceSize range;
+
     switch (storage->getType()) {
     case StaticBuffer::Type::Constant:
         type = vk::DescriptorType::eUniformBuffer;
+        range = storage->getSize();
         break;
 
     case StaticBuffer::Type::Structured:
         type = vk::DescriptorType::eStorageBuffer;
+        range = storage->getSize();
+        break;
+
+    case StaticBuffer::Type::ConstantDynamic:
+        type = vk::DescriptorType::eUniformBufferDynamic;
+        range = storage->getStride();
+        break;
+
+    case StaticBuffer::Type::StructuredDynamic:
+        type = vk::DescriptorType::eStorageBufferDynamic;
+        range = storage->getStride();
         break;
     }
 
@@ -181,11 +195,11 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
     std::array<vk::DescriptorBufferInfo, detail::MAX_FRAMES_IN_FLIGHT> bufferInfos;
     std::array<vk::WriteDescriptorSet, detail::MAX_FRAMES_IN_FLIGHT> writes;
 
-    for (uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; ++frame) {
+    for (uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; frame++) {
         bufferInfos[frame] = vk::DescriptorBufferInfo{
             .buffer = buffers[frame].getData().buffer,
-            .offset = 0,
-            .range = storage->getRange(),
+            .offset = layout->getInfo().bindings[binding].offset,
+            .range = range,
         };
 
         writes[frame] = {
@@ -254,7 +268,7 @@ void PipelineLayoutAllocator::reset() {
     m_AllocatedLayouts.clear();
 }
 
-void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, const std::shared_ptr<Renderer> renderer) {
+void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, const std::shared_ptr<Renderer> renderer, std::uint32_t idx) {
     for (std::size_t i = 0; i < pipeline->getInfo().layouts.size(); i++) {
         const Resource<PipelineLayout> &layout = pipeline->getInfo().layouts[i];
 
@@ -266,7 +280,23 @@ void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const
             }
         }
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[renderer->getFrameInFlight()], nullptr);
+        std::vector<std::uint32_t> dynamicOffsets;
+        for (const auto binding : layout->getInfo().bindings) {
+            std::uint32_t minDynamicOffset = 0;
+
+            if (binding.type == vk::DescriptorType::eStorageBufferDynamic) {
+                minDynamicOffset = App::PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
+            } else if (binding.type == vk::DescriptorType::eUniformBufferDynamic) {
+                minDynamicOffset = App::PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+            } else {
+                continue;
+            }
+
+            // offsets must be multiples of driver defined minimums
+            dynamicOffsets.emplace_back(((binding.stride - 1) / minDynamicOffset + 1) * minDynamicOffset * idx);
+        }
+
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[renderer->getFrameInFlight()], dynamicOffsets);
     }
 }
 

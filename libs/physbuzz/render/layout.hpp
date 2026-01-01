@@ -5,6 +5,7 @@
 
 namespace Physbuzz {
 
+class Buffer;
 class StaticBuffer;
 class Texture;
 class RenderPipeline;
@@ -19,8 +20,10 @@ class PipelineLayout {
 
     struct Binding {
         Type type;
+        ShaderStage stage = ShaderStageFlags::eAll;
+        std::uint64_t offset = 0;
+        std::uint64_t stride = 0;
         std::uint32_t count = 1;
-        ShaderStage stage;
     };
 
     struct Info {
@@ -37,6 +40,7 @@ class PipelineLayout {
   private:
     Info m_Info;
 
+    std::uint32_t m_DynamicOffset;
     vk::DescriptorSetLayout m_Layout = nullptr;
 
     friend class RenderPipeline;
@@ -81,7 +85,7 @@ class PipelineLayoutAllocator : public System<> {
 
     void reset();
 
-    void bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, const std::shared_ptr<Renderer> renderer);
+    void bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, const std::shared_ptr<Renderer> renderer, std::uint32_t idx = 0);
 
   private:
     vk::DescriptorPool createPool();

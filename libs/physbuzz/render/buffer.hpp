@@ -37,11 +37,11 @@ class Buffer {
 
     Buffer(const Info &info);
 
-    bool build(std::size_t size);
+    bool build(std::uint64_t size);
     bool destroy();
 
-    bool map(const std::span<const std::byte> &data) const;
-    void copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer) const;
+    bool map(const std::span<const std::byte> &data, std::uint64_t offset) const;
+    void copy(const vk::CommandBuffer &commandBuffer, const vk::BufferCopy &copy, const Buffer &srcBuffer) const;
 
     const Info &getInfo() const;
     const Data &getData() const;
@@ -115,7 +115,7 @@ class Transfer : public System<> {
     bool build();
     bool destroy();
 
-    bool map(const Buffer &buffer, const std::span<const std::byte> &bytes);
+    bool map(const Buffer &buffer, const std::span<const std::byte> &bytes, std::uint64_t offset);
     bool map(const Image &image, const std::span<const std::byte> &bytes);
     void immediate(std::function<void(const vk::CommandBuffer &)> record);
 

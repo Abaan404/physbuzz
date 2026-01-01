@@ -10,10 +10,12 @@ bool StaticBuffer::build() {
 
     Buffer::BufferUsageFlagBits usage;
     switch (m_Type) {
+    case Type::ConstantDynamic:
     case Type::Constant:
         usage = Buffer::BufferUsageFlagBits::eUniformBuffer;
         break;
 
+    case Type::StructuredDynamic:
     case Type::Structured:
         usage = Buffer::BufferUsageFlagBits::eStorageBuffer;
         break;
@@ -21,7 +23,7 @@ bool StaticBuffer::build() {
 
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         m_Buffers.emplace_back(Buffer::Info{
-            .usage = usage | Buffer::BufferUsageFlagBits::eTransferDst,
+            .usage = usage | Buffer::BufferUsageFlagBits::eTransferSrc | Buffer::BufferUsageFlagBits::eTransferDst,
             .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
         });
 
@@ -52,12 +54,23 @@ bool StaticBuffer::destroy() {
     return success;
 }
 
+bool StaticBuffer::update(const std::shared_ptr<Renderer> renderer, const std::shared_ptr<Transfer> transfer, const std::span<const std::byte> &bytes, std::uint64_t offset) const {
+    PBZ_ASSERT(!m_Buffers.empty(), "[StaticBuffer] Buffer has not been allocated.");
+    PBZ_ASSERT(bytes.size() <= m_Stride * m_Count, "[StaticBuffer] Invalid size.");
+
+    return transfer->map(m_Buffers[renderer->getFrameInFlight()], bytes, offset);
+}
+
 const std::vector<Buffer> &StaticBuffer::getBuffers() const {
     return m_Buffers;
 }
 
-std::size_t StaticBuffer::getRange() const {
+std::uint64_t StaticBuffer::getSize() const {
     return m_Stride * m_Count;
+}
+
+std::uint64_t StaticBuffer::getStride() const {
+    return m_Stride;
 }
 
 StaticBuffer::Type StaticBuffer::getType() const {
