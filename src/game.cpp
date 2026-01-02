@@ -19,36 +19,6 @@
 #include <physbuzz/window/bindings.hpp>
 #include <random>
 
-struct TestVertex {
-    glm::vec3 position;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-
-    static Physbuzz::VertexDescription Description;
-};
-
-Physbuzz::VertexDescription TestVertex::Description = {{
-    .attributes = {
-        {
-            .format = Physbuzz::VertexDescription::Format::eR32G32B32Sfloat,
-            .size = sizeof(TestVertex::position) / sizeof(decltype(TestVertex::position)::value_type),
-            .offset = offsetof(TestVertex, position),
-        },
-        {
-            .format = Physbuzz::VertexDescription::Format::eR32G32B32Sfloat,
-            .size = sizeof(TestVertex::color) / sizeof(decltype(TestVertex::color)::value_type),
-            .offset = offsetof(TestVertex, color),
-        },
-        {
-            .format = Physbuzz::VertexDescription::Format::eR32G32Sfloat,
-            .size = sizeof(TestVertex::texCoord) / sizeof(decltype(TestVertex::texCoord)::value_type),
-            .offset = offsetof(TestVertex, texCoord),
-        },
-    },
-    .size = sizeof(TestVertex),
-    .binding = 0,
-}};
-
 void Game::build() {
     Physbuzz::App::init();
     Physbuzz::Context::set(this);

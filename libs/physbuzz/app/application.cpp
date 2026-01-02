@@ -2,7 +2,7 @@
 
 #include "../debug/macros.hpp"
 #include "../render/layout.hpp"
-#include "../render/layouts/static.hpp"
+#include "../render/layouts/shaderbuffer.hpp"
 #include "../render/layouts/texture.hpp"
 #include "../render/model.hpp"
 #include <algorithm>
@@ -280,7 +280,7 @@ bool App::quit() {
     ResourceRegistry<Model>::clear();
     ResourceRegistry<RenderPipeline>::clear();
     ResourceRegistry<PipelineLayout>::clear();
-    ResourceRegistry<StaticBuffer>::clear();
+    ResourceRegistry<ShaderBuffer>::clear();
     ResourceRegistry<Texture>::clear();
 
     vmaDestroyAllocator(Allocator);

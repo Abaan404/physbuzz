@@ -1,8 +1,9 @@
 #include "layout.hpp"
 
-#include "layouts/static.hpp"
+#include "layouts/shaderbuffer.hpp"
 #include "layouts/texture.hpp"
-#include "renderers/defines.hpp"
+#include "physbuzz/debug/macros.hpp"
+#include "physbuzz/render/renderers/defines.hpp"
 #include "shaders.hpp"
 
 namespace Physbuzz {
@@ -155,29 +156,24 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
     return true;
 }
 
-bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, const Resource<StaticBuffer> &storage, std::uint32_t binding) {
+bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, const Resource<ShaderBuffer> &storage, std::uint32_t binding) {
     vk::DescriptorType type;
-    vk::DeviceSize range;
 
     switch (storage->getType()) {
-    case StaticBuffer::Type::Constant:
+    case ShaderBuffer::Type::Constant:
         type = vk::DescriptorType::eUniformBuffer;
-        range = storage->getSize();
         break;
 
-    case StaticBuffer::Type::Structured:
+    case ShaderBuffer::Type::Structured:
         type = vk::DescriptorType::eStorageBuffer;
-        range = storage->getSize();
         break;
 
-    case StaticBuffer::Type::ConstantDynamic:
+    case ShaderBuffer::Type::ConstantDynamic:
         type = vk::DescriptorType::eUniformBufferDynamic;
-        range = storage->getStride();
         break;
 
-    case StaticBuffer::Type::StructuredDynamic:
+    case ShaderBuffer::Type::StructuredDynamic:
         type = vk::DescriptorType::eStorageBufferDynamic;
-        range = storage->getStride();
         break;
     }
 
@@ -195,11 +191,11 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
     std::array<vk::DescriptorBufferInfo, detail::MAX_FRAMES_IN_FLIGHT> bufferInfos;
     std::array<vk::WriteDescriptorSet, detail::MAX_FRAMES_IN_FLIGHT> writes;
 
-    for (uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; frame++) {
+    for (std::uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; frame++) {
         bufferInfos[frame] = vk::DescriptorBufferInfo{
             .buffer = buffers[frame].getData().buffer,
             .offset = layout->getInfo().bindings[binding].offset,
-            .range = range,
+            .range = layout->getInfo().bindings[binding].range,
         };
 
         writes[frame] = {
@@ -233,19 +229,100 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
         .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
     };
 
-    std::vector<vk::WriteDescriptorSet> writes;
-    for (uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; frame++) {
-        writes.emplace_back<vk::WriteDescriptorSet>({
+    std::array<vk::WriteDescriptorSet, detail::MAX_FRAMES_IN_FLIGHT> writes;
+    for (std::uint32_t frame = 0; frame < detail::MAX_FRAMES_IN_FLIGHT; frame++) {
+        writes[frame] = {
             .dstSet = m_AllocatedLayouts[layout].sets[frame],
             .dstBinding = static_cast<std::uint32_t>(binding),
             .dstArrayElement = 0,
             .descriptorCount = 1,
             .descriptorType = vk::DescriptorType::eCombinedImageSampler,
             .pImageInfo = &imageInfo,
-        });
+        };
     }
 
     App::Device.updateDescriptorSets(writes, {});
+    return true;
+}
+
+bool PipelineLayoutAllocator::attach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<ShaderBuffer> &storage, std::uint32_t binding) {
+    vk::DescriptorType type;
+
+    switch (storage->getType()) {
+    case ShaderBuffer::Type::Constant:
+        type = vk::DescriptorType::eUniformBuffer;
+        break;
+
+    case ShaderBuffer::Type::Structured:
+        type = vk::DescriptorType::eStorageBuffer;
+        break;
+
+    case ShaderBuffer::Type::ConstantDynamic:
+        type = vk::DescriptorType::eUniformBufferDynamic;
+        break;
+
+    case ShaderBuffer::Type::StructuredDynamic:
+        type = vk::DescriptorType::eStorageBufferDynamic;
+        break;
+    }
+
+    if (layout->getInfo().bindings[binding].type != type) {
+        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
+        return false;
+    }
+
+    if (!m_AllocatedLayouts.contains(layout)) {
+        allocate(layout);
+    }
+
+    const std::vector<Buffer> &buffers = storage->getBuffers();
+
+    vk::DescriptorBufferInfo bufferInfo = vk::DescriptorBufferInfo{
+        .buffer = buffers[context.frameInFlight].getData().buffer,
+        .offset = layout->getInfo().bindings[binding].offset,
+        .range = layout->getInfo().bindings[binding].range,
+    };
+
+    vk::WriteDescriptorSet write = {
+        .dstSet = m_AllocatedLayouts[layout].sets[context.frameInFlight],
+        .dstBinding = binding,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = type,
+        .pBufferInfo = &bufferInfo,
+    };
+
+    App::Device.updateDescriptorSets(write, {});
+
+    return true;
+}
+
+bool PipelineLayoutAllocator::attach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding) {
+    if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eCombinedImageSampler) {
+        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
+        return false;
+    }
+
+    if (!m_AllocatedLayouts.contains(layout)) {
+        allocate(layout);
+    }
+
+    vk::DescriptorImageInfo imageInfo = {
+        .sampler = texture->getSampler(),
+        .imageView = texture->getImageView(),
+        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+    };
+
+    vk::WriteDescriptorSet write = {
+        .dstSet = m_AllocatedLayouts[layout].sets[context.frameInFlight],
+        .dstBinding = static_cast<std::uint32_t>(binding),
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+        .pImageInfo = &imageInfo,
+    };
+
+    App::Device.updateDescriptorSets(write, {});
     return true;
 }
 
@@ -268,7 +345,7 @@ void PipelineLayoutAllocator::reset() {
     m_AllocatedLayouts.clear();
 }
 
-void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, const std::shared_ptr<Renderer> renderer, std::uint32_t idx) {
+void PipelineLayoutAllocator::bind(const RenderContext &context, const Resource<RenderPipeline> &pipeline, std::uint32_t idx) {
     for (std::size_t i = 0; i < pipeline->getInfo().layouts.size(); i++) {
         const Resource<PipelineLayout> &layout = pipeline->getInfo().layouts[i];
 
@@ -293,10 +370,10 @@ void PipelineLayoutAllocator::bind(const vk::CommandBuffer &commandBuffer, const
             }
 
             // offsets must be multiples of driver defined minimums
-            dynamicOffsets.emplace_back(((binding.stride - 1) / minDynamicOffset + 1) * minDynamicOffset * idx);
+            dynamicOffsets.emplace_back(((binding.range - 1) / minDynamicOffset + 1) * minDynamicOffset * idx);
         }
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[renderer->getFrameInFlight()], dynamicOffsets);
+        context.command.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[context.frameInFlight], dynamicOffsets);
     }
 }
 

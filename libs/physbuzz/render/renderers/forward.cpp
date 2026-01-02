@@ -4,7 +4,7 @@
 #include "../../events/window.hpp"
 #include "../camera.hpp"
 #include "../layout.hpp"
-#include "../layouts/static.hpp"
+#include "../layouts/shaderbuffer.hpp"
 #include "../model.hpp"
 #include "../renderer.hpp"
 #include <vulkan/vulkan_enums.hpp>
@@ -29,12 +29,12 @@ bool RenderPipelineForward::build() {
                     {
                         // camera
                         .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
-                        .stride = sizeof(CameraBuffer),
+                        .range = sizeof(CameraBuffer),
                     },
                     {
                         // lights
                         .type = Physbuzz::PipelineLayout::Type::eStorageBuffer,
-                        .stride = sizeof(LightBuffer),
+                        .range = sizeof(LightBuffer),
                     },
                 },
             }});
@@ -48,47 +48,46 @@ bool RenderPipelineForward::build() {
                     {
                         // material
                         .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
-                        .stride = sizeof(MaterialBuffer),
+                        .range = sizeof(MaterialBuffer),
                     },
                     {
                         // instance
                         .type = Physbuzz::PipelineLayout::Type::eStorageBufferDynamic,
-                        .stride = sizeof(ModelBuffer),
+                        .range = sizeof(ModelBuffer),
                     },
                 },
             }});
     }
 
-    if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferCamera)) {
-        success &= ResourceRegistry<StaticBuffer>::insert(
+    if (!ResourceRegistry<ShaderBuffer>::contains(ResourceBufferCamera)) {
+        success &= ResourceRegistry<ShaderBuffer>::insert(
             ResourceBufferCamera,
-            StaticBuffer::Info<CameraBuffer>{
-                .type = StaticBuffer::Type::Constant,
+            ShaderBuffer::Info<CameraBuffer>{
+                .type = ShaderBuffer::Type::Constant,
             });
     }
 
-    if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferLight)) {
-        success &= ResourceRegistry<StaticBuffer>::insert(
+    if (!ResourceRegistry<ShaderBuffer>::contains(ResourceBufferLight)) {
+        success &= ResourceRegistry<ShaderBuffer>::insert(
             ResourceBufferLight,
-            StaticBuffer::Info<LightBuffer>{
-                .type = StaticBuffer::Type::Structured,
+            ShaderBuffer::Info<LightBuffer>{
+                .type = ShaderBuffer::Type::Structured,
             });
     }
 
-    if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferMaterial)) {
-        success &= ResourceRegistry<StaticBuffer>::insert(
+    if (!ResourceRegistry<ShaderBuffer>::contains(ResourceBufferMaterial)) {
+        success &= ResourceRegistry<ShaderBuffer>::insert(
             ResourceBufferMaterial,
-            StaticBuffer::Info<MaterialBuffer>{
-                .type = StaticBuffer::Type::Constant,
+            ShaderBuffer::Info<MaterialBuffer>{
+                .type = ShaderBuffer::Type::Constant,
             });
     }
 
-    if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferModel)) {
-        success &= ResourceRegistry<StaticBuffer>::insert(
+    if (!ResourceRegistry<ShaderBuffer>::contains(ResourceBufferModel)) {
+        success &= ResourceRegistry<ShaderBuffer>::insert(
             ResourceBufferModel,
-            StaticBuffer::Info<ModelBuffer>{
-                .type = StaticBuffer::Type::StructuredDynamic,
-                .count = 10,
+            ShaderBuffer::Info<ModelBuffer>{
+                .type = ShaderBuffer::Type::StructuredDynamic,
             });
     }
 
@@ -177,6 +176,20 @@ void ForwardRenderer::render(const RenderContext &context) {
         },
     };
 
+    std::uint64_t modelBufferSize = Builtin::RenderPipelineForward::ResourceBufferModel->getBuffers()[context.frameInFlight].getData().bufferInfo.size;
+    std::uint64_t requiredModelBufferSize = m_Objects.size() * sizeof(Builtin::RenderPipelineForward::ModelBuffer);
+
+    if (requiredModelBufferSize > modelBufferSize) {
+        Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, m_Objects.size());
+
+        // attach again since its a new buffer
+        m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
+            context,
+            Builtin::RenderPipelineForward::ResourceLayoutObject,
+            Builtin::RenderPipelineForward::ResourceBufferModel,
+            1);
+    }
+
     context.command.beginRendering({
         .renderArea = {
             .offset = {0, 0},
@@ -200,13 +213,13 @@ void ForwardRenderer::render(const RenderContext &context) {
     std::copy_n(spots.begin(), std::min(spots.size(), lightBuffer.spots.size()), lightBuffer.spots.begin());
 
     Builtin::RenderPipelineForward::ResourceBufferLight->update<Builtin::RenderPipelineForward::LightBuffer>(
-        m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
+        context, m_Scene->getSystem<Transfer>(),
         {lightBuffer});
 
     // upload camera
     const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
     Builtin::RenderPipelineForward::ResourceBufferCamera->update<Builtin::RenderPipelineForward::CameraBuffer>(
-        m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
+        context, m_Scene->getSystem<Transfer>(),
         {{
             .position = camera.getInfo().view.position,
             .view = camera.getView(),
@@ -228,7 +241,7 @@ void ForwardRenderer::render(const RenderContext &context) {
     std::size_t idx = 0;
     for (const auto &[model, models] : instances) {
         Builtin::RenderPipelineForward::ResourceBufferMaterial->update<Builtin::RenderPipelineForward::MaterialBuffer>(
-            m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
+            context, m_Scene->getSystem<Transfer>(),
             {{
                 .diffuse = {1.0f, 0.0f, 0.0f},
                 .specular = {0.0f, 0.0f, 0.0f},
@@ -236,11 +249,11 @@ void ForwardRenderer::render(const RenderContext &context) {
             }});
 
         Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(
-            m_Scene->getSystem<Renderer>(), m_Scene->getSystem<Transfer>(),
+            context, m_Scene->getSystem<Transfer>(),
             models, idx);
 
         Builtin::RenderPipelineForward::Resource->bind(context.command);
-        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context.command, Builtin::RenderPipelineForward::Resource, m_Scene->getSystem<Renderer>(), idx);
+        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context, Builtin::RenderPipelineForward::Resource, idx);
 
         for (const auto &[mesh, _] : model->getMeshs()) {
             if (mesh.getDescription() != Builtin::RenderPipelineForward::Resource->getInfo().description) {

@@ -40,9 +40,11 @@ class Renderer : public System<> {
     std::vector<std::shared_ptr<IRenderPass>> m_RenderPasses;
     std::uint32_t m_FrameInFlight = 0;
 
+    std::array<DeletionQueue, detail::MAX_FRAMES_IN_FLIGHT> m_DeletionQueues;
+
     struct {
         vk::CommandPool pool = nullptr;
-        std::vector<vk::CommandBuffer> buffers = {};
+        std::array<vk::CommandBuffer, detail::MAX_FRAMES_IN_FLIGHT> buffers = {};
     } m_Command = {};
 
     struct {

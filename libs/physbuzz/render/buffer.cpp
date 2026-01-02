@@ -78,11 +78,25 @@ const Buffer::Data &Buffer::getData() const {
     return m_Data;
 }
 
-void Buffer::copy(const vk::CommandBuffer &commandBuffer, const vk::BufferCopy &copy, const Buffer &srcBuffer) const {
-    PBZ_ASSERT(srcBuffer.m_Data.bufferInfo.size <= copy.size, "[Buffer] Not enough space in source buffer to copy from.");
-    PBZ_ASSERT(m_Data.bufferInfo.size <= copy.size, "[Buffer] Not enough space in destination buffer to copy to.");
+bool Buffer::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, std::vector<vk::BufferCopy> copies) const {
+    if (m_Data.buffer == nullptr || m_Allocation == nullptr) {
+        Logger::ERROR("[Buffer] Trying to copy to a destructed buffer.");
+        return false;
+    }
 
-    commandBuffer.copyBuffer(srcBuffer.m_Data.buffer, m_Data.buffer, {copy});
+    if (src.m_Data.buffer == nullptr || src.m_Allocation == nullptr) {
+        Logger::ERROR("[Buffer] Trying to copy from a destructed buffer.");
+        return false;
+    }
+
+    for (const auto &copy : copies) {
+        PBZ_ASSERT(copy.srcOffset + copy.size <= src.m_Data.bufferInfo.size, "[Buffer] Not enough space in source buffer to copy from.");
+        PBZ_ASSERT(copy.dstOffset + copy.size <= m_Data.bufferInfo.size, "[Buffer] Not enough space in destination buffer to copy to.");
+    }
+
+    commandBuffer.copyBuffer(src.m_Data.buffer, m_Data.buffer, copies);
+
+    return true;
 }
 
 bool Buffer::map(const std::span<const std::byte> &data, std::uint64_t offset) const {
@@ -114,8 +128,6 @@ bool Image::build(const glm::uvec3 &extent) {
         .initialLayout = vk::ImageLayout::eUndefined,
     };
 
-    // imgCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
     VmaAllocationCreateInfo allocCreateInfo = {};
     allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
     allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
@@ -142,7 +154,17 @@ bool Image::destroy() {
     return true;
 }
 
-void Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer) const {
+bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src) const {
+    if (m_Data.image == nullptr || m_Allocation == nullptr) {
+        Logger::ERROR("[Image] Trying to copy to a destructed image.");
+        return false;
+    }
+
+    if (src.m_Data.buffer == nullptr || src.m_Allocation == nullptr) {
+        Logger::ERROR("[Image] Trying to copy from a destructed image.");
+        return false;
+    }
+
     vk::BufferImageCopy region = {
         .bufferOffset = 0,
         .bufferRowLength = 0,
@@ -184,7 +206,7 @@ void Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer
         });
     }
 
-    commandBuffer.copyBufferToImage(srcBuffer.getData().buffer, m_Data.image, vk::ImageLayout::eTransferDstOptimal, {region});
+    commandBuffer.copyBufferToImage(src.getData().buffer, m_Data.image, vk::ImageLayout::eTransferDstOptimal, {region});
 
     {
         std::array barriers = {
@@ -212,6 +234,8 @@ void Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer
             .pImageMemoryBarriers = barriers.data(),
         });
     }
+
+    return true;
 }
 
 const Image::Info &Image::getInfo() const {
@@ -290,7 +314,7 @@ bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes
     // otherwise stage the buffer and copy from host to vram
     else {
         if (!stagingBuffer.build(bytes.size())) {
-            Logger::ERROR("[Transfer] Failed to build a transfer buffer.");
+            Logger::ERROR("[Transfer] Failed to build staging buffer.");
             PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
             return false;
         }
@@ -302,13 +326,18 @@ bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes
             return false;
         }
 
-        vk::BufferCopy copy = {
+        std::vector<vk::BufferCopy> copies = {{
             .srcOffset = 0,
             .dstOffset = offset,
             .size = bytes.size(),
-        };
+        }};
 
-        buffer.copy(m_Command.buffer, copy, stagingBuffer);
+        if (!buffer.copy(m_Command.buffer, stagingBuffer, copies)) {
+            Logger::ERROR("[Transfer] Failed to copy from staging buffer.");
+            stagingBuffer.destroy();
+            PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
+            return false;
+        }
     }
 
     // submit
@@ -352,20 +381,25 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &data) {
     }};
 
     if (!stagingBuffer.build(data.size())) {
-        Logger::ERROR("[Transfer] Failed to build a transfer buffer.");
+        Logger::ERROR("[Transfer] Failed to build image staging buffer.");
         PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
         return false;
     }
 
     if (!stagingBuffer.map(data, 0)) {
-        Logger::ERROR("[Transfer] Failed to map staging buffer.");
+        Logger::ERROR("[Transfer] Failed to map image from staging buffer.");
         stagingBuffer.destroy();
         PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
         return false;
     }
 
     // copy the buffer into a VkImage on the vram
-    image.copy(m_Command.buffer, stagingBuffer);
+    if (!image.copy(m_Command.buffer, stagingBuffer)) {
+        Logger::ERROR("[Transfer] Failed to copy image from staging buffer.");
+        stagingBuffer.destroy();
+        PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
+        return false;
+    }
 
     // submit
     PBZ_VK_CHECK_RESULT(m_Command.buffer.end());

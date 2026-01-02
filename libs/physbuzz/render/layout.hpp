@@ -2,11 +2,12 @@
 
 #include "../app/application.hpp"
 #include "../resources/resources.hpp"
+#include "renderers/defines.hpp"
 
 namespace Physbuzz {
 
 class Buffer;
-class StaticBuffer;
+class ShaderBuffer;
 class Texture;
 class RenderPipeline;
 class Renderer;
@@ -21,9 +22,9 @@ class PipelineLayout {
     struct Binding {
         Type type;
         ShaderStage stage = ShaderStageFlags::eAll;
-        std::uint64_t offset = 0;
-        std::uint64_t stride = 0;
         std::uint32_t count = 1;
+        std::uint64_t offset = 0;
+        std::uint32_t range;
     };
 
     struct Info {
@@ -80,12 +81,15 @@ class PipelineLayoutAllocator : public System<> {
     bool allocate(const Resource<PipelineLayout> &layout);
     bool deallocate(const Resource<PipelineLayout> &layout);
 
-    bool attach(const Resource<PipelineLayout> &layout, const Resource<StaticBuffer> &storage, std::uint32_t binding);
+    bool attach(const Resource<PipelineLayout> &layout, const Resource<ShaderBuffer> &storage, std::uint32_t binding);
     bool attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding);
+
+    bool attach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<ShaderBuffer> &storage, std::uint32_t binding);
+    bool attach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<Texture> &storage, std::uint32_t binding);
 
     void reset();
 
-    void bind(const vk::CommandBuffer &commandBuffer, const Resource<RenderPipeline> &pipeline, const std::shared_ptr<Renderer> renderer, std::uint32_t idx = 0);
+    void bind(const RenderContext &context, const Resource<RenderPipeline> &pipeline, std::uint32_t idx = 0);
 
   private:
     vk::DescriptorPool createPool();
@@ -96,6 +100,7 @@ class PipelineLayoutAllocator : public System<> {
     };
 
     std::unordered_map<Resource<PipelineLayout>, Allocation> m_AllocatedLayouts;
+    std::unordered_map<Resource<PipelineLayout>, std::uint32_t> m_AttachedCount;
 
     Info m_Info;
 

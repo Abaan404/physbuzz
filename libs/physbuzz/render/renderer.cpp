@@ -20,11 +20,13 @@ bool Renderer::build() {
         .queueFamilyIndex = App::Indices.graphics,
     }));
 
-    m_Command.buffers = PBZ_VK_CHECK(App::Device.allocateCommandBuffers({
+    vk::CommandBufferAllocateInfo allocateInfo = {
         .commandPool = m_Command.pool,
         .level = vk::CommandBufferLevel::ePrimary,
         .commandBufferCount = detail::MAX_FRAMES_IN_FLIGHT,
-    }));
+    };
+
+    PBZ_VK_CHECK_RESULT(App::Device.allocateCommandBuffers(&allocateInfo, m_Command.buffers.begin()));
 
     // create sync objects
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
@@ -70,6 +72,8 @@ bool Renderer::build() {
 }
 
 bool Renderer::destroy() {
+    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
+
     if (m_Command.pool == nullptr) {
         Logger::WARNING("[Renderer] Trying to destroy a destructed renderer.");
         return true;
@@ -85,6 +89,7 @@ bool Renderer::destroy() {
 
     // destroy sync objects
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
+        m_DeletionQueues[i].flush();
         App::Device.destroySemaphore(m_Semaphores.presentComplete[i]);
         App::Device.destroyFence(m_Fences.inFlight[i]);
     }
@@ -99,7 +104,7 @@ bool Renderer::destroy() {
 
     // destroy command objects
     App::Device.freeCommandBuffers(m_Command.pool, m_Command.buffers.size(), m_Command.buffers.data());
-    m_Command.buffers.clear();
+    m_Command.buffers.fill(nullptr);
 
     App::Device.destroyCommandPool(m_Command.pool);
     m_Command.pool = nullptr;
@@ -109,6 +114,7 @@ bool Renderer::destroy() {
 
 void Renderer::tick() {
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
+    m_DeletionQueues[m_FrameInFlight].flush();
 
     // fetch the next available swapchain image
     auto [acquireNextImageResult, imageIndex] = App::Device.acquireNextImageKHR(m_Info.window->m_SwapChain, std::numeric_limits<std::uint32_t>::max(), m_Semaphores.presentComplete[m_FrameInFlight], nullptr);
@@ -180,6 +186,7 @@ void Renderer::tick() {
 
     for (const auto &renderpasses : m_RenderPasses) {
         renderpasses->render({
+            .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
             .command = m_Command.buffers[m_FrameInFlight],
             .extent = extent,
             .frameInFlight = m_FrameInFlight,
@@ -347,7 +354,7 @@ std::uint32_t Renderer::getFrameInFlight() const {
 }
 
 void Renderer::resize(const glm::ivec2 &resolution) {
-    PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
+    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
 
     if (!m_Depth.image.destroy()) {
         Logger::WARNING("[ForwardRenderer] Could not destroy old depth image");

@@ -41,7 +41,7 @@ class Buffer {
     bool destroy();
 
     bool map(const std::span<const std::byte> &data, std::uint64_t offset) const;
-    void copy(const vk::CommandBuffer &commandBuffer, const vk::BufferCopy &copy, const Buffer &srcBuffer) const;
+    bool copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, std::vector<vk::BufferCopy> copies) const;
 
     const Info &getInfo() const;
     const Data &getData() const;
@@ -52,7 +52,8 @@ class Buffer {
 
     VmaAllocation m_Allocation = nullptr;
 
-    friend Transfer;
+    friend class Transfer;
+    friend class Image;
 };
 
 class Image {
@@ -96,7 +97,7 @@ class Image {
     bool build(const glm::uvec3 &extent);
     bool destroy();
 
-    void copy(const vk::CommandBuffer &commandBuffer, const Buffer &srcBuffer) const;
+    bool copy(const vk::CommandBuffer &commandBuffer, const Buffer &src) const;
 
     const Info &getInfo() const;
     const Data &getData() const;
@@ -107,7 +108,8 @@ class Image {
 
     VmaAllocation m_Allocation = nullptr;
 
-    friend Transfer;
+    friend class Transfer;
+    friend class Buffer;
 };
 
 class Transfer : public System<> {

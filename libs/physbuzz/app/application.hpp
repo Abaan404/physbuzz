@@ -2,6 +2,7 @@
 
 #include "../ecs/scene.hpp"
 #include "../window/window.hpp"
+#include "deletion.hpp"
 #include <slang-com-ptr.h>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
@@ -59,6 +60,8 @@ class App {
 
     // windows
     inline static std::unordered_map<std::string, std::shared_ptr<Window>> m_Windows;
+
+    friend class DeletionQueue;
 
     friend class PipelineLayoutAllocator;
     friend class PipelineLayout;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../app/deletion.hpp"
 #include "../../resources/resources.hpp"
 #include "../transform.hpp"
 #include <vulkan/vulkan.hpp>
@@ -20,6 +21,8 @@ struct RenderComponent {
 };
 
 struct RenderContext {
+    DeletionQueue *deletionQueue;
+
     vk::CommandBuffer command;
     vk::Extent2D extent;
     std::uint32_t frameInFlight;
@@ -33,7 +36,6 @@ struct RenderContext {
         vk::Image image;
         vk::ImageView view;
     } depth;
-
 };
 
 class IRenderPass {
