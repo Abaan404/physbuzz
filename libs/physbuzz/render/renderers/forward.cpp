@@ -252,7 +252,7 @@ void ForwardRenderer::render(const RenderContext &context) {
             context, m_Scene->getSystem<Transfer>(),
             models, idx);
 
-        Builtin::RenderPipelineForward::Resource->bind(context.command);
+        Builtin::RenderPipelineForward::Resource->bind(context);
         m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context, Builtin::RenderPipelineForward::Resource, idx);
 
         for (const auto &[mesh, _] : model->getMeshs()) {

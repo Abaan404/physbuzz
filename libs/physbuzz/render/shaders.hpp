@@ -12,6 +12,7 @@ namespace Physbuzz {
 
 class PipelineLayout;
 class VertexDescription;
+class RenderContext;
 
 class RenderPipeline {
   public:
@@ -105,25 +106,23 @@ class RenderPipeline {
     };
 
     RenderPipeline(const Info &info);
-    ~RenderPipeline();
 
     bool build();
     bool destroy();
 
-    void bind(const vk::CommandBuffer &commandBuffer) const;
+    void bind(const RenderContext &context);
 
     const Info &getInfo() const;
 
   private:
+    Info m_Info;
+
     vk::PipelineLayout m_Layout = nullptr;
     vk::Pipeline m_Pipeline = nullptr;
 
-    Slang::ComPtr<slang::ISession> m_Session = nullptr;
-
-    Info m_Info;
-
-    // template <ResourceType T>
-    // friend class ResourceRegistry;
+    struct {
+        EventID reload;
+    } m_Events;
 
     friend class PipelineLayoutAllocator;
 };

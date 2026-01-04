@@ -7,6 +7,7 @@
 #include "physbuzz/misc/clock.hpp"
 #include "physbuzz/physics/dynamics.hpp"
 #include "ui/handler.hpp"
+#include <filesystem>
 #include <physbuzz/app/application.hpp>
 #include <physbuzz/compat/imgui/imgui_impl_physbuzz.hpp>
 #include <physbuzz/events/window.hpp>
@@ -22,6 +23,8 @@
 void Game::build() {
     Physbuzz::App::init();
     Physbuzz::Context::set(this);
+    Physbuzz::ResourceRegistry<Physbuzz::RenderPipeline>::setResourceDirectory(std::filesystem::current_path() / "resources" / "shaders");
+    Physbuzz::ResourceRegistry<Physbuzz::RenderPipeline>::watch();
 
     std::shared_ptr<Physbuzz::Window> window = Physbuzz::App::createWindow("main", {}, {1280, 720});
 
@@ -168,7 +171,8 @@ void Game::build() {
         LightDirectional directional = {
             .directionalLight = {
                 .direction = {1.0f, -1.0f, -1.0f},
-                .intensity = {0.0f, 0.0f, 1.0f}},
+                .intensity = {0.0f, 0.0f, 1.0f},
+            },
         };
 
         ObjectBuilder::create(Physbuzz::App::GScene, directional);

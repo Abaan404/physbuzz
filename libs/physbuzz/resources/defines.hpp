@@ -2,7 +2,6 @@
 
 #include <concepts>
 #include <efsw/efsw.hpp>
-#include <filesystem>
 #include <string>
 #include <type_traits>
 
@@ -18,12 +17,6 @@ enum class WatchAction {
     Delete = efsw::Action::Delete,
     Modified = efsw::Action::Modified,
     Moved = efsw::Action::Moved,
-};
-
-struct ResourceWatcherData {
-    WatchAction action;
-    ResourceID identifier;
-    std::filesystem::path path;
 };
 
 template <typename T>

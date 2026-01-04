@@ -2,8 +2,10 @@
 
 #include "../app/application.hpp"
 #include "../debug/macros.hpp"
+#include "../events/resources.hpp"
 #include "layout.hpp"
 #include "mesh.hpp"
+#include <filesystem>
 #include <glm/gtc/type_ptr.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
@@ -13,11 +15,7 @@ namespace Physbuzz {
 RenderPipeline::RenderPipeline(const Info &info)
     : m_Info(info) {}
 
-RenderPipeline::~RenderPipeline() {}
-
 bool RenderPipeline::build() {
-    PBZ_ASSERT(App::Device != nullptr, "[RenderPipeline] App::build() not called.");
-
     if (m_Pipeline != nullptr) {
         Logger::WARNING("[RenderPipeline] Trying to build a constructed pipeline.");
         return true;
@@ -100,7 +98,7 @@ bool RenderPipeline::build() {
         .stencilTestEnable = m_Info.depthStencil.stencilTestEnable,
     };
 
-    std::filesystem::path resourcePath = ResourceRegistry<RenderPipeline>::getResourceDirectory() / "shaders";
+    std::filesystem::path resourcePath = ResourceRegistry<RenderPipeline>::getResourceDirectory();
 
     std::array targets = {slang::TargetDesc{.format = SLANG_SPIRV}};
     std::array searchPaths = {resourcePath.c_str()};
@@ -112,10 +110,17 @@ bool RenderPipeline::build() {
         .searchPathCount = searchPaths.size(),
     };
 
-    App::SlangSession->createSession(sessionDesc, m_Session.writeRef());
+    Slang::ComPtr<slang::ISession> session = nullptr;
+    App::SlangSession->createSession(sessionDesc, session.writeRef());
 
     Slang::ComPtr<slang::IBlob> diagnostics;
-    Slang::ComPtr<slang::IModule> module = Slang::ComPtr{m_Session->loadModule(m_Info.module.c_str(), diagnostics.writeRef())};
+    Slang::ComPtr<slang::IModule> module = Slang::ComPtr{session->loadModule(m_Info.module.c_str(), diagnostics.writeRef())};
+
+    std::set<std::filesystem::path> dependencyFilePaths;
+
+    for (int i = 0; i < module->getDependencyFileCount(); i++) {
+        dependencyFilePaths.insert(module->getDependencyFilePath(i));
+    }
 
     if (diagnostics) {
         Logger::ERROR("[RenderPipeline] Failed loading shader module '{}'", m_Info.module);
@@ -133,7 +138,7 @@ bool RenderPipeline::build() {
     }
 
     Slang::ComPtr<slang::IComponentType> program;
-    m_Session->createCompositeComponentType(components.data(), components.size(), program.writeRef(), diagnostics.writeRef());
+    session->createCompositeComponentType(components.data(), components.size(), program.writeRef(), diagnostics.writeRef());
 
     if (diagnostics) {
         Logger::ERROR("[RenderPipeline] Failed composing shader module '{}'", m_Info.module);
@@ -273,6 +278,14 @@ bool RenderPipeline::build() {
         App::Device.destroyShaderModule(module);
     }
 
+    m_Events.reload = ResourceRegistry<RenderPipeline>::Events.addCallback<OnResourceReload>([dependencyFilePaths](const OnResourceReload &event) {
+        if (event.action != WatchAction::Modified || !dependencyFilePaths.contains(std::filesystem::weakly_canonical(event.filePath))) {
+            return;
+        }
+
+        Logger::DEBUG("[RenderPipeline] {} Reloading... {}", event.identifier, event.filePath.string());
+    });
+
     return true;
 }
 
@@ -283,12 +296,15 @@ bool RenderPipeline::destroy() {
     }
 
     App::Device.destroyPipelineLayout(m_Layout);
+    m_Layout = nullptr;
+
     App::Device.destroyPipeline(m_Pipeline);
+    m_Pipeline = nullptr;
     return true;
 }
 
-void RenderPipeline::bind(const vk::CommandBuffer &commandBuffer) const {
-    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline);
+void RenderPipeline::bind(const RenderContext &context) {
+    context.command.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline);
 }
 
 const RenderPipeline::Info &RenderPipeline::getInfo() const {

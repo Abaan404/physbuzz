@@ -1,37 +1,13 @@
 #pragma once
 
-#include "../containers/contigiousmap.hpp"
+#include "../debug/logging.hpp"
+#include "../debug/macros.hpp"
 #include "../events/handler.hpp"
 #include "../events/resources.hpp"
 #include "defines.hpp"
 #include <glm/detail/type_quat.hpp>
 
 namespace Physbuzz {
-
-namespace detail {
-
-template <typename T>
-concept ResourceWatched = requires(T a) {
-    requires std::same_as<decltype(a.m_ReloadCallback), std::function<void(const ResourceWatcherData &)>>;
-} && ResourceType<T>;
-
-template <ResourceType T>
-class ResourceFileWatcher : public efsw::FileWatchListener {
-  public:
-    std::unordered_map<ResourceID, std::function<void(const ResourceWatcherData &)>> callbacks;
-
-    void handleFileAction(efsw::WatchID, const std::string &directory, const std::string &filename, efsw::Action action, std::string) override {
-        for (const auto &[id, callback] : callbacks) {
-            callback({
-                .action = static_cast<WatchAction>(action),
-                .identifier = id,
-                .path = directory + filename,
-            });
-        }
-    }
-};
-
-} // namespace detail
 
 template <ResourceType T>
 class ResourceRegistry {
@@ -49,11 +25,7 @@ class ResourceRegistry {
             return false;
         }
 
-        m_Container.insert(identifier, std::move(resource));
-
-        if constexpr (detail::ResourceWatched<T>) {
-            m_Listener.callbacks[identifier] = m_Container.get(identifier).m_ReloadCallback;
-        }
+        m_Registry.emplace(identifier, std::move(resource));
 
         Events.notifyCallbacks<OnResourceBuild>({
             .identifier = identifier,
@@ -68,7 +40,7 @@ class ResourceRegistry {
             return false;
         }
 
-        T &resource = m_Container.get(identifier);
+        T &resource = m_Registry.at(identifier);
 
         Events.notifyCallbacks<OnResourceDestroy>({
             .identifier = identifier,
@@ -79,61 +51,80 @@ class ResourceRegistry {
             return false;
         }
 
-        m_Container.erase(identifier);
-        m_Listener.callbacks.erase(identifier);
+        m_Registry.erase(identifier);
 
         return true;
     }
 
     inline static bool contains(const ResourceID &identifier) {
-        return m_Container.contains(identifier);
+        return m_Registry.contains(identifier);
     }
 
     inline static void clear() {
-        std::set<ResourceID> keys = m_Container.getKeys();
+        std::vector<ResourceID> keys;
+        keys.reserve(m_Registry.size());
+
+        for (const auto &[id, value] : m_Registry) {
+            keys.emplace_back(id);
+        }
+
         for (const auto &id : keys) {
             erase(id);
         }
-        m_Container.clear();
+
+        m_Registry.clear();
         Events.clearCallbacks();
     }
 
     inline static void watch() {
-        m_Watcher.allowOutOfScopeLinks(true);
-        m_Watcher.followSymlinks(true);
-
-        if (m_ResourceDirectory.empty()) {
-            setResourceDirectory(std::filesystem::current_path() / "resources"); // use cwd by default
+        if (m_WatchID != -1) {
+            return;
         }
 
+        m_WatchID = m_Watcher.addWatch(m_ResourceDirectory, &m_Listener, true);
         m_Watcher.watch();
     }
 
-    inline static void setResourceDirectory(const std::filesystem::path &directory) {
+    inline static bool setResourceDirectory(const std::filesystem::path &directory) {
         if (!std::filesystem::is_directory(directory)) {
-            return;
+            Logger::ERROR("[ResourceRegistry] path {} is not a directory.", directory.string());
+            return false;
         }
 
         m_ResourceDirectory = directory;
 
-        static efsw::WatchID resourcePathWatchId = -1;
-        m_Watcher.removeWatch(resourcePathWatchId);
-        m_Watcher.addWatch(directory, &m_Listener, true);
+        if (m_WatchID != -1) {
+            m_Watcher.removeWatch(m_WatchID);
+            m_WatchID = m_Watcher.addWatch(directory, &m_Listener, true);
+        }
+
+        return true;
     }
 
     inline static const std::filesystem::path &getResourceDirectory() {
         return m_ResourceDirectory;
     }
 
-    // crappy workaround to allow this static class to generate events through a proxy
     static inline EventSubject Events;
 
   private:
-    inline static ContiguousMap<ResourceID, T> m_Container;
-
-    inline static detail::ResourceFileWatcher<T> m_Listener;
-    inline static efsw::FileWatcher m_Watcher;
+    inline static std::unordered_map<ResourceID, T> m_Registry;
     inline static std::filesystem::path m_ResourceDirectory = std::filesystem::current_path() / "resources";
+
+    inline static efsw::WatchID m_WatchID = -1;
+    inline static efsw::FileWatcher m_Watcher;
+    inline static class : public efsw::FileWatchListener {
+      public:
+        void handleFileAction(efsw::WatchID, const std::string &directory, const std::string &filename, efsw::Action action, std::string) override {
+            for (const auto &[identifier, _] : m_Registry) {
+                Events.notifyCallbacks<OnResourceReload>({
+                    .identifier = identifier,
+                    .filePath = directory + filename,
+                    .action = static_cast<WatchAction>(action),
+                });
+            }
+        }
+    } m_Listener;
 
     template <typename>
     friend class Resource;
@@ -163,7 +154,7 @@ class Resource {
         requires ResourceType<T>
     {
         PBZ_ASSERT(ResourceRegistry<T>::contains(m_Identifier), std::format("[Resource] Resource \"{}\" does not exist for type", m_Identifier));
-        return ResourceRegistry<T>::m_Container.get(m_Identifier);
+        return ResourceRegistry<T>::m_Registry.at(m_Identifier);
     }
 
     const ResourceID &getIdentifier() const {
