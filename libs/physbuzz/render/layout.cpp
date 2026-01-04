@@ -178,7 +178,7 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
     }
 
     if (layout->getInfo().bindings[binding].type != type) {
-        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
+        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource '{}'", binding, layout.getIdentifier());
         return false;
     }
 
@@ -215,7 +215,7 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
 
 bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding) {
     if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eCombinedImageSampler) {
-        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
+        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource '{}'", binding, layout.getIdentifier());
         return false;
     }
 
@@ -267,7 +267,7 @@ bool PipelineLayoutAllocator::attach(const RenderContext &context, const Resourc
     }
 
     if (layout->getInfo().bindings[binding].type != type) {
-        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
+        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource '{}'", binding, layout.getIdentifier());
         return false;
     }
 
@@ -299,7 +299,7 @@ bool PipelineLayoutAllocator::attach(const RenderContext &context, const Resourc
 
 bool PipelineLayoutAllocator::attach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding) {
     if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eCombinedImageSampler) {
-        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource \"{}\"", binding, layout.getIdentifier());
+        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource '{}'", binding, layout.getIdentifier());
         return false;
     }
 
@@ -350,7 +350,7 @@ void PipelineLayoutAllocator::bind(const RenderContext &context, const Resource<
         const Resource<PipelineLayout> &layout = pipeline->getInfo().layouts[i];
 
         if (!m_AllocatedLayouts.contains(layout)) {
-            Logger::DEBUG("[PipelineLayoutAllocator] Allocating layout \"{}\" for pipeline \"{}\"", layout.getIdentifier(), pipeline.getIdentifier());
+            Logger::DEBUG("[PipelineLayoutAllocator] Allocating layout '{}' for pipeline '{}'", layout.getIdentifier(), pipeline.getIdentifier());
             if (!allocate(layout)) {
                 Logger::CRITICAL("[PipelineLayoutAllocator] Could not allocate layout to bind PipelineLayout.");
                 continue;

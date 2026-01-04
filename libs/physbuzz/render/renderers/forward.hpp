@@ -60,6 +60,8 @@ class ForwardRenderer : public IRenderPass,
   public:
     struct Info {
         ObjectID camera;
+
+        Resource<RenderPipeline> pipeline = Builtin::RenderPipelineForward::Resource;
     };
 
     ForwardRenderer(const Info &info);
@@ -72,8 +74,11 @@ class ForwardRenderer : public IRenderPass,
   private:
     Info m_Info;
 
+    bool m_ReloadedPipeline = false;
+
     struct {
         EventID resize = -1;
+        EventID pipelineReload = -1;
     } m_Events = {};
 };
 

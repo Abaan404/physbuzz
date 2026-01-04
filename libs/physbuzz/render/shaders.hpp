@@ -110,6 +110,8 @@ class RenderPipeline {
     bool build();
     bool destroy();
 
+    bool isDependantFile(const std::filesystem::path &file);
+
     void bind(const RenderContext &context);
 
     const Info &getInfo() const;
@@ -120,9 +122,7 @@ class RenderPipeline {
     vk::PipelineLayout m_Layout = nullptr;
     vk::Pipeline m_Pipeline = nullptr;
 
-    struct {
-        EventID reload;
-    } m_Events;
+    std::set<std::filesystem::path> m_DependencyFilePaths;
 
     friend class PipelineLayoutAllocator;
 };

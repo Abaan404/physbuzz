@@ -63,7 +63,7 @@ bool Renderer::build() {
     }));
 
     m_Events = {
-        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const auto &event) {
+        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const WindowSwapchainResizeEvent &event) {
             resize(event.resolution);
         }),
     };

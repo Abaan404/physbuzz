@@ -45,7 +45,7 @@ bool Model::build(std::shared_ptr<Transfer> transfer) {
         Assimp::Importer importer;
         const aiScene *scene = importer.ReadFile(m_Info.path, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-            Logger::ERROR("[Model] Could not import model at \"{}\". Assimp Error: \n{}", m_Info.path.string(), importer.GetErrorString());
+            Logger::ERROR("[Model] Could not import model at '{}'. Assimp Error: \n{}", m_Info.path.string(), importer.GetErrorString());
             return false;
         }
 
@@ -125,7 +125,7 @@ bool Model::processMesh(const aiMesh *aimesh, const aiScene *scene) {
         aiFace face = aimesh->mFaces[i];
 
         if (face.mNumIndices % 3 != 0) {
-            Logger::ERROR("[Model] Invalid number of indices for model \"{}\"");
+            Logger::ERROR("[Model] Invalid number of indices for model '{}'");
             return false;
         }
 

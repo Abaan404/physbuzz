@@ -2,7 +2,6 @@
 
 #include "../app/application.hpp"
 #include "../debug/macros.hpp"
-#include "../events/resources.hpp"
 #include "layout.hpp"
 #include "mesh.hpp"
 #include <filesystem>
@@ -116,16 +115,14 @@ bool RenderPipeline::build() {
     Slang::ComPtr<slang::IBlob> diagnostics;
     Slang::ComPtr<slang::IModule> module = Slang::ComPtr{session->loadModule(m_Info.module.c_str(), diagnostics.writeRef())};
 
-    std::set<std::filesystem::path> dependencyFilePaths;
-
-    for (int i = 0; i < module->getDependencyFileCount(); i++) {
-        dependencyFilePaths.insert(module->getDependencyFilePath(i));
-    }
-
     if (diagnostics) {
         Logger::ERROR("[RenderPipeline] Failed loading shader module '{}'", m_Info.module);
         Logger::ERROR((const char *)diagnostics->getBufferPointer());
         return false;
+    }
+
+    for (int i = 0; i < module->getDependencyFileCount(); i++) {
+        m_DependencyFilePaths.insert(module->getDependencyFilePath(i));
     }
 
     std::vector<slang::IComponentType *> components;
@@ -278,14 +275,6 @@ bool RenderPipeline::build() {
         App::Device.destroyShaderModule(module);
     }
 
-    m_Events.reload = ResourceRegistry<RenderPipeline>::Events.addCallback<OnResourceReload>([dependencyFilePaths](const OnResourceReload &event) {
-        if (event.action != WatchAction::Modified || !dependencyFilePaths.contains(std::filesystem::weakly_canonical(event.filePath))) {
-            return;
-        }
-
-        Logger::DEBUG("[RenderPipeline] {} Reloading... {}", event.identifier, event.filePath.string());
-    });
-
     return true;
 }
 
@@ -301,6 +290,10 @@ bool RenderPipeline::destroy() {
     App::Device.destroyPipeline(m_Pipeline);
     m_Pipeline = nullptr;
     return true;
+}
+
+bool RenderPipeline::isDependantFile(const std::filesystem::path &file) {
+    return m_DependencyFilePaths.contains(std::filesystem::weakly_canonical(file));
 }
 
 void RenderPipeline::bind(const RenderContext &context) {

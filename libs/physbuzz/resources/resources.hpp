@@ -16,12 +16,12 @@ class ResourceRegistry {
         requires ResourceBuildableType<T, Args...>
     inline static bool insert(const ResourceID &identifier, T &&resource, Args... args) {
         if (contains(identifier)) {
-            Logger::ERROR("[ResourceRegistry] resource \"{}\" was already loaded.", identifier);
+            Logger::ERROR("[ResourceRegistry] resource '{}' was already loaded.", identifier);
             return false;
         }
 
         if (!resource.build(std::forward<Args>(args)...)) {
-            Logger::ERROR("[ResourceRegistry] Failed to build resource \"{}\".", identifier);
+            Logger::ERROR("[ResourceRegistry] Failed to build resource '{}'.", identifier);
             return false;
         }
 
@@ -36,7 +36,7 @@ class ResourceRegistry {
 
     inline static bool erase(const ResourceID &identifier) {
         if (!contains(identifier)) {
-            Logger::ERROR("[ResourceRegistry] resource \"{}\" was already unloaded or not found.", identifier);
+            Logger::ERROR("[ResourceRegistry] resource '{}' was already unloaded or not found.", identifier);
             return false;
         }
 
@@ -47,7 +47,7 @@ class ResourceRegistry {
         });
 
         if (!resource.destroy()) {
-            Logger::ERROR("[ResourceRegistry] Failed to destroy resource \"{}\".", identifier);
+            Logger::ERROR("[ResourceRegistry] Failed to destroy resource '{}'.", identifier);
             return false;
         }
 
@@ -146,6 +146,10 @@ class Resource {
         return m_Identifier;
     }
 
+    operator T &() {
+        return get();
+    }
+
     bool operator==(const Resource<T> &other) const {
         return m_Identifier == other.m_Identifier;
     }
@@ -153,7 +157,7 @@ class Resource {
     T &get() const
         requires ResourceType<T>
     {
-        PBZ_ASSERT(ResourceRegistry<T>::contains(m_Identifier), std::format("[Resource] Resource \"{}\" does not exist for type", m_Identifier));
+        PBZ_ASSERT(ResourceRegistry<T>::contains(m_Identifier), std::format("[Resource] Resource '{}' does not exist for type", m_Identifier));
         return ResourceRegistry<T>::m_Registry.at(m_Identifier);
     }
 

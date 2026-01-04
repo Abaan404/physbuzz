@@ -107,6 +107,8 @@ bool RenderPipelineForward::build() {
 
 } // namespace Builtin
 
+std::mutex PipelineReloadMutex;
+
 ForwardRenderer::ForwardRenderer(const Info &info)
     : m_Info(info) {}
 
@@ -141,9 +143,50 @@ bool ForwardRenderer::build() {
 
     if (success) {
         m_Events = {
-            .resize = m_Scene->getSystem<Renderer>()->getInfo().window->addCallback<WindowSwapchainResizeEvent>([&](const auto &event) {
+            .resize = m_Scene->getSystem<Renderer>()->getInfo().window->addCallback<WindowSwapchainResizeEvent>([&](const WindowSwapchainResizeEvent &event) {
                 const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
                 camera.resize(event.resolution);
+            }),
+            .pipelineReload = ResourceRegistry<RenderPipeline>::Events.addCallback<OnResourceReload>([&](const OnResourceReload &event) {
+                Resource<RenderPipeline> pipeline = {event.identifier};
+
+                // not bound to this pipeline
+                if (pipeline != m_Info.pipeline) {
+                    return;
+                }
+
+                if (event.action != WatchAction::Modified || !pipeline->isDependantFile(event.filePath)) {
+                    return;
+                }
+
+                Logger::INFO("[RenderPipeline] Reloading resource '{}'.", event.identifier, event.filePath.string());
+                ResourceID identifier = m_Info.pipeline.getIdentifier();
+
+                std::size_t bracketOpen = identifier.rfind(" (");
+                std::size_t bracketClose = identifier.rfind(")");
+                if (bracketOpen != std::string::npos && bracketClose != std::string::npos) {
+                    std::string num = identifier.substr(bracketOpen + 2, bracketClose - (bracketOpen + 2));
+                    if (!num.empty() && std::all_of(num.begin(), num.end(), [](unsigned char c) {
+                            return std::isdigit(c);
+                        })) {
+                        identifier = std::format("{} ({})", identifier.substr(0, bracketOpen), std::stoi(num) + 1);
+                    } else {
+                        identifier = std::format("{} (1)", identifier);
+                    }
+                } else {
+                    identifier = std::format("{} (1)", identifier);
+                }
+
+                if (ResourceRegistry<RenderPipeline>::insert(identifier, m_Info.pipeline->getInfo())) {
+                    PipelineReloadMutex.lock();
+
+                    // replace pipeline (we dont destroy the old pipeline until the program exits)
+                    m_Info.pipeline = identifier;
+
+                    PipelineReloadMutex.unlock();
+                } else {
+                    Logger::WARNING("[ForwardRenderer] Failed to hot-reload render pipeline '{}'.", m_Info.pipeline.getIdentifier());
+                }
             }),
         };
     }
@@ -153,6 +196,7 @@ bool ForwardRenderer::build() {
 
 bool ForwardRenderer::destroy() {
     m_Scene->getSystem<Renderer>()->getInfo().window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
+    m_Scene->getSystem<Renderer>()->getInfo().window->eraseCallback<OnResourceReload>(m_Events.pipelineReload);
     return true;
 }
 
@@ -238,6 +282,8 @@ void ForwardRenderer::render(const RenderContext &context) {
         });
     }
 
+    PipelineReloadMutex.lock();
+
     std::size_t idx = 0;
     for (const auto &[model, models] : instances) {
         Builtin::RenderPipelineForward::ResourceBufferMaterial->update<Builtin::RenderPipelineForward::MaterialBuffer>(
@@ -252,11 +298,11 @@ void ForwardRenderer::render(const RenderContext &context) {
             context, m_Scene->getSystem<Transfer>(),
             models, idx);
 
-        Builtin::RenderPipelineForward::Resource->bind(context);
-        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context, Builtin::RenderPipelineForward::Resource, idx);
+        m_Info.pipeline->bind(context);
+        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context, m_Info.pipeline, idx);
 
         for (const auto &[mesh, _] : model->getMeshs()) {
-            if (mesh.getDescription() != Builtin::RenderPipelineForward::Resource->getInfo().description) {
+            if (mesh.getDescription() != m_Info.pipeline->getInfo().description) {
                 Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
                 return;
             }
@@ -266,6 +312,8 @@ void ForwardRenderer::render(const RenderContext &context) {
 
         idx++;
     }
+
+    PipelineReloadMutex.unlock();
 
     context.command.endRendering();
 }
