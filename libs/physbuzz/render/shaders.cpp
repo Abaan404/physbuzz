@@ -99,7 +99,20 @@ bool RenderPipeline::build() {
 
     std::filesystem::path resourcePath = ResourceRegistry<RenderPipeline>::getResourceDirectory();
 
-    std::array targets = {slang::TargetDesc{.format = SLANG_SPIRV}};
+    std::vector<slang::CompilerOptionEntry> compilerOptions;
+
+#if !defined(NDEBUG)
+    compilerOptions.emplace_back<slang::CompilerOptionEntry>({
+        .name = slang::CompilerOptionName::DebugInformation,
+        .value = {slang::CompilerOptionValueKind::Int, SLANG_DEBUG_INFO_LEVEL_STANDARD},
+    });
+#endif
+
+    std::array targets = {slang::TargetDesc{
+        .format = SLANG_SPIRV,
+        .compilerOptionEntries = compilerOptions.data(),
+        .compilerOptionEntryCount = static_cast<std::uint32_t>(compilerOptions.size()),
+    }};
     std::array searchPaths = {resourcePath.c_str()};
 
     slang::SessionDesc sessionDesc = {

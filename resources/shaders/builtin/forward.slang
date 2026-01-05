@@ -28,7 +28,7 @@ struct InstanceData {
 ConstantBuffer<Camera> camera;
 
 [[vk::binding(1, 0)]]
-StructuredBuffer<Light> light;
+ConstantBuffer<Light> light;
 
 [[vk::binding(0, 1)]]
 ConstantBuffer<SimpleMaterial> material;
@@ -71,8 +71,8 @@ VSOutput vertMain(VSInput input) {
     float3 B = cross(N, T);
 
     output.coarseVertex.TBN = float3x3(T, B, N);
-    output.coarseVertex.position = mul(model, float4(input.position, 1.0)).xyz;
-    output.coarseVertex.normal = mul(float3x3(transpose(invModel)), input.normal);
+    output.coarseVertex.position = mul(float4(input.position, 1.0), model).xyz;
+    output.coarseVertex.normal = mul(input.normal, float3x3(invModel));
     output.coarseVertex.texCoord0 = input.texCoord0;
 
     return output;
@@ -93,11 +93,11 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
 
     float3 color = {};
 
-    color += saturate(light[0].directionals.illuminate(geometry, brdf, viewDirection));
-    color += saturate(light[0].points.illuminate(geometry, brdf, viewDirection));
-    color += saturate(light[0].spots.illuminate(geometry, brdf, viewDirection));
+    color += saturate(light.directionals.illuminate(geometry, brdf, viewDirection));
+    color += saturate(light.points.illuminate(geometry, brdf, viewDirection));
+    color += saturate(light.spots.illuminate(geometry, brdf, viewDirection));
 
-    return float4(float3(1.0f), 1.0);
+    return float4(color, 1.0);
 }
 
 }

@@ -33,7 +33,7 @@ bool RenderPipelineForward::build() {
                     },
                     {
                         // lights
-                        .type = Physbuzz::PipelineLayout::Type::eStorageBuffer,
+                        .type = Physbuzz::PipelineLayout::Type::eUniformBuffer,
                         .range = sizeof(LightBuffer),
                     },
                 },
@@ -71,7 +71,7 @@ bool RenderPipelineForward::build() {
         success &= ResourceRegistry<ShaderBuffer>::insert(
             ResourceBufferLight,
             ShaderBuffer::Info<LightBuffer>{
-                .type = ShaderBuffer::Type::Structured,
+                .type = ShaderBuffer::Type::Constant,
             });
     }
 
@@ -290,8 +290,8 @@ void ForwardRenderer::render(const RenderContext &context) {
             context, m_Scene->getSystem<Transfer>(),
             {{
                 .diffuse = {1.0f, 0.0f, 0.0f},
-                .specular = {0.0f, 0.0f, 0.0f},
-                .specularity = 0.0f,
+                .specular = {1.0f, 1.0f, 1.0f},
+                .specularity = 128.0f,
             }});
 
         Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(

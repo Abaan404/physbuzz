@@ -88,6 +88,9 @@ void Game::build() {
                 },
             }},
             .player = {},
+            .flashlight = {
+                .intensity = {1000.0f, 1000.0f, 1000.0f}
+            },
         };
 
         playerId = ObjectBuilder::create(Physbuzz::App::GScene, player);
@@ -139,39 +142,41 @@ void Game::build() {
         }
     }
 
-    // {
-    //     for (int i = 0; i < 1; ++i) {
-    //         LightCube lightCube = {
-    //             .cube = {
-    //                 .cube = {
-    //                     .width = 10.0f,
-    //                     .height = 10.0f,
-    //                     .length = 10.0f,
-    //                 },
-    //                 .transform = {
-    //                     .position = {distribution(rd), distribution(rd) + 250, distribution(rd)},
-    //                     .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
-    //                 },
-    //                 .identifier = {},
-    //                 .resources = {
-    //                     .textures = {
-    //                         {"default/diffuse"},
-    //                         {"default/specular"},
-    //                     },
-    //                 },
-    //             },
-    //             .pointLight = {.intensity = {1.0f, 1.0f, 0.0f}},
-    //         };
-    //
-    //         ObjectBuilder::create(Physbuzz::App::GScene, lightCube);
-    //     }
-    // }
+    {
+        for (int i = 0; i < 3; ++i) {
+            LightCube lightCube = {
+                .cube = {
+                    .cube = {
+                        .width = 10.0f,
+                        .height = 10.0f,
+                        .length = 10.0f,
+                    },
+                    .transform = {
+                        .position = {(i - 5 / 2) * 100, 150, 0},
+                        .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
+                    },
+                    .identifier = {},
+                    .resources = {
+                        .textures = {
+                            {"default/diffuse"},
+                            {"default/specular"},
+                        },
+                    },
+                },
+                .pointLight = {
+                    .intensity = {2000.0f, 2000.0f, 2000.0f},
+                },
+            };
+
+            ObjectBuilder::create(Physbuzz::App::GScene, lightCube);
+        }
+    }
 
     {
         LightDirectional directional = {
             .directionalLight = {
                 .direction = {1.0f, -1.0f, -1.0f},
-                .intensity = {0.0f, 0.0f, 1.0f},
+                .intensity = {0.05f, 0.05f, 0.05f},
             },
         };
 

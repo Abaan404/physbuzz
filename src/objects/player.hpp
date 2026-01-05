@@ -18,10 +18,7 @@ struct Player {
 
     // geometry
     PlayerComponent player;
-    Physbuzz::SpotLightComponent flashlight = {
-        .cutOff = glm::radians(12.5f),
-        .outerCutOff = glm::radians(17.5f),
-    };
+    Physbuzz::SpotLightComponent flashlight;
 
     // naming
     IdentifiableComponent identifier = {

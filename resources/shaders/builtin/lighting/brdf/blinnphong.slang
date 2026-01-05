@@ -8,8 +8,7 @@ public struct BlinnPhong : IBRDF {
     public float shininess;
 
     public float3 evaluate(float3 incident, float3 exitant, float3 normal) {
-        float nDotL = saturate(dot(normal, exitant));
-        float3 diffuse = kd * saturate(dot(normal, exitant));
+        float3 diffuse = kd;
 
         float nDotH = saturate(dot(normal, normalize(exitant + incident)));
         float3 specular = ks * pow(nDotH, shininess);
