@@ -1,7 +1,7 @@
 #include "objectlist.hpp"
 
 #include "../objects/circle.hpp"
-#include "../objects/cube.hpp"
+#include "../objects/cuboid.hpp"
 #include "../objects/line.hpp"
 #include "../objects/quad.hpp"
 #include <glm/ext/quaternion_trigonometric.hpp>
@@ -125,16 +125,16 @@ void ObjectList::draw() {
                 }
             }
 
-            if (m_Scene->containsComponent<CubeComponent>(object)) {
+            if (m_Scene->containsComponent<CuboidComponent>(object)) {
                 ImGui::SeparatorText("Cube");
 
-                const auto [cube] = m_Scene->getComponent<CubeComponent>(object);
-                float whl[] = {cube.width, cube.height, cube.length};
+                const auto [cube] = m_Scene->getComponent<CuboidComponent>(object);
+                float whl[] = {cube.width, cube.breadth, cube.height};
 
                 if (ImGui::DragFloat3("cube", whl, 1.0f, MIN_VALUE, MAX_VALUE)) {
                     cube.width = whl[0];
-                    cube.height = whl[1];
-                    cube.length = whl[2];
+                    cube.breadth = whl[1];
+                    cube.height = whl[2];
 
                     rebuild = true;
                 }

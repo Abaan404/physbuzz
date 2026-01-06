@@ -4,7 +4,7 @@
 #include "../render/layout.hpp"
 #include "../render/layouts/shaderbuffer.hpp"
 #include "../render/layouts/texture.hpp"
-#include "../render/model.hpp"
+#include "../render/mesh.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <map>
@@ -208,8 +208,11 @@ bool App::init() {
     vk::PhysicalDeviceFeatures2 deviceFeatures = PhysicalDevice.getFeatures2();
     deviceFeatures.features.samplerAnisotropy = true;
 
-    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> deviceFeatureChain = {
+    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> deviceFeatureChain = {
         deviceFeatures,
+        {
+            .shaderDrawParameters = true,
+        },
         {
             .synchronization2 = true,
             .dynamicRendering = true, // Enable dynamic rendering from Vulkan 1.3
@@ -277,11 +280,11 @@ bool App::quit() {
     GScene.clear();
 
     // cleanup vulkan resources
-    ResourceRegistry<Model>::clear();
     ResourceRegistry<RenderPipeline>::clear();
     ResourceRegistry<PipelineLayout>::clear();
     ResourceRegistry<ShaderBuffer>::clear();
     ResourceRegistry<Texture>::clear();
+    ResourceRegistry<Mesh>::clear();
 
     vmaDestroyAllocator(Allocator);
 

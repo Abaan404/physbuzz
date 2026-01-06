@@ -13,5 +13,5 @@ void ResourceBuilder::buildModels() {
 }
 
 void ResourceBuilder::destroyModels() {
-    Physbuzz::ResourceRegistry<Physbuzz::Model>::erase("backpack");
+    // Physbuzz::ResourceRegistry<Physbuzz::Model>::erase("backpack");
 }

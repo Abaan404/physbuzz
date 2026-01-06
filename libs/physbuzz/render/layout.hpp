@@ -24,7 +24,7 @@ class PipelineLayout {
         ShaderStage stage = ShaderStageFlags::eAll;
         std::uint32_t count = 1;
         std::uint64_t offset = 0;
-        std::uint32_t range;
+        std::uint64_t range = vk::WholeSize;
     };
 
     struct Info {

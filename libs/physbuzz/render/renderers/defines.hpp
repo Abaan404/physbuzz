@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../app/deletion.hpp"
-#include "../../resources/resources.hpp"
+#include "../model.hpp"
 #include "../transform.hpp"
 #include <vulkan/vulkan.hpp>
 
@@ -13,11 +13,9 @@ static constexpr std::uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
 }
 
-class Model;
-
 struct RenderComponent {
     Transform transform;
-    Resource<Model> model;
+    Model model;
 };
 
 struct RenderContext {

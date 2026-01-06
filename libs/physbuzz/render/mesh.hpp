@@ -98,4 +98,7 @@ class Mesh {
     std::vector<Index> m_Indices = {};
 };
 
+template <>
+struct IsResource<Mesh> : std::true_type {};
+
 } // namespace Physbuzz

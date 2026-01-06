@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <physbuzz/ecs/defines.hpp>
-#include <physbuzz/render/mesh.hpp>
 #include <physbuzz/render/shaders.hpp>
 #include <physbuzz/render/layouts/texture.hpp>
 #include <physbuzz/resources/resources.hpp>
@@ -23,11 +22,3 @@ struct ResourceComponent {
     };
     Physbuzz::Resource<Physbuzz::RenderPipeline> pipeline = {"default"};
 };
-
-struct NormalTangent {
-    glm::vec3 normal;
-    glm::vec3 tangent;
-};
-
-std::vector<glm::vec2> generateTexCoords(const std::vector<glm::vec3> &positions);
-std::vector<NormalTangent> generateNormalTangent(const std::vector<Physbuzz::Index> &indices, const std::vector<glm::vec3> &positions, const std::vector<glm::vec2> &texCoords);

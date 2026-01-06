@@ -1,45 +1,29 @@
 #include "quad.hpp"
 
 #include <physbuzz/physics/collision.hpp>
-#include <physbuzz/render/model.hpp>
-#include <physbuzz/render/renderers/deferred.hpp>
-#include <physbuzz/render/renderers/forward.hpp>
+#include <physbuzz/render/renderers/defines.hpp>
+#include <physbuzz/shapes/square.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Quad &info) {
-    // generate mesh
-    glm::vec3 min = glm::vec3(-info.quad.width / 2.0f, -info.quad.height / 2.0f, 0.0f);
-    glm::vec3 max = glm::vec3(info.quad.width / 2.0f, info.quad.height / 2.0f, 0.0f);
-
-    Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<Physbuzz::Model::Vertex>{
-        .vertices = {
-            {{min.x, min.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, // top-left
-            {{min.x, max.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // top-right
-            {{max.x, max.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}}, // bottom-right
-            {{max.x, min.y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}, // bottom-left
-        },
-        .indices = {0, 1, 2, 2, 3, 0},
-    };
-
-    // create model
-    std::string modelName = std::format("quad_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
-        modelName,
-        {{
-            .path = {},
-            .meshes = {{mesh, {}}},
-            .textures = info.resources.textures,
-        }},
-        scene.getSystem<Physbuzz::Transfer>());
+    // scale unit square for quad
+    info.transform.scale = {info.quad.width, info.quad.height, 0.0f};
+    Physbuzz::Builtin::ModelSquare::build(scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
     info.transform.update();
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
-        .model = modelName,
+        .model = Physbuzz::Model::Info{
+            .meshes = {
+                {
+                    .materialIdx = 0,
+                    .resource = Physbuzz::Builtin::ModelSquare::Resource,
+                },
+            },
+            .materials = {},
+        },
     };
-
-    Physbuzz::DeferredRenderComponent deferred = {};
 
     // create a rebuild callback
     RebuildableComponent rebuilder = {
@@ -69,7 +53,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         },
     };
 
-    scene.setComponent(object, info.quad, info.identifier, info.resources, render, deferred, rebuilder);
+    scene.setComponent(object, info.quad, info.identifier, info.resources, render, rebuilder);
 
     // generate bounding box
     // if (info.hasPhysics) {

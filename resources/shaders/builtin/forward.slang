@@ -56,11 +56,9 @@ struct VSOutput {
 };
 
 [shader("vertex")]
-VSOutput vertMain(VSInput input) {
+VSOutput vertMain(VSInput input, uint instanceIdx : SV_InstanceID) {
     VSOutput output;
-    uint instanceIdx = 0;
 
-    // TODO instancing
     float4x4 model = models[instanceIdx].model;
     float4x4 invModel = models[instanceIdx].invModel;
 

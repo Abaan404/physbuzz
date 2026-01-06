@@ -2,18 +2,14 @@
 
 #include "../ecs/scene.hpp"
 #include "../events/collision.hpp"
-#include "../render/model.hpp"
 #include "dynamics.hpp"
 
 namespace Physbuzz {
 
 AABBComponent::AABBComponent(const RenderComponent &render, const RigidBodyComponent &body) {
-    for (const auto &[mesh, _] : render.model->getMeshs()) {
-
-        for (const auto &vertex : body.geometry.vertices) {
-            min = glm::min(min, render.transform.toWorld(vertex.position));
-            max = glm::max(max, render.transform.toWorld(vertex.position));
-        }
+    for (const auto &vertex : body.geometry.vertices) {
+        min = glm::min(min, render.transform.toWorld(vertex.position));
+        max = glm::max(max, render.transform.toWorld(vertex.position));
     }
 }
 

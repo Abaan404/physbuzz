@@ -1,6 +1,10 @@
-#include "common.hpp"
+#include "utils.hpp"
 
-std::vector<glm::vec2> generateTexCoords(const std::vector<glm::vec3> &positions) {
+namespace Physbuzz {
+
+namespace detail {
+
+std::vector<glm::vec2> generate2DTexCoords(const std::vector<glm::vec3> &positions) {
     glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 max = glm::vec3(std::numeric_limits<float>::lowest());
 
@@ -19,7 +23,7 @@ std::vector<glm::vec2> generateTexCoords(const std::vector<glm::vec3> &positions
     return texCoords;
 }
 
-std::vector<NormalTangent> generateNormalTangent(const std::vector<Physbuzz::Index> &indices, const std::vector<glm::vec3> &positions, const std::vector<glm::vec2> &texCoords) {
+std::vector<NormalTangent> generate2DNormalTangent(const std::vector<Physbuzz::Index> &indices, const std::vector<glm::vec3> &positions, const std::vector<glm::vec2> &texCoords) {
     std::vector<NormalTangent> NT = std::vector<NormalTangent>(positions.size());
 
     if (indices.size() % 3 != 0) {
@@ -80,3 +84,7 @@ std::vector<NormalTangent> generateNormalTangent(const std::vector<Physbuzz::Ind
 
     return NT;
 }
+
+} // namespace detail
+
+} // namespace Physbuzz

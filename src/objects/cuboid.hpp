@@ -4,20 +4,20 @@
 #include "common.hpp"
 #include <physbuzz/render/transform.hpp>
 
-struct CubeComponent {
+struct CuboidComponent {
     float width = 0.0f;
+    float breadth = 0.0f;
     float height = 0.0f;
-    float length = 0.0f;
 };
 
-struct Cube {
+struct Cuboid {
     // geometry
-    CubeComponent cube;
+    CuboidComponent cuboid;
     Physbuzz::Transform transform;
 
     // naming
     IdentifiableComponent identifier = {
-        .name = "Cube",
+        .name = "Cuboid",
         .hidden = false,
     };
 
@@ -28,7 +28,7 @@ struct Cube {
 };
 
 template <>
-struct IsBuildable<Cube> : std::true_type {};
+struct IsBuildable<Cuboid> : std::true_type {};
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Cube &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Cuboid &info);

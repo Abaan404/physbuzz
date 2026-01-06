@@ -3,7 +3,7 @@
 #include "../game.hpp"
 #include "../ui/handler.hpp"
 #include "circle.hpp"
-#include "cube.hpp"
+#include "cuboid.hpp"
 #include <imgui.h>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/window/bindings.hpp>
@@ -127,11 +127,11 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                         return;
                     }
 
-                    Cube info = {
-                        .cube = {
+                    Cuboid info = {
+                        .cuboid = {
                             .width = 100.0f,
+                            .breadth = 100.0f,
                             .height = 100.0f,
-                            .length = 100.0f,
                         },
                         .transform = {
                             .position = {0.0f, 0.0f, 0.0f},

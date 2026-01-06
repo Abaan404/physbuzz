@@ -6,7 +6,7 @@
 #include <physbuzz/render/transform.hpp>
 
 struct ModelComponent {
-    Physbuzz::Resource<Physbuzz::Model> resource;
+    std::filesystem::path path;
 };
 
 struct Model {

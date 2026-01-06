@@ -1,13 +1,12 @@
 #pragma once
 
 #include "../resources/resources.hpp"
+#include "layouts/texture.hpp"
 #include "mesh.hpp"
 #include <assimp/scene.h>
 #include <filesystem>
 
 namespace Physbuzz {
-
-class Texture;
 
 enum class TextureType : std::uint32_t {
     None = aiTextureType_NONE,
@@ -50,37 +49,58 @@ class Model {
         static VertexDescription Description;
     };
 
-    struct Meta {
+    struct MeshData {
+        std::uint32_t materialIdx;
+        Resource<Mesh> resource;
+    };
+
+    struct TextureData {
+        TextureType type;
+        Resource<Texture> resource;
+    };
+
+    struct MaterialData {
         float shininess = 32.0f;
+        std::vector<TextureData> textures;
     };
 
     struct Info {
-        std::filesystem::path path = {};
-        std::vector<std::tuple<Mesh, Meta>> meshes = {};
-        std::vector<Resource<Texture>> textures = {};
+        std::vector<MeshData> meshes = {};
+        std::vector<MaterialData> materials = {};
     };
 
     Model(const Info &info);
 
-    bool build(std::shared_ptr<Transfer> transfer);
-    bool destroy();
-
-    void draw(const vk::CommandBuffer &commandBuffer, std::uint32_t instances);
-
-    const std::vector<std::tuple<Mesh, Meta>> &getMeshs() const;
-    const std::vector<Resource<Texture>> &getTextures() const;
+    bool load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer);
 
     static std::string getTextureTypeName(TextureType texture);
+    const Info &getInfo() const;
 
   private:
-    bool processNode(const aiNode *ainode, const aiScene *aiscene);
-    bool processMesh(const aiMesh *aimesh, const aiScene *scene);
-    void loadTextures(const aiMaterial *aimaterial, const aiTextureType type);
+    struct MeshResult {
+        std::uint32_t meshIdx;
+        std::uint32_t materialIdx;
+
+        Mesh::Info<Vertex> info;
+    };
+
+    struct TextureResult {
+        Texture::Info info;
+        std::filesystem::path path;
+    };
+
+    struct MaterialResult {
+        std::unordered_map<TextureType, std::vector<TextureResult>> textures;
+        float shininess = 32.0f;
+    };
 
     Info m_Info;
-};
 
-template <>
-struct IsResource<Model> : std::true_type {};
+    MaterialResult processMaterial(const aiMaterial *aimaterial);
+    std::vector<TextureResult> processTextures(const aiMaterial *aimaterial, aiTextureType type);
+
+    std::vector<MeshResult> processNodes(const aiNode *ainode, const aiScene *aiscene);
+    MeshResult processMesh(const aiMesh *aimesh);
+};
 
 } // namespace Physbuzz

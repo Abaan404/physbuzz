@@ -1,7 +1,7 @@
 #include "game.hpp"
 
-#include "objects/cube.hpp"
-#include "objects/lightcube.hpp"
+#include "objects/cuboid.hpp"
+#include "objects/lightcuboid.hpp"
 #include "objects/lightdirectional.hpp"
 #include "objects/player.hpp"
 #include "physbuzz/misc/clock.hpp"
@@ -89,7 +89,7 @@ void Game::build() {
             }},
             .player = {},
             .flashlight = {
-                .intensity = {1000.0f, 1000.0f, 1000.0f}
+                .intensity = {1000.0f, 1000.0f, 1000.0f},
             },
         };
 
@@ -120,11 +120,11 @@ void Game::build() {
     // cubes
     {
         for (int i = 0; i < 5; ++i) {
-            Cube cube = {
-                .cube = {
+            Cuboid cube = {
+                .cuboid = {
                     .width = 50.0f,
+                    .breadth = 50.0f,
                     .height = 50.0f,
-                    .length = 50.0f,
                 },
                 .transform = {
                     .position = {(i - 5 / 2) * 100, 0, 0},
@@ -144,23 +144,20 @@ void Game::build() {
 
     {
         for (int i = 0; i < 3; ++i) {
-            LightCube lightCube = {
-                .cube = {
-                    .cube = {
-                        .width = 10.0f,
-                        .height = 10.0f,
-                        .length = 10.0f,
-                    },
-                    .transform = {
-                        .position = {(i - 5 / 2) * 100, 150, 0},
-                        .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
-                    },
-                    .identifier = {},
-                    .resources = {
-                        .textures = {
-                            {"default/diffuse"},
-                            {"default/specular"},
-                        },
+            LightCuboid lightCube = {
+                .cuboid = {
+                    .width = 10.0f,
+                    .breadth = 10.0f,
+                    .height = 10.0f,
+                },
+                .transform = {
+                    .position = {(i - 5 / 2) * 100, 150, 0},
+                    .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
+                },
+                .resources = {
+                    .textures = {
+                        {"default/diffuse"},
+                        {"default/specular"},
                     },
                 },
                 .pointLight = {
@@ -176,7 +173,7 @@ void Game::build() {
         LightDirectional directional = {
             .directionalLight = {
                 .direction = {1.0f, -1.0f, -1.0f},
-                .intensity = {0.05f, 0.05f, 0.05f},
+                .intensity = {1.0f, 1.0f, 1.0f},
             },
         };
 

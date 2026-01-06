@@ -52,8 +52,7 @@ bool RenderPipelineForward::build() {
                     },
                     {
                         // instance
-                        .type = Physbuzz::PipelineLayout::Type::eStorageBufferDynamic,
-                        .range = sizeof(ModelBuffer),
+                        .type = Physbuzz::PipelineLayout::Type::eStorageBuffer,
                     },
                 },
             }});
@@ -87,7 +86,7 @@ bool RenderPipelineForward::build() {
         success &= ResourceRegistry<ShaderBuffer>::insert(
             ResourceBufferModel,
             ShaderBuffer::Info<ModelBuffer>{
-                .type = ShaderBuffer::Type::StructuredDynamic,
+                .type = ShaderBuffer::Type::Structured,
             });
     }
 
@@ -271,21 +270,26 @@ void ForwardRenderer::render(const RenderContext &context) {
         }});
 
     // upload instance/object data
-    std::unordered_map<Resource<Model>, std::vector<Builtin::RenderPipelineForward::ModelBuffer>> instances;
+    std::unordered_map<Resource<Mesh>, std::vector<Builtin::RenderPipelineForward::ModelBuffer>> instances;
 
     for (const auto &object : m_Objects) {
         const auto [render] = m_Scene->getComponent<RenderComponent>(object);
 
-        instances[render.model].emplace_back<Builtin::RenderPipelineForward::ModelBuffer>({
-            .model = render.transform.matrix,
-            .invModel = glm::inverse(render.transform.matrix),
-        });
+        const Model::Info &model = render.model.getInfo();
+
+        for (const auto &mesh : model.meshes) {
+            instances[mesh.resource].emplace_back<Builtin::RenderPipelineForward::ModelBuffer>({
+                .model = render.transform.matrix,
+                .invModel = glm::inverse(render.transform.matrix),
+            });
+        }
     }
 
     PipelineReloadMutex.lock();
 
-    std::size_t idx = 0;
-    for (const auto &[model, models] : instances) {
+    m_Info.pipeline->bind(context);
+
+    for (const auto &[mesh, meshes] : instances) {
         Builtin::RenderPipelineForward::ResourceBufferMaterial->update<Builtin::RenderPipelineForward::MaterialBuffer>(
             context, m_Scene->getSystem<Transfer>(),
             {{
@@ -296,21 +300,16 @@ void ForwardRenderer::render(const RenderContext &context) {
 
         Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(
             context, m_Scene->getSystem<Transfer>(),
-            models, idx);
+            meshes);
 
-        m_Info.pipeline->bind(context);
-        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context, m_Info.pipeline, idx);
+        m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context, m_Info.pipeline);
 
-        for (const auto &[mesh, _] : model->getMeshs()) {
-            if (mesh.getDescription() != m_Info.pipeline->getInfo().description) {
-                Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
-                return;
-            }
-
-            model->draw(context.command, models.size());
+        if (mesh->getDescription() != m_Info.pipeline->getInfo().description) {
+            Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
+            continue;
         }
 
-        idx++;
+        mesh->draw(context.command, meshes.size());
     }
 
     PipelineReloadMutex.unlock();

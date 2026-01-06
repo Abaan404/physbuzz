@@ -1,66 +1,28 @@
 #include "circle.hpp"
 
 #include <physbuzz/physics/collision.hpp>
-#include <physbuzz/render/model.hpp>
-#include <physbuzz/render/renderers/forward.hpp>
-#include <physbuzz/render/renderers/deferred.hpp>
+#include <physbuzz/render/renderers/defines.hpp>
+#include <physbuzz/shapes/circle.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Circle &info) {
-    constexpr Physbuzz::Index MAX_VERTICES = 50;
-    constexpr const float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
-
-    // calc positions
-    std::vector<glm::vec3> positions = std::vector<glm::vec3>(MAX_VERTICES);
-    for (Physbuzz::Index i = 0; i < MAX_VERTICES; i++) {
-        float angle = i * angleIncrement;
-        positions[i] = info.circle.radius * glm::vec3(glm::cos(angle), glm::sin(angle), 0.0f);
-    }
-
-    // calc indices
-    std::vector<Physbuzz::Index> indices;
-    for (Physbuzz::Index i = 1; i < MAX_VERTICES - 1; i++) {
-        indices.insert(indices.end(), {0, i, i + 1});
-    }
-    indices.insert(indices.end(), {0, MAX_VERTICES - 1, 1});
-
-    // calc normals
-    std::vector<glm::vec2> texCoords = generateTexCoords(positions);
-    std::vector<NormalTangent> NT = generateNormalTangent(indices, positions, texCoords);
-
-    Physbuzz::Mesh::Info<Physbuzz::Model::Vertex> mesh = {
-        .vertices = {positions.size(), Physbuzz::Model::Vertex{}},
-        .indices = indices,
-    };
-
-    mesh.vertices.resize(positions.size());
-    for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
-        mesh.vertices[i].position = positions[i];
-        mesh.vertices[i].normal = NT[i].normal;
-        mesh.vertices[i].tangent = NT[i].tangent;
-        mesh.vertices[i].texCoord0 = texCoords[i];
-    }
-
-    // create model
-    std::string modelName = std::format("circle_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
-        modelName,
-        {{
-            .path = {},
-            .meshes = {{mesh, {}}},
-            .textures = info.resources.textures,
-        }},
-        scene.getSystem<Physbuzz::Transfer>());
+    // scale unit circle for radius
+    info.transform.scale = {info.circle.radius, info.circle.radius, info.circle.radius};
+    Physbuzz::Builtin::ModelCircle::build(scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
     info.transform.update();
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
-        .model = modelName,
-    };
-
-    Physbuzz::DeferredRenderComponent::ForwardPass deferredForward = {
-        .pipeline = info.resources.pipeline,
+        .model = Physbuzz::Model::Info{
+            .meshes = {
+                {
+                    .materialIdx = 0,
+                    .resource = Physbuzz::Builtin::ModelCircle::Resource,
+                },
+            },
+            .materials = {},
+        },
     };
 
     // create a rebuild callback
@@ -91,7 +53,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         },
     };
 
-    scene.setComponent(object, info.circle, info.identifier, info.resources, render, deferredForward, rebuilder);
+    scene.setComponent(object, info.circle, info.identifier, info.resources, render, rebuilder);
 
     // // generate physics info
     // if (info.hasPhysics) {

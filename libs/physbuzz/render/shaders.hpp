@@ -12,7 +12,7 @@ namespace Physbuzz {
 
 class PipelineLayout;
 class VertexDescription;
-class RenderContext;
+struct RenderContext;
 
 class RenderPipeline {
   public:

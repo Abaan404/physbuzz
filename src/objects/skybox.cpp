@@ -1,9 +1,6 @@
 #include "skybox.hpp"
 
-#include <physbuzz/render/model.hpp>
-#include <physbuzz/render/renderer.hpp>
-#include <physbuzz/render/renderers/deferred.hpp>
-#include <physbuzz/render/renderers/forward.hpp>
+#include <physbuzz/render/renderers/defines.hpp>
 
 struct VertexSkybox {
     glm::vec3 position;
@@ -29,7 +26,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     constexpr glm::vec3 min = glm::vec3(-2.0f, -2.0f, -2.0f);
     constexpr glm::vec3 max = glm::vec3(2.0f, 2.0f, 2.0f);
 
-    Physbuzz::Mesh mesh = Physbuzz::Mesh::Info<VertexSkybox>{
+    Physbuzz::Mesh::Info<VertexSkybox> mesh = {
         .vertices = {
             {{min.x, min.y, min.z}},
             {{min.x, min.y, max.z}},
@@ -64,29 +61,26 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         .indices = {0, 3, 2, 2, 1, 0, 4, 7, 6, 6, 5, 4, 8, 11, 10, 10, 9, 8, 12, 15, 14, 14, 13, 12, 16, 19, 18, 18, 17, 16, 20, 23, 22, 22, 21, 20},
     };
 
-    std::string modelName = std::format("skybox_{}", object);
-    Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(
-        modelName,
-        {{
-            .path = {},
-            .meshes = {{mesh, {}}},
-            .textures = info.resources.textures,
-        }},
-        scene.getSystem<Physbuzz::Transfer>());
+    std::string modelName = std::format("skybox", object);
+    Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(modelName, mesh, scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
     info.transform.update();
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
-        .model = modelName,
-    };
-
-    Physbuzz::DeferredRenderComponent::ForwardPass deferredForward = {
-        .pipeline = info.resources.pipeline,
+        .model = Physbuzz::Model::Info{
+            .meshes = {
+                {
+                    .materialIdx = 0,
+                    .resource = modelName,
+                },
+            },
+            .materials = {},
+        },
     };
 
     // setup rendering
-    scene.setComponent(object, info.resources, info.skybox, render, deferredForward);
+    scene.setComponent(object, info.resources, info.skybox, render);
 
     return object;
 }
