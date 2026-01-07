@@ -110,6 +110,9 @@ bool RenderPipeline::build() {
 
     std::array targets = {slang::TargetDesc{
         .format = SLANG_SPIRV,
+        .profile = App::SlangSession->findProfile("spirv_1_3"), // Driver bug: OpCopyLogical seems to cause a crash when RADV tries to compile to nir
+                                                                // SPIR-V 1.3 doesn't use OpCopyLogical, target this version.
+                                                                // TODO investigate further
         .compilerOptionEntries = compilerOptions.data(),
         .compilerOptionEntryCount = static_cast<std::uint32_t>(compilerOptions.size()),
     }};
