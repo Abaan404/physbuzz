@@ -2,7 +2,7 @@
   description = "Physbuzz Engine flake";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
   };
 
   outputs =
@@ -32,7 +32,7 @@
 
           # libraries
           pkgs.assimp
-          pkgs.glfw-wayland
+          pkgs.glfw
           pkgs.spdlog
           pkgs.glm
           pkgs.catch2_3
@@ -46,9 +46,8 @@
 
         # https://github.com/NixOS/nixpkgs/issues/18995
         hardeningDisable = [ "all" ];
-        shellHook = ''
-          export VK_LAYER_PATH="${pkgs.vulkan-validation-layers}/share/vulkan/explicit_layer.d";
-        '';
+
+        VK_LAYER_PATH = "${pkgs.vulkan-validation-layers}/share/vulkan/explicit_layer.d";
       };
     };
 }
