@@ -288,7 +288,7 @@ bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes
     // prepare a one time command buffer
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
     PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.submit));
-    m_Command.buffer.reset();
+    PBZ_VK_CHECK_RESULT(m_Command.buffer.reset());
 
     PBZ_VK_CHECK_RESULT(m_Command.buffer.begin({
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
@@ -368,7 +368,7 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &data) {
     // prepare the command buffer
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
     PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.submit));
-    m_Command.buffer.reset();
+    PBZ_VK_CHECK_RESULT(m_Command.buffer.reset());
 
     PBZ_VK_CHECK_RESULT(m_Command.buffer.begin({
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
@@ -422,7 +422,7 @@ void Transfer::immediate(std::function<void(const vk::CommandBuffer &)> record) 
     // prepare the command buffer
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
     PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.submit));
-    m_Command.buffer.reset();
+    PBZ_VK_CHECK_RESULT(m_Command.buffer.reset());
 
     PBZ_VK_CHECK_RESULT(m_Command.buffer.begin({
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,

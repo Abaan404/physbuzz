@@ -9,11 +9,11 @@ Clock::Clock() {
 
 std::uint32_t Clock::getTime() const {
     auto now = std::chrono::steady_clock::now();
-    return std::chrono::duration_cast<std::chrono::milliseconds>(now - m_Init).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>(now - m_Init).count();
 }
 
 std::uint32_t Clock::getDelta() const {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(m_Delta).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>(m_Delta).count();
 }
 
 void Clock::tick() {

@@ -241,6 +241,8 @@ bool App::init() {
         vk::KHRCreateRenderpass2ExtensionName,
     };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-designated-field-initializers" // ignore deprecated properties
     vk::DeviceCreateInfo deviceCreateInfo = {
         .pNext = &deviceFeatureChain.get<vk::PhysicalDeviceFeatures2>(),
         .queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size()),
@@ -248,6 +250,7 @@ bool App::init() {
         .enabledExtensionCount = static_cast<std::uint32_t>(deviceExtensions.size()),
         .ppEnabledExtensionNames = deviceExtensions.data(),
     };
+#pragma GCC diagnostic pop
 
     Device = PBZ_VK_CHECK(PhysicalDevice.createDevice(deviceCreateInfo));
     VULKAN_HPP_DEFAULT_DISPATCHER.init(Device);

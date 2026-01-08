@@ -133,7 +133,7 @@ void Renderer::tick() {
     }
 
     PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.inFlight[m_FrameInFlight]));
-    m_Command.buffers[m_FrameInFlight].reset();
+    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].reset());
 
     PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].begin(vk::CommandBufferBeginInfo{}));
 
@@ -320,7 +320,7 @@ void Renderer::immediate(std::function<void(const vk::CommandBuffer &)> record) 
     // prepare the command buffer
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
     PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.inFlight[m_FrameInFlight]));
-    m_Command.buffers[m_FrameInFlight].reset();
+    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].reset());
 
     PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].begin({
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,

@@ -73,7 +73,7 @@ bool PipelineLayoutAllocator::destroy() {
     }
 
     for (auto [layout, alloc] : m_AllocatedLayouts) {
-        App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets);
+        PBZ_VK_CHECK_RESULT(App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets));
     }
 
     m_AllocatedLayouts.clear();
@@ -150,7 +150,7 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
     }
 
     Allocation &alloc = m_AllocatedLayouts[layout];
-    App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets);
+    PBZ_VK_CHECK_RESULT(App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets));
 
     m_AllocatedLayouts.erase(layout);
     return true;
@@ -329,15 +329,15 @@ bool PipelineLayoutAllocator::attach(const RenderContext &context, const Resourc
 void PipelineLayoutAllocator::reset() {
     // free all allocated sets, not necessary since we're resetting the pool, however since we're no longer tracking them we might aswell.
     for (const auto &[layout, alloc] : m_AllocatedLayouts) {
-        App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets);
+        PBZ_VK_CHECK_RESULT(App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets));
     }
 
     for (const auto &pool : m_UsedPools) {
-        App::Device.resetDescriptorPool(pool);
+        PBZ_VK_CHECK_RESULT(App::Device.resetDescriptorPool(pool));
     }
 
     for (const auto &pool : m_FreePools) {
-        App::Device.resetDescriptorPool(pool);
+        PBZ_VK_CHECK_RESULT(App::Device.resetDescriptorPool(pool));
     }
 
     m_FreePools.insert(m_FreePools.end(), std::make_move_iterator(m_UsedPools.begin()), std::make_move_iterator(m_UsedPools.end()));
@@ -346,8 +346,8 @@ void PipelineLayoutAllocator::reset() {
 }
 
 void PipelineLayoutAllocator::bind(const RenderContext &context, const Resource<RenderPipeline> &pipeline, std::uint32_t idx) {
-    for (std::size_t i = 0; i < pipeline->getInfo().layouts.size(); i++) {
-        const Resource<PipelineLayout> &layout = pipeline->getInfo().layouts[i];
+    for (std::size_t i = 0; i < pipeline->getInfo().layouts.resources.size(); i++) {
+        const Resource<PipelineLayout> &layout = pipeline->getInfo().layouts.resources[i];
 
         if (!m_AllocatedLayouts.contains(layout)) {
             Logger::DEBUG("[PipelineLayoutAllocator] Allocating layout '{}' for pipeline '{}'", layout.getIdentifier(), pipeline.getIdentifier());
