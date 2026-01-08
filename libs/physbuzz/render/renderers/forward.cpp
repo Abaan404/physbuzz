@@ -96,8 +96,14 @@ bool RenderPipelineForward::build() {
             .module = "builtin/forward",
             .description = &Model::Vertex::Description,
             .layouts = {
-                ResourceLayoutFrame,
-                ResourceLayoutObject,
+                .resources = {
+                    ResourceLayoutFrame,
+                    ResourceLayoutObject,
+                },
+                .pushConstantRanges = {{
+                    .stageFlags = RenderPipeline::PushConstantsStageFlags::eAll,
+                    .size = sizeof(PushConstantBuffer),
+                }},
             },
         }});
 
@@ -289,6 +295,12 @@ void ForwardRenderer::render(const RenderContext &context) {
 
     m_Info.pipeline->bind(context);
 
+    Builtin::RenderPipelineForward::PushConstantBuffer pushConstants = {
+        .materialId = 0,
+    };
+
+    std::uint32_t object = 0;
+
     for (const auto &[mesh, meshes] : instances) {
         Builtin::RenderPipelineForward::ResourceBufferMaterial->update<Builtin::RenderPipelineForward::MaterialBuffer>(
             context, m_Scene->getSystem<Transfer>(),
@@ -300,8 +312,9 @@ void ForwardRenderer::render(const RenderContext &context) {
 
         Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(
             context, m_Scene->getSystem<Transfer>(),
-            meshes);
+            meshes, object);
 
+        m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span{&pushConstants, 1}), 0);
         m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context, m_Info.pipeline);
 
         if (mesh->getDescription() != m_Info.pipeline->getInfo().description) {
@@ -309,7 +322,9 @@ void ForwardRenderer::render(const RenderContext &context) {
             continue;
         }
 
-        mesh->draw(context.command, meshes.size());
+        mesh->draw(context, meshes.size(), object);
+
+        object += meshes.size() + object;
     }
 
     PipelineReloadMutex.unlock();

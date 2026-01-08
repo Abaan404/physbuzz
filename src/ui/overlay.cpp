@@ -24,7 +24,7 @@ void FrametimeOverlay::draw() {
         ImGui::Separator();
 
         float duration = m_Scene->getSystem<Physbuzz::Clock>()->getDelta();
-        ImGui::Text("FPS: %.2f (%.2f ms)", 1000.0f / duration, duration);
+        ImGui::Text("FPS: %.2f (%.3f ms)", 1e6f / duration, duration / 1e3);
 
         if (ImGui::BeginPopupContextWindow()) {
             if (show && ImGui::MenuItem("Close")) {

@@ -36,6 +36,8 @@ ConstantBuffer<SimpleMaterial> material;
 [[vk::binding(1, 1)]]
 StructuredBuffer<InstanceData> models;
 
+uniform uint materialIdx;
+
 struct VSInput {
     float3 position : POSITION;
     float3 normal : NORMAL;
@@ -56,11 +58,11 @@ struct VSOutput {
 };
 
 [shader("vertex")]
-VSOutput vertMain(VSInput input, uint instanceIdx : SV_InstanceID) {
+VSOutput vertMain(VSInput input, uint instanceIdx : SV_InstanceID, uint objectIdx : SV_StartInstanceLocation) {
     VSOutput output;
 
-    float4x4 model = models[instanceIdx].model;
-    float4x4 invModel = models[instanceIdx].invModel;
+    float4x4 model = models[instanceIdx + objectIdx].model;
+    float4x4 invModel = models[instanceIdx + objectIdx].invModel;
 
     output.sv_position = mul(mul(mul(float4(input.position, 1.0), model), camera.view), camera.projection);
 

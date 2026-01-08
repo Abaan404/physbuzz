@@ -140,11 +140,11 @@ void ObjectList::draw() {
                 }
             }
 
-            if (m_Scene->containsComponent<CircleComponent>(object)) {
-                ImGui::SeparatorText("Circle");
+            if (m_Scene->containsComponent<RadialComponent>(object)) {
+                ImGui::SeparatorText("Radial");
 
-                const auto [radius] = m_Scene->getComponent<CircleComponent>(object);
-                if (ImGui::DragFloat("circle", &radius.radius, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                const auto [radial] = m_Scene->getComponent<RadialComponent>(object);
+                if (ImGui::DragFloat("radius", &radial.radius, 1.0f, MIN_VALUE, MAX_VALUE)) {
                     rebuild = true;
                 }
             }

@@ -1,8 +1,8 @@
 #include "game.hpp"
 
 #include "objects/cuboid.hpp"
-#include "objects/lightcuboid.hpp"
 #include "objects/lightdirectional.hpp"
+#include "objects/lightpoint.hpp"
 #include "objects/player.hpp"
 #include "physbuzz/misc/clock.hpp"
 #include "physbuzz/physics/dynamics.hpp"
@@ -144,11 +144,9 @@ void Game::build() {
 
     {
         for (int i = 0; i < 3; ++i) {
-            LightCuboid lightCube = {
-                .cuboid = {
-                    .width = 10.0f,
-                    .breadth = 10.0f,
-                    .height = 10.0f,
+            LightPoint lightCube = {
+                .sphere = {
+                    .radius = 10.0f,
                 },
                 .transform = {
                     .position = {(i - 5 / 2) * 100, 150, 0},
@@ -161,7 +159,7 @@ void Game::build() {
                     },
                 },
                 .pointLight = {
-                    .intensity = {2000.0f, 2000.0f, 2000.0f},
+                    .intensity = {8000.0f, 8000.0f, 8000.0f},
                 },
             };
 
@@ -173,7 +171,7 @@ void Game::build() {
         LightDirectional directional = {
             .directionalLight = {
                 .direction = {1.0f, -1.0f, -1.0f},
-                .intensity = {1.0f, 1.0f, 1.0f},
+                .intensity = {2.0f, 2.0f, 2.0f},
             },
         };
 

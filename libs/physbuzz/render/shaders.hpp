@@ -43,6 +43,11 @@ class RenderPipeline {
     // format
     using Format = vk::Format;
 
+    // layouts
+    using PushConstants = vk::PushConstantRange;
+    using PushConstantsStage = vk::ShaderStageFlags;
+    using PushConstantsStageFlags = vk::ShaderStageFlagBits;
+
     struct ColorBlendAttachmentInfo {
         bool blendEnable = false;
         BlendFactor srcColorBlendFactor = BlendFactor::eZero;
@@ -58,6 +63,9 @@ class RenderPipeline {
     };
 
     struct Info {
+        std::string module;
+        VertexDescription *description;
+
         struct {
             bool primitiveRestartEnable = false;
             Topology topology = Topology::eTriangleList;
@@ -98,9 +106,10 @@ class RenderPipeline {
             Format depth = Format::eD32Sfloat;
         } formats = {};
 
-        std::string module;
-        VertexDescription *description;
-        std::vector<Resource<PipelineLayout>> layouts = {};
+        struct {
+            std::vector<Resource<PipelineLayout>> resources = {};
+            std::vector<PushConstants> pushConstantRanges = {};
+        } layouts = {};
 
         std::vector<DynamicState> dynamicStates = {};
     };
@@ -112,6 +121,7 @@ class RenderPipeline {
 
     bool isDependantFile(const std::filesystem::path &file);
 
+    void updatePushConstants(const RenderContext &context, const PushConstantsStage &stage, const std::span<const std::byte> &bytes, std::uint32_t offset);
     void bind(const RenderContext &context);
 
     const Info &getInfo() const;

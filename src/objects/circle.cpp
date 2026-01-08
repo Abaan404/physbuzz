@@ -28,12 +28,12 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     // create a rebuild callback
     RebuildableComponent rebuilder = {
         .rebuild = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
-            if (!scene.containsComponent<CircleComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
+            if (!scene.containsComponent<RadialComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
                 Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
                 return;
             }
 
-            const auto [circle, identifier, resources, render] = scene.getComponent<CircleComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
+            const auto [circle, identifier, resources, render] = scene.getComponent<RadialComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
 
             Circle info = {
                 .body = {},

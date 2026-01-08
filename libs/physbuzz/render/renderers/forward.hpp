@@ -38,6 +38,10 @@ struct ModelBuffer {
     alignas(16) glm::mat4 invModel;
 };
 
+struct PushConstantBuffer {
+    std::uint32_t materialId;
+};
+
 inline Resource<ShaderBuffer> ResourceBufferCamera = {"builtin/forward/camera"};
 inline Resource<ShaderBuffer> ResourceBufferLight = {"builtin/forward/light"};
 

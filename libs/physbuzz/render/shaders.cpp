@@ -253,14 +253,15 @@ bool RenderPipeline::build() {
     }
 
     std::vector<vk::DescriptorSetLayout> layouts;
-    for (const auto &layout : m_Info.layouts) {
+    for (const auto &layout : m_Info.layouts.resources) {
         layouts.emplace_back(layout->m_Layout);
     }
 
     m_Layout = PBZ_VK_CHECK(App::Device.createPipelineLayout({
         .setLayoutCount = static_cast<std::uint32_t>(layouts.size()),
         .pSetLayouts = layouts.data(),
-        .pushConstantRangeCount = 0,
+        .pushConstantRangeCount = static_cast<std::uint32_t>(m_Info.layouts.pushConstantRanges.size()),
+        .pPushConstantRanges = m_Info.layouts.pushConstantRanges.data(),
     }));
 
     vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> chain = {
@@ -310,6 +311,18 @@ bool RenderPipeline::destroy() {
 
 bool RenderPipeline::isDependantFile(const std::filesystem::path &file) {
     return m_DependencyFilePaths.contains(std::filesystem::weakly_canonical(file));
+}
+
+void RenderPipeline::updatePushConstants(const RenderContext &context, const PushConstantsStage &stage, const std::span<const std::byte> &bytes, std::uint32_t offset) {
+    vk::PushConstantsInfo info = {
+        .layout = m_Layout,
+        .stageFlags = stage,
+        .offset = offset,
+        .size = static_cast<std::uint32_t>(bytes.size()),
+        .pValues = bytes.data(),
+    };
+
+    context.command.pushConstants2(info);
 }
 
 void RenderPipeline::bind(const RenderContext &context) {

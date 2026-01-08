@@ -4,7 +4,7 @@
 #include "common.hpp"
 #include <physbuzz/physics/dynamics.hpp>
 
-struct CircleComponent {
+struct RadialComponent {
     float radius = 0.0f;
 };
 
@@ -13,7 +13,7 @@ struct Circle {
     Physbuzz::RigidBodyComponent body;
 
     // geometry
-    CircleComponent circle;
+    RadialComponent circle;
     Physbuzz::Transform transform;
 
     // naming

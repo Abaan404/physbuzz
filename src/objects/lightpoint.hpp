@@ -1,16 +1,16 @@
 #pragma once
 
-#include "cuboid.hpp"
+#include "circle.hpp"
 #include <physbuzz/render/lighting.hpp>
 
-struct LightCuboid {
+struct LightPoint {
     // geometry
-    CuboidComponent cuboid;
+    RadialComponent sphere;
     Physbuzz::Transform transform;
 
     // naming
     IdentifiableComponent identifier = {
-        .name = "LightCuboid",
+        .name = "LightPoint",
         .hidden = false,
     };
 
@@ -23,7 +23,7 @@ struct LightCuboid {
 };
 
 template <>
-struct IsBuildable<LightCuboid> : std::true_type {};
+struct IsBuildable<LightPoint> : std::true_type {};
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, LightCuboid &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, LightPoint &info);

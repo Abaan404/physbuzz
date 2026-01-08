@@ -39,7 +39,7 @@ class ShaderBuffer {
             data.size() * sizeof(T),
         };
 
-        return update(context, transfer, bytes, bytes.size() * index);
+        return update(context, transfer, bytes, sizeof(T) * index);
     }
 
     bool update(const RenderContext &context, const std::shared_ptr<Transfer> transfer, const std::span<const std::byte> &bytes, std::uint64_t offset) const;
