@@ -3,6 +3,7 @@
 #include "objects/cuboid.hpp"
 #include "objects/lightdirectional.hpp"
 #include "objects/lightpoint.hpp"
+#include "objects/model.hpp"
 #include "objects/player.hpp"
 #include "physbuzz/misc/clock.hpp"
 #include "physbuzz/physics/dynamics.hpp"
@@ -222,6 +223,23 @@ void Game::build() {
         };
 
         ObjectBuilder::create(Physbuzz::App::GScene, directional);
+    }
+
+    {
+        Model model = {
+            .model = {
+                .path = "resources/models/backpack/backpack.obj",
+            },
+            .transform = {
+                .position = {0, -150, 0},
+                .scale = {30, 30, 30},
+            },
+            .identifier = {
+                .name = "Backpack",
+            },
+        };
+
+        ObjectBuilder::create(Physbuzz::App::GScene, model);
     }
 }
 

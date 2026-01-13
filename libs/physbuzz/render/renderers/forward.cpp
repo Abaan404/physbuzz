@@ -26,28 +26,25 @@ bool RenderPipelineForward::build() {
     if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutGlobal)) {
         success &= ResourceRegistry<PipelineLayout>::insert(
             ResourceLayoutGlobal,
-            {
-                {
-                    .bindings = {
-                        {
-                            // textures
-                            .type = PipelineLayout::Type::eCombinedImageSampler,
-                            .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
-                            .count = 32,
-                        },
-                        {
-                            // materials
-                            .type = PipelineLayout::Type::eUniformBuffer,
-                            .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
-                            .count = 32,
-                            .range = sizeof(MaterialBuffer),
-                        },
+            {{
+                .bindings = {
+                    {
+                        // textures
+                        .type = PipelineLayout::Type::eCombinedImageSampler,
+                        .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
+                        .count = 32,
                     },
-                    .flags = PipelineLayout::Flags::eUpdateAfterBindPool,
-                    .lifetime = LayoutLifetime::Global,
-                }
-            }
-        );
+                    {
+                        // materials
+                        .type = PipelineLayout::Type::eUniformBuffer,
+                        .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
+                        .count = 32,
+                        .range = sizeof(MaterialBuffer),
+                    },
+                },
+                .flags = PipelineLayout::Flags::eUpdateAfterBindPool,
+                .lifetime = LayoutLifetime::Global,
+            }});
     }
 
     if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
@@ -255,6 +252,10 @@ void ForwardRenderer::render(const RenderContext &context) {
     std::unordered_map<Resource<Mesh>, std::vector<Builtin::RenderPipelineForward::ModelBuffer>> instances;
     std::vector<std::pair<std::uint32_t, Builtin::RenderPipelineForward::MaterialBuffer>> materials;
 
+    std::vector<Builtin::RenderPipelineForward::ModelBuffer> instanceBuffers;
+    std::vector<std::pair<Resource<Mesh>, std::size_t>> instanceSizes;
+
+    std::size_t meshCount = 0;
     for (const auto &object : m_Objects) {
         const auto [render] = m_Scene->getComponent<RenderComponent>(object);
 
@@ -294,6 +295,7 @@ void ForwardRenderer::render(const RenderContext &context) {
                     case TextureType::Diffuse:
                         std::copy_n(textureIds.begin(), std::min(textureIds.size(), material.diffuseTextureIds.size()), material.diffuseTextureIds.begin());
                         break;
+
                     case TextureType::Specular:
                         std::copy_n(textureIds.begin(), std::min(textureIds.size(), material.specularTextureIds.size()), material.specularTextureIds.begin());
                         break;
@@ -313,10 +315,17 @@ void ForwardRenderer::render(const RenderContext &context) {
                 .materialIdx = m_Materials.query(mesh.material),
             });
         }
+
+        meshCount += model.meshes.size();
+    }
+
+    for (const auto &[mesh, buffers] : instances) {
+        instanceSizes.emplace_back<std::pair<Resource<Mesh>, std::size_t>>({mesh, buffers.size()});
+        instanceBuffers.insert(instanceBuffers.end(), std::make_move_iterator(buffers.begin()), std::make_move_iterator(buffers.end()));
     }
 
     // resize if needed
-    if (Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, m_Objects.size() * sizeof(Builtin::RenderPipelineForward::ModelBuffer))) {
+    if (Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, meshCount * sizeof(Builtin::RenderPipelineForward::ModelBuffer))) {
         m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
             context,
             Builtin::RenderPipelineForward::ResourceLayoutObject,
@@ -342,6 +351,7 @@ void ForwardRenderer::render(const RenderContext &context) {
     std::copy_n(points.begin(), std::min(points.size(), lightBuffer.points.size()), lightBuffer.points.begin());
     std::copy_n(spots.begin(), std::min(spots.size(), lightBuffer.spots.size()), lightBuffer.spots.begin());
 
+    // upload lights
     Builtin::RenderPipelineForward::ResourceBufferLight->update<Builtin::RenderPipelineForward::LightBuffer>(
         context, m_Scene->getSystem<Transfer>(),
         {lightBuffer});
@@ -368,6 +378,11 @@ void ForwardRenderer::render(const RenderContext &context) {
             1, materialId);
     }
 
+    // upload instance/object data
+    Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(
+        context, m_Scene->getSystem<Transfer>(),
+        instanceBuffers);
+
     context.command.beginRendering({
         .renderArea = {
             .offset = {0, 0},
@@ -389,20 +404,14 @@ void ForwardRenderer::render(const RenderContext &context) {
     PipelineReloadMutex.unlock();
 
     std::uint32_t object = 0;
-
-    // upload instance/object data
-    for (const auto &[mesh, meshes] : instances) {
-        Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(
-            context, m_Scene->getSystem<Transfer>(),
-            meshes, object);
-
+    for (const auto &[mesh, batch] : instanceSizes) {
         if (mesh->getDescription() != m_Info.pipeline->getInfo().description) {
             Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
             continue;
         }
 
-        mesh->draw(context, meshes.size(), object);
-        object += meshes.size();
+        mesh->draw(context, batch, object);
+        object += batch;
     }
 
     context.command.endRendering();

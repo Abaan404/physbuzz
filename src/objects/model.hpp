@@ -19,9 +19,6 @@ struct Model {
         .name = "Generic",
         .hidden = false,
     };
-
-    // rendering
-    ResourceComponent resources;
 };
 
 template <>

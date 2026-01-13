@@ -39,47 +39,35 @@ Model::Model(const Info &info)
 bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer) {
     // if supplied a path, load the model from the filesystem
     Assimp::Importer importer;
-    const aiScene *aiscene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
+    const aiScene *aiscene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
 
     if (!aiscene || aiscene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !aiscene->mRootNode) {
         Logger::ERROR("[Model] Could not import model at '{}'.\n[Assimp]: {}", path.string(), importer.GetErrorString());
         return false;
     }
 
-    std::vector<MaterialResult> materials;
     for (std::size_t i = 0; i < aiscene->mNumMaterials; i++) {
-        aiMaterial *material = aiscene->mMaterials[i];
-        materials.emplace_back(processMaterial(material));
-    }
-
-    std::vector<MeshResult> meshes = processNodes(aiscene->mRootNode, aiscene);
-
-    for (const auto &mesh : meshes) {
-        Data data = {
-            .material = std::format("model/{}@{}", mesh.materialIdx, path.string()),
-            .mesh = std::format("model/{}@{}", mesh.meshIdx, path.string()),
-        };
-
-        if (!ResourceRegistry<Mesh>::insert(data.mesh, mesh.info, transfer)) {
-            Logger::ERROR("[Model] Failed to load mesh resource {}.", data.mesh);
-            return false;
-        }
+        MaterialResult materialResult = processMaterial(aiscene->mMaterials[i]);
 
         Material material = {
-            .shininess = materials[mesh.materialIdx].shininess,
+            .shininess = materialResult.shininess,
             .textures = {},
         };
 
-        for (const auto &[type, textures] : materials[mesh.materialIdx].textures) {
+        for (const auto &[type, textures] : materialResult.textures) {
             for (const auto &texture : textures) {
-
                 ImageFile::Info imageFile = {
                     .file = {
-                        .path = path / texture.path,
+                        .path = path.parent_path() / texture.path,
                     },
                 };
 
                 ResourceID resourceId = std::format("model@{}", imageFile.file.path.string());
+
+                // a material can reference the same texture again
+                if (ResourceRegistry<Texture>::contains(resourceId)) {
+                    continue;
+                }
 
                 if (!ResourceRegistry<Texture>::insert(resourceId, texture.info, imageFile, transfer)) {
                     Logger::ERROR("[Model] Failed to load texture resource {}.", resourceId);
@@ -90,8 +78,24 @@ bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transf
             }
         }
 
-        if (!ResourceRegistry<Material>::insert(data.material, std::move(material))) {
-            Logger::ERROR("[Model] Failed to load material resource {}.", data.material);
+        ResourceID resourceId = std::format("model/{}@{}", i, path.string());
+
+        if (!ResourceRegistry<Material>::insert(resourceId, std::move(material))) {
+            Logger::ERROR("[Model] Failed to load material resource {}.", resourceId);
+            return false;
+        }
+    }
+
+    std::vector<MeshResult> meshResults = processNodes(aiscene->mRootNode, aiscene);
+
+    for (const auto &mesh : meshResults) {
+        Data data = {
+            .material = std::format("model/{}@{}", mesh.materialIdx, path.string()),
+            .mesh = std::format("model/{}@{}", mesh.meshIdx, path.string()),
+        };
+
+        if (!ResourceRegistry<Mesh>::insert(data.mesh, mesh.info, transfer)) {
+            Logger::ERROR("[Model] Failed to load mesh resource {}.", data.mesh);
             return false;
         }
 
@@ -140,7 +144,7 @@ std::vector<Model::TextureResult> Model::processTextures(const aiMaterial *aimat
         PBZ_ASSERT(aimaterial->GetTexture(type, i, &aiPath) == aiReturn_SUCCESS, "[Model] Failed to load material texture.");
 
         results.emplace_back<TextureResult>({
-            .info = {},
+            .info = Texture::Tex2D,
             .path = aiPath.C_Str(),
         });
     }
@@ -161,7 +165,7 @@ std::vector<Model::MeshResult> Model::processNodes(const aiNode *root, const aiS
         for (std::size_t i = 0; i < ainode->mNumMeshes; ++i) {
             aiMesh *aimesh = aiscene->mMeshes[ainode->mMeshes[i]];
             MeshResult &result = results.emplace_back(processMesh(aimesh));
-            result.meshIdx = i;
+            result.meshIdx = results.size() - 1;
         }
 
         for (std::size_t i = ainode->mNumChildren - 1; i < ainode->mNumChildren; i--) {
@@ -179,7 +183,7 @@ Model::MeshResult Model::processMesh(const aiMesh *aimesh) {
         .info = {},
     };
 
-    result.info.vertices.reserve(aimesh->mNumVertices);
+    result.info.vertices.resize(aimesh->mNumVertices);
     if (aimesh->HasPositions()) {
         for (std::size_t i = 0; i < aimesh->mNumVertices; ++i) {
             result.info.vertices[i].position = {aimesh->mVertices[i].x, aimesh->mVertices[i].y, aimesh->mVertices[i].z};
