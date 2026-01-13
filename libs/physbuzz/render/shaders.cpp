@@ -1,13 +1,7 @@
 #include "shaders.hpp"
 
 #include "../app/application.hpp"
-#include "../debug/macros.hpp"
 #include "layout.hpp"
-#include "mesh.hpp"
-#include <filesystem>
-#include <glm/gtc/type_ptr.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_handles.hpp>
 
 namespace Physbuzz {
 

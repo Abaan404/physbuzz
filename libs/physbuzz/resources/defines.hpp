@@ -21,16 +21,20 @@ enum class WatchAction {
 
 template <typename T>
 concept ResourceType =
-    IsResource<T>::value &&
-    requires(T a) {
-        { a.destroy() } -> std::same_as<bool>;
-    };
+    IsResource<T>::value;
 
 template <typename T, typename... Args>
 concept ResourceBuildableType =
     ResourceType<T> &&
     requires(T a, Args... args) {
         { a.build(args...) } -> std::same_as<bool>;
+    };
+
+template <typename T, typename... Args>
+concept ResourceDestructibleType =
+    ResourceType<T> &&
+    requires(T a, Args... args) {
+        { a.destroy(args...) } -> std::same_as<bool>;
     };
 
 } // namespace Physbuzz

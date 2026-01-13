@@ -1,6 +1,9 @@
 #pragma once
 
-#include "../app/application.hpp"
+#include "../ecs/system.hpp"
+#include <glm/glm.hpp>
+#include <vk_mem_alloc.h>
+#include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
 

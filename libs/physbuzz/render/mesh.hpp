@@ -1,11 +1,12 @@
 #pragma once
 
+#include "../resources/defines.hpp"
 #include "buffer.hpp"
-#include "shaders.hpp"
 
 namespace Physbuzz {
 
 struct RenderComponent;
+struct RenderContext;
 
 template <typename T>
 concept VertexAttributeFormatType =
@@ -44,7 +45,7 @@ class VertexDescription {
     vk::VertexInputBindingDescription m_Binding;
     vk::PipelineVertexInputStateCreateInfo m_VertexInputStateCreateInfo;
 
-    friend bool RenderPipeline::build();
+    friend class RenderPipeline;
     friend class Mesh;
 };
 

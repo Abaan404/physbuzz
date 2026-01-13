@@ -2,13 +2,14 @@
 
 #include "../render/mesh.hpp"
 #include "../render/model.hpp"
+#include <glm/ext/scalar_constants.hpp>
 
 namespace Physbuzz {
 
 namespace Builtin {
 
 bool ModelSphere::build(const std::shared_ptr<Transfer> transfer) {
-    if (ResourceRegistry<Mesh>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<Mesh>::contains(Resource)) {
         return true;
     }
 

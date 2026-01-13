@@ -1,10 +1,8 @@
 #pragma once
 
 #include <functional>
-#include <physbuzz/ecs/defines.hpp>
-#include <physbuzz/render/shaders.hpp>
-#include <physbuzz/render/layouts/texture.hpp>
-#include <physbuzz/resources/resources.hpp>
+#include <physbuzz/ecs/scene.hpp>
+#include <physbuzz/render/model.hpp>
 
 struct IdentifiableComponent {
     std::string name = "Unknown";
@@ -16,9 +14,5 @@ struct RebuildableComponent {
 };
 
 struct ResourceComponent {
-    std::vector<Physbuzz::Resource<Physbuzz::Texture>> textures = {
-        {"default/diffuse"},
-        {"default/specular"},
-    };
-    Physbuzz::Resource<Physbuzz::RenderPipeline> pipeline = {"default"};
+    Physbuzz::Resource<Physbuzz::Material> material = {""};
 };

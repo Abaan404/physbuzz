@@ -11,12 +11,12 @@ namespace Physbuzz {
 namespace Builtin {
 
 bool ShaderShadowDepth2D::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
         return true;
     }
 
     // return ResourceRegistry<ShaderPipeline>::insert(
-    //     Resource.getIdentifier(),
+    //     Resource,
     //     {{
     //         .draw = [](const ShaderPipeline *resource, Scene &scene, ObjectID object) {
     //             const auto [render] = scene.getComponent<RenderComponent>(object);
@@ -33,12 +33,12 @@ bool ShaderShadowDepth2D::build() {
 }
 
 bool ShaderShaderDepthCubemap::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
         return true;
     }
 
     // return ResourceRegistry<ShaderPipeline>::insert(
-    //     Resource.getIdentifier(),
+    //     Resource,
     //     {{
     //         .draw = [](const ShaderPipeline *resource, Scene &scene, ObjectID object) {
     //             const auto [render] = scene.getComponent<RenderComponent>(object);

@@ -8,7 +8,7 @@ namespace Physbuzz {
 namespace Builtin {
 
 bool ModelSquare::build(const std::shared_ptr<Transfer> transfer) {
-    if (ResourceRegistry<Mesh>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<Mesh>::contains(Resource)) {
         return true;
     }
 

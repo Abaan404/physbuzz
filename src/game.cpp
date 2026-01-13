@@ -109,6 +109,58 @@ void Game::build() {
         Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(),
     });
 
+    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        "floor",
+        Physbuzz::Texture::Tex2D,
+        Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/floor.png"}},
+        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+
+    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        "crate/diffuse",
+        Physbuzz::Texture::Tex2D,
+        Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/diffuse.png"}},
+        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+
+    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        "crate/specular",
+        Physbuzz::Texture::Tex2D,
+        Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/specular.png"}},
+        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+
+    Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+        "crate",
+        {
+            .shininess = 256.0f,
+            .textures = {
+                {
+                    Physbuzz::TextureType::Diffuse,
+                    {
+                        {"crate/diffuse"},
+                    },
+                },
+                {
+                    Physbuzz::TextureType::Specular,
+                    {
+                        {"crate/specular"},
+                    },
+                },
+            },
+        });
+
+    Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+        "floor",
+        {
+            .shininess = 256.0f,
+            .textures = {
+                {
+                    Physbuzz::TextureType::Diffuse,
+                    {
+                        {"floor"},
+                    },
+                },
+            },
+        });
+
     Physbuzz::App::GScene.createSystem<Physbuzz::Bindings>(window);
     Physbuzz::App::GScene.createSystem<Physbuzz::Clock>();
     Physbuzz::App::GScene.createSystem<Physbuzz::Dynamics>(1.0f);
@@ -130,10 +182,7 @@ void Game::build() {
                     .position = {(i - 5 / 2) * 100, 0, 0},
                 },
                 .resources = {
-                    .textures = {
-                        {"crate/diffuse"},
-                        {"crate/specular"},
-                    },
+                    .material = {"crate"},
                 },
                 .hasPhysics = false,
             };
@@ -144,7 +193,7 @@ void Game::build() {
 
     {
         for (int i = 0; i < 3; ++i) {
-            LightPoint lightCube = {
+            LightPoint point = {
                 .sphere = {
                     .radius = 10.0f,
                 },
@@ -153,17 +202,14 @@ void Game::build() {
                     .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
                 },
                 .resources = {
-                    .textures = {
-                        {"default/diffuse"},
-                        {"default/specular"},
-                    },
+                    .material = {"floor"},
                 },
                 .pointLight = {
                     .intensity = {8000.0f, 8000.0f, 8000.0f},
                 },
             };
 
-            ObjectBuilder::create(Physbuzz::App::GScene, lightCube);
+            ObjectBuilder::create(Physbuzz::App::GScene, point);
         }
     }
 
@@ -171,7 +217,7 @@ void Game::build() {
         LightDirectional directional = {
             .directionalLight = {
                 .direction = {1.0f, -1.0f, -1.0f},
-                .intensity = {2.0f, 2.0f, 2.0f},
+                .intensity = {3.0f, 3.0f, 3.0f},
             },
         };
 

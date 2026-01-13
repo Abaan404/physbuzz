@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../resources/resources.hpp"
+#include "../resources/resource.hpp"
 #include "layouts/texture.hpp"
 #include "mesh.hpp"
 #include <assimp/scene.h>
@@ -38,6 +38,14 @@ enum class TextureType : std::uint32_t {
     Max = AI_TEXTURE_TYPE_MAX,
 };
 
+struct Material {
+    float shininess = 32.0f;
+    std::unordered_map<TextureType, std::vector<Resource<Texture>>> textures;
+};
+
+template <>
+struct IsResource<Material> : std::true_type {};
+
 class Model {
   public:
     struct Vertex {
@@ -49,24 +57,13 @@ class Model {
         static VertexDescription Description;
     };
 
-    struct MeshData {
-        std::uint32_t materialIdx;
-        Resource<Mesh> resource;
-    };
-
-    struct TextureData {
-        TextureType type;
-        Resource<Texture> resource;
-    };
-
-    struct MaterialData {
-        float shininess = 32.0f;
-        std::vector<TextureData> textures;
+    struct Data {
+        Resource<Material> material;
+        Resource<Mesh> mesh;
     };
 
     struct Info {
-        std::vector<MeshData> meshes = {};
-        std::vector<MaterialData> materials = {};
+        std::vector<Data> meshes = {};
     };
 
     Model(const Info &info);
@@ -91,7 +88,7 @@ class Model {
 
     struct MaterialResult {
         std::unordered_map<TextureType, std::vector<TextureResult>> textures;
-        float shininess = 32.0f;
+        float shininess;
     };
 
     Info m_Info;

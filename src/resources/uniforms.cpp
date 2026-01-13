@@ -2,7 +2,7 @@
 
 #include "uniforms/time.hpp"
 #include "uniforms/window.hpp"
-#include <physbuzz/resources/resources.hpp>
+#include <physbuzz/resources/resource.hpp>
 
 void ResourceBuilder::buildUniforms() {
     // Physbuzz::ResourceRegistry<Physbuzz::UniformBuffer<UniformWindow>>::insert("window", {});

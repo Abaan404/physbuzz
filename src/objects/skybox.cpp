@@ -68,19 +68,13 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     info.transform.update();
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
-        .model = Physbuzz::Model::Info{
-            .meshes = {
-                {
-                    .materialIdx = 0,
-                    .resource = modelName,
-                },
-            },
-            .materials = {},
-        },
+        .model = {{
+            .meshes = {},
+        }},
     };
 
     // setup rendering
-    scene.setComponent(object, info.resources, info.skybox, render);
+    scene.setComponent(object, info.skybox, render);
 
     return object;
 }

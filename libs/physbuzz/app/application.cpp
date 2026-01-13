@@ -5,6 +5,7 @@
 #include "../render/layouts/shaderbuffer.hpp"
 #include "../render/layouts/texture.hpp"
 #include "../render/mesh.hpp"
+#include "../render/shaders.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <map>
@@ -208,19 +209,36 @@ bool App::init() {
     vk::PhysicalDeviceFeatures2 deviceFeatures = PhysicalDevice.getFeatures2();
     deviceFeatures.features.samplerAnisotropy = true;
 
-    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> deviceFeatureChain = {
-        deviceFeatures,
-        {
-            .shaderDrawParameters = true,
-        },
-        {
-            .synchronization2 = true,
-            .dynamicRendering = true, // Enable dynamic rendering from Vulkan 1.3
-        },
-        {
-            .extendedDynamicState = true, // Enable extended dynamic state from the extension
-        },
-    };
+    vk::StructureChain<
+        vk::PhysicalDeviceFeatures2,
+        vk::PhysicalDeviceVulkan11Features,
+        vk::PhysicalDeviceVulkan12Features,
+        vk::PhysicalDeviceVulkan13Features,
+        vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
+        deviceFeatureChain = {
+            deviceFeatures,
+            {
+                .shaderDrawParameters = true,
+            },
+            {
+                .descriptorIndexing = true,
+                .shaderSampledImageArrayNonUniformIndexing = true,
+                .shaderStorageBufferArrayNonUniformIndexing = true,
+                .shaderStorageImageArrayNonUniformIndexing = true,
+                .descriptorBindingSampledImageUpdateAfterBind = true,
+                .descriptorBindingStorageImageUpdateAfterBind = true,
+                .descriptorBindingStorageBufferUpdateAfterBind = true,
+                .descriptorBindingPartiallyBound = true,
+                .runtimeDescriptorArray = true,
+            },
+            {
+                .synchronization2 = true,
+                .dynamicRendering = true, // Enable dynamic rendering from Vulkan 1.3
+            },
+            {
+                .extendedDynamicState = true, // Enable extended dynamic state from the extension
+            },
+        }; // namespace Physbuzz
 
     float queuePriority = 1.0f;
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;

@@ -17,15 +17,14 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Physbuzz::ShadowComponent shadow;
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
-        .model = Physbuzz::Model::Info{
+        .model = {{
             .meshes = {
                 {
-                    .materialIdx = 0,
-                    .resource = Physbuzz::Builtin::ModelCube::Resource,
+                    .material = info.resources.material,
+                    .mesh = Physbuzz::Builtin::ModelCube::Resource,
                 },
             },
-            .materials = {},
-        },
+        }},
     };
 
     // create a rebuild callback

@@ -14,15 +14,14 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     info.transform.update();
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
-        .model = Physbuzz::Model::Info{
+        .model = {{
             .meshes = {
                 {
-                    .materialIdx = 0,
-                    .resource = Physbuzz::Builtin::ModelCircle::Resource,
+                    .material = info.resources.material,
+                    .mesh = Physbuzz::Builtin::ModelCircle::Resource,
                 },
             },
-            .materials = {},
-        },
+        }},
     };
 
     // create a rebuild callback

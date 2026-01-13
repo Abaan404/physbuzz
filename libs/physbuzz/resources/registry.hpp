@@ -1,11 +1,9 @@
 #pragma once
 
 #include "../debug/logging.hpp"
-#include "../debug/macros.hpp"
 #include "../events/handler.hpp"
 #include "../events/resources.hpp"
 #include "defines.hpp"
-#include <glm/detail/type_quat.hpp>
 
 namespace Physbuzz {
 
@@ -13,16 +11,17 @@ template <ResourceType T>
 class ResourceRegistry {
   public:
     template <typename... Args>
-        requires ResourceBuildableType<T, Args...>
     inline static bool insert(const ResourceID &identifier, T &&resource, Args... args) {
         if (contains(identifier)) {
             Logger::ERROR("[ResourceRegistry] resource '{}' was already loaded.", identifier);
             return false;
         }
 
-        if (!resource.build(std::forward<Args>(args)...)) {
-            Logger::ERROR("[ResourceRegistry] Failed to build resource '{}'.", identifier);
-            return false;
+        if constexpr (ResourceBuildableType<T, Args...>) {
+            if (!resource.build(std::forward<Args>(args)...)) {
+                Logger::ERROR("[ResourceRegistry] Failed to build resource '{}'.", identifier);
+                return false;
+            }
         }
 
         m_Registry.emplace(identifier, std::move(resource));
@@ -34,7 +33,8 @@ class ResourceRegistry {
         return true;
     }
 
-    inline static bool erase(const ResourceID &identifier) {
+    template <typename... Args>
+    inline static bool erase(const ResourceID &identifier, Args... args) {
         if (!contains(identifier)) {
             Logger::ERROR("[ResourceRegistry] resource '{}' was already unloaded or not found.", identifier);
             return false;
@@ -46,9 +46,11 @@ class ResourceRegistry {
             .identifier = identifier,
         });
 
-        if (!resource.destroy()) {
-            Logger::ERROR("[ResourceRegistry] Failed to destroy resource '{}'.", identifier);
-            return false;
+        if constexpr (ResourceDestructibleType<T, Args...>) {
+            if (!resource.destroy(std::forward<Args>(args)...)) {
+                Logger::ERROR("[ResourceRegistry] Failed to destroy resource '{}'.", identifier);
+                return false;
+            }
         }
 
         m_Registry.erase(identifier);
@@ -130,50 +132,4 @@ class ResourceRegistry {
     friend class Resource;
 };
 
-template <typename T>
-class Resource {
-  public:
-    Resource(const ResourceID &identifier)
-        : m_Identifier(identifier) {}
-
-    T *operator->() const
-        requires ResourceType<T>
-    {
-        return &get();
-    }
-
-    operator const ResourceID &() const {
-        return m_Identifier;
-    }
-
-    operator T &() {
-        return get();
-    }
-
-    bool operator==(const Resource<T> &other) const {
-        return m_Identifier == other.m_Identifier;
-    }
-
-    T &get() const
-        requires ResourceType<T>
-    {
-        PBZ_ASSERT(ResourceRegistry<T>::contains(m_Identifier), std::format("[Resource] Resource '{}' does not exist for type", m_Identifier));
-        return ResourceRegistry<T>::m_Registry.at(m_Identifier);
-    }
-
-    const ResourceID &getIdentifier() const {
-        return m_Identifier;
-    }
-
-  private:
-    ResourceID m_Identifier;
-};
-
 } // namespace Physbuzz
-
-template <typename T>
-struct std::hash<Physbuzz::Resource<T>> {
-    std::size_t operator()(const Physbuzz::Resource<T> &resource) const noexcept {
-        return std::hash<std::string>{}(resource.getIdentifier());
-    }
-};

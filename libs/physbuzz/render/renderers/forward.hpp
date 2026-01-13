@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../ecs/system.hpp"
-#include "../../resources/resources.hpp"
+#include "../../resources/table.hpp"
 #include "../lighting.hpp"
 #include "defines.hpp"
 
@@ -28,26 +28,26 @@ struct LightBuffer {
 };
 
 struct MaterialBuffer {
-    alignas(16) glm::vec3 diffuse;
-    alignas(16) glm::vec3 specular;
+    std::array<std::uint32_t, 5> diffuseTextureIds;
+    std::array<std::uint32_t, 5> specularTextureIds;
     float specularity;
 };
 
 struct ModelBuffer {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 invModel;
+    std::uint32_t materialIdx;
 };
 
-struct PushConstantBuffer {
-    std::uint32_t materialId;
-};
+inline Resource<ShaderBuffer> ResourceBufferMaterials = {"builtin/forward/materials"};
+inline Resource<ShaderBuffer> ResourceBufferTextures = {"builtin/forward/textures"};
 
 inline Resource<ShaderBuffer> ResourceBufferCamera = {"builtin/forward/camera"};
 inline Resource<ShaderBuffer> ResourceBufferLight = {"builtin/forward/light"};
 
-inline Resource<ShaderBuffer> ResourceBufferMaterial = {"builtin/forward/material"};
-inline Resource<ShaderBuffer> ResourceBufferModel = {"builtin/forward/model"};
+inline Resource<ShaderBuffer> ResourceBufferModel = {"builtin/forward/models"};
 
+inline Resource<PipelineLayout> ResourceLayoutGlobal = {"builtin/forward/global"};
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/forward/frame"};
 inline Resource<PipelineLayout> ResourceLayoutObject = {"builtin/forward/object"};
 
@@ -79,6 +79,9 @@ class ForwardRenderer : public IRenderPass,
     Info m_Info;
 
     bool m_ReloadedPipeline = false;
+
+    ResourceTable<Texture> m_Textures;
+    ResourceTable<Material> m_Materials;
 
     struct {
         EventID resize = -1;

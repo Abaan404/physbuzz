@@ -9,12 +9,12 @@ namespace Physbuzz {
 namespace Builtin {
 
 bool ShaderDeferredGeometry::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
         return true;
     }
 
     // return ResourceRegistry<ShaderPipeline>::insert(
-    //     Resource.getIdentifier(),
+    //     Resource,
     //     {{
     //         .draw = [](const ShaderPipeline *pipeline, Scene &scene, ObjectID object) {
     //             const auto [render] = scene.getComponent<RenderComponent>(object);
@@ -55,12 +55,12 @@ bool ShaderDeferredGeometry::build() {
 }
 
 bool ShaderDeferredLighting::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
         return true;
     }
 
     // return ResourceRegistry<ShaderPipeline>::insert(
-    //     Resource.getIdentifier(),
+    //     Resource,
     //     {{
     //         .draw = [](const ShaderPipeline *pipeline, Scene &scene, ObjectID) {
     //             const auto &points = scene.getComponents<PointLightComponent>();
@@ -166,11 +166,11 @@ bool DeferredRenderer::build() {
     success &= m_Framebuffers.gBuffer.build();
     success &= m_Framebuffers.output.build();
 
-    if (m_Info.passes.geometry.getIdentifier() == Builtin::ShaderDeferredGeometry::Resource.getIdentifier()) {
+    if (m_Info.passes.geometry == Builtin::ShaderDeferredGeometry::Resource) {
         success &= Builtin::ShaderDeferredGeometry::build();
     }
 
-    if (m_Info.passes.lighting.getIdentifier() == Builtin::ShaderDeferredLighting::Resource.getIdentifier()) {
+    if (m_Info.passes.lighting == Builtin::ShaderDeferredLighting::Resource) {
         success &= Builtin::ShaderDeferredLighting::build();
     }
 

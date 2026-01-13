@@ -1,10 +1,7 @@
 #pragma once
 
-#include "../resources/defines.hpp"
-#include "../resources/resources.hpp"
+#include "../resources/resource.hpp"
 #include <glm/glm.hpp>
-#include <slang-com-ptr.h>
-#include <slang.h>
 #include <string>
 #include <vulkan/vulkan.hpp>
 

@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../app/application.hpp"
-#include "../resources/resources.hpp"
+#include "../resources/defines.hpp"
+#include "../resources/resource.hpp"
+#include "layouts/defines.hpp"
 #include "renderers/defines.hpp"
+#include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
 
@@ -15,12 +17,16 @@ class Renderer;
 class PipelineLayout {
   public:
     using Type = vk::DescriptorType;
+    using Flags = vk::DescriptorSetLayoutCreateFlagBits;
 
     using ShaderStage = vk::ShaderStageFlags;
     using ShaderStageFlags = vk::ShaderStageFlagBits;
+    using BindingFlags = vk::DescriptorBindingFlags;
+    using BindingFlagBits = vk::DescriptorBindingFlagBits;
 
     struct Binding {
         Type type;
+        BindingFlags flags = {};
         ShaderStage stage = ShaderStageFlags::eAll;
         std::uint32_t count = 1;
         std::uint64_t offset = 0;
@@ -29,6 +35,8 @@ class PipelineLayout {
 
     struct Info {
         std::vector<Binding> bindings;
+        Flags flags = {};
+        LayoutLifetime lifetime = LayoutLifetime::PerFrame;
     };
 
     PipelineLayout(const Info &info);
@@ -78,31 +86,29 @@ class PipelineLayoutAllocator : public System<> {
     bool build();
     bool destroy();
 
-    bool allocate(const Resource<PipelineLayout> &layout);
-    bool deallocate(const Resource<PipelineLayout> &layout);
+    bool attach(const Resource<PipelineLayout> &layout, const Resource<ShaderBuffer> &storage, std::uint32_t binding, std::uint32_t element = 0);
+    bool attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
 
-    bool attach(const Resource<PipelineLayout> &layout, const Resource<ShaderBuffer> &storage, std::uint32_t binding);
-    bool attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding);
-
-    bool attach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<ShaderBuffer> &storage, std::uint32_t binding);
-    bool attach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<Texture> &storage, std::uint32_t binding);
+    bool reattach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<ShaderBuffer> &storage, std::uint32_t binding, std::uint32_t element = 0);
 
     void reset();
 
     void bind(const RenderContext &context, const Resource<RenderPipeline> &pipeline, std::uint32_t idx = 0);
 
   private:
-    vk::DescriptorPool createPool();
-
     struct Allocation {
         vk::DescriptorPool allocatorPool = nullptr;
         std::vector<vk::DescriptorSet> sets;
     };
 
-    std::unordered_map<Resource<PipelineLayout>, Allocation> m_AllocatedLayouts;
-    std::unordered_map<Resource<PipelineLayout>, std::uint32_t> m_AttachedCount;
+    bool allocate(const Resource<PipelineLayout> &layout);
+    bool deallocate(const Resource<PipelineLayout> &layout);
+
+    vk::DescriptorPool createPool();
 
     Info m_Info;
+
+    std::unordered_map<Resource<PipelineLayout>, Allocation> m_AllocatedLayouts;
 
     vk::DescriptorPool m_CurrentPool = nullptr;
     std::vector<vk::DescriptorPool> m_UsedPools;

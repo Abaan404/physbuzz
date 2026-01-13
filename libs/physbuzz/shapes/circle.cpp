@@ -3,6 +3,7 @@
 #include "../render/mesh.hpp"
 #include "../render/model.hpp"
 #include "utils.hpp"
+#include <glm/ext/scalar_constants.hpp>
 
 namespace Physbuzz {
 

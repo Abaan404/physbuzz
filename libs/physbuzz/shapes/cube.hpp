@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../resources/resources.hpp"
+#include "../resources/resource.hpp"
 
 namespace Physbuzz {
 

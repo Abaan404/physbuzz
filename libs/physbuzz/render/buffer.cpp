@@ -1,5 +1,7 @@
 #include "buffer.hpp"
 
+#include "../app/application.hpp"
+
 namespace Physbuzz {
 
 Buffer::Buffer(const Info &info)

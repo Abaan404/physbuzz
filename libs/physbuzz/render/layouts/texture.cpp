@@ -1,4 +1,6 @@
 #include "texture.hpp"
+
+#include "../../app/application.hpp"
 #include <span>
 
 namespace Physbuzz {

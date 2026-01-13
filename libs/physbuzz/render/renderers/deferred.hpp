@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../ecs/system.hpp"
-#include "../../resources/resources.hpp"
+#include "../../resources/resource.hpp"
 #include "../framebuffer.hpp"
 #include "../shaders.hpp"
 #include "defines.hpp"

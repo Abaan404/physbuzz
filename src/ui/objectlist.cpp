@@ -2,7 +2,6 @@
 
 #include "../objects/circle.hpp"
 #include "../objects/cuboid.hpp"
-#include "../objects/line.hpp"
 #include "../objects/quad.hpp"
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
@@ -95,20 +94,6 @@ void ObjectList::draw() {
                 ImGui::DragFloat3("acceleration", glm::value_ptr(physics.acceleration), 0.01f, -MAX_VALUE, MAX_VALUE);
                 ImGui::DragFloat3("gravity", glm::value_ptr(physics.gravity.acceleration), 0.01f, -MAX_VALUE, MAX_VALUE);
                 ImGui::DragFloat2("drag", &physics.drag.k1, 0.01f, -MAX_VALUE, MAX_VALUE);
-            }
-
-            if (m_Scene->containsComponent<LineComponent>(object)) {
-                ImGui::SeparatorText("Line");
-
-                const auto [line] = m_Scene->getComponent<LineComponent>(object);
-                float lt[] = {line.length, line.thickness};
-
-                if (ImGui::DragFloat2("line", lt, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    line.length = lt[0];
-                    line.thickness = lt[1];
-
-                    rebuild = true;
-                }
             }
 
             if (m_Scene->containsComponent<QuadComponent>(object)) {

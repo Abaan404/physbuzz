@@ -19,24 +19,32 @@ struct Light {
     LightArray<SpotLight, 5> spots;
 };
 
+struct Material {
+    uint diffuseTextureIds[5];
+    uint specularTextureIds[5];
+    float specularity;
+};
+
 struct InstanceData {
     float4x4 model;
     float4x4 invModel;
+    uint materialIdx;
 };
 
 [[vk::binding(0, 0)]]
-ConstantBuffer<Camera> camera;
+Sampler2D<float3> textures[];
 
 [[vk::binding(1, 0)]]
-ConstantBuffer<Light> light;
+ConstantBuffer<Material> materials[];
 
 [[vk::binding(0, 1)]]
-ConstantBuffer<SimpleMaterial> material;
+ConstantBuffer<Camera> camera;
 
 [[vk::binding(1, 1)]]
-StructuredBuffer<InstanceData> models;
+ConstantBuffer<Light> light;
 
-uniform uint materialIdx;
+[[vk::binding(0, 2)]]
+StructuredBuffer<InstanceData> models;
 
 struct VSInput {
     float3 position : POSITION;
@@ -50,6 +58,7 @@ struct CoarseVertex {
     float3 position;
     float3 normal;
     float2 texCoord0;
+    uint objectId;
 };
 
 struct VSOutput {
@@ -58,21 +67,20 @@ struct VSOutput {
 };
 
 [shader("vertex")]
-VSOutput vertMain(VSInput input, uint instanceIdx : SV_InstanceID, uint objectIdx : SV_StartInstanceLocation) {
+VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation) {
     VSOutput output;
+    output.coarseVertex.objectId = instanceId + baseInstance;
 
-    float4x4 model = models[instanceIdx + objectIdx].model;
-    float4x4 invModel = models[instanceIdx + objectIdx].invModel;
+    InstanceData instance = models[output.coarseVertex.objectId];
+    output.sv_position = mul(mul(mul(float4(input.position, 1.0), instance.model), camera.view), camera.projection);
 
-    output.sv_position = mul(mul(mul(float4(input.position, 1.0), model), camera.view), camera.projection);
-
-    float3 T = mul(model, float4(input.tangent, 0.0)).xyz;
-    float3 N = mul(model, float4(input.normal, 0.0)).xyz;
+    float3 T = mul(instance.model, float4(input.tangent, 0.0)).xyz;
+    float3 N = mul(instance.model, float4(input.normal, 0.0)).xyz;
     float3 B = cross(N, T);
 
     output.coarseVertex.TBN = float3x3(T, B, N);
-    output.coarseVertex.position = mul(float4(input.position, 1.0), model).xyz;
-    output.coarseVertex.normal = mul(input.normal, float3x3(invModel));
+    output.coarseVertex.position = mul(float4(input.position, 1.0), instance.model).xyz;
+    output.coarseVertex.normal = mul(input.normal, float3x3(instance.invModel));
     output.coarseVertex.texCoord0 = input.texCoord0;
 
     return output;
@@ -80,12 +88,21 @@ VSOutput vertMain(VSInput input, uint instanceIdx : SV_InstanceID, uint objectId
 
 [shader("fragment")]
 float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
+    InstanceData instance = models[coarseVertex.objectId];
+
     Geometry geometry = {
         coarseVertex.TBN,
         coarseVertex.position,
         coarseVertex.normal,
         coarseVertex.texCoord0
     };
+
+    Material boundMaterial = materials[instance.materialIdx];
+
+    SimpleMaterial material;
+    material.diffuse = textures[boundMaterial.diffuseTextureIds[0]].Sample(coarseVertex.texCoord0);
+    material.specular = textures[boundMaterial.specularTextureIds[0]].Sample(coarseVertex.texCoord0);
+    material.specularity = boundMaterial.specularity;
 
     let brdf = material.prepare(geometry);
 
