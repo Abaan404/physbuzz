@@ -67,6 +67,7 @@ class App {
     friend class PipelineLayout;
     friend class RenderPipeline;
 
+    friend class StaticBuffer;
     friend class Transfer;
     friend class Buffer;
     friend class Image;

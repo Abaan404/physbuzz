@@ -78,8 +78,8 @@ class Mesh {
               .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
           }),
           m_Indices(info.indices) {
-        m_Vertices.resize(info.vertices.size() * sizeof(T));
-        std::memcpy(m_Vertices.data(), info.vertices.data(), m_Vertices.size());
+        std::span<const std::byte> bytes = std::as_bytes(std::span(info.vertices));
+        m_Vertices.assign(bytes.begin(), bytes.end());
     }
 
     bool build(const std::shared_ptr<Transfer> transfer);

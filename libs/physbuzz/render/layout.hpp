@@ -2,14 +2,13 @@
 
 #include "../resources/defines.hpp"
 #include "../resources/resource.hpp"
-#include "layouts/defines.hpp"
 #include "renderers/defines.hpp"
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
 
 class Buffer;
-class ShaderBuffer;
+class DynamicBuffer;
 class Texture;
 class RenderPipeline;
 class Renderer;
@@ -33,10 +32,15 @@ class PipelineLayout {
         std::uint64_t range = vk::WholeSize;
     };
 
+    enum class Lifetime {
+        Global,
+        PerFrame,
+    };
+
     struct Info {
         std::vector<Binding> bindings;
         Flags flags = {};
-        LayoutLifetime lifetime = LayoutLifetime::PerFrame;
+        Lifetime lifetime = Lifetime::PerFrame;
     };
 
     PipelineLayout(const Info &info);
@@ -49,7 +53,7 @@ class PipelineLayout {
   private:
     Info m_Info;
 
-    std::uint32_t m_DynamicOffset;
+    std::uint32_t m_DynamicOffset = 0;
     vk::DescriptorSetLayout m_Layout = nullptr;
 
     friend class RenderPipeline;
@@ -86,10 +90,10 @@ class PipelineLayoutAllocator : public System<> {
     bool build();
     bool destroy();
 
-    bool attach(const Resource<PipelineLayout> &layout, const Resource<ShaderBuffer> &storage, std::uint32_t binding, std::uint32_t element = 0);
+    bool attach(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &storage, std::uint32_t binding, std::uint32_t element = 0);
     bool attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
 
-    bool reattach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<ShaderBuffer> &storage, std::uint32_t binding, std::uint32_t element = 0);
+    bool reattach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &storage, std::uint32_t binding, std::uint32_t element = 0);
 
     void reset();
 

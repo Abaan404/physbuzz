@@ -5,8 +5,8 @@
 #include "../../window/window.hpp"
 #include "../camera.hpp"
 #include "../layout.hpp"
-#include "../layouts/defines.hpp"
-#include "../layouts/shaderbuffer.hpp"
+#include "../layouts/dynamic.hpp"
+#include "../layouts/static.hpp"
 #include "../model.hpp"
 #include "../renderer.hpp"
 #include <vulkan/vulkan_enums.hpp>
@@ -34,16 +34,9 @@ bool RenderPipelineForward::build() {
                         .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
                         .count = 32,
                     },
-                    {
-                        // materials
-                        .type = PipelineLayout::Type::eUniformBuffer,
-                        .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
-                        .count = 32,
-                        .range = sizeof(MaterialBuffer),
-                    },
                 },
                 .flags = PipelineLayout::Flags::eUpdateAfterBindPool,
-                .lifetime = LayoutLifetime::Global,
+                .lifetime = PipelineLayout::Lifetime::Global,
             }});
     }
 
@@ -79,39 +72,36 @@ bool RenderPipelineForward::build() {
             }});
     }
 
-    if (!ResourceRegistry<ShaderBuffer>::contains(ResourceBufferMaterials)) {
-        success &= ResourceRegistry<ShaderBuffer>::insert(
+    if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferMaterials)) {
+        success &= ResourceRegistry<StaticBuffer>::insert(
             ResourceBufferMaterials,
-            {{
-                .type = ShaderBuffer::Type::Constant,
-                .lifetime = LayoutLifetime::Global,
-            }},
-            sizeof(MaterialBuffer) * 20);
+            {},
+            sizeof(MaterialBuffer));
     }
 
-    if (!ResourceRegistry<ShaderBuffer>::contains(ResourceBufferCamera)) {
-        success &= ResourceRegistry<ShaderBuffer>::insert(
+    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferCamera)) {
+        success &= ResourceRegistry<DynamicBuffer>::insert(
             ResourceBufferCamera,
             {{
-                .type = ShaderBuffer::Type::Constant,
+                .type = DynamicBuffer::Type::Constant,
             }},
             sizeof(CameraBuffer));
     }
 
-    if (!ResourceRegistry<ShaderBuffer>::contains(ResourceBufferLight)) {
-        success &= ResourceRegistry<ShaderBuffer>::insert(
+    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferLight)) {
+        success &= ResourceRegistry<DynamicBuffer>::insert(
             ResourceBufferLight,
             {{
-                .type = ShaderBuffer::Type::Constant,
+                .type = DynamicBuffer::Type::Constant,
             }},
             sizeof(LightBuffer));
     }
 
-    if (!ResourceRegistry<ShaderBuffer>::contains(ResourceBufferModel)) {
-        success &= ResourceRegistry<ShaderBuffer>::insert(
+    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferModel)) {
+        success &= ResourceRegistry<DynamicBuffer>::insert(
             ResourceBufferModel,
             {{
-                .type = ShaderBuffer::Type::Structured,
+                .type = DynamicBuffer::Type::Structured,
             }},
             sizeof(ModelBuffer));
     }
@@ -126,6 +116,12 @@ bool RenderPipelineForward::build() {
                     ResourceLayoutGlobal,
                     ResourceLayoutFrame,
                     ResourceLayoutObject,
+                },
+                .pushConstantRanges = {
+                    {
+                        .stageFlags = RenderPipeline::PushConstantsStageFlags::eAll,
+                        .size = sizeof(PushConstants),
+                    },
                 },
             },
         }});
@@ -148,11 +144,6 @@ bool ForwardRenderer::build() {
     }
 
     bool success = true;
-
-    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
-        Builtin::RenderPipelineForward::ResourceLayoutGlobal,
-        Builtin::RenderPipelineForward::ResourceBufferMaterials,
-        1);
 
     success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
         Builtin::RenderPipelineForward::ResourceLayoutFrame,
@@ -250,7 +241,6 @@ void ForwardRenderer::render(const RenderContext &context) {
 
     // batch objects
     std::unordered_map<Resource<Mesh>, std::vector<Builtin::RenderPipelineForward::ModelBuffer>> instances;
-    std::vector<std::pair<std::uint32_t, Builtin::RenderPipelineForward::MaterialBuffer>> materials;
 
     std::vector<Builtin::RenderPipelineForward::ModelBuffer> instanceBuffers;
     std::vector<std::pair<Resource<Mesh>, std::size_t>> instanceSizes;
@@ -301,18 +291,26 @@ void ForwardRenderer::render(const RenderContext &context) {
                         break;
 
                     default:
-                        Logger::ERROR("[ForwardRenderer] Unhandled texture found {}", Model::getTextureTypeName(type));
+                        Logger::WARNING("[ForwardRenderer] Unhandled texture found {}", Model::getTextureTypeName(type));
                         break;
                     }
                 }
 
-                materials.emplace_back<std::pair<std::uint32_t, Builtin::RenderPipelineForward::MaterialBuffer>>({m_Materials.query(mesh.material), material});
+                // resize if needed
+                Builtin::RenderPipelineForward::ResourceBufferMaterials->resize(
+                    context, m_Scene->getSystem<Transfer>(),
+                    m_Materials.size() * sizeof(Builtin::RenderPipelineForward::MaterialBuffer));
+
+                // upload material data
+                Builtin::RenderPipelineForward::ResourceBufferMaterials->update<Builtin::RenderPipelineForward::MaterialBuffer>(
+                    m_Scene->getSystem<Transfer>(),
+                    {material}, m_Materials.query(mesh.material));
             }
 
             instances[mesh.mesh].emplace_back<Builtin::RenderPipelineForward::ModelBuffer>({
                 .model = render.transform.matrix,
                 .invModel = glm::inverse(render.transform.matrix),
-                .materialIdx = m_Materials.query(mesh.material),
+                .materialOffset = m_Materials.query(mesh.material) * sizeof(Builtin::RenderPipelineForward::MaterialBuffer),
             });
         }
 
@@ -325,21 +323,13 @@ void ForwardRenderer::render(const RenderContext &context) {
     }
 
     // resize if needed
-    if (Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, meshCount * sizeof(Builtin::RenderPipelineForward::ModelBuffer))) {
+    if (Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, m_Scene->getSystem<Transfer>(), meshCount * sizeof(Builtin::RenderPipelineForward::ModelBuffer))) {
         m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
             context,
             Builtin::RenderPipelineForward::ResourceLayoutObject,
             Builtin::RenderPipelineForward::ResourceBufferModel,
             0);
     }
-
-    // if (Builtin::RenderPipelineForward::ResourceBufferMaterials->resize(context, materials.size() * sizeof(Builtin::RenderPipelineForward::MaterialBuffer))) {
-    //     m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
-    //         context,
-    //         Builtin::RenderPipelineForward::ResourceLayoutGlobal,
-    //         Builtin::RenderPipelineForward::ResourceBufferMaterials,
-    //         1);
-    // }
 
     // upload lighting data
     const std::vector<DirectionalLightComponent> &directionals = m_Scene->getComponentArray<DirectionalLightComponent>();
@@ -366,18 +356,6 @@ void ForwardRenderer::render(const RenderContext &context) {
             .projection = camera.getProjection(),
         }});
 
-    // upload materials
-    for (const auto &[materialId, material] : materials) {
-        Builtin::RenderPipelineForward::ResourceBufferMaterials->update<Builtin::RenderPipelineForward::MaterialBuffer>(
-            context, m_Scene->getSystem<Transfer>(),
-            {material}, materialId);
-
-        m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
-            Builtin::RenderPipelineForward::ResourceLayoutGlobal,
-            Builtin::RenderPipelineForward::ResourceBufferMaterials,
-            1, materialId);
-    }
-
     // upload instance/object data
     Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(
         context, m_Scene->getSystem<Transfer>(),
@@ -399,6 +377,13 @@ void ForwardRenderer::render(const RenderContext &context) {
     PipelineReloadMutex.lock();
 
     m_Info.pipeline->bind(context);
+
+    // record constants
+    Builtin::RenderPipelineForward::PushConstants pushConstants = {
+        .material = Builtin::RenderPipelineForward::ResourceBufferMaterials->getAddress(),
+    };
+
+    m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
     m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context, m_Info.pipeline);
 
     PipelineReloadMutex.unlock();

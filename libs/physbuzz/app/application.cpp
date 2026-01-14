@@ -2,7 +2,8 @@
 
 #include "../debug/macros.hpp"
 #include "../render/layout.hpp"
-#include "../render/layouts/shaderbuffer.hpp"
+#include "../render/layouts/dynamic.hpp"
+#include "../render/layouts/static.hpp"
 #include "../render/layouts/texture.hpp"
 #include "../render/mesh.hpp"
 #include "../render/shaders.hpp"
@@ -223,13 +224,12 @@ bool App::init() {
             {
                 .descriptorIndexing = true,
                 .shaderSampledImageArrayNonUniformIndexing = true,
-                .shaderStorageBufferArrayNonUniformIndexing = true,
                 .shaderStorageImageArrayNonUniformIndexing = true,
                 .descriptorBindingSampledImageUpdateAfterBind = true,
                 .descriptorBindingStorageImageUpdateAfterBind = true,
-                .descriptorBindingStorageBufferUpdateAfterBind = true,
                 .descriptorBindingPartiallyBound = true,
                 .runtimeDescriptorArray = true,
+                .bufferDeviceAddress = true,
             },
             {
                 .synchronization2 = true,
@@ -281,6 +281,7 @@ bool App::init() {
     allocatorInfo.physicalDevice = PhysicalDevice;
     allocatorInfo.device = Device;
     allocatorInfo.instance = Instance;
+    allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     allocatorInfo.pVulkanFunctions = &vulkanFunctions;
 
     vmaCreateAllocator(&allocatorInfo, &Allocator);
@@ -303,7 +304,8 @@ bool App::quit() {
     // cleanup vulkan resources
     ResourceRegistry<RenderPipeline>::clear();
     ResourceRegistry<PipelineLayout>::clear();
-    ResourceRegistry<ShaderBuffer>::clear();
+    ResourceRegistry<StaticBuffer>::clear();
+    ResourceRegistry<DynamicBuffer>::clear();
     ResourceRegistry<Texture>::clear();
     ResourceRegistry<Mesh>::clear();
 

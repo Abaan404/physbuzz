@@ -50,15 +50,8 @@ bool Mesh::build(const std::shared_ptr<Transfer> transfer) {
         return false;
     }
 
-    std::span<const std::byte> vertices = {
-        reinterpret_cast<const std::byte *>(m_Vertices.data()),
-        m_Vertices.size() * sizeof(std::byte),
-    };
-
-    std::span<const std::byte> indices = {
-        reinterpret_cast<const std::byte *>(m_Indices.data()),
-        m_Indices.size() * sizeof(Index),
-    };
+    std::span<const std::byte> vertices = std::as_bytes(std::span(m_Vertices));
+    std::span<const std::byte> indices = std::as_bytes(std::span(m_Indices));
 
     success &= transfer->map(m_Vertex, vertices, 0);
     success &= transfer->map(m_Index, indices, 0);

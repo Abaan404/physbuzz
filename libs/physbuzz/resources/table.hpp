@@ -41,6 +41,14 @@ class ResourceTable {
         return m_Resources.at(id);
     }
 
+    std::size_t max_size() {
+        return m_ResourceCounter;
+    }
+
+    std::size_t size() {
+        return m_Resources.size();
+    }
+
     void clear() {
         m_ResourceCounter = 0;
         m_EmptyIndices.clear();

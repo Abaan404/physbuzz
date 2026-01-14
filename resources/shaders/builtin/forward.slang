@@ -28,14 +28,18 @@ struct Material {
 struct InstanceData {
     float4x4 model;
     float4x4 invModel;
-    uint materialIdx;
+    uint64_t materialOffset;
 };
+
+struct PushConstants {
+    uint64_t materialBaseAddress;
+};
+
+[[vk::push_constant]]
+PushConstants pc;
 
 [[vk::binding(0, 0)]]
 Sampler2D<float3> textures[];
-
-[[vk::binding(1, 0)]]
-ConstantBuffer<Material> materials[];
 
 [[vk::binding(0, 1)]]
 ConstantBuffer<Camera> camera;
@@ -97,12 +101,13 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
         coarseVertex.texCoord0
     };
 
-    Material boundMaterial = materials[instance.materialIdx];
+    Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialOffset);
 
-    SimpleMaterial material;
-    material.diffuse = textures[boundMaterial.diffuseTextureIds[0]].Sample(coarseVertex.texCoord0);
-    material.specular = textures[boundMaterial.specularTextureIds[0]].Sample(coarseVertex.texCoord0);
-    material.specularity = boundMaterial.specularity;
+    SimpleMaterial material = {
+        textures[boundMaterial.diffuseTextureIds[0]].Sample(coarseVertex.texCoord0),
+        textures[boundMaterial.specularTextureIds[0]].Sample(coarseVertex.texCoord0),
+        125.0f,
+    };
 
     let brdf = material.prepare(geometry);
 
