@@ -8,7 +8,6 @@
 #include "../../debug/macros.hpp"
 #include "../../events/window.hpp"
 #include "../../render/renderer.hpp"
-#include "../../render/renderers/defines.hpp"
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_structs.hpp>

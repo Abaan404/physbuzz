@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../window/input.hpp"
+#include "../window/defines.hpp"
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <vector>

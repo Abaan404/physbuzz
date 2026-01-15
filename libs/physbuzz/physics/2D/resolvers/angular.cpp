@@ -1,6 +1,6 @@
 #include "angular.hpp"
 
-#include "../../../render/renderer.hpp"
+#include "../../../ecs/scene.hpp"
 
 namespace Physbuzz {
 

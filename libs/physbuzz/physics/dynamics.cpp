@@ -1,5 +1,7 @@
 #include "dynamics.hpp"
 
+#include "../ecs/scene.hpp"
+#include "../misc/clock.hpp"
 #include "collision.hpp"
 
 namespace Physbuzz {

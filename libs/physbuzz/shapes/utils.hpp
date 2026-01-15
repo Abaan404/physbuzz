@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../render/mesh.hpp"
+#include "../graphics/mesh.hpp"
 #include <vector>
 
 namespace Physbuzz {

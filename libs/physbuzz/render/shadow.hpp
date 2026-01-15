@@ -1,9 +1,8 @@
 #pragma once
 
 #include "../ecs/system.hpp"
-#include "framebuffer.hpp"
-#include "renderers/defines.hpp"
-#include "shaders.hpp"
+#include "../graphics/pipeline.hpp"
+#include "defines.hpp"
 
 namespace Physbuzz {
 
@@ -31,10 +30,10 @@ struct ShadowComponent {};
 
 class Shadow : public System<RenderComponent, ShadowComponent> {
   public:
-    struct Framebuffers {
-        Framebuffer directional;
-        Framebuffer point;
-    };
+    // struct Framebuffers {
+    //     Framebuffer directional;
+    //     Framebuffer point;
+    // };
 
     struct Info {
         float orthoSize = 100.0f;
@@ -50,7 +49,7 @@ class Shadow : public System<RenderComponent, ShadowComponent> {
 
     void tick() const;
 
-    const Framebuffers &getFramebuffers() const;
+    // const Framebuffers &getFramebuffers() const;
     const Info &getInfo() const;
 
   private:
@@ -58,7 +57,7 @@ class Shadow : public System<RenderComponent, ShadowComponent> {
     void tickPoint() const;
 
     Info m_Info;
-    Framebuffers m_Framebuffers;
+    // Framebuffers m_Framebuffers;
 };
 
 } // namespace Physbuzz

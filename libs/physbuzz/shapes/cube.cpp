@@ -1,6 +1,6 @@
 #include "cube.hpp"
 
-#include "../render/mesh.hpp"
+#include "../graphics/mesh.hpp"
 #include "../render/model.hpp"
 
 namespace Physbuzz {

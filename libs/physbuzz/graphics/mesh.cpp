@@ -1,6 +1,6 @@
 #include "mesh.hpp"
 
-#include "renderers/defines.hpp"
+#include "defines.hpp"
 
 namespace Physbuzz {
 

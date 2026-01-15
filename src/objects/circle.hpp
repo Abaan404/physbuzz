@@ -3,6 +3,7 @@
 #include "builder.hpp"
 #include "common.hpp"
 #include <physbuzz/physics/dynamics.hpp>
+#include <physbuzz/render/transform.hpp>
 
 struct RadialComponent {
     float radius = 0.0f;

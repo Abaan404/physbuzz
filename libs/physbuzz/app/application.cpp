@@ -1,12 +1,12 @@
 #include "application.hpp"
 
 #include "../debug/macros.hpp"
-#include "../render/layout.hpp"
-#include "../render/layouts/dynamic.hpp"
-#include "../render/layouts/static.hpp"
-#include "../render/layouts/texture.hpp"
-#include "../render/mesh.hpp"
-#include "../render/shaders.hpp"
+#include "../graphics/descriptors/dynamic.hpp"
+#include "../graphics/descriptors/static.hpp"
+#include "../graphics/descriptors/texture.hpp"
+#include "../graphics/layout.hpp"
+#include "../graphics/mesh.hpp"
+#include "../graphics/pipeline.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <map>
@@ -242,7 +242,7 @@ bool App::init() {
 
     float queuePriority = 1.0f;
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-    std::set<std::uint32_t> queueFamilyIndices = {Indices.graphics, Indices.present, Indices.transfer};
+    std::unordered_set<std::uint32_t> queueFamilyIndices = {Indices.graphics, Indices.present, Indices.transfer};
 
     for (const auto &queueFamilyIndex : queueFamilyIndices) {
         queueCreateInfos.push_back({

@@ -1,6 +1,6 @@
 #include "file.hpp"
 
-#include "../debug/logging.hpp"
+#include "logging.hpp"
 #include <fstream>
 
 namespace Physbuzz {

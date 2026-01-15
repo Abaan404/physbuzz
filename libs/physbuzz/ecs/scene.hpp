@@ -12,7 +12,7 @@ class Scene : public EventSubject {
     ObjectID createObject(ObjectID id);
     bool eraseObject(ObjectID id);
     bool containsObject(ObjectID id) const;
-    const std::set<ObjectID> &getObjects();
+    const std::unordered_set<ObjectID> &getObjects();
 
     template <typename... T>
     inline void setComponent(ObjectID id, T &...component) {
@@ -128,7 +128,7 @@ class Scene : public EventSubject {
     ComponentManager m_ComponentManager;
     SystemManager m_SystemManager;
 
-    std::set<ObjectID> m_Objects;
+    std::unordered_set<ObjectID> m_Objects;
     ObjectID m_ObjectCounter = 0;
 };
 

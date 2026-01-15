@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <set>
+#include <unordered_set>
 
 namespace Physbuzz {
 
@@ -27,7 +27,7 @@ class Signature {
     }
 
     inline static SignatureID m_CurId = 0;
-    inline static std::set<SignatureID> m_Ids;
+    inline static std::unordered_set<SignatureID> m_Ids;
 };
 
 } // namespace Physbuzz

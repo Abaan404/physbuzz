@@ -13,7 +13,7 @@ struct SweepEdge {
 
 class SweepAndPrune2D : public ICollisionDetector {
   public:
-    SweepAndPrune2D(Scene *scene, std::set<ObjectID> *objects);
+    SweepAndPrune2D(Scene *scene, std::unordered_set<ObjectID> *objects);
 
     bool check(Contact &contact) override;
     std::list<Contact> find() override;
@@ -21,7 +21,7 @@ class SweepAndPrune2D : public ICollisionDetector {
   protected:
     std::list<SweepEdge> getEdges();
 
-    std::set<ObjectID> *m_Objects;
+    std::unordered_set<ObjectID> *m_Objects;
 };
 
 } // namespace Physbuzz

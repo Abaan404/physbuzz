@@ -23,7 +23,7 @@ class TestSystem1 : public Physbuzz::System<TestComponent1, TestComponent3> {
         }
     }
 
-    std::set<Physbuzz::ObjectID> tickedIds;
+    std::unordered_set<Physbuzz::ObjectID> tickedIds;
 };
 
 class TestSystem2 : public Physbuzz::System<TestComponent2, TestComponent3> {
@@ -34,7 +34,7 @@ class TestSystem2 : public Physbuzz::System<TestComponent2, TestComponent3> {
         }
     }
 
-    std::set<Physbuzz::ObjectID> tickedIds;
+    std::unordered_set<Physbuzz::ObjectID> tickedIds;
 };
 
 TEST_CASE("Physbuzz::Scene") {
@@ -74,7 +74,7 @@ TEST_CASE("Physbuzz::Scene") {
 
         Physbuzz::ObjectID id1 = scene.createObject(42);
         Physbuzz::ObjectID id2 = scene.createObject(99);
-        const std::set<Physbuzz::ObjectID> &objects = scene.getObjects();
+        const std::unordered_set<Physbuzz::ObjectID> &objects = scene.getObjects();
 
         // but not anymore
         CHECK(objects.size() == 2);

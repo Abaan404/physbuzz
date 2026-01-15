@@ -1,6 +1,6 @@
 #include "lightpoint.hpp"
 
-#include <physbuzz/render/renderers/defines.hpp>
+#include <physbuzz/render/defines.hpp>
 #include <physbuzz/shapes/sphere.hpp>
 
 template <>

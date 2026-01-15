@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../debug/logging.hpp"
+#include "../io/logging.hpp"
 #include "../events/handler.hpp"
 #include "../events/resources.hpp"
 #include "defines.hpp"

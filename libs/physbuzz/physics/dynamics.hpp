@@ -1,9 +1,7 @@
 #pragma once
 
-#include "../ecs/scene.hpp"
-#include "../misc/clock.hpp"
-#include "../render/mesh.hpp"
-#include "../render/renderer.hpp"
+#include "../ecs/system.hpp"
+#include "../graphics/mesh.hpp"
 #include <glm/glm.hpp>
 
 namespace Physbuzz {

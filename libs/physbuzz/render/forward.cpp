@@ -1,173 +1,27 @@
 #include "forward.hpp"
 
-#include "../../ecs/scene.hpp"
-#include "../../events/window.hpp"
-#include "../../window/window.hpp"
-#include "../camera.hpp"
-#include "../layout.hpp"
-#include "../layouts/dynamic.hpp"
-#include "../layouts/static.hpp"
-#include "../lighting.hpp"
-#include "../model.hpp"
-#include "../renderer.hpp"
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_structs.hpp>
+#include "../ecs/scene.hpp"
+#include "../events/window.hpp"
+#include "../graphics/descriptors/dynamic.hpp"
+#include "../graphics/descriptors/static.hpp"
+#include "../graphics/layout.hpp"
+#include "camera.hpp"
+#include "lighting.hpp"
+#include "model.hpp"
+#include "renderer.hpp"
 
 namespace Physbuzz {
-
-namespace Builtin {
-
-bool RenderPipelineForward::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
-        return true;
-    }
-
-    bool success = true;
-
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutGlobal)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
-            ResourceLayoutGlobal,
-            {{
-                .bindings = {
-                    {
-                        // textures
-                        .type = PipelineLayout::Type::eCombinedImageSampler,
-                        .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
-                        .count = 32,
-                    },
-                },
-                .flags = PipelineLayout::Flags::eUpdateAfterBindPool,
-                .lifetime = PipelineLayout::Lifetime::Global,
-            }});
-    }
-
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
-            ResourceLayoutFrame,
-            {{
-                .bindings = {
-                    {
-                        // camera
-                        .type = PipelineLayout::Type::eUniformBuffer,
-                        .range = sizeof(CameraBuffer),
-                    },
-                    {
-                        // directionals
-                        .type = PipelineLayout::Type::eStorageBuffer,
-                        .range = sizeof(DirectionalLightComponent),
-                    },
-                    {
-                        // points
-                        .type = PipelineLayout::Type::eStorageBuffer,
-                        .range = sizeof(PointLightComponent),
-                    },
-                    {
-                        // spots
-                        .type = PipelineLayout::Type::eStorageBuffer,
-                        .range = sizeof(SpotLightComponent),
-                    },
-                },
-            }});
-    }
-
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutObject)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
-            ResourceLayoutObject,
-            {{
-                .bindings = {
-                    {
-                        // instance
-                        .type = PipelineLayout::Type::eStorageBuffer,
-                    },
-                },
-            }});
-    }
-
-    if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferMaterials)) {
-        success &= ResourceRegistry<StaticBuffer>::insert(
-            ResourceBufferMaterials,
-            {},
-            sizeof(MaterialBuffer));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferCamera)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferCamera,
-            {{
-                .type = DynamicBuffer::Type::Constant,
-            }},
-            sizeof(CameraBuffer));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferDirectionalLights)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferDirectionalLights,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(DirectionalLightComponent));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferPointLights)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferPointLights,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(PointLightComponent));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferSpotLights)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferSpotLights,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(SpotLightComponent));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferModel)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferModel,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(ModelBuffer));
-    }
-
-    success &= ResourceRegistry<RenderPipeline>::insert(
-        Resource,
-        {{
-            .module = "builtin/forward",
-            .description = &Model::Vertex::Description,
-            .layouts = {
-                .resources = {
-                    ResourceLayoutGlobal,
-                    ResourceLayoutFrame,
-                    ResourceLayoutObject,
-                },
-                .pushConstantRanges = {
-                    {
-                        .stageFlags = RenderPipeline::PushConstantsStageFlags::eAll,
-                        .size = sizeof(PushConstants),
-                    },
-                },
-            },
-        }});
-
-    return success;
-}
-
-} // namespace Builtin
 
 ForwardRenderer::ForwardRenderer(const Info &info)
     : m_Info(info) {}
 
 bool ForwardRenderer::build() {
     // build pipeline
-    if (!Builtin::RenderPipelineForward::build()) {
-        Logger::ERROR("[Renderer] Could not build forward shader pipeline.");
-        return false;
+    if (m_Info.pipeline == Builtin::RenderPipelineForward::Resource) {
+        if (!Builtin::RenderPipelineForward::build()) {
+            Logger::ERROR("[Renderer] Could not build forward shader pipeline.");
+            return false;
+        }
     }
 
     bool success = true;
@@ -215,25 +69,6 @@ bool ForwardRenderer::destroy() {
 }
 
 void ForwardRenderer::render(const RenderContext &context) {
-    // setup attachments
-    vk::RenderingAttachmentInfo depthAttachment = {
-        .imageView = context.depth.view,
-        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-        .loadOp = vk::AttachmentLoadOp::eClear,
-        .storeOp = vk::AttachmentStoreOp::eDontCare,
-        .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
-    };
-
-    std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
-        {
-            .imageView = context.color.view,
-            .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .loadOp = vk::AttachmentLoadOp::eClear,
-            .storeOp = vk::AttachmentStoreOp::eStore,
-            .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
-        },
-    };
-
     // batch objects
     std::unordered_map<Resource<Mesh>, std::vector<Builtin::RenderPipelineForward::ModelBuffer>> instances;
 
@@ -385,6 +220,25 @@ void ForwardRenderer::render(const RenderContext &context) {
     };
 
     m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+
+    // setup attachments
+    vk::RenderingAttachmentInfo depthAttachment = {
+        .imageView = context.depth.view,
+        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+        .loadOp = vk::AttachmentLoadOp::eClear,
+        .storeOp = vk::AttachmentStoreOp::eDontCare,
+        .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
+    };
+
+    std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
+        {
+            .imageView = context.color.view,
+            .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .loadOp = vk::AttachmentLoadOp::eClear,
+            .storeOp = vk::AttachmentStoreOp::eStore,
+            .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
+        },
+    };
 
     context.command.beginRendering({
         .renderArea = {

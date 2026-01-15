@@ -1,7 +1,7 @@
 #include "dynamic.hpp"
 
-#include "../buffer.hpp"
-#include "../renderers/defines.hpp"
+#include "../memory.hpp"
+#include "../defines.hpp"
 #include <vector>
 
 namespace Physbuzz {

@@ -12,13 +12,13 @@
 #include <physbuzz/app/application.hpp>
 #include <physbuzz/compat/imgui/imgui_impl_physbuzz.hpp>
 #include <physbuzz/events/window.hpp>
+#include <physbuzz/graphics/layout.hpp>
+#include <physbuzz/graphics/pipeline.hpp>
 #include <physbuzz/misc/context.hpp>
-#include <physbuzz/render/layout.hpp>
+#include <physbuzz/render/forward.hpp>
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/render/renderer.hpp>
-#include <physbuzz/render/renderers/forward.hpp>
-#include <physbuzz/render/shaders.hpp>
-#include <physbuzz/window/bindings.hpp>
+#include <physbuzz/window/inputs.hpp>
 #include <random>
 
 void Game::build() {
@@ -162,7 +162,7 @@ void Game::build() {
             },
         });
 
-    Physbuzz::App::GScene.createSystem<Physbuzz::Bindings>(window);
+    Physbuzz::App::GScene.createSystem<Physbuzz::InputEvents>(window);
     Physbuzz::App::GScene.createSystem<Physbuzz::Clock>();
     Physbuzz::App::GScene.createSystem<Physbuzz::Dynamics>(1.0f);
     Physbuzz::App::GScene.createSystem<InterfaceManager>();
@@ -254,7 +254,7 @@ void Game::loop() {
     while (m_IsRunning && !window->shouldClose()) {
         Physbuzz::App::GScene.tickSystem<Physbuzz::Clock>();
         Physbuzz::App::GScene.tickSystem<Physbuzz::Dynamics>();
-        Physbuzz::App::GScene.tickSystem<Physbuzz::Bindings>();
+        Physbuzz::App::GScene.tickSystem<Physbuzz::InputEvents>();
         Physbuzz::App::GScene.tickSystem<InterfaceManager, Physbuzz::Renderer>();
     }
 }

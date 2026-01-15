@@ -1,6 +1,6 @@
 #include "circle.hpp"
 
-#include "../render/mesh.hpp"
+#include "../graphics/mesh.hpp"
 #include "../render/model.hpp"
 #include "utils.hpp"
 #include <glm/ext/scalar_constants.hpp>

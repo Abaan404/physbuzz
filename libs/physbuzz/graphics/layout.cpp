@@ -2,9 +2,9 @@
 
 #include "../app/application.hpp"
 #include "../debug/macros.hpp"
-#include "layouts/dynamic.hpp"
-#include "layouts/texture.hpp"
-#include "shaders.hpp"
+#include "descriptors/dynamic.hpp"
+#include "descriptors/texture.hpp"
+#include "pipeline.hpp"
 
 namespace Physbuzz {
 

@@ -1,6 +1,6 @@
 #include "image.hpp"
 
-#include "../debug/logging.hpp"
+#include "logging.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

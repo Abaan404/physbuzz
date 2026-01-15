@@ -13,26 +13,26 @@ enum class CallbackType {
     Continous,
 };
 
-struct BindingComponent {
+struct InputEventComponent {
     struct Keyboard {
         Key key;
         CallbackType type = CallbackType::Continous;
-        std::function<void(const KeyEvent &, Scene &)> callback;
+        std::function<void(Scene &, const KeyEvent &)> callback;
     };
 
     struct MouseButton {
         Button button;
         CallbackType type = CallbackType::Continous;
-        std::function<void(const MouseButtonEvent &, Scene &)> callback;
+        std::function<void(Scene &, const MouseButtonEvent &)> callback;
     };
 
     std::vector<Keyboard> keyboardCallbacks;
     std::vector<MouseButton> mouseCallbacks;
 };
 
-class Bindings : public System<BindingComponent> {
+class InputEvents : public System<InputEventComponent> {
   public:
-    Bindings(const std::shared_ptr<Window> window);
+    InputEvents(const std::shared_ptr<Window> window);
 
     bool build() override;
     bool destroy() override;

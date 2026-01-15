@@ -39,7 +39,7 @@ class ComponentArray : public IComponentArray {
         return m_Map.getArray();
     }
 
-    inline const std::set<ObjectID> &getKeys() {
+    inline const std::unordered_set<ObjectID> &getKeys() {
         return m_Map.getKeys();
     }
 
@@ -89,7 +89,7 @@ class ComponentManager {
 
     template <ComponentArrayType... T>
     std::vector<std::tuple<ObjectID, T &...>> getArray() {
-        std::set<ObjectID> ids;
+        std::unordered_set<ObjectID> ids;
         (ids.insert(getComponents<T>()->getKeys().begin(), getComponents<T>()->getKeys().end()), ...);
 
         std::vector<std::tuple<ObjectID, T &...>> result;

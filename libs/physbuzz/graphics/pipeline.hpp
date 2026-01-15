@@ -129,7 +129,7 @@ class RenderPipeline {
     vk::PipelineLayout m_Layout = nullptr;
     vk::Pipeline m_Pipeline = nullptr;
 
-    std::set<std::filesystem::path> m_DependencyFilePaths;
+    std::unordered_set<std::filesystem::path> m_DependencyFilePaths;
 
     inline static std::mutex m_ReloadMutex;
 

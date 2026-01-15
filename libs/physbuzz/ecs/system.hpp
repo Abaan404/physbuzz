@@ -3,7 +3,7 @@
 #include "../misc/signature.hpp"
 #include "component.hpp"
 #include <concepts>
-#include <set>
+#include <unordered_set>
 
 namespace Physbuzz {
 
@@ -16,7 +16,7 @@ class ISystem {
     virtual bool destroy() { return true; }
 
   protected:
-    std::set<ObjectID> m_Objects;
+    std::unordered_set<ObjectID> m_Objects;
     Scene *m_Scene = nullptr;
 
   private:

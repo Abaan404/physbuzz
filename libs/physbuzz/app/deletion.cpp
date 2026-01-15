@@ -1,7 +1,5 @@
 #include "deletion.hpp"
 
-#include "../render/buffer.hpp"
-#include "../render/shaders.hpp"
 #include <ranges>
 
 namespace Physbuzz {

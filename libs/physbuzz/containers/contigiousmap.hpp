@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../debug/macros.hpp"
-#include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include <vector>
 
@@ -83,7 +83,7 @@ class ContiguousMap {
         return m_Array;
     }
 
-    const std::set<K> &getKeys() {
+    const std::unordered_set<K> &getKeys() {
         return m_Keys;
     }
 
@@ -91,7 +91,7 @@ class ContiguousMap {
     std::unordered_map<K, std::size_t> m_IdxMap;
     std::unordered_map<std::size_t, K> m_KeyMap;
     std::vector<T> m_Array;
-    std::set<K> m_Keys;
+    std::unordered_set<K> m_Keys;
 };
 
 } // namespace Physbuzz

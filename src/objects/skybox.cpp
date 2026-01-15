@@ -1,6 +1,6 @@
 #include "skybox.hpp"
 
-#include <physbuzz/render/renderers/defines.hpp>
+#include <physbuzz/render/defines.hpp>
 
 struct VertexSkybox {
     glm::vec3 position;

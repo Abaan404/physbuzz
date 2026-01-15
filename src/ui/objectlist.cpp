@@ -8,6 +8,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <physbuzz/render/lighting.hpp>
+#include <physbuzz/render/defines.hpp>
+#include <unordered_set>
 
 constexpr float MAX_VALUE = 1000.0f;
 constexpr float MIN_VALUE = -1000.0f;
@@ -26,7 +28,7 @@ void ObjectList::draw() {
         return;
     }
 
-    const std::set<Physbuzz::ObjectID> &objects = m_Scene->getObjects();
+    const std::unordered_set<Physbuzz::ObjectID> &objects = m_Scene->getObjects();
 
     ImGui::Text("Simulate Physics: %s", m_Scene->getSystem<Physbuzz::Dynamics>()->isRunning() ? "true" : "false");
 

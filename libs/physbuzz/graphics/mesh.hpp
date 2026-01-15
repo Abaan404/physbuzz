@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../resources/defines.hpp"
-#include "buffer.hpp"
+#include "memory.hpp"
 
 namespace Physbuzz {
 

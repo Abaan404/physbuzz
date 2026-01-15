@@ -1,7 +1,7 @@
 #include "window.hpp"
 
 #include "../app/application.hpp"
-#include "../debug/logging.hpp"
+#include "../io/logging.hpp"
 #include "../events/window.hpp"
 
 namespace Physbuzz {

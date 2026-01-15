@@ -1,8 +1,12 @@
 #pragma once
 
 #include "../ecs/system.hpp"
-#include "buffer.hpp"
-#include "renderers/defines.hpp"
+#include "../graphics/defines.hpp"
+#include "../graphics/memory.hpp"
+#include "../graphics/pipeline.hpp"
+#include "defines.hpp"
+#include "../app/deletion.hpp"
+#include "../window/window.hpp"
 #include "shadow.hpp"
 #include <memory>
 

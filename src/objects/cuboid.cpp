@@ -2,7 +2,7 @@
 
 #include <physbuzz/physics/collision.hpp>
 #include <physbuzz/physics/dynamics.hpp>
-#include <physbuzz/render/renderers/defines.hpp>
+#include <physbuzz/render/defines.hpp>
 #include <physbuzz/render/shadow.hpp>
 #include <physbuzz/shapes/cube.hpp>
 

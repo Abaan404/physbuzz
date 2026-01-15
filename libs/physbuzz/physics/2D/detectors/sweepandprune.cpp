@@ -4,7 +4,7 @@
 
 namespace Physbuzz {
 
-SweepAndPrune2D::SweepAndPrune2D(Scene *scene, std::set<ObjectID> *objects)
+SweepAndPrune2D::SweepAndPrune2D(Scene *scene, std::unordered_set<ObjectID> *objects)
     : ICollisionDetector(scene), m_Objects(objects) {}
 
 std::list<Contact> SweepAndPrune2D::find() {

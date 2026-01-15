@@ -1,7 +1,7 @@
 #include "circle.hpp"
 
 #include <physbuzz/physics/collision.hpp>
-#include <physbuzz/render/renderers/defines.hpp>
+#include <physbuzz/render/defines.hpp>
 #include <physbuzz/shapes/circle.hpp>
 
 template <>

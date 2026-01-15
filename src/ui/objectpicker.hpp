@@ -4,7 +4,6 @@
 #include <imgui.h>
 #include <physbuzz/ecs/scene.hpp>
 #include <physbuzz/render/camera.hpp>
-#include <physbuzz/render/framebuffer.hpp>
 
 class ObjectPicker : public IUserInterface {
   public:

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../events/handler.hpp"
-#include "../render/renderers/defines.hpp"
+#include "../render/defines.hpp"
 #include <list>
 
 namespace Physbuzz {

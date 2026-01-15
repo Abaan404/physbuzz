@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../app/deletion.hpp"
-#include "../model.hpp"
-#include "../transform.hpp"
+#include "../app/deletion.hpp"
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
@@ -12,11 +10,6 @@ namespace detail {
 static constexpr std::uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
 }
-
-struct RenderComponent {
-    Transform transform;
-    Model model;
-};
 
 struct RenderContext {
     DeletionQueue *deletionQueue;
@@ -34,13 +27,6 @@ struct RenderContext {
         vk::Image image;
         vk::ImageView view;
     } depth;
-};
-
-class IRenderPass {
-  public:
-    virtual ~IRenderPass() = default;
-
-    virtual void render(const RenderContext &context) = 0;
 };
 
 } // namespace Physbuzz

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../render/buffer.hpp"
-#include "../render/shaders.hpp"
+#include "../graphics/memory.hpp"
+#include "../graphics/pipeline.hpp"
 
 namespace Physbuzz {
 

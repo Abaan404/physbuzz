@@ -1,15 +1,14 @@
-#include "bindings.hpp"
+#include "inputs.hpp"
 
-#include "../debug/logging.hpp"
 #include "../ecs/scene.hpp"
 #include "../window/window.hpp"
 
 namespace Physbuzz {
 
-Bindings::Bindings(const std::shared_ptr<Window> window)
+InputEvents::InputEvents(const std::shared_ptr<Window> window)
     : m_Window(window) {}
 
-bool Bindings::build() {
+bool InputEvents::build() {
     if (!m_Window) {
         Logger::ERROR("[Binding] Building with a missing window");
         return false;
@@ -34,7 +33,7 @@ bool Bindings::build() {
     return true;
 }
 
-bool Bindings::destroy() {
+bool InputEvents::destroy() {
     if (m_Window == nullptr) {
         Logger::ERROR("[Inputs] Cant destroy with a missing window");
         return false;
@@ -50,7 +49,7 @@ bool Bindings::destroy() {
     return true;
 }
 
-void Bindings::tick() {
+void InputEvents::tick() {
     if (m_Window == nullptr) {
         Logger::ERROR("[Inputs] Cant tick with a missing window");
         return;
@@ -59,11 +58,11 @@ void Bindings::tick() {
     m_Window->poll();
 
     for (const auto &object : m_Objects) {
-        const auto [input] = m_Scene->getComponent<BindingComponent>(object);
+        const auto [input] = m_Scene->getComponent<InputEventComponent>(object);
 
         for (const auto &input : input.keyboardCallbacks) {
             if (m_HeldKeys.contains(input.key)) {
-                input.callback(m_HeldKeys[input.key], *m_Scene);
+                input.callback(*m_Scene, m_HeldKeys[input.key]);
 
                 if (input.type == CallbackType::OneShot) {
                     m_HeldKeys.erase(input.key);
@@ -73,7 +72,7 @@ void Bindings::tick() {
 
         for (const auto &input : input.mouseCallbacks) {
             if (m_HeldMouseButtons.contains(input.button)) {
-                input.callback(m_HeldMouseButtons[input.button], *m_Scene);
+                input.callback(*m_Scene, m_HeldMouseButtons[input.button]);
 
                 if (input.type == CallbackType::OneShot) {
                     m_HeldMouseButtons.erase(input.button);

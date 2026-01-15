@@ -1,7 +1,8 @@
-#include "shaders.hpp"
+#include "pipeline.hpp"
 
 #include "../app/application.hpp"
 #include "layout.hpp"
+#include "mesh.hpp"
 
 namespace Physbuzz {
 

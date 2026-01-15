@@ -57,23 +57,23 @@ bool ShaderShaderDepthCubemap::build() {
 } // namespace Builtin
 
 Shadow::Shadow(const Info &info, const glm::ivec2 &resolution)
-    : m_Info(info),
-      m_Framebuffers({
-          .directional = {{
-              .resolution = resolution,
-              .colors = {},
-              .depth = {
-                  .storage = Framebuffer::Storage::Texture2D,
-              },
-          }},
-          .point = {{
-              .resolution = glm::ivec2(glm::max(resolution.x, resolution.y)),
-              .colors = {},
-              .depth = {
-                  .storage = Framebuffer::Storage::Cubemap,
-              },
-          }},
-      }) {}
+    : m_Info(info) {}
+// m_Framebuffers({
+//     .directional = {{
+//         .resolution = resolution,
+//         .colors = {},
+//         .depth = {
+//             .storage = Framebuffer::Storage::Texture2D,
+//         },
+//     }},
+//     .point = {{
+//         .resolution = glm::ivec2(glm::max(resolution.x, resolution.y)),
+//         .colors = {},
+//         .depth = {
+//             .storage = Framebuffer::Storage::Cubemap,
+//         },
+//     }},
+// }) {}
 
 bool Shadow::build() {
     bool success = true;
@@ -82,16 +82,16 @@ bool Shadow::build() {
     success &= Builtin::ShaderShadowDepth2D::build();
     success &= Builtin::ShaderShaderDepthCubemap::build();
 
-    success &= m_Framebuffers.directional.build();
-    success &= m_Framebuffers.point.build();
+    // success &= m_Framebuffers.directional.build();
+    // success &= m_Framebuffers.point.build();
 
     return success;
 }
 bool Shadow::destroy() {
     bool success = true;
 
-    success &= m_Framebuffers.point.destroy();
-    success &= m_Framebuffers.directional.destroy();
+    // success &= m_Framebuffers.point.destroy();
+    // success &= m_Framebuffers.directional.destroy();
 
     return success;
 }
@@ -172,13 +172,13 @@ void Shadow::tickPoint() const {
 }
 
 void Shadow::resize(const glm::ivec2 &resolution) {
-    m_Framebuffers.directional.resize(resolution);
-    m_Framebuffers.point.resize(glm::ivec2(glm::max(resolution.x, resolution.y)));
+    // m_Framebuffers.directional.resize(resolution);
+    // m_Framebuffers.point.resize(glm::ivec2(glm::max(resolution.x, resolution.y)));
 }
 
-const Shadow::Framebuffers &Shadow::getFramebuffers() const {
-    return m_Framebuffers;
-}
+// const Shadow::Framebuffers &Shadow::getFramebuffers() const {
+//     return m_Framebuffers;
+// }
 
 const Shadow::Info &Shadow::getInfo() const {
     return m_Info;

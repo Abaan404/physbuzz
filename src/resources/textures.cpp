@@ -1,7 +1,6 @@
 #include "builder.hpp"
 
-#include <physbuzz/render/cubemap.hpp>
-#include <physbuzz/render/layouts/texture.hpp>
+#include <physbuzz/graphics/descriptors/texture.hpp>
 #include <physbuzz/render/model.hpp>
 
 void ResourceBuilder::buildTextures() {
@@ -50,18 +49,18 @@ void ResourceBuilder::destroyTextures() {
 }
 
 void ResourceBuilder::buildCubemaps() {
-    Physbuzz::ResourceRegistry<Physbuzz::Cubemap>::insert(
-        "skybox",
-        {{
-            .right = {.file = {.path = "resources/textures/skybox/right.jpg"}},
-            .left = {.file = {.path = "resources/textures/skybox/left.jpg"}},
-            .top = {.file = {.path = "resources/textures/skybox/top.jpg"}},
-            .bottom = {.file = {.path = "resources/textures/skybox/bottom.jpg"}},
-            .back = {.file = {.path = "resources/textures/skybox/back.jpg"}},
-            .front = {.file = {.path = "resources/textures/skybox/front.jpg"}},
-        }});
+    // Physbuzz::ResourceRegistry<Physbuzz::Cubemap>::insert(
+    //     "skybox",
+    //     {{
+    //         .right = {.file = {.path = "resources/textures/skybox/right.jpg"}},
+    //         .left = {.file = {.path = "resources/textures/skybox/left.jpg"}},
+    //         .top = {.file = {.path = "resources/textures/skybox/top.jpg"}},
+    //         .bottom = {.file = {.path = "resources/textures/skybox/bottom.jpg"}},
+    //         .back = {.file = {.path = "resources/textures/skybox/back.jpg"}},
+    //         .front = {.file = {.path = "resources/textures/skybox/front.jpg"}},
+    //     }});
 }
 
 void ResourceBuilder::destroyCubemaps() {
-    Physbuzz::ResourceRegistry<Physbuzz::Cubemap>::erase("skybox");
+    // Physbuzz::ResourceRegistry<Physbuzz::Cubemap>::erase("skybox");
 }

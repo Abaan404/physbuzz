@@ -1,8 +1,8 @@
 #include "model.hpp"
 
 #include <physbuzz/render/renderer.hpp>
-#include <physbuzz/render/renderers/deferred.hpp>
-#include <physbuzz/render/renderers/forward.hpp>
+#include <physbuzz/render/deferred.hpp>
+#include <physbuzz/render/forward.hpp>
 #include <physbuzz/render/shadow.hpp>
 
 template <>

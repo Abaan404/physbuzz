@@ -1,7 +1,7 @@
 #include "static.hpp"
 
 #include "../../app/application.hpp"
-#include "../renderers/defines.hpp"
+#include "../defines.hpp"
 
 namespace Physbuzz {
 

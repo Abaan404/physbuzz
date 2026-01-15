@@ -1,6 +1,6 @@
 #include "linear.hpp"
 
-#include "../../dynamics.hpp"
+#include "../../../ecs/scene.hpp"
 
 namespace Physbuzz {
 

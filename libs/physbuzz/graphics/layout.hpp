@@ -1,9 +1,7 @@
 #pragma once
 
-#include "../resources/defines.hpp"
 #include "../resources/resource.hpp"
-#include "renderers/defines.hpp"
-#include <vulkan/vulkan.hpp>
+#include "defines.hpp"
 
 namespace Physbuzz {
 

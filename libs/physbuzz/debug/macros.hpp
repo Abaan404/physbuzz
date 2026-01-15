@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../debug/logging.hpp"
+#include "../io/logging.hpp"
 
 #define PBZ_GET_MACRO(_1, _2, NAME, ...) NAME
 

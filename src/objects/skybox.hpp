@@ -1,12 +1,13 @@
 #pragma once
 
 #include "builder.hpp"
-#include <physbuzz/render/cubemap.hpp>
 #include <physbuzz/render/transform.hpp>
+// #include <physbuzz/render/cubemap.hpp>
+// #include <physbuzz/render/transform.hpp>
 #include <physbuzz/resources/resource.hpp>
 
 struct SkyboxComponent {
-    Physbuzz::Resource<Physbuzz::Cubemap> cubemap = {"skybox"};
+    // Physbuzz::Resource<Physbuzz::Cubemap> cubemap = {"skybox"};
 };
 
 struct Skybox {
