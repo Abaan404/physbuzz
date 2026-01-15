@@ -7,6 +7,7 @@
 #include "../layout.hpp"
 #include "../layouts/dynamic.hpp"
 #include "../layouts/static.hpp"
+#include "../lighting.hpp"
 #include "../model.hpp"
 #include "../renderer.hpp"
 #include <vulkan/vulkan_enums.hpp>
@@ -51,9 +52,19 @@ bool RenderPipelineForward::build() {
                         .range = sizeof(CameraBuffer),
                     },
                     {
-                        // lights
-                        .type = PipelineLayout::Type::eUniformBuffer,
-                        .range = sizeof(LightBuffer),
+                        // directionals
+                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .range = sizeof(DirectionalLightComponent),
+                    },
+                    {
+                        // points
+                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .range = sizeof(PointLightComponent),
+                    },
+                    {
+                        // spots
+                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .range = sizeof(SpotLightComponent),
                     },
                 },
             }});
@@ -88,13 +99,31 @@ bool RenderPipelineForward::build() {
             sizeof(CameraBuffer));
     }
 
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferLight)) {
+    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferDirectionalLights)) {
         success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferLight,
+            ResourceBufferDirectionalLights,
             {{
-                .type = DynamicBuffer::Type::Constant,
+                .type = DynamicBuffer::Type::Structured,
             }},
-            sizeof(LightBuffer));
+            sizeof(DirectionalLightComponent));
+    }
+
+    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferPointLights)) {
+        success &= ResourceRegistry<DynamicBuffer>::insert(
+            ResourceBufferPointLights,
+            {{
+                .type = DynamicBuffer::Type::Structured,
+            }},
+            sizeof(PointLightComponent));
+    }
+
+    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferSpotLights)) {
+        success &= ResourceRegistry<DynamicBuffer>::insert(
+            ResourceBufferSpotLights,
+            {{
+                .type = DynamicBuffer::Type::Structured,
+            }},
+            sizeof(SpotLightComponent));
     }
 
     if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferModel)) {
@@ -150,8 +179,18 @@ bool ForwardRenderer::build() {
 
     success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
         Builtin::RenderPipelineForward::ResourceLayoutFrame,
-        Builtin::RenderPipelineForward::ResourceBufferLight,
+        Builtin::RenderPipelineForward::ResourceBufferDirectionalLights,
         1);
+
+    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
+        Builtin::RenderPipelineForward::ResourceLayoutFrame,
+        Builtin::RenderPipelineForward::ResourceBufferPointLights,
+        2);
+
+    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
+        Builtin::RenderPipelineForward::ResourceLayoutFrame,
+        Builtin::RenderPipelineForward::ResourceBufferSpotLights,
+        3);
 
     success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
         Builtin::RenderPipelineForward::ResourceLayoutObject,
@@ -208,22 +247,13 @@ void ForwardRenderer::render(const RenderContext &context) {
         const Model::Info &model = render.model.getInfo();
 
         for (const auto &mesh : model.meshes) {
-            std::unordered_map<TextureType, std::vector<std::uint32_t>> materialTextureIds;
-
-            // fetch texture ids
-            for (const auto &[type, textures] : mesh.material->textures) {
-                materialTextureIds[type].reserve(textures.size());
-
-                for (const auto &texture : textures) {
-                    // new texture loaded into table, map to bindless descriptor
-                    if (m_Textures.add(texture)) {
-                        m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
-                            Builtin::RenderPipelineForward::ResourceLayoutGlobal,
-                            texture,
-                            0, m_Textures.query(texture));
-                    }
-
-                    materialTextureIds.at(type).emplace_back(m_Textures.query(texture));
+            for (const auto &[type, texture] : mesh.material->textures) {
+                // new texture loaded into table, map to bindless descriptor
+                if (m_Textures.add(texture)) {
+                    m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
+                        Builtin::RenderPipelineForward::ResourceLayoutGlobal,
+                        texture,
+                        0, m_Textures.query(texture));
                 }
             }
 
@@ -231,30 +261,18 @@ void ForwardRenderer::render(const RenderContext &context) {
             if (m_Materials.add(mesh.material)) {
                 // create a new material buffer
                 Builtin::RenderPipelineForward::MaterialBuffer material = {
-                    .diffuseTextureIds = {},
-                    .specularTextureIds = {},
+                    .diffuseTextureId = mesh.material->textures.contains(TextureType::Diffuse)
+                                            ? m_Textures.query(mesh.material->textures.at(TextureType::Diffuse))
+                                            : 0,
+                    .specularTextureId = mesh.material->textures.contains(TextureType::Specular)
+                                             ? m_Textures.query(mesh.material->textures.at(TextureType::Specular))
+                                             : 0,
                     .specularity = mesh.material->shininess,
                 };
 
-                for (const auto &[type, textureIds] : materialTextureIds) {
-                    switch (type) {
-                    case TextureType::Diffuse:
-                        std::copy_n(textureIds.begin(), std::min(textureIds.size(), material.diffuseTextureIds.size()), material.diffuseTextureIds.begin());
-                        break;
-
-                    case TextureType::Specular:
-                        std::copy_n(textureIds.begin(), std::min(textureIds.size(), material.specularTextureIds.size()), material.specularTextureIds.begin());
-                        break;
-
-                    default:
-                        Logger::WARNING("[ForwardRenderer] Unhandled texture found {}", Model::getTextureTypeName(type));
-                        break;
-                    }
-                }
-
-                std::size_t requiredSize = m_Materials.size() * sizeof(Builtin::RenderPipelineForward::MaterialBuffer);
-                if (Builtin::RenderPipelineForward::ResourceBufferMaterials->getSize() < requiredSize) {
-                    Builtin::RenderPipelineForward::ResourceBufferMaterials->resize(context, requiredSize);
+                std::size_t requiredMaterialSize = m_Materials.size() * sizeof(Builtin::RenderPipelineForward::MaterialBuffer);
+                if (Builtin::RenderPipelineForward::ResourceBufferMaterials->getSize() < requiredMaterialSize) {
+                    Builtin::RenderPipelineForward::ResourceBufferMaterials->resize(context, requiredMaterialSize);
                 }
 
                 // upload material data
@@ -266,7 +284,7 @@ void ForwardRenderer::render(const RenderContext &context) {
             instances[mesh.mesh].emplace_back<Builtin::RenderPipelineForward::ModelBuffer>({
                 .model = render.transform.matrix,
                 .invModel = glm::inverse(render.transform.matrix),
-                .materialOffset = m_Materials.query(mesh.material) * sizeof(Builtin::RenderPipelineForward::MaterialBuffer),
+                .materialIdx = m_Materials.query(mesh.material),
             });
         }
 
@@ -278,9 +296,9 @@ void ForwardRenderer::render(const RenderContext &context) {
         instanceBuffers.insert(instanceBuffers.end(), std::make_move_iterator(buffers.begin()), std::make_move_iterator(buffers.end()));
     }
 
-    std::size_t requiredSize = meshCount * sizeof(Builtin::RenderPipelineForward::ModelBuffer);
-    if (Builtin::RenderPipelineForward::ResourceBufferModel->getSize(context) < requiredSize) {
-        Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, requiredSize);
+    std::size_t requiredModelSize = meshCount * sizeof(Builtin::RenderPipelineForward::ModelBuffer);
+    if (Builtin::RenderPipelineForward::ResourceBufferModel->getSize(context) < requiredModelSize) {
+        Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, requiredModelSize);
 
         // retach for a new buffer
         m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
@@ -295,15 +313,53 @@ void ForwardRenderer::render(const RenderContext &context) {
     const std::vector<PointLightComponent> &points = m_Scene->getComponentArray<PointLightComponent>();
     const std::vector<SpotLightComponent> &spots = m_Scene->getComponentArray<SpotLightComponent>();
 
-    Builtin::RenderPipelineForward::LightBuffer lightBuffer = {};
-    std::copy_n(directionals.begin(), std::min(directionals.size(), lightBuffer.directionals.size()), lightBuffer.directionals.begin());
-    std::copy_n(points.begin(), std::min(points.size(), lightBuffer.points.size()), lightBuffer.points.begin());
-    std::copy_n(spots.begin(), std::min(spots.size(), lightBuffer.spots.size()), lightBuffer.spots.begin());
+    std::size_t requiredDirectionalSize = directionals.size() * sizeof(DirectionalLightComponent);
+    if (Builtin::RenderPipelineForward::ResourceBufferDirectionalLights->getSize(context) < requiredDirectionalSize) {
+        Builtin::RenderPipelineForward::ResourceBufferDirectionalLights->resize(context, requiredDirectionalSize);
 
-    // upload lights
-    Builtin::RenderPipelineForward::ResourceBufferLight->update<Builtin::RenderPipelineForward::LightBuffer>(
+        // retach for a new buffer
+        m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
+            context,
+            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::RenderPipelineForward::ResourceBufferDirectionalLights,
+            1);
+    }
+
+    std::size_t requiredPointsSize = points.size() * sizeof(PointLightComponent);
+    if (Builtin::RenderPipelineForward::ResourceBufferPointLights->getSize(context) < requiredPointsSize) {
+        Builtin::RenderPipelineForward::ResourceBufferPointLights->resize(context, requiredPointsSize);
+
+        // retach for a new buffer
+        m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
+            context,
+            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::RenderPipelineForward::ResourceBufferPointLights,
+            2);
+    }
+
+    std::size_t requiredSpotSize = spots.size() * sizeof(SpotLightComponent);
+    if (Builtin::RenderPipelineForward::ResourceBufferSpotLights->getSize(context) < requiredSpotSize) {
+        Builtin::RenderPipelineForward::ResourceBufferSpotLights->resize(context, requiredSpotSize);
+
+        // retach for a new buffer
+        m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
+            context,
+            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::RenderPipelineForward::ResourceBufferSpotLights,
+            3);
+    }
+
+    Builtin::RenderPipelineForward::ResourceBufferDirectionalLights->update<DirectionalLightComponent>(
         context, m_Scene->getSystem<Transfer>(),
-        {lightBuffer});
+        directionals);
+
+    Builtin::RenderPipelineForward::ResourceBufferPointLights->update<PointLightComponent>(
+        context, m_Scene->getSystem<Transfer>(),
+        points);
+
+    Builtin::RenderPipelineForward::ResourceBufferSpotLights->update<SpotLightComponent>(
+        context, m_Scene->getSystem<Transfer>(),
+        spots);
 
     // upload camera
     const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
@@ -320,6 +376,16 @@ void ForwardRenderer::render(const RenderContext &context) {
         context, m_Scene->getSystem<Transfer>(),
         instanceBuffers);
 
+    // record constants
+    Builtin::RenderPipelineForward::PushConstants pushConstants = {
+        .directionalCount = static_cast<std::uint32_t>(directionals.size()),
+        .spotCount = static_cast<std::uint32_t>(spots.size()),
+        .pointCount = static_cast<std::uint32_t>(points.size()),
+        .materialBaseAddress = Builtin::RenderPipelineForward::ResourceBufferMaterials->getAddress(),
+    };
+
+    m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+
     context.command.beginRendering({
         .renderArea = {
             .offset = {0, 0},
@@ -331,13 +397,6 @@ void ForwardRenderer::render(const RenderContext &context) {
         .pDepthAttachment = &depthAttachment,
         .pStencilAttachment = {},
     });
-
-    // record constants
-    Builtin::RenderPipelineForward::PushConstants pushConstants = {
-        .material = Builtin::RenderPipelineForward::ResourceBufferMaterials->getAddress(),
-    };
-
-    m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
 
     // bind resources
     m_Info.pipeline->bind(context);

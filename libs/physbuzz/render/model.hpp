@@ -40,7 +40,7 @@ enum class TextureType : std::uint32_t {
 
 struct Material {
     float shininess = 32.0f;
-    std::unordered_map<TextureType, std::vector<Resource<Texture>>> textures;
+    std::unordered_map<TextureType, Resource<Texture>> textures;
 };
 
 template <>
@@ -87,15 +87,13 @@ class Model {
     };
 
     struct MaterialResult {
-        std::unordered_map<TextureType, std::vector<TextureResult>> textures;
+        std::unordered_map<TextureType, TextureResult> textures;
         float shininess;
     };
 
     Info m_Info;
 
     MaterialResult processMaterial(const aiMaterial *aimaterial);
-    std::vector<TextureResult> processTextures(const aiMaterial *aimaterial, aiTextureType type);
-
     std::vector<MeshResult> processNodes(const aiNode *ainode, const aiScene *aiscene);
     MeshResult processMesh(const aiMesh *aimesh);
 };

@@ -54,28 +54,28 @@ bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transf
             .textures = {},
         };
 
-        for (const auto &[type, textures] : materialResult.textures) {
-            for (const auto &texture : textures) {
-                ImageFile::Info imageFile = {
-                    .file = {
-                        .path = path.parent_path() / texture.path,
-                    },
-                };
+        for (const auto &[type, texture] : materialResult.textures) {
+            ImageFile::Info imageFile = {
+                .file = {
+                    .path = path.parent_path() / texture.path,
+                },
+            };
 
-                ResourceID resourceId = std::format("model@{}", imageFile.file.path.string());
+            ResourceID resourceId = std::format("model@{}", imageFile.file.path.string());
 
-                // a material can reference the same texture again
-                if (ResourceRegistry<Texture>::contains(resourceId)) {
-                    continue;
-                }
-
-                if (!ResourceRegistry<Texture>::insert(resourceId, texture.info, imageFile, transfer)) {
-                    Logger::ERROR("[Model] Failed to load texture resource {}.", resourceId);
-                    return false;
-                }
-
-                material.textures[type].emplace_back(resourceId);
+            // a material can reference the same texture again
+            if (ResourceRegistry<Texture>::contains(resourceId)) {
+                continue;
             }
+
+            if (!ResourceRegistry<Texture>::insert(resourceId, texture.info, imageFile, transfer)) {
+                Logger::ERROR("[Model] Failed to load texture resource {}.", resourceId);
+                return false;
+            }
+
+            material.textures.insert({type, resourceId});
+
+            // material.textures[type] = Resource<Texture>{resourceId};
         }
 
         ResourceID resourceId = std::format("model/{}@{}", i, path.string());
@@ -122,7 +122,16 @@ Model::MaterialResult Model::processMaterial(const aiMaterial *aimaterial) {
     for (std::size_t i = 0; i < AI_TEXTURE_TYPE_MAX; i++) {
         aiTextureType type = static_cast<aiTextureType>(i);
 
-        result.textures[static_cast<TextureType>(type)] = processTextures(aimaterial, type);
+        if (aimaterial->GetTextureCount(type) >= 1) {
+            // only fetch the first texture found
+            aiString aiPath;
+            PBZ_ASSERT(aimaterial->GetTexture(type, 0, &aiPath) == aiReturn_SUCCESS, "[Model] Failed to load material texture.");
+
+            result.textures[static_cast<TextureType>(type)] = {
+                .info = Texture::Tex2D,
+                .path = aiPath.C_Str(),
+            };
+        }
     }
 
     float shininiess;
@@ -135,25 +144,8 @@ Model::MaterialResult Model::processMaterial(const aiMaterial *aimaterial) {
     return result;
 }
 
-std::vector<Model::TextureResult> Model::processTextures(const aiMaterial *aimaterial, aiTextureType type) {
-    std::vector<Model::TextureResult> results;
-
-    for (std::uint32_t i = 0; i < aimaterial->GetTextureCount(type); i++) {
-        aiString aiPath;
-
-        PBZ_ASSERT(aimaterial->GetTexture(type, i, &aiPath) == aiReturn_SUCCESS, "[Model] Failed to load material texture.");
-
-        results.emplace_back<TextureResult>({
-            .info = Texture::Tex2D,
-            .path = aiPath.C_Str(),
-        });
-    }
-
-    return results;
-}
-
 std::vector<Model::MeshResult> Model::processNodes(const aiNode *root, const aiScene *aiscene) {
-    std::vector<Model::MeshResult> results;
+    std::vector<MeshResult> results;
 
     std::vector<const aiNode *> stack;
     stack.emplace_back(root);

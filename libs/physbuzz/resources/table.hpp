@@ -11,23 +11,23 @@ namespace Physbuzz {
 template <typename T>
 class ResourceTable {
   public:
-    bool add(const Resource<T> &id) {
-        if (m_Resources.contains(id)) {
+    bool add(const Resource<T> &resource) {
+        if (m_Resources.contains(resource)) {
             return false;
         }
 
         if (!m_EmptyIndices.empty()) {
-            m_Resources[id] = m_EmptyIndices.back();
+            m_Resources[resource] = m_EmptyIndices.back();
             m_EmptyIndices.pop_back();
         } else {
-            m_Resources[id] = m_ResourceCounter++;
+            m_Resources[resource] = m_ResourceCounter++;
         }
 
         return true;
     }
 
-    bool remove(const Resource<T> &id) {
-        auto it = m_Resources.erase(id);
+    bool remove(const Resource<T> &resource) {
+        auto it = m_Resources.erase(resource);
 
         if (it == m_Resources.end()) {
             return false;
@@ -36,9 +36,13 @@ class ResourceTable {
         m_EmptyIndices.push_front(it);
     }
 
-    std::uint32_t query(const Resource<T> id) const {
-        PBZ_ASSERT(m_Resources.contains(id), std::format("[ResourceTable] Table does not contain {}", id));
-        return m_Resources.at(id);
+    bool contains(const Resource<T> &resource) const {
+        return m_Resources.contains(resource);
+    }
+
+    std::uint32_t query(const Resource<T> &resource) const {
+        PBZ_ASSERT(m_Resources.contains(resource), std::format("[ResourceTable] Table does not contain {}", resource));
+        return m_Resources.at(resource);
     }
 
     std::size_t max_size() {

@@ -2,7 +2,6 @@
 
 #include "../../ecs/system.hpp"
 #include "../../resources/table.hpp"
-#include "../lighting.hpp"
 #include "defines.hpp"
 
 namespace Physbuzz {
@@ -22,33 +21,33 @@ struct CameraBuffer {
     alignas(16) glm::mat4 projection;
 };
 
-struct LightBuffer {
-    std::array<DirectionalLightComponent, 5> directionals;
-    std::array<PointLightComponent, 5> points;
-    std::array<SpotLightComponent, 5> spots;
-};
-
 struct MaterialBuffer {
-    std::array<std::uint32_t, 5> diffuseTextureIds;
-    std::array<std::uint32_t, 5> specularTextureIds;
+    std::uint32_t diffuseTextureId;
+    std::uint32_t specularTextureId;
     float specularity;
 };
 
 struct ModelBuffer {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 invModel;
-    std::uint64_t materialOffset;
+    std::uint32_t materialIdx;
 };
 
 struct PushConstants {
-    std::uint64_t material;
+    std::uint32_t directionalCount;
+    std::uint32_t spotCount;
+    std::uint32_t pointCount;
+
+    std::uint64_t materialBaseAddress;
 };
 
 inline Resource<StaticBuffer> ResourceBufferMaterials = {"builtin/forward/materials"};
 inline Resource<DynamicBuffer> ResourceBufferTextures = {"builtin/forward/textures"};
 
 inline Resource<DynamicBuffer> ResourceBufferCamera = {"builtin/forward/camera"};
-inline Resource<DynamicBuffer> ResourceBufferLight = {"builtin/forward/light"};
+inline Resource<DynamicBuffer> ResourceBufferDirectionalLights = {"builtin/forward/light/directionals"};
+inline Resource<DynamicBuffer> ResourceBufferPointLights = {"builtin/forward/light/points"};
+inline Resource<DynamicBuffer> ResourceBufferSpotLights = {"builtin/forward/light/spots"};
 
 inline Resource<DynamicBuffer> ResourceBufferModel = {"builtin/forward/models"};
 

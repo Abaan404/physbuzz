@@ -13,25 +13,25 @@ struct Camera {
     float4x4 projection;
 };
 
-struct Light {
-    LightArray<DirectionalLight, 5> directionals;
-    LightArray<PointLight, 5> points;
-    LightArray<SpotLight, 5> spots;
-};
-
 struct Material {
-    uint diffuseTextureIds[5];
-    uint specularTextureIds[5];
+    uint diffuseTextureId;
+    uint specularTextureId;
     float specularity;
+
+    static const uint STRIDE = 12;
 };
 
 struct InstanceData {
     float4x4 model;
     float4x4 invModel;
-    uint64_t materialOffset;
+    uint materialIdx;
 };
 
 struct PushConstants {
+    uint directionalCount;
+    uint spotCount;
+    uint pointCount;
+
     uint64_t materialBaseAddress;
 };
 
@@ -45,7 +45,13 @@ Sampler2D<float3> textures[];
 ConstantBuffer<Camera> camera;
 
 [[vk::binding(1, 1)]]
-ConstantBuffer<Light> light;
+StructuredBuffer<DirectionalLight> directionals;
+
+[[vk::binding(2, 1)]]
+StructuredBuffer<PointLight> points;
+
+[[vk::binding(3, 1)]]
+StructuredBuffer<SpotLight> spots;
 
 [[vk::binding(0, 2)]]
 StructuredBuffer<InstanceData> models;
@@ -101,11 +107,11 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
         coarseVertex.texCoord0
     };
 
-    Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialOffset);
+    Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialIdx * Material.STRIDE);
 
     SimpleMaterial material = {
-        textures[boundMaterial.diffuseTextureIds[0]].Sample(coarseVertex.texCoord0),
-        textures[boundMaterial.specularTextureIds[0]].Sample(coarseVertex.texCoord0),
+        textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0),
+        textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0),
         125.0f,
     };
 
@@ -115,9 +121,17 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
 
     float3 color = {};
 
-    color += saturate(light.directionals.illuminate(geometry, brdf, viewDirection));
-    color += saturate(light.points.illuminate(geometry, brdf, viewDirection));
-    color += saturate(light.spots.illuminate(geometry, brdf, viewDirection));
+    for (int i = 0; i < pc.directionalCount; i++) {
+        color += directionals[i].illuminate(geometry, brdf, viewDirection);
+    }
+
+    for (int i = 0; i < pc.pointCount; i++) {
+        color += points[i].illuminate(geometry, brdf, viewDirection);
+    }
+
+    for (int i = 0; i < pc.spotCount; i++) {
+        color += spots[i].illuminate(geometry, brdf, viewDirection);
+    }
 
     return float4(color, 1.0);
 }
