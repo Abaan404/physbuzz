@@ -107,7 +107,7 @@ bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transf
 
 const Model::Info &Model::getInfo() const {
     return m_Info;
-};
+}
 
 std::string Model::getTextureTypeName(TextureType texture) {
     return aiTextureTypeToString(static_cast<aiTextureType>(texture));

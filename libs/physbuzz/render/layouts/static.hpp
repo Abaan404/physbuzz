@@ -14,7 +14,7 @@ class StaticBuffer {
     bool build(std::uint64_t size);
     bool destroy();
 
-    bool resize(const RenderContext &context, const std::shared_ptr<Transfer> transfer, std::uint64_t size);
+    bool resize(const RenderContext &context, std::uint64_t size);
 
     template <typename T>
     bool update(const std::shared_ptr<Transfer> transfer, const std::vector<T> &data, std::uint32_t index = 0) const {
@@ -24,6 +24,7 @@ class StaticBuffer {
 
     bool update(const std::shared_ptr<Transfer> transfer, const std::span<const std::byte> &bytes, std::uint64_t offset) const;
 
+    std::size_t getSize() const;
     const Buffer &getBuffer() const;
     const vk::DeviceAddress &getAddress() const;
 

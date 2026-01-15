@@ -296,10 +296,10 @@ void ForwardRenderer::render(const RenderContext &context) {
                     }
                 }
 
-                // resize if needed
-                Builtin::RenderPipelineForward::ResourceBufferMaterials->resize(
-                    context, m_Scene->getSystem<Transfer>(),
-                    m_Materials.size() * sizeof(Builtin::RenderPipelineForward::MaterialBuffer));
+                std::size_t requiredSize = m_Materials.size() * sizeof(Builtin::RenderPipelineForward::MaterialBuffer);
+                if (Builtin::RenderPipelineForward::ResourceBufferMaterials->getSize() < requiredSize) {
+                    Builtin::RenderPipelineForward::ResourceBufferMaterials->resize(context, requiredSize);
+                }
 
                 // upload material data
                 Builtin::RenderPipelineForward::ResourceBufferMaterials->update<Builtin::RenderPipelineForward::MaterialBuffer>(
@@ -322,8 +322,11 @@ void ForwardRenderer::render(const RenderContext &context) {
         instanceBuffers.insert(instanceBuffers.end(), std::make_move_iterator(buffers.begin()), std::make_move_iterator(buffers.end()));
     }
 
-    // resize if needed
-    if (Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, m_Scene->getSystem<Transfer>(), meshCount * sizeof(Builtin::RenderPipelineForward::ModelBuffer))) {
+    std::size_t requiredSize = meshCount * sizeof(Builtin::RenderPipelineForward::ModelBuffer);
+    if (Builtin::RenderPipelineForward::ResourceBufferModel->getSize(context) < requiredSize) {
+        Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, requiredSize);
+
+        // retach for a new buffer
         m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
             context,
             Builtin::RenderPipelineForward::ResourceLayoutObject,

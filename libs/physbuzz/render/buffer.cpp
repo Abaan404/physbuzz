@@ -13,6 +13,11 @@ bool Buffer::build(std::uint64_t size) {
         return true;
     }
 
+    if (size == 0) {
+        Logger::ERROR("[Buffer] Trying to build an empty buffer.");
+        return false;
+    }
+
     VmaAllocationCreateInfo allocInfo = {};
 
     switch (m_Info.memoryUsage) {
@@ -91,12 +96,50 @@ bool Buffer::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, std
         return false;
     }
 
+    std::vector<vk::BufferMemoryBarrier2> preCopyBarriers;
+    std::vector<vk::BufferMemoryBarrier2> postCopyBarriers;
+
+    preCopyBarriers.reserve(copies.size());
+    postCopyBarriers.reserve(copies.size());
+
     for (const auto &copy : copies) {
         PBZ_ASSERT(copy.srcOffset + copy.size <= src.m_Data.bufferInfo.size, "[Buffer] Not enough space in source buffer to copy from.");
         PBZ_ASSERT(copy.dstOffset + copy.size <= m_Data.bufferInfo.size, "[Buffer] Not enough space in destination buffer to copy to.");
+
+        preCopyBarriers.emplace_back<vk::BufferMemoryBarrier2>({
+            .srcStageMask = vk::PipelineStageFlagBits2::eNone,
+            .srcAccessMask = vk::AccessFlagBits2::eNone,
+            .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
+            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+            .buffer = m_Data.buffer,
+            .offset = copy.dstOffset,
+            .size = copy.size,
+        });
+
+        postCopyBarriers.emplace_back<vk::BufferMemoryBarrier2>({
+            .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
+            .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+            .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+            .dstAccessMask = vk::AccessFlagBits2::eShaderRead,
+            .buffer = m_Data.buffer,
+            .offset = copy.dstOffset,
+            .size = copy.size,
+        });
     }
 
+    commandBuffer.pipelineBarrier2({
+        .dependencyFlags = {},
+        .bufferMemoryBarrierCount = static_cast<std::uint32_t>(preCopyBarriers.size()),
+        .pBufferMemoryBarriers = preCopyBarriers.data(),
+    });
+
     commandBuffer.copyBuffer(src.m_Data.buffer, m_Data.buffer, copies);
+
+    commandBuffer.pipelineBarrier2({
+        .dependencyFlags = {},
+        .bufferMemoryBarrierCount = static_cast<std::uint32_t>(preCopyBarriers.size()),
+        .pBufferMemoryBarriers = postCopyBarriers.data(),
+    });
 
     return true;
 }
@@ -184,8 +227,8 @@ bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src) cons
     {
         std::array barriers = {
             vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
-                .srcAccessMask = {},
+                .srcStageMask = vk::PipelineStageFlagBits2::eNone,
+                .srcAccessMask = vk::AccessFlagBits2::eNone,
                 .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
                 .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
                 .oldLayout = vk::ImageLayout::eUndefined,

@@ -47,11 +47,7 @@ bool StaticBuffer::destroy() {
     return true;
 }
 
-bool StaticBuffer::resize(const RenderContext &context, const std::shared_ptr<Transfer> transfer, std::uint64_t size) {
-    if (m_Buffer.getData().bufferInfo.size >= size || size == 0) {
-        return false;
-    }
-
+bool StaticBuffer::resize(const RenderContext &context, std::uint64_t size) {
     Buffer buffer = m_Buffer.getInfo();
 
     // create new buffer
@@ -67,9 +63,7 @@ bool StaticBuffer::resize(const RenderContext &context, const std::shared_ptr<Tr
         .size = glm::min(m_Buffer.getData().bufferInfo.size, buffer.getData().bufferInfo.size),
     }};
 
-    transfer->immediate([&](const vk::CommandBuffer &command) {
-        buffer.copy(command, m_Buffer, copies);
-    });
+    buffer.copy(context.command, m_Buffer, copies);
 
     // mark old buffer for deferred deletion and update
     context.deletionQueue->enqueue(m_Buffer);
@@ -86,7 +80,12 @@ bool StaticBuffer::update(const std::shared_ptr<Transfer> transfer, const std::s
     PBZ_ASSERT(m_Address != 0, "[StaticBuffer] Buffer has not been allocated.");
     PBZ_ASSERT(offset + bytes.size() <= m_Buffer.getData().bufferInfo.size, "[StaticBuffer] Invalid size and offset.");
 
+    // TODO this doesnt have to happen on the transfer queue
     return transfer->map(m_Buffer, bytes, offset);
+}
+
+std::size_t StaticBuffer::getSize() const {
+    return m_Buffer.getData().bufferInfo.size;
 }
 
 const Buffer &StaticBuffer::getBuffer() const {

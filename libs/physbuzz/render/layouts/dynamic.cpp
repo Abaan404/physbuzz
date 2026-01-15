@@ -77,12 +77,8 @@ bool DynamicBuffer::destroy() {
     return success;
 }
 
-bool DynamicBuffer::resize(const RenderContext &context, const std::shared_ptr<Transfer> transfer, std::uint64_t size) {
+bool DynamicBuffer::resize(const RenderContext &context, std::uint64_t size) {
     std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = std::get<std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT>>(m_Buffers);
-
-    if (buffers[context.frameInFlight].getData().bufferInfo.size >= size || size == 0) {
-        return false;
-    }
 
     Buffer buffer = buffers[context.frameInFlight].getInfo();
 
@@ -99,9 +95,7 @@ bool DynamicBuffer::resize(const RenderContext &context, const std::shared_ptr<T
         .size = glm::min(buffers[context.frameInFlight].getData().bufferInfo.size, buffer.getData().bufferInfo.size),
     }};
 
-    transfer->immediate([&](const vk::CommandBuffer &command) {
-        buffer.copy(command, buffers[context.frameInFlight], copies);
-    });
+    buffer.copy(context.command, buffers[context.frameInFlight], copies);
 
     // mark old buffer for deferred deletion and update
     context.deletionQueue->enqueue(buffers[context.frameInFlight]);
@@ -116,11 +110,18 @@ bool DynamicBuffer::update(const RenderContext &context, const std::shared_ptr<T
 
     PBZ_ASSERT(offset + bytes.size() <= buffers[context.frameInFlight].getData().bufferInfo.size, "[DynamicBuffer] Invalid size and offset.");
 
+    // TODO this doesnt have to happen on the transfer queue
     return transfer->map(buffers[context.frameInFlight], bytes, offset);
 }
 
 const DynamicBuffer::Info &DynamicBuffer::getInfo() const {
     return m_Info;
+}
+
+std::size_t DynamicBuffer::getSize(const RenderContext &context) const {
+    const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = std::get<std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT>>(m_Buffers);
+
+    return buffers[context.frameInFlight].getData().bufferInfo.size;
 }
 
 const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &DynamicBuffer::getBuffers() const {
