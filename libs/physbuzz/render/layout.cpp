@@ -297,6 +297,7 @@ void PipelineLayoutAllocator::bind(const RenderContext &context, const Resource<
             break;
         }
 
+        std::lock_guard<std::mutex> lock(pipeline->m_ReloadMutex);
         context.command.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[index], dynamicOffsets);
     }
 }

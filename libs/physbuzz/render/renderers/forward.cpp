@@ -131,8 +131,6 @@ bool RenderPipelineForward::build() {
 
 } // namespace Builtin
 
-std::mutex PipelineReloadMutex;
-
 ForwardRenderer::ForwardRenderer(const Info &info)
     : m_Info(info) {}
 
@@ -166,47 +164,6 @@ bool ForwardRenderer::build() {
                 const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
                 camera.resize(event.resolution);
             }),
-            .pipelineReload = ResourceRegistry<RenderPipeline>::Events.addCallback<OnResourceReload>([&](const OnResourceReload &event) {
-                Resource<RenderPipeline> pipeline = {event.identifier};
-
-                // not bound to this pipeline
-                if (pipeline != m_Info.pipeline) {
-                    return;
-                }
-
-                if (event.action != WatchAction::Modified || !pipeline->isDependantFile(event.filePath)) {
-                    return;
-                }
-
-                Logger::INFO("[RenderPipeline] Reloading resource '{}'.", event.identifier, event.filePath.string());
-                ResourceID identifier = m_Info.pipeline.getIdentifier();
-
-                std::size_t bracketOpen = identifier.rfind(" (");
-                std::size_t bracketClose = identifier.rfind(")");
-                if (bracketOpen != std::string::npos && bracketClose != std::string::npos) {
-                    std::string num = identifier.substr(bracketOpen + 2, bracketClose - (bracketOpen + 2));
-                    if (!num.empty() && std::all_of(num.begin(), num.end(), [](unsigned char c) {
-                            return std::isdigit(c);
-                        })) {
-                        identifier = std::format("{} ({})", identifier.substr(0, bracketOpen), std::stoi(num) + 1);
-                    } else {
-                        identifier = std::format("{} (1)", identifier);
-                    }
-                } else {
-                    identifier = std::format("{} (1)", identifier);
-                }
-
-                if (ResourceRegistry<RenderPipeline>::insert(identifier, m_Info.pipeline->getInfo())) {
-                    PipelineReloadMutex.lock();
-
-                    // replace pipeline (we dont destroy the old pipeline until the program exits)
-                    m_Info.pipeline = identifier;
-
-                    PipelineReloadMutex.unlock();
-                } else {
-                    Logger::WARNING("[ForwardRenderer] Failed to hot-reload render pipeline '{}'.", m_Info.pipeline);
-                }
-            }),
         };
     }
 
@@ -215,7 +172,6 @@ bool ForwardRenderer::build() {
 
 bool ForwardRenderer::destroy() {
     m_Scene->getSystem<Renderer>()->getInfo().window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
-    m_Scene->getSystem<Renderer>()->getInfo().window->eraseCallback<OnResourceReload>(m_Events.pipelineReload);
     return true;
 }
 
@@ -376,21 +332,18 @@ void ForwardRenderer::render(const RenderContext &context) {
         .pStencilAttachment = {},
     });
 
-    // bind resources
-    PipelineReloadMutex.lock();
-
-    m_Info.pipeline->bind(context);
-
     // record constants
     Builtin::RenderPipelineForward::PushConstants pushConstants = {
         .material = Builtin::RenderPipelineForward::ResourceBufferMaterials->getAddress(),
     };
 
     m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+
+    // bind resources
+    m_Info.pipeline->bind(context);
     m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context, m_Info.pipeline);
 
-    PipelineReloadMutex.unlock();
-
+    // draw
     std::uint32_t object = 0;
     for (const auto &[mesh, batch] : instanceSizes) {
         if (mesh->getDescription() != m_Info.pipeline->getInfo().description) {

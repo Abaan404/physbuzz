@@ -131,6 +131,12 @@ class RenderPipeline {
 
     std::set<std::filesystem::path> m_DependencyFilePaths;
 
+    inline static std::mutex m_ReloadMutex;
+
+    struct {
+        EventID reload = -1;
+    } m_Events;
+
     friend class PipelineLayoutAllocator;
 };
 

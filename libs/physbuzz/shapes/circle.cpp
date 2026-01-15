@@ -13,7 +13,7 @@ static constexpr Physbuzz::Index MAX_VERTICES = 50;
 static constexpr float angleIncrement = (2.0f * glm::pi<float>()) / MAX_VERTICES;
 
 bool ModelCircle::build(const std::shared_ptr<Transfer> transfer) {
-    if (ResourceRegistry<Mesh>::contains(Resource.getIdentifier())) {
+    if (ResourceRegistry<Mesh>::contains(Resource)) {
         return true;
     }
 

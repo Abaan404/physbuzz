@@ -98,7 +98,7 @@ bool DynamicBuffer::resize(const RenderContext &context, std::uint64_t size) {
     buffer.copy(context.command, buffers[context.frameInFlight], copies);
 
     // mark old buffer for deferred deletion and update
-    context.deletionQueue->enqueue(buffers[context.frameInFlight]);
+    context.deletionQueue->enqueue(std::move(buffers[context.frameInFlight]));
     buffers[context.frameInFlight] = buffer;
 
     return true;

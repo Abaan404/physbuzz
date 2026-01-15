@@ -90,7 +90,6 @@ class ForwardRenderer : public IRenderPass,
 
     struct {
         EventID resize = -1;
-        EventID pipelineReload = -1;
     } m_Events = {};
 };
 

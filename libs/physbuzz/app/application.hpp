@@ -38,6 +38,9 @@ class App {
     // slang
     inline static Slang::ComPtr<slang::IGlobalSession> SlangSession = nullptr;
 
+    // global deletion
+    inline static DeletionQueue Deletion = {};
+
     inline static struct {
         std::uint32_t graphics;
         std::uint32_t present;

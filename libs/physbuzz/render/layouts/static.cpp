@@ -66,7 +66,7 @@ bool StaticBuffer::resize(const RenderContext &context, std::uint64_t size) {
     buffer.copy(context.command, m_Buffer, copies);
 
     // mark old buffer for deferred deletion and update
-    context.deletionQueue->enqueue(m_Buffer);
+    context.deletionQueue->enqueue(std::move(m_Buffer));
 
     m_Buffer = buffer;
     m_Address = App::Device.getBufferAddress({

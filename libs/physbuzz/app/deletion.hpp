@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan.hpp>
+#include "../render/buffer.hpp"
+#include "../render/shaders.hpp"
 
 namespace Physbuzz {
 
@@ -10,8 +10,8 @@ class RenderPipeline;
 
 class DeletionQueue {
   public:
-    void enqueue(const Buffer &buffer);
-    void enqueue(const RenderPipeline &pipeline);
+    void enqueue(Buffer &&buffer);
+    void enqueue(RenderPipeline &&pipeline);
 
     void flush();
 

@@ -27,7 +27,9 @@ class Event : public IEvent {
     }
 
     inline void notify(const T &param) const {
-        for (const auto &[id, callback] : m_Callbacks) {
+        std::unordered_map<EventID, std::function<void(const T &)>> callbacks = m_Callbacks;
+
+        for (const auto &[id, callback] : callbacks) {
             callback(param);
         }
     }

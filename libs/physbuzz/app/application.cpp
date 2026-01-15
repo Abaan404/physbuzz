@@ -310,6 +310,7 @@ bool App::quit() {
     ResourceRegistry<Mesh>::clear();
 
     vmaDestroyAllocator(Allocator);
+    Deletion.flush();
 
     // destroy every window
     for (auto &[name, _] : m_Windows) {

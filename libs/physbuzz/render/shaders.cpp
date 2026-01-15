@@ -286,6 +286,29 @@ bool RenderPipeline::build() {
         App::Device.destroyShaderModule(module);
     }
 
+    m_Events = {
+        .reload = ResourceRegistry<RenderPipeline>::Events.addCallback<OnResourceReload>([](const OnResourceReload &event) {
+            Resource<RenderPipeline> pipeline = {event.identifier};
+
+            if (event.action != WatchAction::Modified || !pipeline->isDependantFile(event.filePath)) {
+                return;
+            }
+
+            Logger::INFO("[RenderPipeline] Reloading resource '{}'.", event.identifier, event.filePath.string());
+
+            App::Deletion.enqueue(std::move(pipeline.get()));
+
+            // kinda hacky
+            std::lock_guard<std::mutex> lock(pipeline->m_ReloadMutex);
+
+            pipeline->m_Pipeline = nullptr;
+            pipeline->m_Layout = nullptr;
+            ResourceRegistry<RenderPipeline>::Events.eraseCallback<OnResourceReload>(pipeline->m_Events.reload);
+
+            pipeline->build();
+        }),
+    };
+
     return true;
 }
 
@@ -300,6 +323,8 @@ bool RenderPipeline::destroy() {
 
     App::Device.destroyPipeline(m_Pipeline);
     m_Pipeline = nullptr;
+
+    ResourceRegistry<RenderPipeline>::Events.eraseCallback<OnResourceReload>(m_Events.reload);
     return true;
 }
 
@@ -308,6 +333,8 @@ bool RenderPipeline::isDependantFile(const std::filesystem::path &file) {
 }
 
 void RenderPipeline::updatePushConstants(const RenderContext &context, const PushConstantsStage &stage, const std::span<const std::byte> &bytes, std::uint32_t offset) {
+    std::lock_guard<std::mutex> lock(m_ReloadMutex);
+
     vk::PushConstantsInfo info = {
         .layout = m_Layout,
         .stageFlags = stage,
@@ -320,6 +347,7 @@ void RenderPipeline::updatePushConstants(const RenderContext &context, const Pus
 }
 
 void RenderPipeline::bind(const RenderContext &context) {
+    std::lock_guard<std::mutex> lock(m_ReloadMutex);
     context.command.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline);
 }
 

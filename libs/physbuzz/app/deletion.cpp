@@ -6,11 +6,11 @@
 
 namespace Physbuzz {
 
-void DeletionQueue::enqueue(const Buffer &buffer) {
+void DeletionQueue::enqueue(Buffer &&buffer) {
     m_Buffers.push_back(buffer);
 }
 
-void DeletionQueue::enqueue(const RenderPipeline &pipeline) {
+void DeletionQueue::enqueue(RenderPipeline &&pipeline) {
     m_Pipelines.push_back(pipeline);
 }
 
