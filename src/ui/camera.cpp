@@ -3,7 +3,7 @@
 #include "../objects/player.hpp"
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
-#include <physbuzz/render/renderer.hpp>
+#include <physbuzz/graphics/renderer.hpp>
 
 constexpr float MAX_VALUE = 1000.0f;
 constexpr float MIN_VALUE = -1000.0f;

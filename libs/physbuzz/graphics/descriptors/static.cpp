@@ -6,10 +6,7 @@
 namespace Physbuzz {
 
 StaticBuffer::StaticBuffer()
-    : m_Buffer({
-          .usage = Buffer::BufferUsageFlagBits::eTransferSrc | Buffer::BufferUsageFlagBits::eTransferDst | Buffer::BufferUsageFlagBits::eShaderDeviceAddress,
-          .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
-      }) {}
+    : m_Buffer({}) {}
 
 bool StaticBuffer::build(std::uint64_t size) {
     if (m_Address != 0) {
@@ -76,12 +73,12 @@ bool StaticBuffer::resize(const RenderContext &context, std::uint64_t size) {
     return true;
 }
 
-bool StaticBuffer::update(const std::shared_ptr<Transfer> transfer, const std::span<const std::byte> &bytes, std::uint64_t offset) const {
+bool StaticBuffer::update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) const {
     PBZ_ASSERT(m_Address != 0, "[StaticBuffer] Buffer has not been allocated.");
     PBZ_ASSERT(offset + bytes.size() <= m_Buffer.getData().bufferInfo.size, "[StaticBuffer] Invalid size and offset.");
 
     // TODO this doesnt have to happen on the transfer queue
-    return transfer->map(m_Buffer, bytes, offset);
+    return context.systems.transfer->map(m_Buffer, bytes, offset);
 }
 
 std::size_t StaticBuffer::getSize() const {

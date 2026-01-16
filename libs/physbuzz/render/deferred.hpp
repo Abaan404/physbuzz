@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ecs/system.hpp"
+#include "../graphics/defines.hpp"
 #include "../graphics/pipeline.hpp"
 #include "../resources/resource.hpp"
 #include "defines.hpp"
@@ -23,8 +24,6 @@ bool build();
 } // namespace RenderPipelineDeferred
 
 } // namespace Builtin
-
-struct RenderComponent;
 
 struct DeferredRenderComponent {
     struct ForwardPass {

@@ -1,6 +1,6 @@
 #include "model.hpp"
 
-#include <physbuzz/render/renderer.hpp>
+#include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/render/deferred.hpp>
 #include <physbuzz/render/forward.hpp>
 #include <physbuzz/render/shadow.hpp>

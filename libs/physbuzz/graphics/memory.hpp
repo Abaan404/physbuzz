@@ -82,8 +82,8 @@ class Image {
     struct Info {
         ImageUsageFlags usage;
         Type type;
-        std::uint32_t mipLevels;
-        std::uint32_t arrayLayers;
+        std::uint32_t mipLevels = 1;
+        std::uint32_t arrayLayers = 1;
         Flags flags = {};
         Format format = Format::eR8G8B8A8Unorm;
         MemoryUsage memoryUsage = MemoryUsage::Auto;

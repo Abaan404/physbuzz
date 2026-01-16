@@ -5,10 +5,11 @@
 #include "../graphics/descriptors/dynamic.hpp"
 #include "../graphics/descriptors/static.hpp"
 #include "../graphics/layout.hpp"
+#include "../graphics/renderer.hpp"
 #include "camera.hpp"
 #include "lighting.hpp"
 #include "model.hpp"
-#include "renderer.hpp"
+#include "resources/common.hpp"
 
 namespace Physbuzz {
 
@@ -79,51 +80,18 @@ void ForwardRenderer::render(const RenderContext &context) {
     for (const auto &object : m_Objects) {
         const auto [render] = m_Scene->getComponent<RenderComponent>(object);
 
+        Builtin::RenderLayoutGlobal::refresh(context, render.model);
+
         const Model::Info &model = render.model.getInfo();
-
         for (const auto &mesh : model.meshes) {
-            for (const auto &[type, texture] : mesh.material->textures) {
-                // new texture loaded into table, map to bindless descriptor
-                if (m_Textures.add(texture)) {
-                    m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
-                        Builtin::RenderPipelineForward::ResourceLayoutGlobal,
-                        texture,
-                        0, m_Textures.query(texture));
-                }
-            }
-
-            // fetch material ids
-            if (m_Materials.add(mesh.material)) {
-                // create a new material buffer
-                Builtin::RenderPipelineForward::MaterialBuffer material = {
-                    .diffuseTextureId = mesh.material->textures.contains(TextureType::Diffuse)
-                                            ? m_Textures.query(mesh.material->textures.at(TextureType::Diffuse))
-                                            : 0,
-                    .specularTextureId = mesh.material->textures.contains(TextureType::Specular)
-                                             ? m_Textures.query(mesh.material->textures.at(TextureType::Specular))
-                                             : 0,
-                    .specularity = mesh.material->shininess,
-                };
-
-                std::size_t requiredMaterialSize = m_Materials.size() * sizeof(Builtin::RenderPipelineForward::MaterialBuffer);
-                if (Builtin::RenderPipelineForward::ResourceBufferMaterials->getSize() < requiredMaterialSize) {
-                    Builtin::RenderPipelineForward::ResourceBufferMaterials->resize(context, requiredMaterialSize);
-                }
-
-                // upload material data
-                Builtin::RenderPipelineForward::ResourceBufferMaterials->update<Builtin::RenderPipelineForward::MaterialBuffer>(
-                    m_Scene->getSystem<Transfer>(),
-                    {material}, m_Materials.query(mesh.material));
-            }
-
             instances[mesh.mesh].emplace_back<Builtin::RenderPipelineForward::ModelBuffer>({
                 .model = render.transform.matrix,
                 .invModel = glm::inverse(render.transform.matrix),
-                .materialIdx = m_Materials.query(mesh.material),
+                .materialIdx = Builtin::RenderLayoutGlobal::TableMaterial.query(mesh.material),
             });
         }
 
-        meshCount += model.meshes.size();
+        meshCount += render.model.getInfo().meshes.size();
     }
 
     for (const auto &[mesh, buffers] : instances) {
@@ -136,7 +104,7 @@ void ForwardRenderer::render(const RenderContext &context) {
         Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, requiredModelSize);
 
         // retach for a new buffer
-        m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
+        context.systems.allocator->reattach(
             context,
             Builtin::RenderPipelineForward::ResourceLayoutObject,
             Builtin::RenderPipelineForward::ResourceBufferModel,
@@ -153,7 +121,7 @@ void ForwardRenderer::render(const RenderContext &context) {
         Builtin::RenderPipelineForward::ResourceBufferDirectionalLights->resize(context, requiredDirectionalSize);
 
         // retach for a new buffer
-        m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
+        context.systems.allocator->reattach(
             context,
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
             Builtin::RenderPipelineForward::ResourceBufferDirectionalLights,
@@ -165,7 +133,7 @@ void ForwardRenderer::render(const RenderContext &context) {
         Builtin::RenderPipelineForward::ResourceBufferPointLights->resize(context, requiredPointsSize);
 
         // retach for a new buffer
-        m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
+        context.systems.allocator->reattach(
             context,
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
             Builtin::RenderPipelineForward::ResourceBufferPointLights,
@@ -177,29 +145,21 @@ void ForwardRenderer::render(const RenderContext &context) {
         Builtin::RenderPipelineForward::ResourceBufferSpotLights->resize(context, requiredSpotSize);
 
         // retach for a new buffer
-        m_Scene->getSystem<PipelineLayoutAllocator>()->reattach(
+        context.systems.allocator->reattach(
             context,
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
             Builtin::RenderPipelineForward::ResourceBufferSpotLights,
             3);
     }
 
-    Builtin::RenderPipelineForward::ResourceBufferDirectionalLights->update<DirectionalLightComponent>(
-        context, m_Scene->getSystem<Transfer>(),
-        directionals);
-
-    Builtin::RenderPipelineForward::ResourceBufferPointLights->update<PointLightComponent>(
-        context, m_Scene->getSystem<Transfer>(),
-        points);
-
-    Builtin::RenderPipelineForward::ResourceBufferSpotLights->update<SpotLightComponent>(
-        context, m_Scene->getSystem<Transfer>(),
-        spots);
+    Builtin::RenderPipelineForward::ResourceBufferDirectionalLights->update<DirectionalLightComponent>(context, directionals);
+    Builtin::RenderPipelineForward::ResourceBufferPointLights->update<PointLightComponent>(context, points);
+    Builtin::RenderPipelineForward::ResourceBufferSpotLights->update<SpotLightComponent>(context, spots);
 
     // upload camera
     const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
     Builtin::RenderPipelineForward::ResourceBufferCamera->update<Builtin::RenderPipelineForward::CameraBuffer>(
-        context, m_Scene->getSystem<Transfer>(),
+        context,
         {{
             .position = camera.getInfo().view.position,
             .view = camera.getView(),
@@ -207,16 +167,14 @@ void ForwardRenderer::render(const RenderContext &context) {
         }});
 
     // upload instance/object data
-    Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(
-        context, m_Scene->getSystem<Transfer>(),
-        instanceBuffers);
+    Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(context, instanceBuffers);
 
     // record constants
     Builtin::RenderPipelineForward::PushConstants pushConstants = {
         .directionalCount = static_cast<std::uint32_t>(directionals.size()),
         .spotCount = static_cast<std::uint32_t>(spots.size()),
         .pointCount = static_cast<std::uint32_t>(points.size()),
-        .materialBaseAddress = Builtin::RenderPipelineForward::ResourceBufferMaterials->getAddress(),
+        .materialBaseAddress = Builtin::RenderLayoutGlobal::ResourceBufferMaterials->getAddress(),
     };
 
     m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
@@ -254,7 +212,7 @@ void ForwardRenderer::render(const RenderContext &context) {
 
     // bind resources
     m_Info.pipeline->bind(context);
-    m_Scene->getSystem<PipelineLayoutAllocator>()->bind(context, m_Info.pipeline);
+    context.systems.allocator->bind(context, m_Info.pipeline);
 
     // draw
     std::uint32_t object = 0;

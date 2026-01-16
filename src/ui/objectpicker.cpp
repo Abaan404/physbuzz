@@ -6,8 +6,8 @@
 #include "../objects/skybox.hpp"
 #include <glm/glm.hpp>
 #include <imgui.h>
+#include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/render/camera.hpp>
-#include <physbuzz/render/renderer.hpp>
 
 struct PickableComponent {
     bool selected = false;

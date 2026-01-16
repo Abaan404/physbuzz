@@ -1,8 +1,8 @@
 #include "shadow.hpp"
 
 #include "../ecs/scene.hpp"
+#include "../graphics/renderer.hpp"
 #include "lighting.hpp"
-#include "renderer.hpp"
 #include <array>
 #include <format>
 

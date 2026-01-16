@@ -1,8 +1,8 @@
 #pragma once
 
 #include <physbuzz/ecs/scene.hpp>
+#include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/render/lighting.hpp>
-#include <physbuzz/render/renderer.hpp>
 
 inline Physbuzz::RenderPipeline shaderGamma = {{
     // .vertex = {.file = {.path = "resources/shaders/gamma/gamma.vert"}},

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <physbuzz/render/renderer.hpp>
+#include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/ecs/scene.hpp>
 
 inline Physbuzz::RenderPipeline shaderDebugNormal = {{

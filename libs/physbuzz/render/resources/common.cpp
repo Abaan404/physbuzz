@@ -1,80 +1,19 @@
 #include "common.hpp"
 
-#include "../../graphics/descriptors/dynamic.hpp"
 #include "../../graphics/descriptors/static.hpp"
 #include "../../graphics/layout.hpp"
-#include "../lighting.hpp"
 #include "../model.hpp"
 
 namespace Physbuzz {
 
 namespace Builtin {
 
-bool RenderPipelineForward::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
+bool RenderLayoutGlobal::build() {
+    if (ResourceRegistry<PipelineLayout>::contains(Resource)) {
         return true;
     }
 
     bool success = true;
-
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutGlobal)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
-            ResourceLayoutGlobal,
-            {{
-                .bindings = {
-                    {
-                        // textures
-                        .type = PipelineLayout::Type::eCombinedImageSampler,
-                        .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
-                        .count = 32,
-                    },
-                },
-                .flags = PipelineLayout::Flags::eUpdateAfterBindPool,
-                .lifetime = PipelineLayout::Lifetime::Global,
-            }});
-    }
-
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
-            ResourceLayoutFrame,
-            {{
-                .bindings = {
-                    {
-                        // camera
-                        .type = PipelineLayout::Type::eUniformBuffer,
-                        .range = sizeof(CameraBuffer),
-                    },
-                    {
-                        // directionals
-                        .type = PipelineLayout::Type::eStorageBuffer,
-                        .range = sizeof(DirectionalLightComponent),
-                    },
-                    {
-                        // points
-                        .type = PipelineLayout::Type::eStorageBuffer,
-                        .range = sizeof(PointLightComponent),
-                    },
-                    {
-                        // spots
-                        .type = PipelineLayout::Type::eStorageBuffer,
-                        .range = sizeof(SpotLightComponent),
-                    },
-                },
-            }});
-    }
-
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutObject)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
-            ResourceLayoutObject,
-            {{
-                .bindings = {
-                    {
-                        // instance
-                        .type = PipelineLayout::Type::eStorageBuffer,
-                    },
-                },
-            }});
-    }
 
     if (!ResourceRegistry<StaticBuffer>::contains(ResourceBufferMaterials)) {
         success &= ResourceRegistry<StaticBuffer>::insert(
@@ -83,72 +22,62 @@ bool RenderPipelineForward::build() {
             sizeof(MaterialBuffer));
     }
 
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferCamera)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferCamera,
-            {{
-                .type = DynamicBuffer::Type::Constant,
-            }},
-            sizeof(CameraBuffer));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferDirectionalLights)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferDirectionalLights,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(DirectionalLightComponent));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferPointLights)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferPointLights,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(PointLightComponent));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferSpotLights)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferSpotLights,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(SpotLightComponent));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferModel)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceBufferModel,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(ModelBuffer));
-    }
-
-    success &= ResourceRegistry<RenderPipeline>::insert(
+    success &= ResourceRegistry<PipelineLayout>::insert(
         Resource,
         {{
-            .module = "builtin/forward",
-            .description = &Model::Vertex::Description,
-            .layouts = {
-                .resources = {
-                    ResourceLayoutGlobal,
-                    ResourceLayoutFrame,
-                    ResourceLayoutObject,
-                },
-                .pushConstantRanges = {
-                    {
-                        .stageFlags = RenderPipeline::PushConstantsStageFlags::eAll,
-                        .size = sizeof(PushConstants),
-                    },
+            .bindings = {
+                {
+                    // textures
+                    .type = PipelineLayout::Type::eCombinedImageSampler,
+                    .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
+                    .count = 32,
                 },
             },
+            .flags = PipelineLayout::Flags::eUpdateAfterBindPool,
+            .lifetime = PipelineLayout::Lifetime::Global,
         }});
 
     return success;
+}
+
+void RenderLayoutGlobal::refresh(const RenderContext &context, const Model &model) {
+    Model::Info modelInfo = model.getInfo();
+
+    for (const auto &mesh : modelInfo.meshes) {
+        for (const auto &[type, texture] : mesh.material->textures) {
+            // new texture loaded into table, map to bindless descriptor
+            if (TableTexture.add(texture)) {
+                context.systems.allocator->attach(
+                    Builtin::RenderLayoutGlobal::Resource,
+                    texture,
+                    0, TableTexture.query(texture));
+            }
+        }
+
+        // fetch material ids
+        if (TableMaterial.add(mesh.material)) {
+            // create a new material buffer
+            Builtin::RenderLayoutGlobal::MaterialBuffer material = {
+                .diffuseTextureId = mesh.material->textures.contains(TextureType::Diffuse)
+                                        ? TableTexture.query(mesh.material->textures.at(TextureType::Diffuse))
+                                        : 0,
+                .specularTextureId = mesh.material->textures.contains(TextureType::Specular)
+                                         ? TableTexture.query(mesh.material->textures.at(TextureType::Specular))
+                                         : 0,
+                .specularity = mesh.material->shininess,
+            };
+
+            std::size_t requiredMaterialSize = TableMaterial.size() * sizeof(Builtin::RenderLayoutGlobal::MaterialBuffer);
+            if (Builtin::RenderLayoutGlobal::ResourceBufferMaterials->getSize() < requiredMaterialSize) {
+                Builtin::RenderLayoutGlobal::ResourceBufferMaterials->resize(context, requiredMaterialSize);
+            }
+
+            // upload material data
+            Builtin::RenderLayoutGlobal::ResourceBufferMaterials->update<Builtin::RenderLayoutGlobal::MaterialBuffer>(
+                context,
+                {material}, TableMaterial.query(mesh.material));
+        }
+    }
 }
 
 } // namespace Builtin

@@ -2,7 +2,7 @@
 
 #include <format>
 #include <imgui.h>
-#include <physbuzz/render/renderer.hpp>
+#include <physbuzz/graphics/renderer.hpp>
 
 static void drawImageWindow(std::string label, bool *show, ImTextureID id, const ImVec2 &resolution) {
     float aspect_ratio = resolution.x / resolution.y;

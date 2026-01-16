@@ -5,8 +5,8 @@
 #include "circle.hpp"
 #include "cuboid.hpp"
 #include <imgui.h>
+#include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/misc/context.hpp>
-#include <physbuzz/render/renderer.hpp>
 #include <physbuzz/window/inputs.hpp>
 
 template <>

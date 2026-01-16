@@ -14,10 +14,10 @@
 #include <physbuzz/events/window.hpp>
 #include <physbuzz/graphics/layout.hpp>
 #include <physbuzz/graphics/pipeline.hpp>
+#include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/forward.hpp>
 #include <physbuzz/render/model.hpp>
-#include <physbuzz/render/renderer.hpp>
 #include <physbuzz/window/inputs.hpp>
 #include <random>
 

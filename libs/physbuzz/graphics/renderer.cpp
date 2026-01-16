@@ -2,6 +2,7 @@
 
 #include "../app/application.hpp"
 #include "../events/window.hpp"
+#include "layout.hpp"
 
 namespace Physbuzz {
 
@@ -197,6 +198,10 @@ void Renderer::tick() {
             .depth = {
                 .image = m_Depth.image.getData().image,
                 .view = m_Depth.view,
+            },
+            .systems = {
+                .transfer = m_Scene->getSystem<Transfer>(),
+                .allocator = m_Scene->getSystem<PipelineLayoutAllocator>(),
             },
         });
 

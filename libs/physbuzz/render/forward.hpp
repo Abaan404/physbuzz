@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../ecs/system.hpp"
-#include "../resources/table.hpp"
+#include "../graphics/defines.hpp"
 #include "defines.hpp"
-#include "resources/common.hpp"
+#include "resources/forward.hpp"
 
 namespace Physbuzz {
 
@@ -29,9 +29,6 @@ class ForwardRenderer : public IRenderPass,
     Info m_Info;
 
     bool m_ReloadedPipeline = false;
-
-    ResourceTable<Texture> m_Textures;
-    ResourceTable<Material> m_Materials;
 
     struct {
         EventID resize = -1;

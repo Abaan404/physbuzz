@@ -5,6 +5,8 @@
 
 namespace Physbuzz {
 
+class PipelineLayoutAllocator;
+
 namespace detail {
 
 static constexpr std::uint32_t MAX_FRAMES_IN_FLIGHT = 2;
@@ -27,6 +29,18 @@ struct RenderContext {
         vk::Image image;
         vk::ImageView view;
     } depth;
+
+    struct {
+        std::shared_ptr<Transfer> transfer;
+        std::shared_ptr<PipelineLayoutAllocator> allocator;
+    } systems;
+};
+
+class IRenderPass {
+  public:
+    virtual ~IRenderPass() = default;
+
+    virtual void render(const RenderContext &context) = 0;
 };
 
 } // namespace Physbuzz

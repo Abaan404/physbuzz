@@ -32,7 +32,7 @@ bool DeferredRenderer::destroy() {
     return success;
 }
 
-void DeferredRenderer::render(const RenderContext &context) {
+void DeferredRenderer::render(const RenderContext &) {
     // // check for reloads before rendering
     // if (!m_Info.passes.geometry->reload()) {
     //     return;

@@ -3,7 +3,7 @@
 #if !defined(IMGUI_DISABLE)
 
 #include "../../ecs/system.hpp"
-#include "../../render/defines.hpp"
+#include "../../graphics/defines.hpp"
 #include <imgui.h>
 #include <vulkan/vulkan.h>
 

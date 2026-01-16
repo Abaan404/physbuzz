@@ -1,7 +1,7 @@
 #pragma once
 
 #include <physbuzz/ecs/scene.hpp>
-#include <physbuzz/render/renderer.hpp>
+#include <physbuzz/graphics/renderer.hpp>
 
 inline Physbuzz::RenderPipeline shaderCircle = {{
     // .vertex = {.file = {.path = "resources/shaders/circle/circle.vert"}},

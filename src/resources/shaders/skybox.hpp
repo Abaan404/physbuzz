@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../objects/skybox.hpp"
-#include <physbuzz/render/renderer.hpp>
+#include <physbuzz/graphics/renderer.hpp>
 
 inline Physbuzz::RenderPipeline shaderSkybox = {{
     // .vertex = {.file = {.path = "resources/shaders/skybox/skybox.vert"}},

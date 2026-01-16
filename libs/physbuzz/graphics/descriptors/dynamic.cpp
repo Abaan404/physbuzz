@@ -104,14 +104,14 @@ bool DynamicBuffer::resize(const RenderContext &context, std::uint64_t size) {
     return true;
 }
 
-bool DynamicBuffer::update(const RenderContext &context, const std::shared_ptr<Transfer> transfer, const std::span<const std::byte> &bytes, std::uint64_t offset) const {
+bool DynamicBuffer::update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) const {
     PBZ_ASSERT(!std::holds_alternative<std::monostate>(m_Buffers), "[DynamicBuffer] Buffer has not been allocated.");
     const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = std::get<std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT>>(m_Buffers);
 
     PBZ_ASSERT(offset + bytes.size() <= buffers[context.frameInFlight].getData().bufferInfo.size, "[DynamicBuffer] Invalid size and offset.");
 
     // TODO this doesnt have to happen on the transfer queue
-    return transfer->map(buffers[context.frameInFlight], bytes, offset);
+    return context.systems.transfer->map(buffers[context.frameInFlight], bytes, offset);
 }
 
 const DynamicBuffer::Info &DynamicBuffer::getInfo() const {

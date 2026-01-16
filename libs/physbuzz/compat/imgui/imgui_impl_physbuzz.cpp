@@ -7,7 +7,7 @@
 #include "../../app/application.hpp"
 #include "../../debug/macros.hpp"
 #include "../../events/window.hpp"
-#include "../../render/renderer.hpp"
+#include "../../graphics/renderer.hpp"
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_structs.hpp>

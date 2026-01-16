@@ -10,11 +10,4 @@ struct RenderComponent {
     Model model;
 };
 
-class IRenderPass {
-  public:
-    virtual ~IRenderPass() = default;
-
-    virtual void render(const RenderContext &context) = 0;
-};
-
 } // namespace Physbuzz
