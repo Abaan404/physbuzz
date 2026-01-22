@@ -99,7 +99,7 @@ class RenderPipeline {
         } blend = {};
 
         struct {
-            std::vector<Format> color = {Format::eB8G8R8A8Srgb};
+            std::vector<Format> color = {Format::eR8G8B8A8Srgb};
             Format depth = Format::eD32Sfloat;
         } formats = {};
 
