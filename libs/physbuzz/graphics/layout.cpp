@@ -164,12 +164,20 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
 }
 
 bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
-    if (layout->getInfo().bindings[binding].type != vk::DescriptorType::eCombinedImageSampler) {
-        Logger::ERROR("[PipelineLayoutAllocator] Invalid type at binding {} for resource '{}'", binding, layout);
-        return false;
+    vk::DescriptorType type;
+
+    switch (texture->getInfo().type) {
+    case Texture::Type::Attachment:
+        type = vk::DescriptorType::eInputAttachment;
+        break;
+
+    case Texture::Type::Dim2D:
+        type = vk::DescriptorType::eCombinedImageSampler;
+        PBZ_ASSERT(texture->getInfo().sampler != Texture::Sampler::None, "[PipelineLayoutAllocator] Dim2D Texture does not have a sampler.");
+        break;
     }
 
-    PBZ_ASSERT(layout->getInfo().bindings[binding].type == vk::DescriptorType::eCombinedImageSampler, std::format("[PipelineLayoutAllocator] Invalid type at binding {} for resource '{}'", binding, layout));
+    PBZ_ASSERT(layout->getInfo().bindings[binding].type == type, std::format("[PipelineLayoutAllocator] Invalid type at binding {} for resource '{}'", binding, layout));
     PBZ_ASSERT(layout->getInfo().lifetime == PipelineLayout::Lifetime::Global, std::format("[PipelineLayoutAllocator] Incompatible lifetime for texture '{}' and layout '{}'", texture, layout));
 
     if (!m_AllocatedLayouts.contains(layout)) {
@@ -177,8 +185,8 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
     }
 
     vk::DescriptorImageInfo imageInfo = {
-        .sampler = texture->getSampler(),
-        .imageView = texture->getImageView(),
+        .sampler = texture->getData().sampler,
+        .imageView = texture->getData().view,
         .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
     };
 
@@ -187,7 +195,7 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
         .dstBinding = static_cast<std::uint32_t>(binding),
         .dstArrayElement = element,
         .descriptorCount = 1,
-        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+        .descriptorType = type,
         .pImageInfo = &imageInfo,
     };
 

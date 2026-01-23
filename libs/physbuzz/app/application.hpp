@@ -70,14 +70,12 @@ class App {
     friend class PipelineLayout;
     friend class RenderPipeline;
 
-    friend class StaticBuffer;
     friend class Transfer;
     friend class Buffer;
     friend class Image;
 
-    friend class Texture2D;
+    friend class StaticBuffer;
     friend class Texture;
-    friend class Cubemap;
 
     friend class Window;
     friend class Renderer;

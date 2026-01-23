@@ -128,7 +128,9 @@ Model::MaterialResult Model::processMaterial(const aiMaterial *aimaterial) {
             PBZ_ASSERT(aimaterial->GetTexture(type, 0, &aiPath) == aiReturn_SUCCESS, "[Model] Failed to load material texture.");
 
             result.textures[static_cast<TextureType>(type)] = {
-                .info = Texture::Tex2D,
+                .info = {
+                    .type = Texture::Type::Dim2D,
+                },
                 .path = aiPath.C_Str(),
             };
         }

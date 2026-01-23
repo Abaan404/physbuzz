@@ -16,7 +16,7 @@
 #include <physbuzz/graphics/pipeline.hpp>
 #include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/misc/context.hpp>
-#include <physbuzz/render/forward.hpp>
+#include <physbuzz/render/deferred.hpp>
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/window/inputs.hpp>
 #include <random>
@@ -104,7 +104,7 @@ void Game::build() {
     });
 
     Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>()->setRenderPasses({
-        Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(Physbuzz::ForwardRenderer::Info{
+        Physbuzz::App::GScene.createSystem<Physbuzz::DeferredRenderer>(Physbuzz::DeferredRenderer::Info{
             .camera = playerId,
         }),
         Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(),
@@ -112,19 +112,19 @@ void Game::build() {
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "floor",
-        Physbuzz::Texture::Tex2D,
+        {{.type = Physbuzz::Texture::Type::Dim2D}},
         Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/floor.png"}},
         Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "crate/diffuse",
-        Physbuzz::Texture::Tex2D,
+        {{.type = Physbuzz::Texture::Type::Dim2D}},
         Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/diffuse.png"}},
         Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "crate/specular",
-        Physbuzz::Texture::Tex2D,
+        {{.type = Physbuzz::Texture::Type::Dim2D}},
         Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/specular.png"}},
         Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
 

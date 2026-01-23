@@ -85,7 +85,7 @@ const Buffer::Data &Buffer::getData() const {
     return m_Data;
 }
 
-bool Buffer::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, std::vector<vk::BufferCopy> copies) const {
+bool Buffer::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, const std::vector<vk::BufferCopy> &copies) const {
     if (m_Data.buffer == nullptr || m_Allocation == nullptr) {
         Logger::ERROR("[Buffer] Trying to copy to a destructed buffer.");
         return false;
@@ -199,30 +199,16 @@ bool Image::destroy() {
     return true;
 }
 
-bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src) const {
+bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies) const {
     if (m_Data.image == nullptr || m_Allocation == nullptr) {
         Logger::ERROR("[Image] Trying to copy to a destructed image.");
         return false;
     }
 
     if (src.m_Data.buffer == nullptr || src.m_Allocation == nullptr) {
-        Logger::ERROR("[Image] Trying to copy from a destructed image.");
+        Logger::ERROR("[Image] Trying to copy from a destructed buffer.");
         return false;
     }
-
-    vk::BufferImageCopy region = {
-        .bufferOffset = 0,
-        .bufferRowLength = 0,
-        .bufferImageHeight = 0,
-        .imageSubresource = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .mipLevel = 0,
-            .baseArrayLayer = 0,
-            .layerCount = m_Info.arrayLayers,
-        },
-        .imageOffset = {0, 0, 0},
-        .imageExtent = m_Data.imageInfo.extent,
-    };
 
     {
         std::array barriers = {
@@ -251,7 +237,7 @@ bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src) cons
         });
     }
 
-    commandBuffer.copyBufferToImage(src.getData().buffer, m_Data.image, vk::ImageLayout::eTransferDstOptimal, {region});
+    commandBuffer.copyBufferToImage(src.getData().buffer, m_Data.image, vk::ImageLayout::eTransferDstOptimal, copies);
 
     {
         std::array barriers = {
@@ -269,6 +255,108 @@ bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src) cons
                     .levelCount = m_Info.mipLevels,
                     .baseArrayLayer = 0,
                     .layerCount = m_Info.arrayLayers,
+                },
+            },
+        };
+
+        commandBuffer.pipelineBarrier2({
+            .dependencyFlags = {},
+            .imageMemoryBarrierCount = barriers.size(),
+            .pImageMemoryBarriers = barriers.data(),
+        });
+    }
+
+    return true;
+}
+
+bool Image::copy(const vk::CommandBuffer &commandBuffer, const Image &src, const std::vector<vk::ImageCopy> &copies) const {
+    if (m_Data.image == nullptr || m_Allocation == nullptr) {
+        Logger::ERROR("[Image] Trying to copy to a destructed image.");
+        return false;
+    }
+
+    if (src.m_Data.image == nullptr || src.m_Allocation == nullptr) {
+        Logger::ERROR("[Image] Trying to copy from a destructed image.");
+        return false;
+    }
+
+    {
+        std::array barriers = {
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eNone,
+                .srcAccessMask = vk::AccessFlagBits2::eNone,
+                .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
+                .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                .oldLayout = vk::ImageLayout::eUndefined,
+                .newLayout = vk::ImageLayout::eTransferDstOptimal,
+                .image = m_Data.image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = m_Info.mipLevels,
+                    .baseArrayLayer = 0,
+                    .layerCount = m_Info.arrayLayers,
+                },
+            },
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eNone,
+                .srcAccessMask = vk::AccessFlagBits2::eNone,
+                .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
+                .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+                .oldLayout = vk::ImageLayout::eUndefined,
+                .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+                .image = src.m_Data.image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = src.m_Info.mipLevels,
+                    .baseArrayLayer = 0,
+                    .layerCount = src.m_Info.arrayLayers,
+                },
+            },
+        };
+
+        commandBuffer.pipelineBarrier2({
+            .dependencyFlags = {},
+            .imageMemoryBarrierCount = barriers.size(),
+            .pImageMemoryBarriers = barriers.data(),
+        });
+    }
+
+    commandBuffer.copyImage(src.getData().image, vk::ImageLayout::eTransferSrcOptimal, m_Data.image, vk::ImageLayout::eTransferDstOptimal, {copies});
+
+    {
+        std::array barriers = {
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
+                .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+                .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+                .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                .image = m_Data.image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = m_Info.mipLevels,
+                    .baseArrayLayer = 0,
+                    .layerCount = m_Info.arrayLayers,
+                },
+            },
+            vk::ImageMemoryBarrier2{
+                .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
+                .srcAccessMask = vk::AccessFlagBits2::eTransferRead,
+                .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+                .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+                .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                .image = src.m_Data.image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = src.m_Info.mipLevels,
+                    .baseArrayLayer = 0,
+                    .layerCount = src.m_Info.arrayLayers,
                 },
             },
         };
@@ -438,8 +526,22 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &data) {
         return false;
     }
 
+    vk::BufferImageCopy region = {
+        .bufferOffset = 0,
+        .bufferRowLength = 0,
+        .bufferImageHeight = 0,
+        .imageSubresource = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .mipLevel = 0,
+            .baseArrayLayer = 0,
+            .layerCount = image.getInfo().arrayLayers,
+        },
+        .imageOffset = {0, 0, 0},
+        .imageExtent = image.getData().imageInfo.extent
+    };
+
     // copy the buffer into a VkImage on the vram
-    if (!image.copy(m_Command.buffer, stagingBuffer)) {
+    if (!image.copy(m_Command.buffer, stagingBuffer, {region})) {
         Logger::ERROR("[Transfer] Failed to copy image from staging buffer.");
         stagingBuffer.destroy();
         PBZ_VK_CHECK_RESULT(m_Command.buffer.end());

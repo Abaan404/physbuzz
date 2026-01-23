@@ -5,42 +5,18 @@
 #include "../graphics/pipeline.hpp"
 #include "../resources/resource.hpp"
 #include "defines.hpp"
+#include "resources/deferred.hpp"
 
 namespace Physbuzz {
 
-class Texture;
-
-namespace Builtin {
-
-namespace RenderPipelineDeferred {
-
-inline Resource<Texture> ResourceTextureAlbedo = {"builtin/forward/materials"};
-
-inline Resource<RenderPipeline> ResourceGeometry = {"builtin/deferred/geometry"};
-inline Resource<RenderPipeline> ResourceLighting = {"builtin/deferred/lighting"};
-
-bool build();
-
-} // namespace RenderPipelineDeferred
-
-} // namespace Builtin
-
-struct DeferredRenderComponent {
-    struct ForwardPass {
-        Resource<RenderPipeline> pipeline;
-    };
-};
-
 class DeferredRenderer : public IRenderPass,
-                         public System<RenderComponent, DeferredRenderComponent> {
+                         public System<RenderComponent> {
   public:
     struct Info {
         ObjectID camera;
 
-        struct {
-            Resource<RenderPipeline> geometry = Builtin::RenderPipelineDeferred::ResourceGeometry;
-            Resource<RenderPipeline> lighting = Builtin::RenderPipelineDeferred::ResourceLighting;
-        } passes = {};
+        Resource<RenderPipeline> geometry = Builtin::RenderPipelineDeferred::ResourceGeometry;
+        Resource<RenderPipeline> lighting = Builtin::RenderPipelineDeferred::ResourceLighting;
     };
 
     DeferredRenderer(const Info &info);
@@ -54,6 +30,10 @@ class DeferredRenderer : public IRenderPass,
 
   private:
     Info m_Info;
+
+    struct {
+        EventID resize = -1;
+    } m_Events = {};
 };
 
 } // namespace Physbuzz

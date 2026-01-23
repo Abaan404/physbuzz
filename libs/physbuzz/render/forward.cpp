@@ -73,9 +73,6 @@ void ForwardRenderer::render(const RenderContext &context) {
     // batch objects
     std::unordered_map<Resource<Mesh>, std::vector<Builtin::RenderPipelineForward::ModelBuffer>> instances;
 
-    std::vector<Builtin::RenderPipelineForward::ModelBuffer> instanceBuffers;
-    std::vector<std::pair<Resource<Mesh>, std::size_t>> instanceSizes;
-
     std::size_t meshCount = 0;
     for (const auto &object : m_Objects) {
         const auto [render] = m_Scene->getComponent<RenderComponent>(object);
@@ -93,6 +90,12 @@ void ForwardRenderer::render(const RenderContext &context) {
 
         meshCount += render.model.getInfo().meshes.size();
     }
+
+    std::vector<std::pair<Resource<Mesh>, std::size_t>> instanceSizes;
+    std::vector<Builtin::RenderPipelineForward::ModelBuffer> instanceBuffers;
+
+    instanceBuffers.reserve(meshCount);
+    instanceSizes.reserve(instances.size());
 
     for (const auto &[mesh, buffers] : instances) {
         instanceSizes.emplace_back<std::pair<Resource<Mesh>, std::size_t>>({mesh, buffers.size()});

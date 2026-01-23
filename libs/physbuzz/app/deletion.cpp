@@ -1,5 +1,6 @@
 #include "deletion.hpp"
 
+#include "application.hpp"
 #include <ranges>
 
 namespace Physbuzz {
@@ -8,22 +9,52 @@ void DeletionQueue::enqueue(Buffer &&buffer) {
     m_Buffers.push_back(buffer);
 }
 
+void DeletionQueue::enqueue(Image &&image) {
+    m_Images.push_back(image);
+}
+
 void DeletionQueue::enqueue(RenderPipeline &&pipeline) {
     m_Pipelines.push_back(pipeline);
 }
 
+void DeletionQueue::enqueue(vk::Sampler sampler) {
+    m_Samplers.push_back(sampler);
+}
+
+void DeletionQueue::enqueue(vk::ImageView imageView) {
+    m_ImageViews.push_back(imageView);
+}
+
 void DeletionQueue::flush() {
-    for (auto buffer : std::views::reverse(m_Buffers)) {
+    for (auto &buffer : std::views::reverse(m_Buffers)) {
         buffer.destroy();
     }
 
     m_Buffers.clear();
 
-    for (auto buffer : std::views::reverse(m_Pipelines)) {
-        buffer.destroy();
+    for (auto &image : std::views::reverse(m_Images)) {
+        image.destroy();
+    }
+
+    m_Images.clear();
+
+    for (auto &pipeline : std::views::reverse(m_Pipelines)) {
+        pipeline.destroy();
     }
 
     m_Pipelines.clear();
+
+    for (auto &sampler : std::views::reverse(m_Samplers)) {
+        App::Device.destroySampler(sampler);
+    }
+
+    m_Samplers.clear();
+
+    for (auto &imageView : std::views::reverse(m_ImageViews)) {
+        App::Device.destroyImageView(imageView);
+    }
+
+    m_ImageViews.clear();
 }
 
 } // namespace Physbuzz

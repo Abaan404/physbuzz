@@ -6,49 +6,55 @@
 
 namespace Physbuzz {
 
+struct RenderContext;
+
 class Texture {
   public:
+    using Format = vk::Format;
+
+    enum class Type {
+        Attachment,
+        Dim2D,
+    };
+
+    enum class Sampler {
+        Linear,
+        None,
+    };
+
     struct Info {
-        Image::Info image;
+        Type type;
+        Sampler sampler = Sampler::Linear;
+        Format format = Format::eR8G8B8A8Unorm;
     };
 
-    static constexpr Info Tex2D = {
-        .image = {
-            .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eTransferDst,
-            .type = Image::Type::e2D,
-            .mipLevels = 1,
-            .arrayLayers = 1,
-        },
+    struct Data {
+        vk::ImageView view = nullptr;
+        vk::Sampler sampler = nullptr;
     };
 
-    static constexpr Info TexCubemap = {
-        .image = {
-            .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eTransferDst,
-            .type = Image::Type::e2D,
-            .mipLevels = 1,
-            .arrayLayers = 6,
-            .flags = Image::FlagBits::eCubeCompatible,
-        },
-    };
-
-    Texture(const Info &info);
+    Texture(const Info &info, std::optional<Image> image = std::nullopt);
 
     bool build(ImageFile::Info imageInfo, std::shared_ptr<Transfer> transfer);
     bool build(const glm::uvec3 &resolution);
     bool destroy();
 
+    bool resize(const RenderContext &context, const glm::uvec3 &size);
+
     const Info &getInfo() const;
+    const Data &getData() const;
     const Image &getImage() const;
 
-    const vk::ImageView &getImageView() const;
-    const vk::Sampler &getSampler() const;
+    glm::uvec3 getSize() const;
 
   private:
-    Info m_Info;
-    Image m_Image;
+    vk::Sampler createSampler() const;
+    vk::ImageView createImageView() const;
 
-    vk::ImageView m_View;
-    vk::Sampler m_Sampler;
+    Info m_Info;
+
+    Image m_Image;
+    Data m_Data;
 };
 
 template <>

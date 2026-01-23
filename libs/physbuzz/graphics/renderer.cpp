@@ -359,32 +359,33 @@ std::uint32_t Renderer::getFrameInFlight() const {
 }
 
 void Renderer::resize(const glm::ivec2 &resolution) {
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
+    Image depth = m_Depth.image.getInfo();
 
-    if (!m_Depth.image.destroy()) {
-        Logger::WARNING("[ForwardRenderer] Could not destroy old depth image");
+    if (!depth.build({resolution, 1})) {
+        Logger::ERROR("[Renderer] Could not rebuild depth image.");
+        return;
     }
 
-    App::Device.destroyImageView(m_Depth.view);
+    m_DeletionQueues[m_FrameInFlight].enqueue(std::move(m_Depth.image));
+    m_DeletionQueues[m_FrameInFlight].enqueue(m_Depth.view);
 
-    if (!m_Depth.image.build({resolution, 1})) {
-        Logger::ERROR("[ForwardRenderer] Could not rebuild depth image.");
-    }
-
-    m_Depth.view = PBZ_VK_CHECK(App::Device.createImageView({
-        .flags = {},
-        .image = m_Depth.image.getData().image,
-        .viewType = vk::ImageViewType::e2D,
-        .format = m_Depth.image.getInfo().format,
-        .components = {},
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eDepth,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-        },
-    }));
+    m_Depth = {
+        .image = depth,
+        .view = PBZ_VK_CHECK(App::Device.createImageView({
+            .flags = {},
+            .image = depth.getData().image,
+            .viewType = vk::ImageViewType::e2D,
+            .format = depth.getInfo().format,
+            .components = {},
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eDepth,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+        })),
+    };
 }
 
 } // namespace Physbuzz
