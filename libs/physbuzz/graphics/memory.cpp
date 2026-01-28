@@ -199,7 +199,7 @@ bool Image::destroy() {
     return true;
 }
 
-bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies) const {
+bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies, vk::ImageLayout layout) const {
     if (m_Data.image == nullptr || m_Allocation == nullptr) {
         Logger::ERROR("[Image] Trying to copy to a destructed image.");
         return false;
@@ -247,7 +247,7 @@ bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, cons
                 .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
                 .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
                 .oldLayout = vk::ImageLayout::eTransferDstOptimal,
-                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                .newLayout = layout,
                 .image = m_Data.image,
                 .subresourceRange = {
                     .aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -269,7 +269,7 @@ bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, cons
     return true;
 }
 
-bool Image::copy(const vk::CommandBuffer &commandBuffer, const Image &src, const std::vector<vk::ImageCopy> &copies) const {
+bool Image::copy(const vk::CommandBuffer &commandBuffer, const Image &src, const std::vector<vk::ImageCopy> &copies, vk::ImageLayout layout) const {
     if (m_Data.image == nullptr || m_Allocation == nullptr) {
         Logger::ERROR("[Image] Trying to copy to a destructed image.");
         return false;
@@ -281,6 +281,7 @@ bool Image::copy(const vk::CommandBuffer &commandBuffer, const Image &src, const
     }
 
     {
+        // Note: eUndefined trashes the old image data/layout, this could bite me later.
         std::array barriers = {
             vk::ImageMemoryBarrier2{
                 .srcStageMask = vk::PipelineStageFlagBits2::eNone,
@@ -333,7 +334,7 @@ bool Image::copy(const vk::CommandBuffer &commandBuffer, const Image &src, const
                 .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
                 .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
                 .oldLayout = vk::ImageLayout::eTransferDstOptimal,
-                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                .newLayout = layout,
                 .image = m_Data.image,
                 .subresourceRange = {
                     .aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -341,22 +342,6 @@ bool Image::copy(const vk::CommandBuffer &commandBuffer, const Image &src, const
                     .levelCount = m_Info.mipLevels,
                     .baseArrayLayer = 0,
                     .layerCount = m_Info.arrayLayers,
-                },
-            },
-            vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
-                .srcAccessMask = vk::AccessFlagBits2::eTransferRead,
-                .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-                .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
-                .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
-                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-                .image = src.m_Data.image,
-                .subresourceRange = {
-                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .baseMipLevel = 0,
-                    .levelCount = src.m_Info.mipLevels,
-                    .baseArrayLayer = 0,
-                    .layerCount = src.m_Info.arrayLayers,
                 },
             },
         };
@@ -492,7 +477,7 @@ bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes
     return true;
 }
 
-bool Transfer::map(const Image &image, const std::span<const std::byte> &data) {
+bool Transfer::map(const Image &image, const std::span<const std::byte> &bytes, vk::ImageLayout layout) {
     if (image.m_Allocation == nullptr) {
         Logger::ERROR("[Transfer] Cannot Transfer an uninitialized allocation.");
         return false;
@@ -513,13 +498,13 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &data) {
         .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
     }};
 
-    if (!stagingBuffer.build(data.size())) {
+    if (!stagingBuffer.build(bytes.size())) {
         Logger::ERROR("[Transfer] Failed to build image staging buffer.");
         PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
         return false;
     }
 
-    if (!stagingBuffer.map(data, 0)) {
+    if (!stagingBuffer.map(bytes, 0)) {
         Logger::ERROR("[Transfer] Failed to map image from staging buffer.");
         stagingBuffer.destroy();
         PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
@@ -537,11 +522,11 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &data) {
             .layerCount = image.getInfo().arrayLayers,
         },
         .imageOffset = {0, 0, 0},
-        .imageExtent = image.getData().imageInfo.extent
+        .imageExtent = image.getData().imageInfo.extent,
     };
 
     // copy the buffer into a VkImage on the vram
-    if (!image.copy(m_Command.buffer, stagingBuffer, {region})) {
+    if (!image.copy(m_Command.buffer, stagingBuffer, {region}, layout)) {
         Logger::ERROR("[Transfer] Failed to copy image from staging buffer.");
         stagingBuffer.destroy();
         PBZ_VK_CHECK_RESULT(m_Command.buffer.end());

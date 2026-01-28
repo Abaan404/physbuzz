@@ -104,7 +104,6 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
         coarseVertex.TBN,
         coarseVertex.position,
         coarseVertex.normal,
-        coarseVertex.texCoord0
     };
 
     Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialIdx * Material.STRIDE);

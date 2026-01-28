@@ -187,7 +187,7 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
     vk::DescriptorImageInfo imageInfo = {
         .sampler = texture->getData().sampler,
         .imageView = texture->getData().view,
-        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+        .imageLayout = texture->getData().layout,
     };
 
     vk::WriteDescriptorSet writes = {

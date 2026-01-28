@@ -61,7 +61,7 @@ class RenderPipeline {
 
     struct Info {
         std::string module;
-        VertexDescription *description;
+        VertexDescription *description = nullptr;
 
         struct {
             bool primitiveRestartEnable = false;
@@ -107,6 +107,12 @@ class RenderPipeline {
             std::vector<Resource<PipelineLayout>> resources = {};
             std::vector<PushConstants> pushConstantRanges = {};
         } layouts = {};
+
+        struct {
+            std::vector<std::uint32_t> colors = {0};
+            std::optional<std::uint32_t> depth = std::nullopt;
+            std::optional<std::uint32_t> stencil = std::nullopt;
+        } attachments = {};
 
         std::vector<DynamicState> dynamicStates = {};
     };

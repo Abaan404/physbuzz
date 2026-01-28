@@ -43,7 +43,6 @@ class VertexDescription {
 
     std::vector<vk::VertexInputAttributeDescription> m_Attributes;
     vk::VertexInputBindingDescription m_Binding;
-    vk::PipelineVertexInputStateCreateInfo m_VertexInputStateCreateInfo;
 
     friend class RenderPipeline;
     friend class Mesh;

@@ -8,6 +8,7 @@ import "../lighting/geometry";
 namespace Physbuzz {
 
 struct Camera {
+    float3 position;
     float4x4 view;
     float4x4 projection;
 };
@@ -62,10 +63,10 @@ struct VSOutput {
 };
 
 struct FSOutput {
-    float4 pos : SV_Target<0>;
-    float4 normal : SV_Target<1>;
-    float4 albedo : SV_Target<2>;
-    float4 debug : SV_Target<3>;
+    float4 color; // unused
+    float4 pos;
+    float4 normal;
+    float4 albedo;
 };
 
 [shader("vertex")]
@@ -99,8 +100,6 @@ FSOutput fragMain(uint2 position: SV_Position, CoarseVertex coarseVertex: COARSE
     output.normal = { coarseVertex.normal, 0 };
     output.albedo = { textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).xyz,
                       textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).x };
-
-    output.debug = output.pos;
 
     return output;
 }

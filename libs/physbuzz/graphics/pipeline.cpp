@@ -20,6 +20,11 @@ bool RenderPipeline::build() {
         return false;
     }
 
+    if (m_Info.attachments.colors.size() < 1) {
+        Logger::ERROR("[RenderPipeline] No attachments attached.");
+        return false;
+    }
+
     if (std::ranges::none_of(m_Info.dynamicStates, [](vk::DynamicState state) {
             return state == vk::DynamicState::eViewport;
         })) {
@@ -259,11 +264,24 @@ bool RenderPipeline::build() {
         .pPushConstantRanges = m_Info.layouts.pushConstantRanges.data(),
     }));
 
-    vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> chain = {
+    vk::PipelineVertexInputStateCreateInfo vertexInputState = {
+        .vertexBindingDescriptionCount = 0,
+    };
+
+    if (m_Info.description != nullptr) {
+        vertexInputState = {
+            .vertexBindingDescriptionCount = 1,
+            .pVertexBindingDescriptions = &m_Info.description->m_Binding,
+            .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(m_Info.description->m_Attributes.size()),
+            .pVertexAttributeDescriptions = m_Info.description->m_Attributes.data(),
+        };
+    }
+
+    vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo, vk::RenderingInputAttachmentIndexInfo> chain = {
         {
             .stageCount = static_cast<std::uint32_t>(stages.size()),
             .pStages = stages.data(),
-            .pVertexInputState = &m_Info.description->m_VertexInputStateCreateInfo,
+            .pVertexInputState = &vertexInputState,
             .pInputAssemblyState = &inputAssembly,
             .pViewportState = &viewportState,
             .pRasterizationState = &rasterizer,
@@ -278,6 +296,12 @@ bool RenderPipeline::build() {
             .colorAttachmentCount = static_cast<std::uint32_t>(m_Info.formats.color.size()),
             .pColorAttachmentFormats = m_Info.formats.color.data(),
             .depthAttachmentFormat = m_Info.formats.depth,
+        },
+        {
+            .colorAttachmentCount = static_cast<std::uint32_t>(m_Info.attachments.colors.size()),
+            .pColorAttachmentInputIndices = m_Info.attachments.colors.data(),
+            .pDepthInputAttachmentIndex = m_Info.attachments.depth.has_value() ? &(*m_Info.attachments.depth) : nullptr,
+            .pStencilInputAttachmentIndex = m_Info.attachments.depth.has_value() ? &(*m_Info.attachments.depth) : nullptr,
         },
     };
 

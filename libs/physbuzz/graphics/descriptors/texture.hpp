@@ -31,6 +31,7 @@ class Texture {
     struct Data {
         vk::ImageView view = nullptr;
         vk::Sampler sampler = nullptr;
+        vk::ImageLayout layout = vk::ImageLayout::eUndefined;
     };
 
     Texture(const Info &info, std::optional<Image> image = std::nullopt);
@@ -50,6 +51,7 @@ class Texture {
   private:
     vk::Sampler createSampler() const;
     vk::ImageView createImageView() const;
+    vk::ImageLayout createLayout() const;
 
     Info m_Info;
 

@@ -35,7 +35,7 @@ bool Texture::build(ImageFile::Info imageInfo, std::shared_ptr<Transfer> transfe
     const ImageFile::Data imageData = imageFile.getData();
 
     build({imageData.resolution, 1});
-    transfer->map(m_Image, imageData.image);
+    transfer->map(m_Image, imageData.image, m_Data.layout);
 
     if (!imageFile.destroy()) {
         Logger::ERROR("[Texture] Could not destroy image: {}", imageInfo.file.path.string());
@@ -62,7 +62,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
 
     case Type::Attachment:
         m_Image = {{
-            .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eColorAttachment | Image::ImageUsageFlagBits::eTransferSrc | Image::ImageUsageFlagBits::eTransferDst,
+            .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eColorAttachment | Image::ImageUsageFlagBits::eInputAttachment | Image::ImageUsageFlagBits::eTransferSrc | Image::ImageUsageFlagBits::eTransferDst,
             .type = Image::Type::e2D,
             .format = m_Info.format,
         }};
@@ -78,6 +78,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
     m_Data = {
         .view = createImageView(),
         .sampler = createSampler(),
+        .layout = createLayout(),
     };
 
     return true;
@@ -131,7 +132,7 @@ bool Texture::resize(const RenderContext &context, const glm::uvec3 &size) {
         },
     }};
 
-    image.copy(context.command, m_Image, copies);
+    image.copy(context.command, m_Image, copies, m_Data.layout);
 
     // mark old image for deferred deletion and update
     context.deletionQueue->enqueue(std::move(m_Image));
@@ -144,6 +145,7 @@ bool Texture::resize(const RenderContext &context, const glm::uvec3 &size) {
     m_Data = {
         .view = createImageView(),
         .sampler = createSampler(),
+        .layout = createLayout(),
     };
 
     return true;
@@ -197,6 +199,8 @@ vk::Sampler Texture::createSampler() const {
     case Sampler::None:
         return nullptr;
     }
+
+    return nullptr;
 }
 
 vk::ImageView Texture::createImageView() const {
@@ -220,6 +224,17 @@ vk::ImageView Texture::createImageView() const {
     }
 
     return nullptr;
+}
+
+vk::ImageLayout Texture::createLayout() const {
+    switch (m_Info.type) {
+    case Type::Dim2D:
+        return vk::ImageLayout::eShaderReadOnlyOptimal;
+    case Type::Attachment:
+        return vk::ImageLayout::eRenderingLocalRead;
+    }
+
+    return vk::ImageLayout::eUndefined;
 }
 
 } // namespace Physbuzz

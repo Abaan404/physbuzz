@@ -100,8 +100,8 @@ class Image {
     bool build(const glm::uvec3 &extent);
     bool destroy();
 
-    bool copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies) const;
-    bool copy(const vk::CommandBuffer &commandBuffer, const Image &src, const std::vector<vk::ImageCopy> &copies) const;
+    bool copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies, vk::ImageLayout layout) const;
+    bool copy(const vk::CommandBuffer &commandBuffer, const Image &src, const std::vector<vk::ImageCopy> &copies, vk::ImageLayout layout) const;
 
     const Info &getInfo() const;
     const Data &getData() const;
@@ -122,7 +122,7 @@ class Transfer : public System<> {
     bool destroy();
 
     bool map(const Buffer &buffer, const std::span<const std::byte> &bytes, std::uint64_t offset);
-    bool map(const Image &image, const std::span<const std::byte> &bytes);
+    bool map(const Image &image, const std::span<const std::byte> &bytes, vk::ImageLayout layout);
     void immediate(std::function<void(const vk::CommandBuffer &)> record);
 
   private:

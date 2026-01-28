@@ -215,6 +215,7 @@ bool App::init() {
         vk::PhysicalDeviceVulkan11Features,
         vk::PhysicalDeviceVulkan12Features,
         vk::PhysicalDeviceVulkan13Features,
+        vk::PhysicalDeviceVulkan14Features,
         vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
         deviceFeatureChain = {
             deviceFeatures,
@@ -236,9 +237,12 @@ bool App::init() {
                 .dynamicRendering = true, // Enable dynamic rendering from Vulkan 1.3
             },
             {
+                .dynamicRenderingLocalRead = true,
+            },
+            {
                 .extendedDynamicState = true, // Enable extended dynamic state from the extension
             },
-        }; // namespace Physbuzz
+        };
 
     float queuePriority = 1.0f;
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;

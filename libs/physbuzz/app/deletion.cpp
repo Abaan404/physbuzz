@@ -32,6 +32,12 @@ void DeletionQueue::flush() {
 
     m_Buffers.clear();
 
+    for (auto &imageView : std::views::reverse(m_ImageViews)) {
+        App::Device.destroyImageView(imageView);
+    }
+
+    m_ImageViews.clear();
+
     for (auto &image : std::views::reverse(m_Images)) {
         image.destroy();
     }
@@ -49,12 +55,6 @@ void DeletionQueue::flush() {
     }
 
     m_Samplers.clear();
-
-    for (auto &imageView : std::views::reverse(m_ImageViews)) {
-        App::Device.destroyImageView(imageView);
-    }
-
-    m_ImageViews.clear();
 }
 
 } // namespace Physbuzz

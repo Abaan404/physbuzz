@@ -21,13 +21,6 @@ VertexDescription::VertexDescription(const Info &info)
             .offset = m_Info.attributes[i].offset,
         });
     }
-
-    m_VertexInputStateCreateInfo = {
-        .vertexBindingDescriptionCount = 1,
-        .pVertexBindingDescriptions = &m_Binding,
-        .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(m_Attributes.size()),
-        .pVertexAttributeDescriptions = m_Attributes.data(),
-    };
 }
 
 const VertexDescription::Info &VertexDescription::getInfo() const {

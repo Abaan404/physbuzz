@@ -15,8 +15,8 @@ class DeferredRenderer : public IRenderPass,
     struct Info {
         ObjectID camera;
 
-        Resource<RenderPipeline> geometry = Builtin::RenderPipelineDeferred::ResourceGeometry;
-        Resource<RenderPipeline> lighting = Builtin::RenderPipelineDeferred::ResourceLighting;
+        Resource<RenderPipeline> geometry = Builtin::RenderPipelineDeferred::Geometry::Resource;
+        Resource<RenderPipeline> lighting = Builtin::RenderPipelineDeferred::Lighting::Resource;
     };
 
     DeferredRenderer(const Info &info);
