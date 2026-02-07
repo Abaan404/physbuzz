@@ -41,23 +41,22 @@ target_include_directories(imgui PUBLIC ${IMGUI_PATH} ${IMGUI_PATH}/backends
 set(ENGINE_PATH "libs")
 file(GLOB_RECURSE ENGINE_SRCS "${ENGINE_PATH}/*.cpp")
 add_library(physbuzz SHARED ${ENGINE_SRCS})
-add_compile_definitions(
-  physbuzz
+add_compile_definitions(physbuzz PUBLIC
   GLFW_INCLUDE_VULKAN # include vulkan in glfw
   GLM_ENABLE_EXPERIMENTAL # enable glm's quat headers
   GLM_FORCE_DEPTH_ZERO_TO_ONE # vulkan uses 0.0f to 1.0f depth
   VULKAN_HPP_NO_STRUCT_CONSTRUCTORS # use struct constructors
   VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 # vulkan extensions
   VULKAN_HPP_NO_EXCEPTIONS # no throwing hands
+  SPDLOG_HEADER_ONLY # i gave up, linker wins today
+  FMT_HEADER_ONLY # i gave up, linker wins today
 )
 
 target_include_directories(physbuzz PUBLIC ${ENGINE_PATH})
-target_compile_options(physbuzz PRIVATE -Wall -Wextra -Wpedantic)
 
 target_link_libraries(
   physbuzz
   PUBLIC assimp
-         spdlog::spdlog
          stb
          efsw
          glfw
@@ -70,8 +69,7 @@ target_link_libraries(
 file(GLOB_RECURSE SRCS "${CMAKE_SOURCE_DIR}/src/*.cpp")
 add_executable(game ${SRCS})
 
-target_compile_options(game PRIVATE -Wall -Wextra -Wpedantic)
-target_link_libraries(game PRIVATE physbuzz spdlog::spdlog imgui)
+target_link_libraries(game PRIVATE physbuzz imgui)
 
 # resources
 set(RESOURCES_PATH "${CMAKE_SOURCE_DIR}/resources")

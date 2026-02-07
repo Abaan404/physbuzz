@@ -15,13 +15,13 @@
       };
     in
     {
-      devShells.${system}.default = pkgs.mkShell {
-        buildInputs = [
+      devShells.${system}.default = pkgs.mkShell.override { stdenv = pkgs.llvmPackages.libcxxStdenv; } {
+        packages = [
           # compiling
           pkgs.cmake
           pkgs.ninja
           pkgs.shader-slang
-          pkgs.clang-tools
+          (pkgs.llvmPackages.clang-tools.override { enableLibcxx = true; })
           pkgs.shaderc
 
           # debugging
