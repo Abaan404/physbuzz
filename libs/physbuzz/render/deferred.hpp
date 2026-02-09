@@ -9,8 +9,7 @@
 
 namespace Physbuzz {
 
-class DeferredRenderer : public IRenderPass,
-                         public System<RenderComponent> {
+class DeferredRenderer : public System<RenderComponent> {
   public:
     struct Info {
         ObjectID camera;
@@ -24,7 +23,7 @@ class DeferredRenderer : public IRenderPass,
     bool build() override;
     bool destroy() override;
 
-    void render(const RenderContext &context) override;
+    void render(const RenderContext &context);
 
     const Info &getInfo() const;
 

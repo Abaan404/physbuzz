@@ -6,8 +6,8 @@
 
 namespace Physbuzz {
 
-Renderer::Renderer(const Info &info)
-    : m_Info(info) {}
+Renderer::Renderer(const Info &info, const std::vector<RenderGraph> &graphs)
+    : m_Info(info), m_Graphs(graphs) {}
 
 bool Renderer::build() {
     if (m_Command.pool != nullptr) {
@@ -45,6 +45,7 @@ bool Renderer::build() {
     glm::uvec2 resolution = m_Info.window->getResolution();
     if (!m_Depth.image.build({resolution.x, resolution.y, 1})) {
         Logger::ERROR("[Renderer] Could not build a renderer depth buffer.");
+        destroy();
         return false;
     }
 
@@ -62,6 +63,13 @@ bool Renderer::build() {
             .layerCount = 1,
         },
     }));
+
+    // setup material handler
+    if (!m_MaterialManager.build()) {
+        Logger::ERROR("[Renderer] Could not create the materials manager.");
+        destroy();
+        return false;
+    }
 
     m_Events = {
         .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const WindowSwapchainResizeEvent &event) {
@@ -109,6 +117,8 @@ bool Renderer::destroy() {
 
     App::Device.destroyCommandPool(m_Command.pool);
     m_Command.pool = nullptr;
+
+    m_MaterialManager.destroy();
 
     return true;
 }
@@ -185,67 +195,28 @@ void Renderer::tick() {
         });
     }
 
-    for (const auto &renderpasses : m_RenderPasses) {
-        renderpasses->render({
-            .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
-            .command = m_Command.buffers[m_FrameInFlight],
-            .extent = extent,
-            .frameInFlight = m_FrameInFlight,
-            .color = {
-                .image = m_Info.window->m_SwapChainImages[imageIndex],
-                .view = m_Info.window->m_SwapChainImageViews[imageIndex],
-            },
-            .depth = {
-                .image = m_Depth.image.getData().image,
-                .view = m_Depth.view,
-            },
-            .systems = {
-                .transfer = m_Scene->getSystem<Transfer>(),
-                .allocator = m_Scene->getSystem<PipelineLayoutAllocator>(),
-            },
-        });
-
-        {
-            std::array barriers = {
-                vk::ImageMemoryBarrier2{
-                    .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                    .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-                    .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                    .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-                    .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
-                    .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+    for (const auto &graph : m_Graphs) {
+        graph.execute(
+            m_Scene,
+            {
+                .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
+                .materialAllocator = &m_MaterialManager,
+                .command = m_Command.buffers[m_FrameInFlight],
+                .extent = extent,
+                .frameInFlight = m_FrameInFlight,
+                .color = {
                     .image = m_Info.window->m_SwapChainImages[imageIndex],
-                    .subresourceRange = {
-                        .aspectMask = vk::ImageAspectFlagBits::eColor,
-                        .baseMipLevel = 0,
-                        .levelCount = 1,
-                        .baseArrayLayer = 0,
-                        .layerCount = 1,
-                    },
+                    .view = m_Info.window->m_SwapChainImageViews[imageIndex],
                 },
-                vk::ImageMemoryBarrier2{
-                    .srcStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-                    .srcAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-                    .dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-                    .dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-                    .oldLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-                    .newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                .depth = {
                     .image = m_Depth.image.getData().image,
-                    .subresourceRange = {
-                        .aspectMask = vk::ImageAspectFlagBits::eDepth,
-                        .baseMipLevel = 0,
-                        .levelCount = 1,
-                        .baseArrayLayer = 0,
-                        .layerCount = 1,
-                    },
+                    .view = m_Depth.view,
                 },
-            };
-
-            m_Command.buffers[m_FrameInFlight].pipelineBarrier2({
-                .imageMemoryBarrierCount = barriers.size(),
-                .pImageMemoryBarriers = barriers.data(),
+                .systems = {
+                    .transfer = m_Scene->getSystem<Transfer>(),
+                    .allocator = m_Scene->getSystem<PipelineLayoutAllocator>(),
+                },
             });
-        }
     }
 
     // transition image
@@ -346,8 +317,12 @@ void Renderer::immediate(std::function<void(const vk::CommandBuffer &)> record) 
     m_FrameInFlight = (m_FrameInFlight + 1) % detail::MAX_FRAMES_IN_FLIGHT;
 }
 
-void Renderer::setRenderPasses(const std::vector<std::shared_ptr<IRenderPass>> &renderpasses) {
-    m_RenderPasses = renderpasses;
+void Renderer::setGraph(const std::vector<RenderGraph> &graphs) {
+    m_Graphs = graphs;
+}
+
+const std::vector<RenderGraph> &Renderer::getGraph() const {
+    return m_Graphs;
 }
 
 const Renderer::Info &Renderer::getInfo() const {

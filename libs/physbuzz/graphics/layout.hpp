@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../ecs/system.hpp"
 #include "../resources/resource.hpp"
 #include "defines.hpp"
 
@@ -88,10 +89,8 @@ class PipelineLayoutAllocator : public System<> {
     bool build();
     bool destroy();
 
-    bool attach(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &storage, std::uint32_t binding, std::uint32_t element = 0);
-    bool attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
-
-    bool reattach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &storage, std::uint32_t binding, std::uint32_t element = 0);
+    bool write(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t binding, std::uint32_t element = 0);
+    bool write(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
 
     void reset();
 
@@ -103,12 +102,26 @@ class PipelineLayoutAllocator : public System<> {
         std::vector<vk::DescriptorSet> sets;
     };
 
+    struct WriteInfo {
+        std::uint32_t binding;
+        std::uint32_t element;
+    };
+
+    struct WriteEntry {
+        EventID resize = -1;
+        std::unordered_map<Resource<PipelineLayout>, WriteInfo> layouts;
+    };
+
+    bool rewrite(const Resource<PipelineLayout> &layout, const DynamicBuffer *buffer, const RenderContext &context, std::uint32_t binding, std::uint32_t element = 0);
+
     bool allocate(const Resource<PipelineLayout> &layout);
     bool deallocate(const Resource<PipelineLayout> &layout);
 
     vk::DescriptorPool createPool();
 
     Info m_Info;
+
+    std::unordered_map<DynamicBuffer *, WriteEntry> m_WrittenBuffers;
 
     std::unordered_map<Resource<PipelineLayout>, Allocation> m_AllocatedLayouts;
 

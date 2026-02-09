@@ -53,7 +53,7 @@ StructuredBuffer<PointLight> points;
 [[vk::binding(3, 1)]]
 StructuredBuffer<SpotLight> spots;
 
-[[vk::binding(0, 2)]]
+[[vk::binding(4, 1)]]
 StructuredBuffer<InstanceData> models;
 
 struct VSInput {

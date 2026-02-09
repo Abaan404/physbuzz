@@ -1,14 +1,14 @@
 #pragma once
 
+#include "../../events/handler.hpp"
 #include "../../io/image.hpp"
 #include "../../resources/defines.hpp"
+#include "../defines.hpp"
 #include "../memory.hpp"
 
 namespace Physbuzz {
 
-struct RenderContext;
-
-class Texture {
+class Texture : public EventSubject {
   public:
     using Format = vk::Format;
 

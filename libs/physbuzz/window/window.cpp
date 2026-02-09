@@ -241,10 +241,6 @@ std::vector<const char *> Window::requiredExtensions() {
 }
 
 void Window::buildSwapChain() {
-    if (m_SwapChain != nullptr) {
-        Logger::WARNING("[Window] trying to build a constructed swapchain.");
-    }
-
     // get device info
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = PBZ_VK_CHECK(App::PhysicalDevice.getSurfaceCapabilitiesKHR(m_Surface));
     std::vector<vk::SurfaceFormatKHR> availableFormats = PBZ_VK_CHECK(App::PhysicalDevice.getSurfaceFormatsKHR(m_Surface));
@@ -290,7 +286,7 @@ void Window::buildSwapChain() {
         .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
         .presentMode = m_Info.swapChain.presentMode,
         .clipped = true,
-        .oldSwapchain = nullptr,
+        .oldSwapchain = m_SwapChain,
     };
 
     m_SwapChain = PBZ_VK_CHECK(App::Device.createSwapchainKHR(swapChainCreateInfo));

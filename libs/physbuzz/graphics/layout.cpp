@@ -2,6 +2,7 @@
 
 #include "../app/application.hpp"
 #include "../debug/macros.hpp"
+#include "../events/descriptor.hpp"
 #include "descriptors/dynamic.hpp"
 #include "descriptors/texture.hpp"
 #include "pipeline.hpp"
@@ -109,10 +110,10 @@ bool PipelineLayoutAllocator::destroy() {
     return true;
 }
 
-bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &storage, std::uint32_t binding, std::uint32_t element) {
+bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
 
-    switch (storage->getInfo().type) {
+    switch (buffer->getInfo().type) {
     case DynamicBuffer::Type::Constant:
         type = vk::DescriptorType::eUniformBuffer;
         break;
@@ -130,14 +131,36 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
         break;
     }
 
-    PBZ_ASSERT(layout->getInfo().bindings[binding].type == type, std::format("[PipelineLayoutAllocator] Invalid type at binding {} for resource '{}'", binding, layout));
-    PBZ_ASSERT(layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame, std::format("[PipelineLayoutAllocator] Incompatible lifetime for dynamic buffer '{}' and layout '{}'", storage, layout));
+    PBZ_ASSERT(
+        binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
+    PBZ_ASSERT(
+        layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
+        std::format("[PipelineLayoutAllocator] Incompatible lifetime for dynamic buffer '{}' and layout '{}'", buffer, layout));
+
+    // check if binding is cached
+    if (!m_WrittenBuffers.contains(&buffer.get())) {
+        m_WrittenBuffers.insert({
+            &buffer.get(),
+            {
+                .resize = buffer->addCallback<OnDynamicBufferRealloc>([&](const OnDynamicBufferRealloc &event) {
+                    if (m_WrittenBuffers.contains(event.buffer)) {
+                        for (const auto &[layout, writeInfo] : m_WrittenBuffers.at(event.buffer).layouts) {
+                            rewrite(layout, event.buffer, event.context, writeInfo.binding, writeInfo.element);
+                        };
+                    };
+                }),
+            },
+        });
+    }
+
+    m_WrittenBuffers[&buffer.get()].layouts[layout] = {binding, element};
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
     }
 
-    const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = storage->getBuffers();
+    const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = buffer->getBuffers();
     std::array<vk::DescriptorBufferInfo, detail::MAX_FRAMES_IN_FLIGHT> bufferInfos;
     std::array<vk::WriteDescriptorSet, detail::MAX_FRAMES_IN_FLIGHT> writes;
 
@@ -163,7 +186,7 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
     return true;
 }
 
-bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
+bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
 
     switch (texture->getInfo().type) {
@@ -177,8 +200,12 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
         break;
     }
 
-    PBZ_ASSERT(layout->getInfo().bindings[binding].type == type, std::format("[PipelineLayoutAllocator] Invalid type at binding {} for resource '{}'", binding, layout));
-    PBZ_ASSERT(layout->getInfo().lifetime == PipelineLayout::Lifetime::Global, std::format("[PipelineLayoutAllocator] Incompatible lifetime for texture '{}' and layout '{}'", texture, layout));
+    PBZ_ASSERT(
+        binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
+    PBZ_ASSERT(
+        layout->getInfo().lifetime == PipelineLayout::Lifetime::Global,
+        std::format("[PipelineLayoutAllocator] Incompatible lifetime for texture '{}' and layout '{}'", texture, layout));
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
@@ -203,10 +230,10 @@ bool PipelineLayoutAllocator::attach(const Resource<PipelineLayout> &layout, con
     return true;
 }
 
-bool PipelineLayoutAllocator::reattach(const RenderContext &context, const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &storage, std::uint32_t binding, std::uint32_t element) {
+bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const DynamicBuffer *buffer, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
 
-    switch (storage->getInfo().type) {
+    switch (buffer->getInfo().type) {
     case DynamicBuffer::Type::Constant:
         type = vk::DescriptorType::eUniformBuffer;
         break;
@@ -224,14 +251,18 @@ bool PipelineLayoutAllocator::reattach(const RenderContext &context, const Resou
         break;
     }
 
-    PBZ_ASSERT(layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame, std::format("[PipelineLayoutAllocator] Incompatible layout when reattaching layout '{}'", binding, layout));
-    PBZ_ASSERT(layout->getInfo().bindings[binding].type == type, std::format("[PipelineLayoutAllocator] Invalid type at binding {} for resource '{}'", binding, layout));
+    PBZ_ASSERT(
+        binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
+    PBZ_ASSERT(
+        layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
+        std::format("[PipelineLayoutAllocator] Incompatible lifetime for dynamic buffer at binding '{}' and layout '{}'", binding, layout));
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
     }
 
-    const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = storage->getBuffers();
+    const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = buffer->getBuffers();
 
     vk::DescriptorBufferInfo bufferInfo = {
         .buffer = buffers[context.frameInFlight].getData().buffer,

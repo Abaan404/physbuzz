@@ -2,16 +2,84 @@
 
 #include "../ecs/scene.hpp"
 #include "../events/window.hpp"
-#include "../graphics/descriptors/dynamic.hpp"
-#include "../graphics/descriptors/static.hpp"
 #include "../graphics/layout.hpp"
-#include "../graphics/renderer.hpp"
+#include "../graphics/material.hpp"
+#include "../graphics/pipeline.hpp"
 #include "camera.hpp"
 #include "lighting.hpp"
 #include "model.hpp"
-#include "resources/common.hpp"
+#include "nodes/camera.hpp"
+#include "nodes/lights.hpp"
+#include "nodes/model.hpp"
 
 namespace Physbuzz {
+
+namespace Builtin {
+
+bool RenderPipelineForward::build() {
+    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
+        return true;
+    }
+
+    bool success = true;
+
+    if (!ResourceRegistry<PipelineLayout>::contains(LayoutMaterial::Resource)) {
+        success &= LayoutMaterial::build();
+    }
+
+    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
+        success &= ResourceRegistry<PipelineLayout>::insert(
+            ResourceLayoutFrame,
+            {{
+                .bindings = {
+                    {
+                        // camera
+                        .type = PipelineLayout::Type::eUniformBuffer,
+                        .range = sizeof(Builtin::RenderNodeCamera::CameraBuffer),
+                    },
+                    {
+                        // directionals
+                        .type = PipelineLayout::Type::eStorageBuffer,
+                    },
+                    {
+                        // points
+                        .type = PipelineLayout::Type::eStorageBuffer,
+                    },
+                    {
+                        // spots
+                        .type = PipelineLayout::Type::eStorageBuffer,
+                    },
+                    {
+                        // instance
+                        .type = PipelineLayout::Type::eStorageBuffer,
+                    },
+                },
+            }});
+    }
+
+    success &= ResourceRegistry<RenderPipeline>::insert(
+        Resource,
+        {{
+            .module = "builtin/forward",
+            .description = &Model::Vertex::Description,
+            .layouts = {
+                .resources = {
+                    LayoutMaterial::Resource,
+                    ResourceLayoutFrame,
+                },
+                .pushConstantRanges = {
+                    {
+                        .stageFlags = RenderPipeline::PushConstantsStageFlags::eAll,
+                        .size = sizeof(PushConstants),
+                    },
+                },
+            },
+        }});
+
+    return success;
+}
+
+} // namespace Builtin
 
 ForwardRenderer::ForwardRenderer(const Info &info)
     : m_Info(info) {}
@@ -25,211 +93,140 @@ bool ForwardRenderer::build() {
         }
     }
 
+    m_Events = {
+        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const WindowSwapchainResizeEvent &event) {
+            const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
+            camera.resize(event.resolution);
+        }),
+    };
+
+    m_Graph.add("builtin/forward/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
+    m_Graph.add("builtin/forward/lights", Builtin::RenderNodeLights::build());
+    m_Graph.add("builtin/forward/models", Builtin::RenderNodeModels::build(m_Objects, m_Batches));
+
+    m_Graph.add(
+        "builtin/forward",
+        {
+            .description = {
+                .buffers = {
+                    .input = {
+                        Builtin::RenderNodeCamera::ResourceBuffer,
+                        Builtin::RenderNodeLights::ResourceBufferDirectional,
+                        Builtin::RenderNodeLights::ResourceBufferPoint,
+                        Builtin::RenderNodeLights::ResourceBufferSpot,
+                        Builtin::RenderNodeModels::ResourceBuffer,
+                    },
+                },
+            },
+            .execute = [&](Scene *scene, const RenderContext &context) {
+                vk::RenderingAttachmentInfo depthAttachment = {
+                    .imageView = context.depth.view,
+                    .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                    .loadOp = vk::AttachmentLoadOp::eClear,
+                    .storeOp = vk::AttachmentStoreOp::eDontCare,
+                    .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
+                };
+
+                std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
+                    {
+                        .imageView = context.color.view,
+                        .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                        .loadOp = vk::AttachmentLoadOp::eClear,
+                        .storeOp = vk::AttachmentStoreOp::eStore,
+                        .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
+                    },
+                };
+
+                const std::vector<DirectionalLightComponent> &directionals = scene->getComponentArray<DirectionalLightComponent>();
+                const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
+                const std::vector<SpotLightComponent> &spots = scene->getComponentArray<SpotLightComponent>();
+
+                Builtin::RenderPipelineForward::PushConstants pushConstants = {
+                    .directionalCount = static_cast<std::uint32_t>(directionals.size()),
+                    .spotCount = static_cast<std::uint32_t>(spots.size()),
+                    .pointCount = static_cast<std::uint32_t>(points.size()),
+                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getAddress(),
+                };
+
+                m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+
+                context.command.beginRendering({
+                    .renderArea = {
+                        .offset = {0, 0},
+                        .extent = context.extent,
+                    },
+                    .layerCount = 1,
+                    .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
+                    .pColorAttachments = colorAttachments.data(),
+                    .pDepthAttachment = &depthAttachment,
+                    .pStencilAttachment = {},
+                });
+
+                // bind resources
+                m_Info.pipeline->bind(context);
+                context.systems.allocator->bind(context, m_Info.pipeline);
+
+                // draw
+                std::uint32_t object = 0;
+                for (const auto &[mesh, batch] : m_Batches) {
+                    if (mesh->getDescription() != m_Info.pipeline->getInfo().description) {
+                        Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
+                        continue;
+                    }
+
+                    mesh->draw(context, batch, object);
+                    object += batch;
+                }
+
+                context.command.endRendering();
+            },
+        });
+
     bool success = true;
 
-    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
-        Builtin::RenderPipelineForward::ResourceLayoutFrame,
-        Builtin::RenderPipelineForward::ResourceBufferCamera,
-        0);
-
-    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
-        Builtin::RenderPipelineForward::ResourceLayoutFrame,
-        Builtin::RenderPipelineForward::ResourceBufferDirectionalLights,
-        1);
-
-    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
-        Builtin::RenderPipelineForward::ResourceLayoutFrame,
-        Builtin::RenderPipelineForward::ResourceBufferPointLights,
-        2);
-
-    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
-        Builtin::RenderPipelineForward::ResourceLayoutFrame,
-        Builtin::RenderPipelineForward::ResourceBufferSpotLights,
-        3);
-
-    success &= m_Scene->getSystem<PipelineLayoutAllocator>()->attach(
-        Builtin::RenderPipelineForward::ResourceLayoutObject,
-        Builtin::RenderPipelineForward::ResourceBufferModel,
-        0);
+    success &= m_Graph.compile("builtin/forward");
 
     if (success) {
-        m_Events = {
-            .resize = m_Scene->getSystem<Renderer>()->getInfo().window->addCallback<WindowSwapchainResizeEvent>([&](const WindowSwapchainResizeEvent &event) {
-                const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
-                camera.resize(event.resolution);
-            }),
-        };
+        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::RenderNodeCamera::ResourceBuffer,
+            0);
+
+        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::RenderNodeLights::ResourceBufferDirectional,
+            1);
+
+        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::RenderNodeLights::ResourceBufferPoint,
+            2);
+
+        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::RenderNodeLights::ResourceBufferSpot,
+            3);
+
+        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::RenderNodeModels::ResourceBuffer,
+            4);
     }
 
     return success;
 }
 
 bool ForwardRenderer::destroy() {
-    m_Scene->getSystem<Renderer>()->getInfo().window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
+    m_Info.window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
     return true;
 }
 
-void ForwardRenderer::render(const RenderContext &context) {
-    // batch objects
-    std::unordered_map<Resource<Mesh>, std::vector<Builtin::RenderPipelineForward::ModelBuffer>> instances;
+const RenderGraph &ForwardRenderer::getGraph() const {
+    return m_Graph;
+}
 
-    std::size_t meshCount = 0;
-    for (const auto &object : m_Objects) {
-        const auto [render] = m_Scene->getComponent<RenderComponent>(object);
-
-        Builtin::RenderLayoutGlobal::refresh(context, render.model);
-
-        const Model::Info &model = render.model.getInfo();
-        for (const auto &mesh : model.meshes) {
-            instances[mesh.mesh].emplace_back<Builtin::RenderPipelineForward::ModelBuffer>({
-                .model = render.transform.matrix,
-                .invModel = glm::inverse(render.transform.matrix),
-                .materialIdx = Builtin::RenderLayoutGlobal::TableMaterial.query(mesh.material),
-            });
-        }
-
-        meshCount += render.model.getInfo().meshes.size();
-    }
-
-    std::vector<std::pair<Resource<Mesh>, std::size_t>> instanceSizes;
-    std::vector<Builtin::RenderPipelineForward::ModelBuffer> instanceBuffers;
-
-    instanceBuffers.reserve(meshCount);
-    instanceSizes.reserve(instances.size());
-
-    for (const auto &[mesh, buffers] : instances) {
-        instanceSizes.emplace_back<std::pair<Resource<Mesh>, std::size_t>>({mesh, buffers.size()});
-        instanceBuffers.insert(instanceBuffers.end(), std::make_move_iterator(buffers.begin()), std::make_move_iterator(buffers.end()));
-    }
-
-    std::size_t requiredModelSize = meshCount * sizeof(Builtin::RenderPipelineForward::ModelBuffer);
-    if (Builtin::RenderPipelineForward::ResourceBufferModel->getSize(context) < requiredModelSize) {
-        Builtin::RenderPipelineForward::ResourceBufferModel->resize(context, requiredModelSize);
-
-        // retach for a new buffer
-        context.systems.allocator->reattach(
-            context,
-            Builtin::RenderPipelineForward::ResourceLayoutObject,
-            Builtin::RenderPipelineForward::ResourceBufferModel,
-            0);
-    }
-
-    // upload lighting data
-    const std::vector<DirectionalLightComponent> &directionals = m_Scene->getComponentArray<DirectionalLightComponent>();
-    const std::vector<PointLightComponent> &points = m_Scene->getComponentArray<PointLightComponent>();
-    const std::vector<SpotLightComponent> &spots = m_Scene->getComponentArray<SpotLightComponent>();
-
-    std::size_t requiredDirectionalSize = directionals.size() * sizeof(DirectionalLightComponent);
-    if (Builtin::RenderPipelineForward::ResourceBufferDirectionalLights->getSize(context) < requiredDirectionalSize) {
-        Builtin::RenderPipelineForward::ResourceBufferDirectionalLights->resize(context, requiredDirectionalSize);
-
-        // retach for a new buffer
-        context.systems.allocator->reattach(
-            context,
-            Builtin::RenderPipelineForward::ResourceLayoutFrame,
-            Builtin::RenderPipelineForward::ResourceBufferDirectionalLights,
-            1);
-    }
-
-    std::size_t requiredPointsSize = points.size() * sizeof(PointLightComponent);
-    if (Builtin::RenderPipelineForward::ResourceBufferPointLights->getSize(context) < requiredPointsSize) {
-        Builtin::RenderPipelineForward::ResourceBufferPointLights->resize(context, requiredPointsSize);
-
-        // retach for a new buffer
-        context.systems.allocator->reattach(
-            context,
-            Builtin::RenderPipelineForward::ResourceLayoutFrame,
-            Builtin::RenderPipelineForward::ResourceBufferPointLights,
-            2);
-    }
-
-    std::size_t requiredSpotSize = spots.size() * sizeof(SpotLightComponent);
-    if (Builtin::RenderPipelineForward::ResourceBufferSpotLights->getSize(context) < requiredSpotSize) {
-        Builtin::RenderPipelineForward::ResourceBufferSpotLights->resize(context, requiredSpotSize);
-
-        // retach for a new buffer
-        context.systems.allocator->reattach(
-            context,
-            Builtin::RenderPipelineForward::ResourceLayoutFrame,
-            Builtin::RenderPipelineForward::ResourceBufferSpotLights,
-            3);
-    }
-
-    Builtin::RenderPipelineForward::ResourceBufferDirectionalLights->update<DirectionalLightComponent>(context, directionals);
-    Builtin::RenderPipelineForward::ResourceBufferPointLights->update<PointLightComponent>(context, points);
-    Builtin::RenderPipelineForward::ResourceBufferSpotLights->update<SpotLightComponent>(context, spots);
-
-    // upload camera
-    const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
-    Builtin::RenderPipelineForward::ResourceBufferCamera->update<Builtin::RenderPipelineForward::CameraBuffer>(
-        context,
-        {{
-            .position = camera.getInfo().view.position,
-            .view = camera.getView(),
-            .projection = camera.getProjection(),
-        }});
-
-    // upload instance/object data
-    Builtin::RenderPipelineForward::ResourceBufferModel->update<Builtin::RenderPipelineForward::ModelBuffer>(context, instanceBuffers);
-
-    // record constants
-    Builtin::RenderPipelineForward::PushConstants pushConstants = {
-        .directionalCount = static_cast<std::uint32_t>(directionals.size()),
-        .spotCount = static_cast<std::uint32_t>(spots.size()),
-        .pointCount = static_cast<std::uint32_t>(points.size()),
-        .materialBaseAddress = Builtin::RenderLayoutGlobal::ResourceBufferMaterials->getAddress(),
-    };
-
-    m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
-
-    // setup attachments
-    vk::RenderingAttachmentInfo depthAttachment = {
-        .imageView = context.depth.view,
-        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-        .loadOp = vk::AttachmentLoadOp::eClear,
-        .storeOp = vk::AttachmentStoreOp::eDontCare,
-        .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
-    };
-
-    std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
-        {
-            .imageView = context.color.view,
-            .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .loadOp = vk::AttachmentLoadOp::eClear,
-            .storeOp = vk::AttachmentStoreOp::eStore,
-            .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
-        },
-    };
-
-    context.command.beginRendering({
-        .renderArea = {
-            .offset = {0, 0},
-            .extent = context.extent,
-        },
-        .layerCount = 1,
-        .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
-        .pColorAttachments = colorAttachments.data(),
-        .pDepthAttachment = &depthAttachment,
-        .pStencilAttachment = {},
-    });
-
-    // bind resources
-    m_Info.pipeline->bind(context);
-    context.systems.allocator->bind(context, m_Info.pipeline);
-
-    // draw
-    std::uint32_t object = 0;
-    for (const auto &[mesh, batch] : instanceSizes) {
-        if (mesh->getDescription() != m_Info.pipeline->getInfo().description) {
-            Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
-            continue;
-        }
-
-        mesh->draw(context, batch, object);
-        object += batch;
-    }
-
-    context.command.endRendering();
+const ForwardRenderer::Info &ForwardRenderer::getInfo() const {
+    return m_Info;
 }
 
 } // namespace Physbuzz

@@ -1,8 +1,7 @@
 #include "texture.hpp"
 
 #include "../../app/application.hpp"
-#include "../defines.hpp"
-#include <span>
+#include "../../events/descriptor.hpp"
 
 namespace Physbuzz {
 
@@ -147,6 +146,11 @@ bool Texture::resize(const RenderContext &context, const glm::uvec3 &size) {
         .sampler = createSampler(),
         .layout = createLayout(),
     };
+
+    notifyCallbacks<OnTextureRealloc>({
+        .texture = this,
+        .context = context,
+    });
 
     return true;
 }

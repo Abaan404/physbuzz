@@ -1,6 +1,7 @@
 #include "static.hpp"
 
 #include "../../app/application.hpp"
+#include "../../events/descriptor.hpp"
 #include "../defines.hpp"
 
 namespace Physbuzz {
@@ -70,12 +71,21 @@ bool StaticBuffer::resize(const RenderContext &context, std::uint64_t size) {
         .buffer = m_Buffer.getData().buffer,
     });
 
+    notifyCallbacks<OnStaticBufferRealloc>({
+        .buffer = this,
+    });
+
     return true;
 }
 
-bool StaticBuffer::update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) const {
+bool StaticBuffer::update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) {
+    std::uint64_t requiredSize = offset + bytes.size();
+
+    if (getSize() < requiredSize) {
+        resize(context, requiredSize);
+    }
+
     PBZ_ASSERT(m_Address != 0, "[StaticBuffer] Buffer has not been allocated.");
-    PBZ_ASSERT(offset + bytes.size() <= m_Buffer.getData().bufferInfo.size, "[StaticBuffer] Invalid size and offset.");
 
     // TODO this doesnt have to happen on the transfer queue
     return context.systems.transfer->map(m_Buffer, bytes, offset);

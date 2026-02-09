@@ -8,7 +8,9 @@
 
 namespace Physbuzz {
 
-enum class TextureType : std::uint32_t {
+class Material;
+
+enum class TextureType : std::int32_t {
     None = aiTextureType_NONE,
     Diffuse = aiTextureType_DIFFUSE,
     Specular = aiTextureType_SPECULAR,
@@ -37,14 +39,6 @@ enum class TextureType : std::uint32_t {
     MayaSpecularRoughness = aiTextureType_MAYA_SPECULAR_ROUGHNESS,
     Max = AI_TEXTURE_TYPE_MAX,
 };
-
-struct Material {
-    float shininess = 32.0f;
-    std::unordered_map<TextureType, Resource<Texture>> textures;
-};
-
-template <>
-struct IsResource<Material> : std::true_type {};
 
 class Model {
   public:

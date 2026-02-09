@@ -2,11 +2,11 @@
 
 #include "../app/deletion.hpp"
 #include "../ecs/system.hpp"
-#include "../render/shadow.hpp"
 #include "../window/window.hpp"
 #include "defines.hpp"
+#include "material.hpp"
 #include "memory.hpp"
-#include "pipeline.hpp"
+#include "rendergraph.hpp"
 #include <memory>
 
 namespace Physbuzz {
@@ -16,13 +16,10 @@ class Window;
 class Renderer : public System<> {
   public:
     struct Info {
-        Shadow::Info shadow = {};
-
         std::shared_ptr<Window> window;
-        std::vector<Resource<RenderPipeline>> postProcessing = {};
     };
 
-    Renderer(const Info &info);
+    Renderer(const Info &info, const std::vector<RenderGraph> &graph);
 
     bool build() override;
     bool destroy() override;
@@ -30,7 +27,8 @@ class Renderer : public System<> {
     void tick();
     void immediate(std::function<void(const vk::CommandBuffer &)> record);
 
-    void setRenderPasses(const std::vector<std::shared_ptr<IRenderPass>> &renderpasses);
+    void setGraph(const std::vector<RenderGraph> &graph);
+    const std::vector<RenderGraph> &getGraph() const;
 
     const Info &getInfo() const;
     std::uint32_t getFrameInFlight() const;
@@ -40,7 +38,9 @@ class Renderer : public System<> {
 
     Info m_Info;
 
-    std::vector<std::shared_ptr<IRenderPass>> m_RenderPasses;
+    std::vector<RenderGraph> m_Graphs;
+    MaterialAllocator m_MaterialManager = {{}};
+
     std::uint32_t m_FrameInFlight = 0;
 
     std::array<DeletionQueue, detail::MAX_FRAMES_IN_FLIGHT> m_DeletionQueues;

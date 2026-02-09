@@ -6,7 +6,6 @@
 
 #include "../../app/application.hpp"
 #include "../../debug/macros.hpp"
-#include "../../events/window.hpp"
 #include "../../graphics/renderer.hpp"
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_enums.hpp>
@@ -14,14 +13,14 @@
 
 namespace Physbuzz {
 
-ImGuiRenderer::ImGuiRenderer() {}
+ImGuiRenderer::ImGuiRenderer(const Info &info)
+    : m_Info(info) {}
 
 bool ImGuiRenderer::build() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    std::shared_ptr<Window> window = m_Scene->getSystem<Renderer>()->getInfo().window;
-    if (!ImGui_ImplGlfw_InitForVulkan(*window, true)) {
+    if (!ImGui_ImplGlfw_InitForVulkan(*m_Info.window, true)) {
         return false;
     }
 
@@ -61,16 +60,16 @@ bool ImGuiRenderer::build() {
         .ImageCount = detail::MAX_FRAMES_IN_FLIGHT,
         .MSAASamples = static_cast<VkSampleCountFlagBits>(vk::SampleCountFlagBits::e1),
         .UseDynamicRendering = true,
-        .ColorAttachmentFormat = static_cast<VkFormat>(window->getInfo().swapChain.format),
+        .ColorAttachmentFormat = static_cast<VkFormat>(m_Info.window->getInfo().swapChain.format),
         .Allocator = {},
         .CheckVkResultFn = [](VkResult err) {
             PBZ_VK_CHECK_RESULT(vk::Result(err));
         },
     };
 
-    bool ret = ImGui_ImplVulkan_Init(&initInfo, VK_NULL_HANDLE);
+    bool success = ImGui_ImplVulkan_Init(&initInfo, VK_NULL_HANDLE);
 
-    if (!ret) {
+    if (!success) {
         return false;
     }
 
@@ -80,7 +79,40 @@ bool ImGuiRenderer::build() {
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 
-    return ret;
+    m_Graph.add(
+        "builtin/imgui",
+        {
+            .execute = [](Scene *, const RenderContext &context) {
+                std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
+                    {
+                        .imageView = context.color.view,
+                        .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                        .loadOp = vk::AttachmentLoadOp::eLoad,
+                        .storeOp = vk::AttachmentStoreOp::eStore,
+                    },
+                };
+
+                context.command.beginRendering({
+                    .renderArea = {
+                        .offset = {0, 0},
+                        .extent = context.extent,
+                    },
+                    .layerCount = 1,
+                    .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
+                    .pColorAttachments = colorAttachments.data(),
+                    .pDepthAttachment = {},
+                    .pStencilAttachment = {},
+                });
+
+                ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), context.command);
+
+                context.command.endRendering();
+            },
+        });
+
+    success &= m_Graph.compile("builtin/imgui");
+
+    return success;
 }
 
 bool ImGuiRenderer::destroy() {
@@ -101,31 +133,8 @@ void ImGuiRenderer::newFrame() {
     ImGui_ImplGlfw_NewFrame();
 }
 
-void ImGuiRenderer::render(const RenderContext &context) {
-    std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
-        {
-            .imageView = context.color.view,
-            .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .loadOp = vk::AttachmentLoadOp::eLoad,
-            .storeOp = vk::AttachmentStoreOp::eStore,
-        },
-    };
-
-    context.command.beginRendering({
-        .renderArea = {
-            .offset = {0, 0},
-            .extent = context.extent,
-        },
-        .layerCount = 1,
-        .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
-        .pColorAttachments = colorAttachments.data(),
-        .pDepthAttachment = {},
-        .pStencilAttachment = {},
-    });
-
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), context.command);
-
-    context.command.endRendering();
+const RenderGraph &ImGuiRenderer::getGraph() const {
+    return m_Graph;
 }
 
 } // namespace Physbuzz

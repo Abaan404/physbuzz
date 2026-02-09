@@ -1,6 +1,7 @@
 #include "model.hpp"
 
 #include "../io/logging.hpp"
+#include "../graphics/material.hpp"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 

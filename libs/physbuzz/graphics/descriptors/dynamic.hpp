@@ -1,12 +1,14 @@
 #pragma once
 
+#include "../../events/handler.hpp"
 #include "../../resources/defines.hpp"
 #include "../defines.hpp"
+#include "../memory.hpp"
 #include <variant>
 
 namespace Physbuzz {
 
-class DynamicBuffer {
+class DynamicBuffer : public EventSubject {
   public:
     enum class Type {
         Constant,
@@ -27,12 +29,12 @@ class DynamicBuffer {
     bool resize(const RenderContext &context, std::uint64_t size);
 
     template <typename T>
-    bool update(const RenderContext &context, const std::vector<T> &data, std::uint32_t index = 0) const {
+    bool update(const RenderContext &context, const std::vector<T> &data, std::uint32_t index = 0) {
         std::span<const std::byte> bytes = std::as_bytes(std::span(data));
         return update(context, bytes, sizeof(T) * index);
     }
 
-    bool update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) const;
+    bool update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset);
 
     const Info &getInfo() const;
 

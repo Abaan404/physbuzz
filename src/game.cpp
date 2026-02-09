@@ -17,6 +17,7 @@
 #include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/deferred.hpp>
+#include <physbuzz/render/forward.hpp>
 #include <physbuzz/render/model.hpp>
 #include <physbuzz/window/inputs.hpp>
 #include <random>
@@ -99,15 +100,25 @@ void Game::build() {
 
     Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
     Physbuzz::App::GScene.createSystem<Physbuzz::PipelineLayoutAllocator>(Physbuzz::PipelineLayoutAllocator::Info{});
-    Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
+
+    std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(
+        Physbuzz::Renderer::Info{
+            .window = window,
+        },
+        std::vector<Physbuzz::RenderGraph>{});
+
+    std::shared_ptr<Physbuzz::ForwardRenderer> forward = Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(Physbuzz::ForwardRenderer::Info{
+        .camera = playerId,
         .window = window,
     });
 
-    Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>()->setRenderPasses({
-        Physbuzz::App::GScene.createSystem<Physbuzz::DeferredRenderer>(Physbuzz::DeferredRenderer::Info{
-            .camera = playerId,
-        }),
-        Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(),
+    std::shared_ptr<Physbuzz::ImGuiRenderer> imgui = Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(Physbuzz::ImGuiRenderer::Info{
+        .window = window,
+    });
+
+    renderer->setGraph({
+        forward->getGraph(),
+        imgui->getGraph(),
     });
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(

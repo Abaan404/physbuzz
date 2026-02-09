@@ -1,8 +1,7 @@
 #include "dynamic.hpp"
 
-#include "../memory.hpp"
-#include "../defines.hpp"
-#include <vector>
+#include "../../app/deletion.hpp"
+#include "../../events/descriptor.hpp"
 
 namespace Physbuzz {
 
@@ -101,14 +100,23 @@ bool DynamicBuffer::resize(const RenderContext &context, std::uint64_t size) {
     context.deletionQueue->enqueue(std::move(buffers[context.frameInFlight]));
     buffers[context.frameInFlight] = buffer;
 
+    notifyCallbacks<OnDynamicBufferRealloc>({
+        .buffer = this,
+        .context = context,
+    });
+
     return true;
 }
 
-bool DynamicBuffer::update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) const {
+bool DynamicBuffer::update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) {
+    std::uint64_t requiredSize = offset + bytes.size();
+
+    if (getSize(context) < requiredSize) {
+        resize(context, requiredSize);
+    }
+
     PBZ_ASSERT(!std::holds_alternative<std::monostate>(m_Buffers), "[DynamicBuffer] Buffer has not been allocated.");
     const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = std::get<std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT>>(m_Buffers);
-
-    PBZ_ASSERT(offset + bytes.size() <= buffers[context.frameInFlight].getData().bufferInfo.size, "[DynamicBuffer] Invalid size and offset.");
 
     // TODO this doesnt have to happen on the transfer queue
     return context.systems.transfer->map(buffers[context.frameInFlight], bytes, offset);
