@@ -13,7 +13,7 @@ namespace RenderNodeModels {
 
 struct ModelBuffer {
     alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 invModel;
+    alignas(16) glm::mat4 normal;
     std::uint32_t materialIdx;
 };
 

@@ -39,7 +39,7 @@ RenderNode RenderNodeModels::build(const std::unordered_set<ObjectID> &objects, 
                 for (const auto &mesh : model.meshes) {
                     instances[mesh.mesh].emplace_back<ModelBuffer>({
                         .model = render.transform.matrix,
-                        .invModel = glm::inverse(render.transform.matrix),
+                        .normal = glm::transpose(glm::inverse(render.transform.matrix)),
                         .materialIdx = context.materialAllocator->query(mesh.material),
                     });
                 }

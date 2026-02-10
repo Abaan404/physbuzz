@@ -23,7 +23,7 @@ struct Material {
 
 struct InstanceData {
     float4x4 model;
-    float4x4 invModel;
+    float4x4 normal;
     uint materialIdx;
 };
 
@@ -64,9 +64,10 @@ struct VSInput {
 };
 
 struct CoarseVertex {
-    float3x3 TBN;
     float3 position;
     float3 normal;
+    float3 tangent;
+    float3 bitangent;
     float2 texCoord0;
     uint objectId;
 };
@@ -84,13 +85,10 @@ VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstan
     InstanceData instance = models[output.coarseVertex.objectId];
     output.sv_position = mul(mul(mul(float4(input.position, 1.0), instance.model), camera.view), camera.projection);
 
-    float3 T = mul(instance.model, float4(input.tangent, 0.0)).xyz;
-    float3 N = mul(instance.model, float4(input.normal, 0.0)).xyz;
-    float3 B = cross(N, T);
-
-    output.coarseVertex.TBN = float3x3(T, B, N);
     output.coarseVertex.position = mul(float4(input.position, 1.0), instance.model).xyz;
-    output.coarseVertex.normal = mul(input.normal, float3x3(instance.invModel));
+    output.coarseVertex.normal = normalize(mul(input.normal, float3x3(instance.normal)));
+    output.coarseVertex.tangent = normalize(mul(input.tangent, float3x3(instance.model)));
+    output.coarseVertex.bitangent = cross(output.coarseVertex.normal, output.coarseVertex.tangent);
     output.coarseVertex.texCoord0 = input.texCoord0;
 
     return output;
@@ -101,7 +99,11 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     InstanceData instance = models[coarseVertex.objectId];
 
     Geometry geometry = {
-        coarseVertex.TBN,
+        {
+            coarseVertex.tangent,
+            coarseVertex.bitangent,
+            coarseVertex.normal,
+        },
         coarseVertex.position,
         coarseVertex.normal,
     };
