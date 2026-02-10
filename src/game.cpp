@@ -107,7 +107,7 @@ void Game::build() {
         },
         std::vector<Physbuzz::RenderGraph>{});
 
-    std::shared_ptr<Physbuzz::DeferredRenderer> deferred = Physbuzz::App::GScene.createSystem<Physbuzz::DeferredRenderer>(Physbuzz::DeferredRenderer::Info{
+    std::shared_ptr<Physbuzz::ForwardRenderer> forward = Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(Physbuzz::ForwardRenderer::Info{
         .camera = playerId,
         .window = window,
     });
@@ -117,7 +117,7 @@ void Game::build() {
     });
 
     renderer->setGraph({
-        deferred->getGraph(),
+        forward->getGraph(),
         imgui->getGraph(),
     });
 

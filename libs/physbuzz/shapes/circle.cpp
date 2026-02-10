@@ -43,7 +43,7 @@ bool ModelCircle::build(const std::shared_ptr<Transfer> transfer) {
     std::vector<glm::vec2> texCoords = detail::generate2DTexCoords(positions);
     std::vector<detail::NormalTangent> NT = detail::generate2DNormalTangent(mesh.indices, positions, texCoords);
 
-    for (std::size_t i = 0; i < mesh.vertices.size(); i++) {
+    for (std::size_t i = 0; i < MAX_VERTICES; i++) {
         mesh.vertices.emplace_back<Physbuzz::Model::Vertex>({
             .position = positions[i],
             .normal = NT[i].normal,

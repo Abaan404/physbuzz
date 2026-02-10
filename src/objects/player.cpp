@@ -138,7 +138,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                             .position = {0.0f, 0.0f, 0.0f},
                             .orientation = glm::angleAxis(glm::pi<float>() / 4.0f, glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f))),
                         },
-                        .resources = {},
+                        .resources = {
+                            .material = {"crate"},
+                        },
                         .hasPhysics = false,
                     };
 
@@ -168,7 +170,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                         .transform = {
                             .position = {cursor.x, cursor.y, 0.0f},
                         },
-                        .resources = {},
+                        .resources = {
+                            .material = {"floor"},
+                        },
                         .hasPhysics = true,
                     };
 
