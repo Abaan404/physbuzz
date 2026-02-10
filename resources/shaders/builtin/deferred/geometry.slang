@@ -40,7 +40,7 @@ Sampler2D<float3> textures[];
 [[vk::binding(0, 1)]]
 ConstantBuffer<Camera> camera;
 
-[[vk::binding(0, 2)]]
+[[vk::binding(1, 1)]]
 StructuredBuffer<InstanceData> models;
 
 struct VSInput {
@@ -63,7 +63,6 @@ struct VSOutput {
 };
 
 struct FSOutput {
-    float4 color; // unused
     float4 pos;
     float4 normal;
     float4 albedo;
@@ -96,8 +95,8 @@ FSOutput fragMain(uint2 position: SV_Position, CoarseVertex coarseVertex: COARSE
 
     Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialIdx * Material.STRIDE);
 
-    output.pos = { coarseVertex.position, 0 };
-    output.normal = { coarseVertex.normal, 0 };
+    output.pos = { coarseVertex.position, 0.0f };
+    output.normal = { coarseVertex.normal, 0.0f };
     output.albedo = { textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).xyz,
                       textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).x };
 

@@ -235,7 +235,7 @@ vk::ImageLayout Texture::createLayout() const {
     case Type::Dim2D:
         return vk::ImageLayout::eShaderReadOnlyOptimal;
     case Type::Attachment:
-        return vk::ImageLayout::eRenderingLocalRead;
+        return vk::ImageLayout::eAttachmentOptimal;
     }
 
     return vk::ImageLayout::eUndefined;

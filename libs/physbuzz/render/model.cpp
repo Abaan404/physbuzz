@@ -75,8 +75,6 @@ bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transf
             }
 
             material.textures.insert({type, resourceId});
-
-            // material.textures[type] = Resource<Texture>{resourceId};
         }
 
         ResourceID resourceId = std::format("model/{}@{}", i, path.string());

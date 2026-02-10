@@ -211,6 +211,24 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
         allocate(layout);
     }
 
+    // check if binding is cached
+    if (!m_WrittenTextures.contains(&texture.get())) {
+        m_WrittenTextures.insert({
+            &texture.get(),
+            {
+                .resize = texture->addCallback<OnTextureRealloc>([&](const OnTextureRealloc &event) {
+                    if (m_WrittenTextures.contains(event.texture)) {
+                        for (const auto &[layout, writeInfo] : m_WrittenTextures.at(event.texture).layouts) {
+                            rewrite(layout, event.texture, event.context, writeInfo.binding, writeInfo.element);
+                        };
+                    };
+                }),
+            },
+        });
+    }
+
+    m_WrittenTextures[&texture.get()].layouts[layout] = {binding, element};
+
     vk::DescriptorImageInfo imageInfo = {
         .sampler = texture->getData().sampler,
         .imageView = texture->getData().view,
@@ -227,60 +245,6 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     };
 
     App::Device.updateDescriptorSets(writes, {});
-    return true;
-}
-
-bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const DynamicBuffer *buffer, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
-    vk::DescriptorType type;
-
-    switch (buffer->getInfo().type) {
-    case DynamicBuffer::Type::Constant:
-        type = vk::DescriptorType::eUniformBuffer;
-        break;
-
-    case DynamicBuffer::Type::Structured:
-        type = vk::DescriptorType::eStorageBuffer;
-        break;
-
-    case DynamicBuffer::Type::ConstantDynamic:
-        type = vk::DescriptorType::eUniformBufferDynamic;
-        break;
-
-    case DynamicBuffer::Type::StructuredDynamic:
-        type = vk::DescriptorType::eStorageBufferDynamic;
-        break;
-    }
-
-    PBZ_ASSERT(
-        binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
-    PBZ_ASSERT(
-        layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
-        std::format("[PipelineLayoutAllocator] Incompatible lifetime for dynamic buffer at binding '{}' and layout '{}'", binding, layout));
-
-    if (!m_AllocatedLayouts.contains(layout)) {
-        allocate(layout);
-    }
-
-    const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = buffer->getBuffers();
-
-    vk::DescriptorBufferInfo bufferInfo = {
-        .buffer = buffers[context.frameInFlight].getData().buffer,
-        .offset = layout->getInfo().bindings[binding].offset + element * layout->getInfo().bindings[binding].range,
-        .range = layout->getInfo().bindings[binding].range,
-    };
-
-    vk::WriteDescriptorSet write = {
-        .dstSet = m_AllocatedLayouts[layout].sets[context.frameInFlight],
-        .dstBinding = binding,
-        .dstArrayElement = element,
-        .descriptorCount = 1,
-        .descriptorType = type,
-        .pBufferInfo = &bufferInfo,
-    };
-
-    App::Device.updateDescriptorSets(write, {});
-
     return true;
 }
 
@@ -339,6 +303,104 @@ void PipelineLayoutAllocator::bind(const RenderContext &context, const Resource<
         std::lock_guard<std::mutex> lock(pipeline->m_ReloadMutex);
         context.command.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[index], dynamicOffsets);
     }
+}
+
+bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const DynamicBuffer *buffer, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
+    vk::DescriptorType type;
+
+    switch (buffer->getInfo().type) {
+    case DynamicBuffer::Type::Constant:
+        type = vk::DescriptorType::eUniformBuffer;
+        break;
+
+    case DynamicBuffer::Type::Structured:
+        type = vk::DescriptorType::eStorageBuffer;
+        break;
+
+    case DynamicBuffer::Type::ConstantDynamic:
+        type = vk::DescriptorType::eUniformBufferDynamic;
+        break;
+
+    case DynamicBuffer::Type::StructuredDynamic:
+        type = vk::DescriptorType::eStorageBufferDynamic;
+        break;
+    }
+
+    PBZ_ASSERT(
+        binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
+    PBZ_ASSERT(
+        layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
+        std::format("[PipelineLayoutAllocator] Incompatible lifetime for dynamic buffer at binding '{}' and layout '{}'", binding, layout));
+
+    if (!m_AllocatedLayouts.contains(layout)) {
+        allocate(layout);
+    }
+
+    const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = buffer->getBuffers();
+
+    vk::DescriptorBufferInfo bufferInfo = {
+        .buffer = buffers[context.frameInFlight].getData().buffer,
+        .offset = layout->getInfo().bindings[binding].offset + element * layout->getInfo().bindings[binding].range,
+        .range = layout->getInfo().bindings[binding].range,
+    };
+
+    vk::WriteDescriptorSet write = {
+        .dstSet = m_AllocatedLayouts[layout].sets[context.frameInFlight],
+        .dstBinding = binding,
+        .dstArrayElement = element,
+        .descriptorCount = 1,
+        .descriptorType = type,
+        .pBufferInfo = &bufferInfo,
+    };
+
+    App::Device.updateDescriptorSets(write, {});
+
+    return true;
+}
+
+bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Texture *texture, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
+    vk::DescriptorType type;
+
+    switch (texture->getInfo().type) {
+    case Texture::Type::Attachment:
+        type = vk::DescriptorType::eInputAttachment;
+        break;
+
+    case Texture::Type::Dim2D:
+        type = vk::DescriptorType::eCombinedImageSampler;
+        PBZ_ASSERT(texture->getInfo().sampler != Texture::Sampler::None, "[PipelineLayoutAllocator] Dim2D Texture does not have a sampler.");
+        break;
+    }
+
+    PBZ_ASSERT(
+        binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
+    PBZ_ASSERT(
+        layout->getInfo().lifetime == PipelineLayout::Lifetime::Global,
+        std::format("[PipelineLayoutAllocator] Incompatible lifetime for texture at binding '{}' and layout '{}'", binding, layout));
+
+    if (!m_AllocatedLayouts.contains(layout)) {
+        allocate(layout);
+    }
+
+    vk::DescriptorImageInfo imageInfo = {
+        .sampler = texture->getData().sampler,
+        .imageView = texture->getData().view,
+        .imageLayout = texture->getData().layout,
+    };
+
+    vk::WriteDescriptorSet writes = {
+        .dstSet = m_AllocatedLayouts[layout].sets[0],
+        .dstBinding = static_cast<std::uint32_t>(binding),
+        .dstArrayElement = element,
+        .descriptorCount = 1,
+        .descriptorType = type,
+        .pImageInfo = &imageInfo,
+    };
+
+    App::Device.updateDescriptorSets(writes, {});
+    return true;
 }
 
 bool PipelineLayoutAllocator::allocate(const Resource<PipelineLayout> &layout) {
