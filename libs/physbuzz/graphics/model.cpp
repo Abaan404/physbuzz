@@ -124,7 +124,8 @@ Model::MaterialResult Model::processMaterial(const aiMaterial *aimaterial) {
         if (aimaterial->GetTextureCount(type) >= 1) {
             // only fetch the first texture found
             aiString aiPath;
-            PBZ_ASSERT(aimaterial->GetTexture(type, 0, &aiPath) == aiReturn_SUCCESS, "[Model] Failed to load material texture.");
+            aiReturn successPath = aimaterial->GetTexture(type, 0, &aiPath);
+            PBZ_ASSERT(successPath == aiReturn_SUCCESS, "[Model] Failed to load material texture.");
 
             result.textures[static_cast<TextureType>(type)] = {
                 .info = {
@@ -136,7 +137,8 @@ Model::MaterialResult Model::processMaterial(const aiMaterial *aimaterial) {
     }
 
     float shininiess;
-    PBZ_ASSERT(aimaterial->Get(AI_MATKEY_SHININESS, shininiess) == aiReturn_SUCCESS, "[Model] Failed to material properties.");
+    aiReturn successShininess = aimaterial->Get(AI_MATKEY_SHININESS, shininiess);
+    PBZ_ASSERT(successShininess == aiReturn_SUCCESS, "[Model] Failed to material properties.");
 
     if (shininiess != 0.0f) {
         result.shininess = shininiess;
