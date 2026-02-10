@@ -63,7 +63,7 @@ struct VSOutput {
 };
 
 struct FSOutput {
-    float4 pos;
+    float4 position;
     float4 normal;
     float4 albedo;
 };
@@ -88,14 +88,14 @@ VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstan
 }
 
 [shader("fragment")]
-FSOutput fragMain(uint2 position: SV_Position, CoarseVertex coarseVertex: COARSE_VERTEX) {
+FSOutput fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
     FSOutput output;
 
     InstanceData instance = models[coarseVertex.objectId];
 
     Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialIdx * Material.STRIDE);
 
-    output.pos = { coarseVertex.position, 0.0f };
+    output.position = { coarseVertex.position, 0.0f };
     output.normal = { coarseVertex.normal, 0.0f };
     output.albedo = { textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).xyz,
                       textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).x };

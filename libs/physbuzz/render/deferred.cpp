@@ -49,9 +49,9 @@ bool RenderPipelineDeferred::Geometry::build() {
             },
             .formats = {
                 .color = {
+                    RenderPipeline::Format::eR16G16B16A16Sfloat,
                     RenderPipeline::Format::eR8G8B8A8Snorm,
-                    RenderPipeline::Format::eR8G8B8A8Snorm,
-                    RenderPipeline::Format::eR8G8B8A8Snorm,
+                    RenderPipeline::Format::eR8G8B8A8Unorm,
                 },
             },
             .layouts = {
@@ -200,7 +200,7 @@ bool DeferredRenderer::build() {
                                 {
                                     .type = Texture::Type::Attachment,
                                     .sampler = Texture::Sampler::None,
-                                    .format = Texture::Format::eR8G8B8A8Snorm,
+                                    .format = Texture::Format::eR16G16B16A16Sfloat,
                                 },
                                 glm::uvec3{1, 1, 1},
                             },
@@ -222,7 +222,7 @@ bool DeferredRenderer::build() {
                                 {
                                     .type = Texture::Type::Attachment,
                                     .sampler = Texture::Sampler::None,
-                                    .format = Texture::Format::eR8G8B8A8Snorm,
+                                    .format = Texture::Format::eR8G8B8A8Unorm,
                                 },
                                 glm::uvec3{1, 1, 1},
                             },

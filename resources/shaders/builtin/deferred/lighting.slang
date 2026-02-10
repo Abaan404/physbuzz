@@ -64,14 +64,12 @@ VSOutput vertMain(uint VertexIndex: SV_VertexID) {
 }
 
 [shader("fragment")]
-float4 fragMain(uint2 position: SV_Position, CoarseVertex coarseVertex: COARSE_VERTEX) {
+float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
     Geometry geometry = {
         {},
         gBuffer0.SubpassLoad().xyz,
         gBuffer1.SubpassLoad().xyz,
     };
-
-    let a = gBuffer0.SubpassLoad().rgb;
 
     SimpleMaterial material = {
         gBuffer2.SubpassLoad().rgb,
