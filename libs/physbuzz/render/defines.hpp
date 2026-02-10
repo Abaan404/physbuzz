@@ -1,7 +1,7 @@
 #pragma once
 
-#include "model.hpp"
-#include "transform.hpp"
+#include "../graphics/model.hpp"
+#include "../graphics/transform.hpp"
 
 namespace Physbuzz {
 

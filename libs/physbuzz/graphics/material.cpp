@@ -1,7 +1,7 @@
 #include "material.hpp"
 
-#include "../render/model.hpp"
 #include "layout.hpp"
+#include "model.hpp"
 
 namespace Physbuzz {
 

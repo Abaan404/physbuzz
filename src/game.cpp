@@ -13,12 +13,12 @@
 #include <physbuzz/compat/imgui/imgui_impl_physbuzz.hpp>
 #include <physbuzz/events/window.hpp>
 #include <physbuzz/graphics/layout.hpp>
+#include <physbuzz/graphics/model.hpp>
 #include <physbuzz/graphics/pipeline.hpp>
 #include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/deferred.hpp>
 #include <physbuzz/render/forward.hpp>
-#include <physbuzz/render/model.hpp>
 #include <physbuzz/window/inputs.hpp>
 #include <random>
 

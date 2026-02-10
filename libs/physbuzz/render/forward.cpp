@@ -7,7 +7,6 @@
 #include "../graphics/pipeline.hpp"
 #include "camera.hpp"
 #include "lighting.hpp"
-#include "model.hpp"
 #include "nodes/camera.hpp"
 #include "nodes/lights.hpp"
 #include "nodes/model.hpp"

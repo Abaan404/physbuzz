@@ -1,7 +1,7 @@
 #include "sphere.hpp"
 
 #include "../graphics/mesh.hpp"
-#include "../render/model.hpp"
+#include "../graphics/model.hpp"
 #include <glm/ext/scalar_constants.hpp>
 
 namespace Physbuzz {

@@ -1,7 +1,7 @@
 #include "builder.hpp"
 
 #include <physbuzz/graphics/descriptors/texture.hpp>
-#include <physbuzz/render/model.hpp>
+#include <physbuzz/graphics/model.hpp>
 
 void ResourceBuilder::buildTextures() {
     // Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(

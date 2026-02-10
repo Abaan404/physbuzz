@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../graphics/descriptors/texture.hpp"
-#include "../graphics/mesh.hpp"
 #include "../resources/resource.hpp"
+#include "descriptors/texture.hpp"
+#include "mesh.hpp"
 #include <assimp/scene.h>
 #include <filesystem>
 

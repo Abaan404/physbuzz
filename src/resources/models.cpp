@@ -1,6 +1,6 @@
 #include "builder.hpp"
 
-#include <physbuzz/render/model.hpp>
+#include <physbuzz/graphics/model.hpp>
 
 void ResourceBuilder::buildModels() {
     // Physbuzz::ResourceRegistry<Physbuzz::Model>::insert(

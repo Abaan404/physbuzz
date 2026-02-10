@@ -2,7 +2,7 @@
 
 #include <functional>
 #include <physbuzz/ecs/scene.hpp>
-#include <physbuzz/render/model.hpp>
+#include <physbuzz/graphics/material.hpp>
 
 struct IdentifiableComponent {
     std::string name = "Unknown";
