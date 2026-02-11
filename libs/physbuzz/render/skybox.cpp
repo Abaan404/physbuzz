@@ -96,11 +96,19 @@ bool SkyboxRenderer::build() {
                 },
             },
             .execute = [&](Scene *, const RenderContext &context) {
+                vk::RenderingAttachmentInfo depthAttachment = {
+                    .imageView = context.depth.view,
+                    .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                    .loadOp = vk::AttachmentLoadOp::eLoad,
+                    .storeOp = vk::AttachmentStoreOp::eDontCare,
+                    .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
+                };
+
                 std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
                     {
                         .imageView = context.color.view,
                         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-                        .loadOp = vk::AttachmentLoadOp::eClear,
+                        .loadOp = vk::AttachmentLoadOp::eLoad,
                         .storeOp = vk::AttachmentStoreOp::eStore,
                         .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
                     },
@@ -114,7 +122,7 @@ bool SkyboxRenderer::build() {
                     .layerCount = 1,
                     .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
                     .pColorAttachments = colorAttachments.data(),
-                    .pDepthAttachment = {},
+                    .pDepthAttachment = &depthAttachment,
                     .pStencilAttachment = {},
                 });
 

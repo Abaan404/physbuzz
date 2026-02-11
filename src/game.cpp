@@ -138,8 +138,8 @@ void Game::build() {
 
     Physbuzz::RenderGraph graph = {{}};
 
-    graph.merge(skybox->getGraph());
     graph.merge(forward->getGraph());
+    graph.merge(skybox->getGraph());
     graph.merge(imgui->getGraph());
 
     if (!graph.compile()) {

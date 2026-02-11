@@ -122,7 +122,7 @@ bool ForwardRenderer::build() {
                     .imageView = context.depth.view,
                     .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
                     .loadOp = vk::AttachmentLoadOp::eClear,
-                    .storeOp = vk::AttachmentStoreOp::eDontCare,
+                    .storeOp = vk::AttachmentStoreOp::eStore,
                     .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
                 };
 
