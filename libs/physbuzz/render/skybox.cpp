@@ -138,7 +138,7 @@ bool SkyboxRenderer::build() {
         }),
     };
 
-    m_Graph.add("builtin/skybox/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
+    m_Graph.add(Builtin::RenderNodeCamera::Id, Builtin::RenderNodeCamera::build(m_Info.camera));
 
     m_Graph.add(
         "builtin/skybox",
@@ -185,7 +185,7 @@ bool SkyboxRenderer::build() {
 
     bool success = true;
 
-    success &= m_Graph.compile("builtin/skybox");
+    success &= m_Graph.compile();
 
     if (success) {
         success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(

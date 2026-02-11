@@ -6,8 +6,8 @@
 
 namespace Physbuzz {
 
-Renderer::Renderer(const Info &info, const std::vector<RenderGraph> &graphs)
-    : m_Info(info), m_Graphs(graphs) {}
+Renderer::Renderer(const Info &info, const RenderGraph &graph)
+    : m_Info(info), m_Graph(graph) {}
 
 bool Renderer::build() {
     if (m_Command.pool != nullptr) {
@@ -195,29 +195,27 @@ void Renderer::tick() {
         });
     }
 
-    for (const auto &graph : m_Graphs) {
-        graph.execute(
-            m_Scene,
-            {
-                .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
-                .materialAllocator = &m_MaterialManager,
-                .command = m_Command.buffers[m_FrameInFlight],
-                .extent = extent,
-                .frameInFlight = m_FrameInFlight,
-                .color = {
-                    .image = m_Info.window->m_SwapChainImages[imageIndex],
-                    .view = m_Info.window->m_SwapChainImageViews[imageIndex],
-                },
-                .depth = {
-                    .image = m_Depth.image.getData().image,
-                    .view = m_Depth.view,
-                },
-                .systems = {
-                    .transfer = m_Scene->getSystem<Transfer>(),
-                    .allocator = m_Scene->getSystem<PipelineLayoutAllocator>(),
-                },
-            });
-    }
+    m_Graph.execute(
+        m_Scene,
+        {
+            .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
+            .materialAllocator = &m_MaterialManager,
+            .command = m_Command.buffers[m_FrameInFlight],
+            .extent = extent,
+            .frameInFlight = m_FrameInFlight,
+            .color = {
+                .image = m_Info.window->m_SwapChainImages[imageIndex],
+                .view = m_Info.window->m_SwapChainImageViews[imageIndex],
+            },
+            .depth = {
+                .image = m_Depth.image.getData().image,
+                .view = m_Depth.view,
+            },
+            .systems = {
+                .transfer = m_Scene->getSystem<Transfer>(),
+                .allocator = m_Scene->getSystem<PipelineLayoutAllocator>(),
+            },
+        });
 
     // transition image
     {
@@ -317,12 +315,12 @@ void Renderer::immediate(std::function<void(const vk::CommandBuffer &)> record) 
     m_FrameInFlight = (m_FrameInFlight + 1) % detail::MAX_FRAMES_IN_FLIGHT;
 }
 
-void Renderer::setGraph(const std::vector<RenderGraph> &graphs) {
-    m_Graphs = graphs;
+void Renderer::setGraph(const RenderGraph &graph) {
+    m_Graph = graph;
 }
 
-const std::vector<RenderGraph> &Renderer::getGraph() const {
-    return m_Graphs;
+const RenderGraph &Renderer::getGraph() const {
+    return m_Graph;
 }
 
 const Renderer::Info &Renderer::getInfo() const {

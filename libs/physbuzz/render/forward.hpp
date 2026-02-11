@@ -34,6 +34,8 @@ bool build();
 
 class ForwardRenderer : public System<RenderComponent> {
   public:
+    constexpr static RenderNodeID Output = "builtin/forward";
+
     struct Info {
         ObjectID camera;
         std::shared_ptr<Window> window;
@@ -53,8 +55,11 @@ class ForwardRenderer : public System<RenderComponent> {
   private:
     Info m_Info;
 
-    RenderGraph m_Graph;
     std::vector<std::pair<Resource<Mesh>, std::size_t>> m_Batches;
+
+    RenderGraph m_Graph = {{
+        .output = Output,
+    }};
 
     struct {
         EventID resize = -1;

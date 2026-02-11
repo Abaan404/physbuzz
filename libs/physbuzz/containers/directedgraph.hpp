@@ -46,20 +46,34 @@ class DirectedGraph {
         return true;
     }
 
-    bool containsNode(const K &id) {
+    bool containsNode(const K &id) const {
         return m_Adjacency.contains(id);
     }
 
-    bool empty() {
+    void merge(const DirectedGraph<K> &other) {
+        for (auto &[node, neighbors] : m_Adjacency) {
+            for (const auto &[otherNode, otherNeighbor] : other.m_Adjacency) {
+                if (node == otherNode) {
+                    neighbors.insert(otherNeighbor.begin(), otherNeighbor.end());
+                }
+            }
+        }
+    }
+
+    bool empty() const {
         return m_Adjacency.empty();
     }
 
-    bool size() {
+    bool size() const {
         return m_Adjacency.size();
     }
 
     void cull(const K &preserve) {
         // TODO
+    }
+
+    void clear() {
+        m_Adjacency.clear();
     }
 
     std::vector<K> sort() const {
@@ -99,10 +113,6 @@ class DirectedGraph {
 
         PBZ_ASSERT(result.size() == m_Adjacency.size(), "[DirectedGraph] Cycle detected while sorting topologically");
         return result;
-    }
-
-    void clear() {
-        m_Adjacency.clear();
     }
 
   private:

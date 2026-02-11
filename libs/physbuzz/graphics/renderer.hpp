@@ -19,7 +19,7 @@ class Renderer : public System<> {
         std::shared_ptr<Window> window;
     };
 
-    Renderer(const Info &info, const std::vector<RenderGraph> &graph);
+    Renderer(const Info &info, const RenderGraph &graph);
 
     bool build() override;
     bool destroy() override;
@@ -27,8 +27,8 @@ class Renderer : public System<> {
     void tick();
     void immediate(std::function<void(const vk::CommandBuffer &)> record);
 
-    void setGraph(const std::vector<RenderGraph> &graph);
-    const std::vector<RenderGraph> &getGraph() const;
+    void setGraph(const RenderGraph &graph);
+    const RenderGraph &getGraph() const;
 
     const Info &getInfo() const;
     std::uint32_t getFrameInFlight() const;
@@ -38,7 +38,7 @@ class Renderer : public System<> {
 
     Info m_Info;
 
-    std::vector<RenderGraph> m_Graphs;
+    RenderGraph m_Graph;
     MaterialAllocator m_MaterialManager = {{}};
 
     std::uint32_t m_FrameInFlight = 0;

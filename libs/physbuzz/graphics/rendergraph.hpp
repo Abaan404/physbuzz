@@ -27,6 +27,12 @@ struct RenderNode {
 
 class RenderGraph {
   public:
+    struct Info {
+        RenderNodeID output;
+    };
+
+    RenderGraph(const Info &info);
+
     struct Resources {
         std::unordered_set<ResourceID> textures;
         std::unordered_set<ResourceID> buffers;
@@ -35,12 +41,17 @@ class RenderGraph {
     const RenderNode &add(const RenderNodeID &id, const RenderNode &node);
     const RenderNode &get(const RenderNodeID &id) const;
 
-    bool compile(const RenderNodeID &outputId);
+    void merge(const RenderGraph &graph);
+
+    bool compile();
     void execute(Scene *scene, const RenderContext &context) const;
 
     const Resources &getResources() const;
+    const Info &getInfo() const;
 
   private:
+    Info m_Info;
+
     std::unordered_map<RenderNodeID, RenderNode> m_Nodes;
     DirectedGraph<RenderNodeID> m_Graph;
 

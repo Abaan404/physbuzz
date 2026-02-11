@@ -13,6 +13,8 @@ class Window;
 
 class ImGuiRenderer : public System<> {
   public:
+    constexpr static RenderNodeID Output = "builtin/imgui";
+
     struct Info {
         std::shared_ptr<Window> window;
     };
@@ -31,7 +33,9 @@ class ImGuiRenderer : public System<> {
 
     vk::DescriptorPool m_Pool = nullptr;
 
-    RenderGraph m_Graph;
+    RenderGraph m_Graph = {{
+        .output = Output,
+    }};
 };
 
 } // namespace Physbuzz

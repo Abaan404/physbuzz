@@ -110,7 +110,7 @@ bool ImGuiRenderer::build() {
             },
         });
 
-    success &= m_Graph.compile("builtin/imgui");
+    success &= m_Graph.compile();
 
     return success;
 }

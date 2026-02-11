@@ -5,6 +5,9 @@
 
 namespace Physbuzz {
 
+RenderGraph::RenderGraph(const Info &info)
+    : m_Info(info) {}
+
 const RenderNode &RenderGraph::add(const RenderNodeID &id, const RenderNode &node) {
     m_Nodes[id] = node;
     return m_Nodes.at(id);
@@ -15,10 +18,24 @@ const RenderNode &RenderGraph::get(const RenderNodeID &id) const {
     return m_Nodes.at(id);
 }
 
-bool RenderGraph::compile(const RenderNodeID &outputId) {
-    PBZ_ASSERT(m_Nodes.contains(outputId), "[RenderGraph] Graph's outputId is not present.");
+void RenderGraph::merge(const RenderGraph &graph) {
+    m_Graph.merge(graph.m_Graph);
+    m_Nodes.insert(graph.m_Nodes.begin(), graph.m_Nodes.end());
 
-    m_Graph.clear();
+    if (!m_Info.output.empty()) {
+        m_Graph.insertEdge(m_Info.output, graph.getInfo().output);
+    }
+
+    m_Info.output = graph.getInfo().output;
+
+    // merging requires a recompile
+    m_ExecutableNodes.clear();
+    m_Resources.buffers.clear();
+    m_Resources.textures.clear();
+}
+
+bool RenderGraph::compile() {
+    PBZ_ASSERT(m_Nodes.contains(m_Info.output), "[RenderGraph] Graph's outputId is not present.");
 
     m_ExecutableNodes.clear();
     m_Resources.textures.clear();
@@ -26,7 +43,6 @@ bool RenderGraph::compile(const RenderNodeID &outputId) {
 
     std::unordered_map<ResourceID, std::unordered_set<RenderNodeID>> textureReaders;
     std::unordered_map<ResourceID, std::unordered_set<RenderNodeID>> bufferReaders;
-    m_Graph.insertNode(outputId);
 
     for (auto &[inputId, node] : m_Nodes) {
         for (auto &resource : node.description.buffers.input) {
@@ -66,7 +82,7 @@ bool RenderGraph::compile(const RenderNodeID &outputId) {
     }
 
     // eliminate nodes that do not contribute to the executable graph
-    m_Graph.cull(outputId);
+    m_Graph.cull(m_Info.output);
 
     m_ExecutableNodes.reserve(m_Graph.size());
 
@@ -105,6 +121,10 @@ void RenderGraph::execute(Scene *scene, const RenderContext &context) const {
 
 const RenderGraph::Resources &RenderGraph::getResources() const {
     return m_Resources;
+}
+
+const RenderGraph::Info &RenderGraph::getInfo() const {
+    return m_Info;
 }
 
 } // namespace Physbuzz

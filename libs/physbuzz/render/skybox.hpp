@@ -37,6 +37,8 @@ bool build(const std::shared_ptr<Transfer> transfer);
 
 class SkyboxRenderer : public System<> {
   public:
+    constexpr static RenderNodeID Output = "builtin/skybox";
+
     struct Info {
         ObjectID camera;
         std::shared_ptr<Window> window;
@@ -57,8 +59,9 @@ class SkyboxRenderer : public System<> {
   private:
     Info m_Info;
 
-    RenderGraph m_Graph;
-    std::vector<std::pair<Resource<Mesh>, std::size_t>> m_Batches;
+    RenderGraph m_Graph = {{
+        .output = Output,
+    }};
 
     struct {
         EventID resize = -1;

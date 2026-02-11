@@ -1,4 +1,4 @@
-#include "model.hpp"
+#include "models.hpp"
 
 #include "../../ecs/scene.hpp"
 #include "../../graphics/material.hpp"

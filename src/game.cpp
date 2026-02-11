@@ -119,7 +119,7 @@ void Game::build() {
         Physbuzz::Renderer::Info{
             .window = window,
         },
-        std::vector<Physbuzz::RenderGraph>{});
+        Physbuzz::RenderGraph::Info{});
 
     std::shared_ptr<Physbuzz::ForwardRenderer> forward = Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(Physbuzz::ForwardRenderer::Info{
         .camera = playerId,
@@ -136,11 +136,17 @@ void Game::build() {
         .skybox = {"skybox"},
     });
 
-    renderer->setGraph({
-        skybox->getGraph(),
-        forward->getGraph(),
-        imgui->getGraph(),
-    });
+    Physbuzz::RenderGraph graph = {{}};
+
+    graph.merge(skybox->getGraph());
+    graph.merge(forward->getGraph());
+    graph.merge(imgui->getGraph());
+
+    if (!graph.compile()) {
+        Physbuzz::Logger::CRITICAL("[Game] Failed to merge render graphs.");
+    }
+
+    renderer->setGraph(graph);
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "floor",

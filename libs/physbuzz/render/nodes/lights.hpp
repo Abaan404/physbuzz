@@ -13,6 +13,8 @@ inline Resource<DynamicBuffer> ResourceBufferDirectional = {"builtin/lights/dire
 inline Resource<DynamicBuffer> ResourceBufferPoint = {"builtin/lights/point"};
 inline Resource<DynamicBuffer> ResourceBufferSpot = {"builtin/lights/spot"};
 
+inline RenderNodeID Id = "builtin/lights";
+
 RenderNode build();
 
 } // namespace RenderNodeLights

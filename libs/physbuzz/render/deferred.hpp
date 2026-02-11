@@ -52,6 +52,8 @@ bool build();
 
 class DeferredRenderer : public System<RenderComponent> {
   public:
+    constexpr static RenderNodeID Output = "builtin/deferred";
+
     struct Info {
         ObjectID camera;
         std::shared_ptr<Window> window;
@@ -72,8 +74,11 @@ class DeferredRenderer : public System<RenderComponent> {
   private:
     Info m_Info;
 
-    RenderGraph m_Graph;
     std::vector<std::pair<Resource<Mesh>, std::size_t>> m_Batches;
+
+    RenderGraph m_Graph = {{
+        .output = Output,
+    }};
 
     struct {
         EventID resize = -1;

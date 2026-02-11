@@ -9,7 +9,7 @@
 #include "lighting.hpp"
 #include "nodes/camera.hpp"
 #include "nodes/lights.hpp"
-#include "nodes/model.hpp"
+#include "nodes/models.hpp"
 
 namespace Physbuzz {
 
@@ -99,9 +99,9 @@ bool ForwardRenderer::build() {
         }),
     };
 
-    m_Graph.add("builtin/forward/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
-    m_Graph.add("builtin/forward/lights", Builtin::RenderNodeLights::build());
-    m_Graph.add("builtin/forward/models", Builtin::RenderNodeModels::build(m_Objects, m_Batches));
+    m_Graph.add(Builtin::RenderNodeCamera::Id, Builtin::RenderNodeCamera::build(m_Info.camera));
+    m_Graph.add(Builtin::RenderNodeLights::Id, Builtin::RenderNodeLights::build());
+    m_Graph.add(Builtin::RenderNodeModels::Id, Builtin::RenderNodeModels::build(m_Objects, m_Batches));
 
     m_Graph.add(
         "builtin/forward",
@@ -183,7 +183,7 @@ bool ForwardRenderer::build() {
 
     bool success = true;
 
-    success &= m_Graph.compile("builtin/forward");
+    success &= m_Graph.compile();
 
     if (success) {
         success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(

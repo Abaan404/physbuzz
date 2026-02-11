@@ -17,7 +17,9 @@ struct ModelBuffer {
     std::uint32_t materialIdx;
 };
 
-inline Resource<DynamicBuffer> ResourceBuffer = {"builtin/model"};
+inline Resource<DynamicBuffer> ResourceBuffer = {"builtin/models"};
+
+inline RenderNodeID Id = "builtin/models";
 
 RenderNode build(const std::unordered_set<ObjectID> &objects, std::vector<std::pair<Resource<Mesh>, std::size_t>> &meshes);
 

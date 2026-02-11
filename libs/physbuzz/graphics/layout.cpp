@@ -201,9 +201,10 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
         break;
     }
 
-    PBZ_ASSERT(
-        type == vk::DescriptorType::eCombinedImageSampler && texture->getInfo().sampler != Texture::Sampler::None,
-        "[PipelineLayoutAllocator] Texture must have a sampler.");
+    if (type == vk::DescriptorType::eCombinedImageSampler && texture->getData().sampler == nullptr) {
+        type = vk::DescriptorType::eSampledImage;
+    }
+
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
         std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
@@ -378,9 +379,10 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
         break;
     }
 
-    PBZ_ASSERT(
-        type == vk::DescriptorType::eCombinedImageSampler && texture->getInfo().sampler != Texture::Sampler::None,
-        "[PipelineLayoutAllocator] Texture must have a sampler.");
+    if (type == vk::DescriptorType::eCombinedImageSampler && texture->getData().sampler == nullptr) {
+        type = vk::DescriptorType::eSampledImage;
+    }
+
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
         std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
