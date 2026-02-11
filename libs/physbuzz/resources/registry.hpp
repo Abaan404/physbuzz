@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../io/logging.hpp"
 #include "../events/handler.hpp"
 #include "../events/resources.hpp"
+#include "../io/logging.hpp"
 #include "defines.hpp"
 
 namespace Physbuzz {
@@ -11,6 +11,7 @@ template <ResourceType T>
 class ResourceRegistry {
   public:
     template <typename... Args>
+        requires(sizeof...(Args) == 0 || ResourceBuildableType<T, Args...>)
     inline static bool insert(const ResourceID &identifier, T &&resource, Args... args) {
         if (contains(identifier)) {
             Logger::ERROR("[ResourceRegistry] resource '{}' was already loaded.", identifier);
@@ -34,6 +35,7 @@ class ResourceRegistry {
     }
 
     template <typename... Args>
+        requires(sizeof...(Args) == 0 || ResourceDestructibleType<T, Args...>)
     inline static bool erase(const ResourceID &identifier, Args... args) {
         if (!contains(identifier)) {
             Logger::ERROR("[ResourceRegistry] resource '{}' was already unloaded or not found.", identifier);

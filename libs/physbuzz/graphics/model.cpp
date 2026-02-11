@@ -69,7 +69,7 @@ bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transf
                 continue;
             }
 
-            if (!ResourceRegistry<Texture>::insert(resourceId, texture.info, imageFile, transfer)) {
+            if (!ResourceRegistry<Texture>::insert(resourceId, texture.info, std::vector{imageFile}, transfer)) {
                 Logger::ERROR("[Model] Failed to load texture resource {}.", resourceId);
                 return false;
             }

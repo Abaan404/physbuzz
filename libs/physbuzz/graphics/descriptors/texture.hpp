@@ -14,6 +14,7 @@ class Texture : public EventSubject {
 
     enum class Type {
         Attachment,
+        Cube,
         Dim2D,
     };
 
@@ -34,9 +35,9 @@ class Texture : public EventSubject {
         vk::ImageLayout layout = vk::ImageLayout::eUndefined;
     };
 
-    Texture(const Info &info, std::optional<Image> image = std::nullopt);
+    Texture(const Info &info);
 
-    bool build(ImageFile::Info imageInfo, std::shared_ptr<Transfer> transfer);
+    bool build(std::vector<ImageFile::Info> imageInfo, std::shared_ptr<Transfer> transfer);
     bool build(const glm::uvec3 &resolution);
     bool destroy();
 
@@ -55,7 +56,7 @@ class Texture : public EventSubject {
 
     Info m_Info;
 
-    Image m_Image;
+    Image m_Image = {{}};
     Data m_Data;
 };
 

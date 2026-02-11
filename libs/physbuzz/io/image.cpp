@@ -15,28 +15,21 @@ ImageFile::ImageFile(const Info &image)
 
 ImageFile::~ImageFile() {}
 
-bool ImageFile::build() {
-    return true;
-}
-
-bool ImageFile::destroy() {
-    return true;
-}
-
 bool ImageFile::read() {
     stbi_set_flip_vertically_on_load(m_Info.flipVertically);
 
-    stbi_uc *buffer = stbi_load(m_Info.file.path.c_str(), &m_Data.resolution.x, &m_Data.resolution.y, nullptr, STBI_rgb_alpha);
+    int x, y;
+    stbi_uc *buffer = stbi_load(m_Info.file.path.c_str(), &x, &y, nullptr, STBI_rgb_alpha);
 
     if (!buffer) {
         Logger::ERROR("[ImageFile] Could not read image from {}: {}", m_Info.file.path.string(), stbi_failure_reason());
         return false;
     }
 
+    m_Data.resolution = {x, y};
     m_Data.image.assign(
         reinterpret_cast<std::byte *>(buffer),
-        reinterpret_cast<std::byte *>(buffer) + (m_Data.resolution.x * m_Data.resolution.y * STBI_rgb_alpha)
-    );
+        reinterpret_cast<std::byte *>(buffer) + (m_Data.resolution.x * m_Data.resolution.y * STBI_rgb_alpha));
 
     stbi_image_free(buffer);
 

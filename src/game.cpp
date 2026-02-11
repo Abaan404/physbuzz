@@ -124,19 +124,32 @@ void Game::build() {
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "floor",
         {{.type = Physbuzz::Texture::Type::Dim2D}},
-        Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/floor.png"}},
+        std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/floor.png"}}},
         Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "crate/diffuse",
         {{.type = Physbuzz::Texture::Type::Dim2D}},
-        Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/diffuse.png"}},
+        std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/diffuse.png"}}},
         Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "crate/specular",
         {{.type = Physbuzz::Texture::Type::Dim2D}},
-        Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/specular.png"}},
+        std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/specular.png"}}},
+        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+
+    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        "skybox",
+        {{.type = Physbuzz::Texture::Type::Cube}},
+        std::vector{
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/right.jpg"}},
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/left.jpg"}},
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/top.jpg"}},
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/bottom.jpg"}},
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/back.jpg"}},
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/front.jpg"}},
+        },
         Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
 
     Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(

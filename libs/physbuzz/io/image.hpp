@@ -15,14 +15,11 @@ class ImageFile {
 
     struct Data {
         std::vector<std::byte> image;
-        glm::ivec2 resolution = {0, 0};
+        glm::uvec2 resolution = {0, 0};
     };
 
     ImageFile(const Info &image);
     ~ImageFile();
-
-    bool build();
-    bool destroy();
 
     bool read();
     bool write(const Info &info, const Data &data);

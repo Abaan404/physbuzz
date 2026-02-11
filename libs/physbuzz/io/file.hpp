@@ -17,9 +17,6 @@ class File {
 
     File(const Info &file);
 
-    bool build();
-    bool destroy();
-
     bool read();
     bool write(const Data &data);
 

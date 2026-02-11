@@ -193,13 +193,17 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     case Texture::Type::Attachment:
         type = vk::DescriptorType::eInputAttachment;
         break;
-
     case Texture::Type::Dim2D:
         type = vk::DescriptorType::eCombinedImageSampler;
-        PBZ_ASSERT(texture->getInfo().sampler != Texture::Sampler::None, "[PipelineLayoutAllocator] Dim2D Texture does not have a sampler.");
+        break;
+    case Texture::Type::Cube:
+        type = vk::DescriptorType::eCombinedImageSampler;
         break;
     }
 
+    PBZ_ASSERT(
+        type == vk::DescriptorType::eCombinedImageSampler && texture->getInfo().sampler != Texture::Sampler::None,
+        "[PipelineLayoutAllocator] Texture must have a sampler.");
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
         std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
@@ -366,13 +370,17 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     case Texture::Type::Attachment:
         type = vk::DescriptorType::eInputAttachment;
         break;
-
     case Texture::Type::Dim2D:
         type = vk::DescriptorType::eCombinedImageSampler;
-        PBZ_ASSERT(texture->getInfo().sampler != Texture::Sampler::None, "[PipelineLayoutAllocator] Dim2D Texture does not have a sampler.");
+        break;
+    case Texture::Type::Cube:
+        type = vk::DescriptorType::eCombinedImageSampler;
         break;
     }
 
+    PBZ_ASSERT(
+        type == vk::DescriptorType::eCombinedImageSampler && texture->getInfo().sampler != Texture::Sampler::None,
+        "[PipelineLayoutAllocator] Texture must have a sampler.");
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
         std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));

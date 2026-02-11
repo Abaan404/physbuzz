@@ -5,12 +5,12 @@
 
 namespace Physbuzz {
 
-Texture::Texture(const Info &info, std::optional<Image> image)
-    : m_Info(info),
-      m_Image(image.value_or(Image::Info{})) {}
+Texture::Texture(const Info &info)
+    : m_Info(info) {}
 
-bool Texture::build(ImageFile::Info imageInfo, std::shared_ptr<Transfer> transfer) {
-    if (imageInfo.file.path.empty()) {
+bool Texture::build(std::vector<ImageFile::Info> imageInfos, std::shared_ptr<Transfer> transfer) {
+    if (imageInfos.empty()) {
+        Logger::ERROR("[Texture] No images provided.");
         return false;
     }
 
@@ -19,27 +19,53 @@ bool Texture::build(ImageFile::Info imageInfo, std::shared_ptr<Transfer> transfe
         return false;
     }
 
-    ImageFile imageFile = ImageFile(imageInfo);
-    if (!imageFile.build()) {
-        Logger::ERROR("[Texture] Could not build image: {}", imageInfo.file.path.string());
+    std::vector<ImageFile> imageFiles;
+    imageFiles.reserve(imageInfos.size());
+
+    // read every image
+    for (const auto &imageInfo : imageInfos) {
+        ImageFile &imageFile = imageFiles.emplace_back(imageInfo);
+        if (!imageFile.read()) {
+            Logger::ERROR("[Texture] Could not read image file: '{}'", imageInfo.file.path.string());
+            return false;
+        }
+    }
+
+    glm::uvec2 resolution = imageFiles.begin()->getData().resolution;
+    std::size_t bufferSize = 0;
+
+    // validate resolution
+    for (const auto &imageFile : imageFiles) {
+        const ImageFile::Data &imageData = imageFile.getData();
+
+        if (imageData.resolution != resolution) {
+            Logger::ERROR("[Texture] Uneven texture resolution in images.");
+            return false;
+        }
+
+        bufferSize += imageFile.getData().image.size();
+    }
+
+    std::vector<std::byte> bytes;
+    bytes.reserve(bufferSize);
+
+    // measure sizes
+    for (const auto &imageFile : imageFiles) {
+        const ImageFile::Data &imageData = imageFile.getData();
+
+        bytes.insert(bytes.end(), std::make_move_iterator(imageData.image.begin()), std::make_move_iterator(imageData.image.end()));
+    }
+
+    build({resolution, 1.0f});
+
+    // can only inspect this after building an image type
+    if (m_Image.getInfo().arrayLayers != imageFiles.size()) {
+        destroy();
+        Logger::ERROR("[Texture] Incorrect image layers provided (required {} got {}).", m_Image.getInfo().arrayLayers, imageFiles.size());
         return false;
     }
 
-    if (!imageFile.read()) {
-        Logger::ERROR("[Texture] Could not load image: {}", imageInfo.file.path.string());
-        imageFile.destroy();
-        return false;
-    }
-
-    const ImageFile::Data imageData = imageFile.getData();
-
-    build({imageData.resolution, 1});
-    transfer->map(m_Image, imageData.image, m_Data.layout);
-
-    if (!imageFile.destroy()) {
-        Logger::ERROR("[Texture] Could not destroy image: {}", imageInfo.file.path.string());
-        return false;
-    }
+    transfer->map(m_Image, bytes, m_Data.layout);
 
     return true;
 }
@@ -65,7 +91,16 @@ bool Texture::build(const glm::uvec3 &resolution) {
             .type = Image::Type::e2D,
             .format = m_Info.format,
         }};
+        break;
 
+    case Type::Cube:
+        m_Image = {{
+            .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eTransferSrc | Image::ImageUsageFlagBits::eTransferDst,
+            .type = Image::Type::e2D,
+            .arrayLayers = 6,
+            .flags = Image::FlagBits::eCubeCompatible,
+            .format = m_Info.format,
+        }};
         break;
     }
 
@@ -92,7 +127,7 @@ bool Texture::destroy() {
     App::Device.destroyImageView(m_Data.view);
     m_Data.view = nullptr;
 
-    // Note: samplers are destroyed on engine shutdown, could refcount it but unnecessary for this scope
+    // Note: samplers are destroyed on engine shutdown, could refcount it but unnecessary for this project's scope
     // In the future samplers could be its own resource and it could be specially handled as such
     m_Data.sampler = nullptr;
 
@@ -225,6 +260,21 @@ vk::ImageView Texture::createImageView() const {
                 .layerCount = 1,
             },
         }));
+    case Type::Cube:
+        return PBZ_VK_CHECK(App::Device.createImageView({
+            .flags = {},
+            .image = m_Image.getData().image,
+            .viewType = vk::ImageViewType::eCube,
+            .format = m_Image.getInfo().format,
+            .components = {},
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 6,
+            },
+        }));
     }
 
     return nullptr;
@@ -236,6 +286,8 @@ vk::ImageLayout Texture::createLayout() const {
         return vk::ImageLayout::eShaderReadOnlyOptimal;
     case Type::Attachment:
         return vk::ImageLayout::eAttachmentOptimal;
+    case Type::Cube:
+        return vk::ImageLayout::eShaderReadOnlyOptimal;
     }
 
     return vk::ImageLayout::eUndefined;

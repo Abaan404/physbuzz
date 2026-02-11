@@ -8,14 +8,6 @@ namespace Physbuzz {
 File::File(const Info &file)
     : m_Info(file) {}
 
-bool File::build() {
-    return true;
-}
-
-bool File::destroy() {
-    return true;
-}
-
 bool File::read() {
     std::ifstream stream(m_Info.path, std::ios::in | std::ios::binary);
     if (!stream.is_open()) {
