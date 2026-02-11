@@ -12,17 +12,6 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-VertexDescription RenderPipelineSkybox::VertexSkybox::Description = {{
-    .attributes = {
-        {
-            .format = VertexDescription::Format::eR32G32B32Sfloat,
-            .size = sizeof(VertexSkybox::position) / sizeof(decltype(VertexSkybox::position)::value_type),
-            .offset = offsetof(VertexSkybox, position),
-        },
-    },
-    .size = sizeof(VertexSkybox),
-}};
-
 bool RenderPipelineSkybox::build(const std::shared_ptr<Transfer> transfer) {
     if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
         return true;
@@ -58,54 +47,10 @@ bool RenderPipelineSkybox::build(const std::shared_ptr<Transfer> transfer) {
             }});
     }
 
-    // TODO embed mesh in shader
-    if (!ResourceRegistry<Mesh>::contains(ResourceMesh)) {
-        Mesh::Info<VertexSkybox> mesh = {
-            .vertices = {
-                {{-0.5f, -0.5f, -0.5f}},
-                {{-0.5f, -0.5f, 0.5f}},
-                {{-0.5f, 0.5f, 0.5f}},
-                {{-0.5f, 0.5f, -0.5f}},
-
-                {{0.5f, -0.5f, 0.5f}},
-                {{0.5f, -0.5f, -0.5f}},
-                {{0.5f, 0.5f, -0.5f}},
-                {{0.5f, 0.5f, 0.5f}},
-
-                {{0.5f, -0.5f, -0.5f}},
-                {{-0.5f, -0.5f, -0.5f}},
-                {{-0.5f, 0.5f, -0.5f}},
-                {{0.5f, 0.5f, -0.5f}},
-
-                {{-0.5f, -0.5f, 0.5f}},
-                {{0.5f, -0.5f, 0.5f}},
-                {{0.5f, 0.5f, 0.5f}},
-                {{-0.5f, 0.5f, 0.5f}},
-
-                {{-0.5f, -0.5f, -0.5f}},
-                {{0.5f, -0.5f, -0.5f}},
-                {{0.5f, -0.5f, 0.5f}},
-                {{-0.5f, -0.5f, 0.5f}},
-
-                {{0.5f, 0.5f, -0.5f}},
-                {{-0.5f, 0.5f, -0.5f}},
-                {{-0.5f, 0.5f, 0.5f}},
-                {{0.5f, 0.5f, 0.5f}},
-            },
-            .indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20},
-        };
-
-        success &= ResourceRegistry<Mesh>::insert(ResourceMesh, mesh, transfer);
-    }
-
     success &= ResourceRegistry<RenderPipeline>::insert(
         Resource,
         {{
             .module = "builtin/skybox",
-            .description = &VertexSkybox::Description,
-            .rasterization = {
-                .cullMode = RenderPipeline::CullModeFlags::eNone,
-            },
             .layouts = {
                 .resources = {
                     ResourceLayoutTexture,
@@ -177,7 +122,8 @@ bool SkyboxRenderer::build() {
                 m_Info.pipeline->bind(context);
                 context.systems.allocator->bind(context, m_Info.pipeline);
 
-                Builtin::RenderPipelineSkybox::ResourceMesh->draw(context, 1, 0);
+                // cubemap embedded within shader
+                context.command.draw(36, 1, 0, 0);
 
                 context.command.endRendering();
             },

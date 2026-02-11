@@ -56,9 +56,9 @@ struct VSOutput {
 };
 
 [shader("vertex")]
-VSOutput vertMain(uint VertexIndex: SV_VertexID) {
+VSOutput vertMain(uint vertexIdx: SV_VertexID) {
     VSOutput output;
-    output.coarseVertex.texCoord = float2((VertexIndex << 1) & 2, VertexIndex & 2);
+    output.coarseVertex.texCoord = float2((vertexIdx << 1) & 2, vertexIdx & 2);
     output.sv_position = float4(output.coarseVertex.texCoord * 2.0f - 1.0f, 0.0f, 1.0f);
     return output;
 }

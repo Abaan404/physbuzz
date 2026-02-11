@@ -16,14 +16,6 @@ namespace Builtin {
 
 namespace RenderPipelineSkybox {
 
-struct VertexSkybox {
-    glm::vec3 position;
-
-    static VertexDescription Description;
-};
-
-inline Resource<Mesh> ResourceMesh = {"builtin/skybox"};
-
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/skybox/frame"};
 inline Resource<PipelineLayout> ResourceLayoutTexture = {"builtin/skybox/texture"};
 
