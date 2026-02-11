@@ -87,7 +87,7 @@ bool ForwardRenderer::build() {
     // build pipeline
     if (m_Info.pipeline == Builtin::RenderPipelineForward::Resource) {
         if (!Builtin::RenderPipelineForward::build()) {
-            Logger::ERROR("[Renderer] Could not build forward shader pipeline.");
+            Logger::ERROR("[ForwardRenderer] Could not build forward shader pipeline.");
             return false;
         }
     }
@@ -130,7 +130,7 @@ bool ForwardRenderer::build() {
                     {
                         .imageView = context.color.view,
                         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-                        .loadOp = vk::AttachmentLoadOp::eClear,
+                        .loadOp = vk::AttachmentLoadOp::eLoad,
                         .storeOp = vk::AttachmentStoreOp::eStore,
                         .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
                     },

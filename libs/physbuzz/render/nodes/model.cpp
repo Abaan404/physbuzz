@@ -1,9 +1,8 @@
 #include "model.hpp"
 
 #include "../../ecs/scene.hpp"
+#include "../../graphics/material.hpp"
 #include "../defines.hpp"
-#include "physbuzz/graphics/material.hpp"
-#include "physbuzz/graphics/mesh.hpp"
 
 namespace Physbuzz {
 

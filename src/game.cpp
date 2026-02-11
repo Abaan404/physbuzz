@@ -19,6 +19,7 @@
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/deferred.hpp>
 #include <physbuzz/render/forward.hpp>
+#include <physbuzz/render/skybox.hpp>
 #include <physbuzz/window/inputs.hpp>
 #include <random>
 
@@ -101,6 +102,19 @@ void Game::build() {
     Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
     Physbuzz::App::GScene.createSystem<Physbuzz::PipelineLayoutAllocator>(Physbuzz::PipelineLayoutAllocator::Info{});
 
+    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        "skybox",
+        {{.type = Physbuzz::Texture::Type::Cube}},
+        std::vector{
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/right.jpg"}},
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/left.jpg"}},
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/top.jpg"}},
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/bottom.jpg"}},
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/front.jpg"}},
+            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/back.jpg"}},
+        },
+        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+
     std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(
         Physbuzz::Renderer::Info{
             .window = window,
@@ -116,7 +130,14 @@ void Game::build() {
         .window = window,
     });
 
+    std::shared_ptr<Physbuzz::SkyboxRenderer> skybox = Physbuzz::App::GScene.createSystem<Physbuzz::SkyboxRenderer>(Physbuzz::SkyboxRenderer::Info{
+        .camera = playerId,
+        .window = window,
+        .skybox = {"skybox"},
+    });
+
     renderer->setGraph({
+        skybox->getGraph(),
         forward->getGraph(),
         imgui->getGraph(),
     });
@@ -137,19 +158,6 @@ void Game::build() {
         "crate/specular",
         {{.type = Physbuzz::Texture::Type::Dim2D}},
         std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/specular.png"}}},
-        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
-
-    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
-        "skybox",
-        {{.type = Physbuzz::Texture::Type::Cube}},
-        std::vector{
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/right.jpg"}},
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/left.jpg"}},
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/top.jpg"}},
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/bottom.jpg"}},
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/back.jpg"}},
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/front.jpg"}},
-        },
         Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
 
     Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
@@ -230,7 +238,7 @@ void Game::build() {
                     .material = {"floor"},
                 },
                 .pointLight = {
-                    .intensity = {8000.0f, 8000.0f, 8000.0f},
+                    .intensity = {1000.0f, 1000.0f, 1000.0f},
                 },
             };
 
@@ -242,7 +250,7 @@ void Game::build() {
         LightDirectional directional = {
             .directionalLight = {
                 .direction = {1.0f, -1.0f, -1.0f},
-                .intensity = {3.0f, 3.0f, 3.0f},
+                .intensity = {1.0f, 1.0f, 1.0f},
             },
         };
 

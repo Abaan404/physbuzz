@@ -271,9 +271,9 @@ void PipelineLayoutAllocator::reset() {
     m_AllocatedLayouts.clear();
 }
 
-void PipelineLayoutAllocator::bind(const RenderContext &context, const Resource<RenderPipeline> &pipeline, std::uint32_t idx) {
-    for (std::size_t i = 0; i < pipeline->getInfo().layouts.resources.size(); i++) {
-        const Resource<PipelineLayout> &layout = pipeline->getInfo().layouts.resources[i];
+void PipelineLayoutAllocator::bind(const RenderContext &context, const RenderPipeline &pipeline, std::uint32_t idx) {
+    for (std::size_t i = 0; i < pipeline.getInfo().layouts.resources.size(); i++) {
+        const Resource<PipelineLayout> &layout = pipeline.getInfo().layouts.resources[i];
         PBZ_ASSERT(m_AllocatedLayouts.contains(layout), std::format("[PipelineLayoutAllocator] Unallocated layout '{}'", layout));
 
         std::vector<std::uint32_t> dynamicOffsets;
@@ -304,8 +304,8 @@ void PipelineLayoutAllocator::bind(const RenderContext &context, const Resource<
             break;
         }
 
-        std::lock_guard<std::mutex> lock(pipeline->m_ReloadMutex);
-        context.command.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->m_Layout, i, m_AllocatedLayouts[layout].sets[index], dynamicOffsets);
+        std::lock_guard<std::mutex> lock(pipeline.m_ReloadMutex);
+        context.command.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.m_Layout, i, m_AllocatedLayouts[layout].sets[index], dynamicOffsets);
     }
 }
 

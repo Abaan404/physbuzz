@@ -30,7 +30,7 @@ class VertexDescription {
     struct Info {
         std::vector<Attribute> attributes;
         std::uint32_t size;
-        std::uint32_t binding;
+        std::uint32_t binding = 0;
         InputRate inputRate = InputRate::eVertex;
     };
 

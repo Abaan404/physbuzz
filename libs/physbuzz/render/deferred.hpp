@@ -15,12 +15,6 @@ namespace RenderPipelineDeferred {
 
 namespace Geometry {
 
-struct ModelBuffer {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 invModel;
-    std::uint32_t materialIdx;
-};
-
 struct PushConstants {
     std::uint64_t materialBaseAddress;
 };

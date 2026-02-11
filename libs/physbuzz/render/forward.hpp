@@ -14,18 +14,6 @@ namespace Builtin {
 
 namespace RenderPipelineForward {
 
-struct CameraBuffer {
-    alignas(16) glm::vec3 position;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 projection;
-};
-
-struct ModelBuffer {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 invModel;
-    std::uint32_t materialIdx;
-};
-
 struct PushConstants {
     std::uint32_t directionalCount;
     std::uint32_t spotCount;

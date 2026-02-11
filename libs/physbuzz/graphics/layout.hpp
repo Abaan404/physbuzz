@@ -94,7 +94,7 @@ class PipelineLayoutAllocator : public System<> {
 
     void reset();
 
-    void bind(const RenderContext &context, const Resource<RenderPipeline> &pipeline, std::uint32_t idx = 0);
+    void bind(const RenderContext &context, const RenderPipeline &pipeline, std::uint32_t idx = 0);
 
   private:
     struct Allocation {

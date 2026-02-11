@@ -65,7 +65,7 @@ bool RenderGraph::compile(const RenderNodeID &outputId) {
         }
     }
 
-    // eliminate nodes that do not 
+    // eliminate nodes that do not contribute to the executable graph
     m_Graph.cull(outputId);
 
     m_ExecutableNodes.reserve(m_Graph.size());
@@ -80,12 +80,16 @@ bool RenderGraph::compile(const RenderNodeID &outputId) {
     // copy and build resources
     for (auto &node : m_ExecutableNodes) {
         for (auto &[resource, tuple] : node.description.textures.output) {
-            success &= ResourceRegistry<Texture>::insert(resource, std::get<0>(tuple), std::get<1>(tuple));
+            if (!ResourceRegistry<Texture>::contains(resource)) {
+                success &= ResourceRegistry<Texture>::insert(resource, std::get<0>(tuple), std::get<1>(tuple));
+            }
             m_Resources.textures.emplace(resource);
         }
 
         for (auto &[resource, tuple] : node.description.buffers.output) {
-            success &= ResourceRegistry<DynamicBuffer>::insert(resource, std::get<0>(tuple), std::get<1>(tuple));
+            if (!ResourceRegistry<DynamicBuffer>::contains(resource)) {
+                success &= ResourceRegistry<DynamicBuffer>::insert(resource, std::get<0>(tuple), std::get<1>(tuple));
+            }
             m_Resources.textures.emplace(resource);
         }
     }

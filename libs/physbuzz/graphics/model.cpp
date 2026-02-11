@@ -31,7 +31,6 @@ VertexDescription Model::Vertex::Description = {{
         },
     },
     .size = sizeof(Vertex),
-    .binding = 0,
 }};
 
 Model::Model(const Info &info)
