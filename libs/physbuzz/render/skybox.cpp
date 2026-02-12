@@ -86,7 +86,7 @@ bool SkyboxRenderer::build() {
     m_Graph.add(Builtin::RenderNodeCamera::Id, Builtin::RenderNodeCamera::build(m_Info.camera));
 
     m_Graph.add(
-        "builtin/skybox",
+        Output,
         {
             .description = {
                 .buffers = {

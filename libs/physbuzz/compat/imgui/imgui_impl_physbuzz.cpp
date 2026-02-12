@@ -80,7 +80,7 @@ bool ImGuiRenderer::build() {
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 
     m_Graph.add(
-        "builtin/imgui",
+        Output,
         {
             .execute = [](Scene *, const RenderContext &context) {
                 std::vector<vk::RenderingAttachmentInfo> colorAttachments = {

@@ -35,7 +35,7 @@ void RenderGraph::merge(const RenderGraph &graph) {
 }
 
 bool RenderGraph::compile() {
-    PBZ_ASSERT(m_Nodes.contains(m_Info.output), "[RenderGraph] Graph's outputId is not present.");
+    PBZ_ASSERT(m_Nodes.contains(m_Info.output), std::format("[RenderGraph] Graph's outputId '{}' is not present.", m_Info.output));
 
     m_ExecutableNodes.clear();
     m_Resources.textures.clear();

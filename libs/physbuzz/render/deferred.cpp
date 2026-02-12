@@ -287,7 +287,7 @@ bool DeferredRenderer::build() {
                     .imageView = context.depth.view,
                     .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
                     .loadOp = vk::AttachmentLoadOp::eClear,
-                    .storeOp = vk::AttachmentStoreOp::eDontCare,
+                    .storeOp = vk::AttachmentStoreOp::eStore,
                     .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
                 };
 
@@ -338,7 +338,7 @@ bool DeferredRenderer::build() {
         });
 
     m_Graph.add(
-        "builtin/deferred/lighting",
+        Output,
         {
             .description = {
                 .textures = {
@@ -362,14 +362,6 @@ bool DeferredRenderer::build() {
                 const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
                 const std::vector<SpotLightComponent> &spots = scene->getComponentArray<SpotLightComponent>();
 
-                vk::RenderingAttachmentInfo depthAttachment = {
-                    .imageView = context.depth.view,
-                    .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-                    .loadOp = vk::AttachmentLoadOp::eClear,
-                    .storeOp = vk::AttachmentStoreOp::eDontCare,
-                    .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
-                };
-
                 std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
                     {
                         .imageView = context.color.view,
@@ -388,7 +380,7 @@ bool DeferredRenderer::build() {
                     .layerCount = 1,
                     .colorAttachmentCount = static_cast<std::uint32_t>(colorAttachments.size()),
                     .pColorAttachments = colorAttachments.data(),
-                    .pDepthAttachment = &depthAttachment,
+                    .pDepthAttachment = {},
                     .pStencilAttachment = {},
                 });
 

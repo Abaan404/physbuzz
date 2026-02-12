@@ -104,7 +104,7 @@ bool ForwardRenderer::build() {
     m_Graph.add(Builtin::RenderNodeModels::Id, Builtin::RenderNodeModels::build(m_Objects, m_Batches));
 
     m_Graph.add(
-        "builtin/forward",
+        Output,
         {
             .description = {
                 .buffers = {
@@ -130,7 +130,7 @@ bool ForwardRenderer::build() {
                     {
                         .imageView = context.color.view,
                         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-                        .loadOp = vk::AttachmentLoadOp::eLoad,
+                        .loadOp = vk::AttachmentLoadOp::eClear,
                         .storeOp = vk::AttachmentStoreOp::eStore,
                         .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
                     },
