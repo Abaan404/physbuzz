@@ -76,6 +76,13 @@ bool Texture::build(const glm::uvec3 &resolution) {
         return true;
     }
 
+    Sampler sampler = m_Info.sampler;
+
+    if (!sampler.build()) {
+        Logger::ERROR("[Texture] Failed to build a sampler.");
+        return false;
+    }
+
     switch (m_Info.type) {
     case Type::Dim2D:
         m_Image = {{
@@ -110,8 +117,8 @@ bool Texture::build(const glm::uvec3 &resolution) {
     }
 
     m_Data = {
+        .sampler = sampler,
         .view = createImageView(),
-        .sampler = createSampler(),
         .layout = createLayout(),
     };
 
@@ -127,11 +134,17 @@ bool Texture::destroy() {
     App::Device.destroyImageView(m_Data.view);
     m_Data.view = nullptr;
 
-    // Note: samplers are destroyed on engine shutdown, could refcount it but unnecessary for this project's scope
-    // In the future samplers could be its own resource and it could be specially handled as such
-    m_Data.sampler = nullptr;
+    if (!m_Data.sampler.destroy()) {
+        Logger::WARNING("[Texture] Failed to destroy sampler.");
+        return false;
+    }
 
-    return m_Image.destroy();
+    if (!m_Image.destroy()) {
+        Logger::WARNING("[Texture] Failed to destroy image.");
+        return false;
+    }
+
+    return true;
 }
 
 bool Texture::resize(const RenderContext &context, const glm::uvec3 &size) {
@@ -177,8 +190,8 @@ bool Texture::resize(const RenderContext &context, const glm::uvec3 &size) {
     m_Image = image;
 
     m_Data = {
+        .sampler = m_Data.sampler,
         .view = createImageView(),
-        .sampler = createSampler(),
         .layout = createLayout(),
     };
 
@@ -204,42 +217,6 @@ const Image &Texture::getImage() const {
 
 glm::uvec3 Texture::getSize() const {
     return glm::uvec3(m_Image.getData().imageInfo.extent.width, m_Image.getData().imageInfo.extent.height, m_Image.getData().imageInfo.extent.depth);
-}
-
-vk::Sampler Texture::createSampler() const {
-    switch (m_Info.sampler) {
-    case Sampler::Linear:
-        static vk::Sampler linear = PBZ_VK_CHECK(App::Device.createSampler({
-            .flags = {},
-            .magFilter = vk::Filter::eLinear,
-            .minFilter = vk::Filter::eLinear,
-            .mipmapMode = vk::SamplerMipmapMode::eLinear,
-            .addressModeU = vk::SamplerAddressMode::eRepeat,
-            .addressModeV = vk::SamplerAddressMode::eRepeat,
-            .addressModeW = vk::SamplerAddressMode::eRepeat,
-            .mipLodBias = 0.0f,
-            .anisotropyEnable = vk::True,
-            .maxAnisotropy = App::PhysicalDeviceProperties.limits.maxSamplerAnisotropy,
-            .compareEnable = vk::False,
-            .compareOp = vk::CompareOp::eAlways,
-            .minLod = 0.0f,
-            .maxLod = 1.0f,
-            .borderColor = vk::BorderColor::eIntOpaqueBlack,
-            .unnormalizedCoordinates = vk::False,
-        }));
-
-        static std::once_flag flag;
-        std::call_once(flag, []() {
-            App::Deletion.enqueue(linear);
-        });
-
-        return linear;
-
-    case Sampler::None:
-        return nullptr;
-    }
-
-    return nullptr;
 }
 
 vk::ImageView Texture::createImageView() const {

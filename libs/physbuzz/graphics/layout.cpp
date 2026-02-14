@@ -4,6 +4,7 @@
 #include "../debug/macros.hpp"
 #include "../events/descriptor.hpp"
 #include "descriptors/dynamic.hpp"
+#include "descriptors/sampler.hpp"
 #include "descriptors/texture.hpp"
 #include "pipeline.hpp"
 
@@ -132,7 +133,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     }
 
     PBZ_ASSERT(
-        binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
+        binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
         std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
     PBZ_ASSERT(
         layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
@@ -201,12 +202,12 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
         break;
     }
 
-    if (type == vk::DescriptorType::eCombinedImageSampler && texture->getData().sampler == nullptr) {
+    if (type == vk::DescriptorType::eCombinedImageSampler && texture->getInfo().sampler.type == Sampler::Type::None) {
         type = vk::DescriptorType::eSampledImage;
     }
 
     PBZ_ASSERT(
-        binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
+        binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
         std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
     PBZ_ASSERT(
         layout->getInfo().lifetime == PipelineLayout::Lifetime::Global,
@@ -235,9 +236,40 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     m_WrittenTextures[&texture.get()].layouts[layout] = {binding, element};
 
     vk::DescriptorImageInfo imageInfo = {
-        .sampler = texture->getData().sampler,
+        .sampler = texture->getData().sampler.getData().sampler,
         .imageView = texture->getData().view,
         .imageLayout = texture->getData().layout,
+    };
+
+    vk::WriteDescriptorSet writes = {
+        .dstSet = m_AllocatedLayouts[layout].sets[0],
+        .dstBinding = static_cast<std::uint32_t>(binding),
+        .dstArrayElement = element,
+        .descriptorCount = 1,
+        .descriptorType = type,
+        .pImageInfo = &imageInfo,
+    };
+
+    App::Device.updateDescriptorSets(writes, {});
+    return true;
+}
+
+bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, const Resource<Sampler> &sampler, std::uint32_t binding, std::uint32_t element) {
+    vk::DescriptorType type = vk::DescriptorType::eSampler;
+
+    PBZ_ASSERT(
+        binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
+    PBZ_ASSERT(
+        layout->getInfo().lifetime == PipelineLayout::Lifetime::Global,
+        std::format("[PipelineLayoutAllocator] Incompatible lifetime for sampler '{}' and layout '{}'", sampler, layout));
+
+    if (!m_AllocatedLayouts.contains(layout)) {
+        allocate(layout);
+    }
+
+    vk::DescriptorImageInfo imageInfo = {
+        .sampler = sampler->getData().sampler,
     };
 
     vk::WriteDescriptorSet writes = {
@@ -332,7 +364,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     }
 
     PBZ_ASSERT(
-        binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
+        binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
         std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
     PBZ_ASSERT(
         layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
@@ -379,12 +411,12 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
         break;
     }
 
-    if (type == vk::DescriptorType::eCombinedImageSampler && texture->getData().sampler == nullptr) {
+    if (type == vk::DescriptorType::eCombinedImageSampler && texture->getInfo().sampler.type == Sampler::Type::None) {
         type = vk::DescriptorType::eSampledImage;
     }
 
     PBZ_ASSERT(
-        binding < layout->getInfo().bindings.size() || layout->getInfo().bindings[binding].type == type,
+        binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
         std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for resource '{}'", binding, element, layout));
     PBZ_ASSERT(
         layout->getInfo().lifetime == PipelineLayout::Lifetime::Global,
@@ -395,7 +427,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     }
 
     vk::DescriptorImageInfo imageInfo = {
-        .sampler = texture->getData().sampler,
+        .sampler = texture->getData().sampler.getData().sampler,
         .imageView = texture->getData().view,
         .imageLayout = texture->getData().layout,
     };

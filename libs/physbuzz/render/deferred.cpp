@@ -199,7 +199,7 @@ bool DeferredRenderer::build() {
                             {
                                 {
                                     .type = Texture::Type::Attachment,
-                                    .sampler = Texture::Sampler::None,
+                                    .sampler = {Sampler::Type::None},
                                     .format = Texture::Format::eR16G16B16A16Sfloat,
                                 },
                                 glm::uvec3{1, 1, 1},
@@ -210,7 +210,7 @@ bool DeferredRenderer::build() {
                             {
                                 {
                                     .type = Texture::Type::Attachment,
-                                    .sampler = Texture::Sampler::None,
+                                    .sampler = {Sampler::Type::None},
                                     .format = Texture::Format::eR8G8B8A8Snorm,
                                 },
                                 glm::uvec3{1, 1, 1},
@@ -221,7 +221,7 @@ bool DeferredRenderer::build() {
                             {
                                 {
                                     .type = Texture::Type::Attachment,
-                                    .sampler = Texture::Sampler::None,
+                                    .sampler = {Sampler::Type::None},
                                     .format = Texture::Format::eR8G8B8A8Unorm,
                                 },
                                 glm::uvec3{1, 1, 1},

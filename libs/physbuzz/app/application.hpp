@@ -76,6 +76,7 @@ class App {
 
     friend class StaticBuffer;
     friend class Texture;
+    friend class Sampler;
 
     friend class Window;
     friend class Renderer;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../containers/directedgraph.hpp"
-#include "../resources/defines.hpp"
+#include "../resources/resource.hpp"
 #include "descriptors/dynamic.hpp"
 #include "descriptors/texture.hpp"
 
@@ -34,8 +34,8 @@ class RenderGraph {
     RenderGraph(const Info &info);
 
     struct Resources {
-        std::unordered_set<ResourceID> textures;
-        std::unordered_set<ResourceID> buffers;
+        std::unordered_set<Resource<Texture>> textures;
+        std::unordered_set<Resource<DynamicBuffer>> buffers;
     };
 
     const RenderNode &add(const RenderNodeID &id, const RenderNode &node);
@@ -46,6 +46,7 @@ class RenderGraph {
     bool compile();
     void execute(Scene *scene, const RenderContext &context) const;
 
+    const std::vector<RenderNodeID> &getExecutableNodes() const;
     const Resources &getResources() const;
     const Info &getInfo() const;
 
@@ -56,6 +57,7 @@ class RenderGraph {
     DirectedGraph<RenderNodeID> m_Graph;
 
     std::vector<RenderNode> m_ExecutableNodes;
+    std::vector<RenderNodeID> m_ExecutableNodeIds;
     Resources m_Resources;
 };
 

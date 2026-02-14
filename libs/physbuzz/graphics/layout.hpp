@@ -9,6 +9,7 @@ namespace Physbuzz {
 class Buffer;
 class DynamicBuffer;
 class Texture;
+class Sampler;
 class RenderPipeline;
 class Renderer;
 
@@ -91,6 +92,7 @@ class PipelineLayoutAllocator : public System<> {
 
     bool write(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t binding, std::uint32_t element = 0);
     bool write(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
+    bool write(const Resource<PipelineLayout> &layout, const Resource<Sampler> &sampler, std::uint32_t binding, std::uint32_t element = 0);
 
     void reset();
 

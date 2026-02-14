@@ -5,6 +5,7 @@
 #include "../../resources/defines.hpp"
 #include "../defines.hpp"
 #include "../memory.hpp"
+#include "sampler.hpp"
 
 namespace Physbuzz {
 
@@ -18,20 +19,16 @@ class Texture : public EventSubject {
         Dim2D,
     };
 
-    enum class Sampler {
-        Linear,
-        None,
-    };
-
     struct Info {
         Type type;
-        Sampler sampler = Sampler::Linear;
+        Sampler::Info sampler;
         Format format = Format::eR8G8B8A8Unorm;
     };
 
     struct Data {
+        Sampler sampler = {{Sampler::Type::None}};
+
         vk::ImageView view = nullptr;
-        vk::Sampler sampler = nullptr;
         vk::ImageLayout layout = vk::ImageLayout::eUndefined;
     };
 
@@ -50,7 +47,6 @@ class Texture : public EventSubject {
     glm::uvec3 getSize() const;
 
   private:
-    vk::Sampler createSampler() const;
     vk::ImageView createImageView() const;
     vk::ImageLayout createLayout() const;
 

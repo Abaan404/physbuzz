@@ -30,6 +30,7 @@ void RenderGraph::merge(const RenderGraph &graph) {
 
     // merging requires a recompile
     m_ExecutableNodes.clear();
+    m_ExecutableNodeIds.clear();
     m_Resources.buffers.clear();
     m_Resources.textures.clear();
 }
@@ -38,6 +39,7 @@ bool RenderGraph::compile() {
     PBZ_ASSERT(m_Nodes.contains(m_Info.output), std::format("[RenderGraph] Graph's outputId '{}' is not present.", m_Info.output));
 
     m_ExecutableNodes.clear();
+    m_ExecutableNodeIds.clear();
     m_Resources.textures.clear();
     m_Resources.buffers.clear();
 
@@ -85,10 +87,12 @@ bool RenderGraph::compile() {
     m_Graph.cull(m_Info.output);
 
     m_ExecutableNodes.reserve(m_Graph.size());
+    m_ExecutableNodeIds.reserve(m_Graph.size());
 
     // generate order and barriers
     for (const auto &id : m_Graph.sort()) {
         m_ExecutableNodes.emplace_back(m_Nodes.at(id));
+        m_ExecutableNodeIds.emplace_back(id);
     }
 
     bool success = true;
@@ -106,7 +110,7 @@ bool RenderGraph::compile() {
             if (!ResourceRegistry<DynamicBuffer>::contains(resource)) {
                 success &= ResourceRegistry<DynamicBuffer>::insert(resource, std::get<0>(tuple), std::get<1>(tuple));
             }
-            m_Resources.textures.emplace(resource);
+            m_Resources.buffers.emplace(resource);
         }
     }
 
@@ -117,6 +121,10 @@ void RenderGraph::execute(Scene *scene, const RenderContext &context) const {
     for (auto &node : m_ExecutableNodes) {
         node.execute(scene, context);
     }
+}
+
+const std::vector<RenderNodeID> &RenderGraph::getExecutableNodes() const {
+    return m_ExecutableNodeIds;
 }
 
 const RenderGraph::Resources &RenderGraph::getResources() const {

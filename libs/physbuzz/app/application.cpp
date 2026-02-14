@@ -311,6 +311,7 @@ bool App::quit() {
     ResourceRegistry<StaticBuffer>::clear();
     ResourceRegistry<DynamicBuffer>::clear();
     ResourceRegistry<Texture>::clear();
+    ResourceRegistry<Sampler>::clear();
     ResourceRegistry<Mesh>::clear();
 
     vmaDestroyAllocator(Allocator);
