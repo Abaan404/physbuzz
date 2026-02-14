@@ -6,12 +6,28 @@
 
 #include "../../app/application.hpp"
 #include "../../debug/macros.hpp"
+#include "../../graphics/descriptors/sampler.hpp"
 #include "../../graphics/renderer.hpp"
-#include <vulkan/vulkan_core.h>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 namespace Physbuzz {
+
+namespace Builtin {
+
+bool RenderPipelineImGui::build() {
+    bool success = true;
+
+    if (!ResourceRegistry<Sampler>::contains(ResourceSampler)) {
+        success &= ResourceRegistry<Sampler>::insert(
+            ResourceSampler,
+            {{
+                .type = Physbuzz::Sampler::Type::Linear,
+            }});
+    }
+
+    return success;
+}
+
+} // namespace Builtin
 
 ImGuiRenderer::ImGuiRenderer(const Info &info)
     : m_Info(info) {}
@@ -20,7 +36,13 @@ bool ImGuiRenderer::build() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
+    if (!Builtin::RenderPipelineImGui::build()) {
+        Logger::ERROR("[ImGuiRenderer] Could not build ImGui resources.");
+        return false;
+    }
+
     if (!ImGui_ImplGlfw_InitForVulkan(*m_Info.window, true)) {
+        Logger::ERROR("[ImGuiRenderer] Could not initialize ImGui with GLFW.");
         return false;
     }
 
@@ -67,9 +89,8 @@ bool ImGuiRenderer::build() {
         },
     };
 
-    bool success = ImGui_ImplVulkan_Init(&initInfo, VK_NULL_HANDLE);
-
-    if (!success) {
+    if (!ImGui_ImplVulkan_Init(&initInfo, VK_NULL_HANDLE)) {
+        Logger::ERROR("[ImGuiRenderer] Could not initialize ImGui with Vulkan.");
         return false;
     }
 
@@ -110,12 +131,14 @@ bool ImGuiRenderer::build() {
             },
         });
 
-    success &= m_Graph.compile();
-
-    return success;
+    return m_Graph.compile();
 }
 
 bool ImGuiRenderer::destroy() {
+    for (const auto &[texture, id] : m_Textures) {
+        ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(id));
+    }
+
     if (m_Pool) {
         App::Device.destroyDescriptorPool(m_Pool);
         m_Pool = nullptr;
@@ -135,6 +158,30 @@ void ImGuiRenderer::newFrame() {
 
 const RenderGraph &ImGuiRenderer::getGraph() const {
     return m_Graph;
+}
+
+ImTextureID ImGuiRenderer::getTexture(const Resource<Texture> &texture) {
+    if (!m_Textures.contains(texture)) {
+        const Physbuzz::Texture::Data &textureData = texture->getData();
+
+        vk::Sampler sampler = nullptr;
+
+        if (texture->getInfo().sampler.type != Sampler::Type::None) {
+            sampler = texture->getData().sampler.getData().sampler;
+        } else {
+            sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
+        }
+
+        m_Textures.insert({
+            texture,
+            ImGui_ImplVulkan_AddTexture(
+                static_cast<VkSampler>(sampler),
+                static_cast<VkImageView>(texture->getData().view),
+                static_cast<VkImageLayout>(texture->getData().layout)),
+        });
+    }
+
+    return m_Textures.at(texture);
 }
 
 } // namespace Physbuzz

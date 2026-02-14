@@ -12,7 +12,7 @@
 #include "objectlist.hpp"
 #include "objectpicker.hpp"
 #include "overlay.hpp"
-#include "renderer.hpp"
+#include "rendergraph.hpp"
 
 InterfaceManager::InterfaceManager() {}
 
@@ -25,14 +25,15 @@ bool InterfaceManager::build() {
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows (buggy on wayland)
     io.IniFilename = nullptr; // disable imgui.ini
 
-    m_Interfaces["Demo"] = std::make_shared<Demo>(m_Scene);
-    // m_Interfaces["ObjectPicker"] = std::make_unique<ObjectPicker>(m_Scene);
-    m_Interfaces["ObjectList"] = std::make_unique<ObjectList>(m_Scene);
-    m_Interfaces["Camera"] = std::make_unique<Camera>(m_Scene);
-    m_Interfaces["Renderer"] = std::make_unique<Renderer>(m_Scene);
-    m_Interfaces["Dockspace"] = std::make_unique<Dockspace>(m_Scene);
+    m_Interfaces.emplace_back(std::make_unique<Dockspace>(m_Scene));
 
-    m_Interfaces["Demo"]->show = false;
+    std::shared_ptr<IUserInterface> demo = m_Interfaces.emplace_back(std::make_shared<Demo>(m_Scene));
+    // m_Interfaces["ObjectPicker"] = std::make_unique<ObjectPicker>(m_Scene);
+    m_Interfaces.emplace_back(std::make_unique<ObjectList>(m_Scene));
+    m_Interfaces.emplace_back(std::make_unique<Camera>(m_Scene));
+    m_Interfaces.emplace_back(std::make_unique<RenderGraph>(m_Scene));
+
+    demo->show = false;
 
     return true;
 }
@@ -50,8 +51,8 @@ void InterfaceManager::tick() {
 
     if (draw) {
         for (const auto &interface : m_Interfaces) {
-            if (interface.second->show) {
-                interface.second->draw();
+            if (interface->show) {
+                interface->draw();
             }
         }
     }

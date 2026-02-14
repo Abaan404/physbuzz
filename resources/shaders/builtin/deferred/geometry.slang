@@ -95,8 +95,8 @@ FSOutput fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
 
     Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialIdx * Material.STRIDE);
 
-    output.position = { coarseVertex.position, 0.0f };
-    output.normal = { coarseVertex.normal, 0.0f };
+    output.position = { coarseVertex.position, 1.0f };
+    output.normal = { coarseVertex.normal, 1.0f };
     output.albedo = { textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).xyz,
                       textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).x };
 

@@ -4,12 +4,26 @@
 
 #include "../../ecs/system.hpp"
 #include "../../graphics/rendergraph.hpp"
+#include "../../resources/resource.hpp"
 #include <imgui.h>
-#include <vulkan/vulkan.h>
 
 namespace Physbuzz {
 
 class Window;
+class Texture;
+class Sampler;
+
+namespace Builtin {
+
+namespace RenderPipelineImGui {
+
+inline Resource<Sampler> ResourceSampler = {"builtin/imgui/sampler"};
+
+bool build();
+
+} // namespace RenderPipelineForward
+
+} // namespace Builtin
 
 class ImGuiRenderer : public System<> {
   public:
@@ -28,9 +42,12 @@ class ImGuiRenderer : public System<> {
 
     const RenderGraph &getGraph() const;
 
+    ImTextureID getTexture(const Resource<Texture> &texture);
+
   private:
     Info m_Info;
 
+    std::unordered_map<Resource<Texture>, ImTextureID> m_Textures;
     vk::DescriptorPool m_Pool = nullptr;
 
     RenderGraph m_Graph = {{

@@ -22,7 +22,6 @@ void Camera::draw() {
 
     const auto [_, camera, player] = m_Scene->getComponents<Physbuzz::CameraComponent, PlayerComponent>().front();
 
-    ImGui::SeparatorText("Camera");
     ImGui::SeparatorText("Projection");
 
     Physbuzz::CameraComponent::Info info = camera.getInfo();

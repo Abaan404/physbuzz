@@ -3,7 +3,6 @@
 #include "ui.hpp"
 #include <memory>
 #include <physbuzz/window/window.hpp>
-#include <unordered_map>
 
 class InterfaceManager : public Physbuzz::System<> {
   public:
@@ -17,5 +16,5 @@ class InterfaceManager : public Physbuzz::System<> {
     bool draw = false;
 
   private:
-    std::unordered_map<std::string, std::shared_ptr<IUserInterface>> m_Interfaces;
+    std::vector<std::shared_ptr<IUserInterface>> m_Interfaces;
 };

@@ -121,6 +121,11 @@ void Game::build() {
         },
         Physbuzz::RenderGraph::Info{});
 
+    Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(Physbuzz::ForwardRenderer::Info{
+        .camera = playerId,
+        .window = window,
+    });
+
     std::shared_ptr<Physbuzz::DeferredRenderer> deferred = Physbuzz::App::GScene.createSystem<Physbuzz::DeferredRenderer>(Physbuzz::DeferredRenderer::Info{
         .camera = playerId,
         .window = window,
