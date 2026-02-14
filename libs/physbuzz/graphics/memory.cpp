@@ -85,7 +85,7 @@ const Buffer::Data &Buffer::getData() const {
     return m_Data;
 }
 
-bool Buffer::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, const std::vector<vk::BufferCopy> &copies) const {
+bool Buffer::copy(vk::CommandBuffer commandBuffer, const Buffer &src, const std::vector<vk::BufferCopy> &copies) const {
     if (m_Data.buffer == nullptr || m_Allocation == nullptr) {
         Logger::ERROR("[Buffer] Trying to copy to a destructed buffer.");
         return false;
@@ -199,7 +199,7 @@ bool Image::destroy() {
     return true;
 }
 
-bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies, vk::ImageLayout layout) const {
+bool Image::copy(vk::CommandBuffer commandBuffer, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies, vk::ImageLayout layout) const {
     if (m_Data.image == nullptr || m_Allocation == nullptr) {
         Logger::ERROR("[Image] Trying to copy to a destructed image.");
         return false;
@@ -269,7 +269,7 @@ bool Image::copy(const vk::CommandBuffer &commandBuffer, const Buffer &src, cons
     return true;
 }
 
-bool Image::copy(const vk::CommandBuffer &commandBuffer, const Image &src, const std::vector<vk::ImageCopy> &copies, vk::ImageLayout layout) const {
+bool Image::copy(vk::CommandBuffer commandBuffer, const Image &src, const std::vector<vk::ImageCopy> &copies, vk::ImageLayout layout) const {
     if (m_Data.image == nullptr || m_Allocation == nullptr) {
         Logger::ERROR("[Image] Trying to copy to a destructed image.");
         return false;
@@ -550,7 +550,7 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &bytes, 
     return true;
 }
 
-void Transfer::immediate(std::function<void(const vk::CommandBuffer &)> record) {
+void Transfer::immediate(std::function<void(vk::CommandBuffer)> record) {
     // prepare the command buffer
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
     PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.submit));

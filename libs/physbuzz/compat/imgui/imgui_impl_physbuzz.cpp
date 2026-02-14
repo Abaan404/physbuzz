@@ -94,7 +94,7 @@ bool ImGuiRenderer::build() {
         return false;
     }
 
-    m_Scene->getSystem<Renderer>()->immediate([](const vk::CommandBuffer &cmd) {
+    m_Scene->getSystem<Renderer>()->immediate([](vk::CommandBuffer cmd) {
         ImGui_ImplVulkan_CreateFontsTexture(cmd);
     });
 

@@ -27,7 +27,7 @@ class StaticBuffer : public EventSubject {
 
     std::size_t getSize() const;
     const Buffer &getBuffer() const;
-    const vk::DeviceAddress &getAddress() const;
+    vk::DeviceAddress getAddress() const;
 
   private:
     Buffer m_Buffer;

@@ -99,7 +99,7 @@ const Buffer &StaticBuffer::getBuffer() const {
     return m_Buffer;
 }
 
-const vk::DeviceAddress &StaticBuffer::getAddress() const {
+vk::DeviceAddress StaticBuffer::getAddress() const {
     return m_Address;
 }
 
