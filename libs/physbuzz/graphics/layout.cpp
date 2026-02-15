@@ -161,13 +161,13 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
         allocate(layout);
     }
 
-    const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = buffer->getBuffers();
+    const std::array<DynamicBuffer::Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = buffer->getRingData();
     std::array<vk::DescriptorBufferInfo, detail::MAX_FRAMES_IN_FLIGHT> bufferInfos;
     std::array<vk::WriteDescriptorSet, detail::MAX_FRAMES_IN_FLIGHT> writes;
 
     for (std::uint32_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         bufferInfos[i] = vk::DescriptorBufferInfo{
-            .buffer = buffers[i].getData().buffer,
+            .buffer = ringData[i].buffer.getData().buffer,
             .offset = layout->getInfo().bindings[binding].offset + element * layout->getInfo().bindings[binding].range,
             .range = layout->getInfo().bindings[binding].range,
         };
@@ -374,10 +374,10 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
         allocate(layout);
     }
 
-    const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &buffers = buffer->getBuffers();
+    const std::array<DynamicBuffer::Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = buffer->getRingData();
 
     vk::DescriptorBufferInfo bufferInfo = {
-        .buffer = buffers[context.frameInFlight].getData().buffer,
+        .buffer = ringData[context.frameInFlight].buffer.getData().buffer,
         .offset = layout->getInfo().bindings[binding].offset + element * layout->getInfo().bindings[binding].range,
         .range = layout->getInfo().bindings[binding].range,
     };

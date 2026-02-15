@@ -6,47 +6,53 @@
 
 namespace Physbuzz {
 
-StaticBuffer::StaticBuffer()
-    : m_Buffer({}) {}
+StaticBuffer::StaticBuffer() {}
 
 bool StaticBuffer::build(std::uint64_t size) {
-    if (m_Address != 0) {
+    if (m_Data.address != 0) {
         Logger::WARNING("[StaticBuffer] Trying to build a constructed static buffer.");
         return true;
     }
 
-    m_Buffer = {{
+    Buffer buffer = {{
         .usage = Buffer::BufferUsageFlagBits::eTransferSrc | Buffer::BufferUsageFlagBits::eTransferDst | Buffer::BufferUsageFlagBits::eShaderDeviceAddress,
         .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
     }};
 
-    if (!m_Buffer.build(size)) {
+    if (!buffer.build(size)) {
         return false;
     }
 
-    m_Address = App::Device.getBufferAddress({
-        .buffer = m_Buffer.getData().buffer,
-    });
+    m_Data = {
+        .buffer = buffer,
+        .address = App::Device.getBufferAddress({
+            .buffer = buffer.getData().buffer,
+        }),
+    };
 
     return true;
 }
 
 bool StaticBuffer::destroy() {
-    if (m_Address == 0) {
+    if (m_Data.address == 0) {
         Logger::WARNING("[StaticBuffer] Trying to destroy a destructed static buffer.");
         return true;
     }
 
-    if (!m_Buffer.destroy()) {
+    if (!m_Data.buffer.destroy()) {
         return false;
     }
 
-    m_Address = 0;
+    m_Data = {
+        .buffer = {{}},
+        .address = 0,
+    };
+
     return true;
 }
 
 bool StaticBuffer::resize(const RenderContext &context, std::uint64_t size) {
-    Buffer buffer = m_Buffer.getInfo();
+    Buffer buffer = m_Data.buffer.getInfo();
 
     // create new buffer
     if (!buffer.build(size)) {
@@ -58,18 +64,20 @@ bool StaticBuffer::resize(const RenderContext &context, std::uint64_t size) {
     std::vector<vk::BufferCopy> copies = {{
         .srcOffset = 0,
         .dstOffset = 0,
-        .size = glm::min(m_Buffer.getData().bufferInfo.size, buffer.getData().bufferInfo.size),
+        .size = glm::min(m_Data.buffer.getData().bufferInfo.size, buffer.getData().bufferInfo.size),
     }};
 
-    buffer.copy(context.command, m_Buffer, copies);
+    buffer.copy(context.command, m_Data.buffer, copies);
 
     // mark old buffer for deferred deletion and update
-    context.deletionQueue->enqueue(std::move(m_Buffer));
+    context.deletionQueue->enqueue(std::move(m_Data.buffer));
 
-    m_Buffer = buffer;
-    m_Address = App::Device.getBufferAddress({
-        .buffer = m_Buffer.getData().buffer,
-    });
+    m_Data = {
+        .buffer = buffer,
+        .address = App::Device.getBufferAddress({
+            .buffer = buffer.getData().buffer,
+        }),
+    };
 
     notifyCallbacks<OnStaticBufferRealloc>({
         .buffer = this,
@@ -85,22 +93,18 @@ bool StaticBuffer::update(const RenderContext &context, const std::span<const st
         resize(context, requiredSize);
     }
 
-    PBZ_ASSERT(m_Address != 0, "[StaticBuffer] Buffer has not been allocated.");
+    PBZ_ASSERT(m_Data.address != 0, "[StaticBuffer] Buffer has not been allocated.");
 
     // TODO this doesnt have to happen on the transfer queue
-    return context.systems.transfer->map(m_Buffer, bytes, offset);
+    return context.systems.transfer->map(m_Data.buffer, bytes, offset);
 }
 
 std::size_t StaticBuffer::getSize() const {
-    return m_Buffer.getData().bufferInfo.size;
+    return m_Data.buffer.getData().bufferInfo.size;
 }
 
-const Buffer &StaticBuffer::getBuffer() const {
-    return m_Buffer;
-}
-
-vk::DeviceAddress StaticBuffer::getAddress() const {
-    return m_Address;
+const StaticBuffer::Data &StaticBuffer::getData() const {
+    return m_Data;
 }
 
 } // namespace Physbuzz

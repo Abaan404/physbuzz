@@ -267,7 +267,7 @@ bool DeferredRenderer::build() {
                         .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
                         .oldLayout = vk::ImageLayout::eAttachmentOptimal,
                         .newLayout = vk::ImageLayout::eAttachmentOptimal,
-                        .image = gBuffers[i]->getImage().getData().image,
+                        .image = gBuffers[i]->getData().image.getData().image,
                         .subresourceRange = {
                             .aspectMask = vk::ImageAspectFlagBits::eColor,
                             .baseMipLevel = 0,
@@ -293,7 +293,7 @@ bool DeferredRenderer::build() {
 
                 // record constants
                 Builtin::RenderPipelineDeferred::Geometry::PushConstants pushConstants = {
-                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getAddress(),
+                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
                 };
 
                 m_Info.geometry->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);

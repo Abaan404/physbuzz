@@ -144,7 +144,7 @@ bool ForwardRenderer::build() {
                     .directionalCount = static_cast<std::uint32_t>(directionals.size()),
                     .spotCount = static_cast<std::uint32_t>(spots.size()),
                     .pointCount = static_cast<std::uint32_t>(points.size()),
-                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getAddress(),
+                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
                 };
 
                 m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);

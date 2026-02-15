@@ -10,6 +10,11 @@ struct RenderContext;
 
 class StaticBuffer : public EventSubject {
   public:
+    struct Data {
+        Buffer buffer = {{}};
+        vk::DeviceAddress address = 0;
+    };
+
     StaticBuffer();
 
     bool build(std::uint64_t size);
@@ -26,12 +31,10 @@ class StaticBuffer : public EventSubject {
     bool update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset);
 
     std::size_t getSize() const;
-    const Buffer &getBuffer() const;
-    vk::DeviceAddress getAddress() const;
+    const Data &getData() const;
 
   private:
-    Buffer m_Buffer;
-    vk::DeviceAddress m_Address = 0;
+    Data m_Data;
 };
 
 template <>

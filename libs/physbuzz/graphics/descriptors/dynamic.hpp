@@ -21,6 +21,10 @@ class DynamicBuffer : public EventSubject {
         Type type;
     };
 
+    struct Data {
+        Buffer buffer;
+    };
+
     DynamicBuffer(const Info &info);
 
     bool build(std::uint64_t size);
@@ -39,12 +43,12 @@ class DynamicBuffer : public EventSubject {
     const Info &getInfo() const;
 
     std::size_t getSize(const RenderContext &context) const;
-    const std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT> &getBuffers() const;
+    const std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &getRingData() const;
 
   private:
     Info m_Info;
 
-    std::variant<std::monostate, std::array<Buffer, detail::MAX_FRAMES_IN_FLIGHT>> m_Buffers;
+    std::variant<std::monostate, std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>> m_RingData;
 };
 
 template <>

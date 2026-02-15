@@ -27,6 +27,7 @@ class Texture : public EventSubject {
 
     struct Data {
         Sampler sampler = {{Sampler::Type::None}};
+        Image image = {{}};
 
         vk::ImageView view = nullptr;
         vk::ImageLayout layout = vk::ImageLayout::eUndefined;
@@ -42,17 +43,14 @@ class Texture : public EventSubject {
 
     const Info &getInfo() const;
     const Data &getData() const;
-    const Image &getImage() const;
 
     glm::uvec3 getSize() const;
 
   private:
-    vk::ImageView createImageView() const;
+    vk::ImageView createImageView(const Image &image) const;
     vk::ImageLayout createLayout() const;
 
     Info m_Info;
-
-    Image m_Image = {{}};
     Data m_Data;
 };
 

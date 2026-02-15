@@ -134,7 +134,7 @@ void RenderGraph::draw() {
             selectedTexture.getIdentifier().c_str(),
             &showWindow,
             imguiImpl->getTexture(selectedTexture),
-            {selectedTexture->getImage().getData().imageInfo.extent.width, selectedTexture->getImage().getData().imageInfo.extent.height});
+            {selectedTexture->getSize().x, selectedTexture->getSize().y});
     }
 
     const char *types[] = {"Deferred", "Forward", "Unknown"};

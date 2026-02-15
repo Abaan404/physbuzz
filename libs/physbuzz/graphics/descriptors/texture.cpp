@@ -59,13 +59,13 @@ bool Texture::build(std::vector<ImageFile::Info> imageInfos, std::shared_ptr<Tra
     build({resolution, 1.0f});
 
     // can only inspect this after building an image type
-    if (m_Image.getInfo().arrayLayers != imageFiles.size()) {
+    if (m_Data.image.getInfo().arrayLayers != imageFiles.size()) {
         destroy();
-        Logger::ERROR("[Texture] Incorrect image layers provided (required {} got {}).", m_Image.getInfo().arrayLayers, imageFiles.size());
+        Logger::ERROR("[Texture] Incorrect image layers provided (required {} got {}).", m_Data.image.getInfo().arrayLayers, imageFiles.size());
         return false;
     }
 
-    transfer->map(m_Image, bytes, m_Data.layout);
+    transfer->map(m_Data.image, bytes, m_Data.layout);
 
     return true;
 }
@@ -76,6 +76,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
         return true;
     }
 
+    Image image = {{}};
     Sampler sampler = m_Info.sampler;
 
     if (!sampler.build()) {
@@ -85,7 +86,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
 
     switch (m_Info.type) {
     case Type::Dim2D:
-        m_Image = {{
+        image = {{
             .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eTransferSrc | Image::ImageUsageFlagBits::eTransferDst,
             .type = Image::Type::e2D,
             .format = m_Info.format,
@@ -93,7 +94,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
         break;
 
     case Type::Attachment:
-        m_Image = {{
+        image = {{
             .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eColorAttachment | Image::ImageUsageFlagBits::eInputAttachment | Image::ImageUsageFlagBits::eTransferSrc | Image::ImageUsageFlagBits::eTransferDst,
             .type = Image::Type::e2D,
             .format = m_Info.format,
@@ -101,7 +102,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
         break;
 
     case Type::Cube:
-        m_Image = {{
+        image = {{
             .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eTransferSrc | Image::ImageUsageFlagBits::eTransferDst,
             .type = Image::Type::e2D,
             .arrayLayers = 6,
@@ -111,14 +112,15 @@ bool Texture::build(const glm::uvec3 &resolution) {
         break;
     }
 
-    if (!m_Image.build(resolution)) {
+    if (!image.build(resolution)) {
         Logger::ERROR("[Texture] Failed to build image.");
         return false;
     }
 
     m_Data = {
         .sampler = sampler,
-        .view = createImageView(),
+        .image = image,
+        .view = createImageView(image),
         .layout = createLayout(),
     };
 
@@ -139,7 +141,7 @@ bool Texture::destroy() {
         return false;
     }
 
-    if (!m_Image.destroy()) {
+    if (!m_Data.image.destroy()) {
         Logger::WARNING("[Texture] Failed to destroy image.");
         return false;
     }
@@ -148,7 +150,7 @@ bool Texture::destroy() {
 }
 
 bool Texture::resize(const RenderContext &context, const glm::uvec3 &size) {
-    Image image = m_Image.getInfo();
+    Image image = m_Data.image.getInfo();
 
     // create new image
     if (!image.build(size)) {
@@ -173,25 +175,24 @@ bool Texture::resize(const RenderContext &context, const glm::uvec3 &size) {
         },
         .dstOffset = {},
         .extent = {
-            .width = glm::min(m_Image.getData().imageInfo.extent.width, image.getData().imageInfo.extent.width),
-            .height = glm::min(m_Image.getData().imageInfo.extent.height, image.getData().imageInfo.extent.height),
-            .depth = glm::min(m_Image.getData().imageInfo.extent.depth, image.getData().imageInfo.extent.depth),
+            .width = glm::min(m_Data.image.getData().imageInfo.extent.width, image.getData().imageInfo.extent.width),
+            .height = glm::min(m_Data.image.getData().imageInfo.extent.height, image.getData().imageInfo.extent.height),
+            .depth = glm::min(m_Data.image.getData().imageInfo.extent.depth, image.getData().imageInfo.extent.depth),
         },
     }};
 
-    image.copy(context.command, m_Image, copies, m_Data.layout);
+    image.copy(context.command, m_Data.image, copies, m_Data.layout);
 
     // mark old image for deferred deletion and update
-    context.deletionQueue->enqueue(std::move(m_Image));
+    context.deletionQueue->enqueue(std::move(m_Data.image));
     context.deletionQueue->enqueue(m_Data.view);
     // sampler is erased on app exit
     // context.deletionQueue->enqueue(m_Data.sampler);
 
-    m_Image = image;
-
     m_Data = {
         .sampler = m_Data.sampler,
-        .view = createImageView(),
+        .image = image,
+        .view = createImageView(image),
         .layout = createLayout(),
     };
 
@@ -211,23 +212,19 @@ const Texture::Data &Texture::getData() const {
     return m_Data;
 }
 
-const Image &Texture::getImage() const {
-    return m_Image;
-}
-
 glm::uvec3 Texture::getSize() const {
-    return glm::uvec3(m_Image.getData().imageInfo.extent.width, m_Image.getData().imageInfo.extent.height, m_Image.getData().imageInfo.extent.depth);
+    return glm::uvec3(m_Data.image.getData().imageInfo.extent.width, m_Data.image.getData().imageInfo.extent.height, m_Data.image.getData().imageInfo.extent.depth);
 }
 
-vk::ImageView Texture::createImageView() const {
+vk::ImageView Texture::createImageView(const Image &image) const {
     switch (m_Info.type) {
     case Type::Dim2D:
     case Type::Attachment:
         return PBZ_VK_CHECK(App::Device.createImageView({
             .flags = {},
-            .image = m_Image.getData().image,
+            .image = image.getData().image,
             .viewType = vk::ImageViewType::e2D,
-            .format = m_Image.getInfo().format,
+            .format = image.getInfo().format,
             .components = {},
             .subresourceRange = {
                 .aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -240,9 +237,9 @@ vk::ImageView Texture::createImageView() const {
     case Type::Cube:
         return PBZ_VK_CHECK(App::Device.createImageView({
             .flags = {},
-            .image = m_Image.getData().image,
+            .image = image.getData().image,
             .viewType = vk::ImageViewType::eCube,
-            .format = m_Image.getInfo().format,
+            .format = image.getInfo().format,
             .components = {},
             .subresourceRange = {
                 .aspectMask = vk::ImageAspectFlagBits::eColor,
