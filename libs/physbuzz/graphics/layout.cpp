@@ -89,8 +89,10 @@ bool PipelineLayoutAllocator::destroy() {
         return false;
     }
 
-    for (auto [layout, alloc] : m_AllocatedLayouts) {
-        PBZ_VK_CHECK_RESULT(App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets));
+    std::unordered_map<Resource<PipelineLayout>, Allocation> allocatedLayouts = m_AllocatedLayouts;
+
+    for (auto [layout, _] : allocatedLayouts) {
+        deallocate(layout);
     }
 
     m_AllocatedLayouts.clear();
@@ -141,22 +143,23 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
         std::format("[PipelineLayoutAllocator] Incompatible lifetime for dynamic buffer '{}' and layout '{}'", buffer, layout));
 
     // check if binding is cached
-    if (!m_WrittenBuffers.contains(&buffer.get())) {
-        m_WrittenBuffers.insert({
-            &buffer.get(),
-            {
-                .resize = buffer->addCallback<OnDynamicBufferRealloc>([&](const OnDynamicBufferRealloc &event) {
-                    if (m_WrittenBuffers.contains(event.buffer)) {
-                        for (const auto &[layout, writeInfo] : m_WrittenBuffers.at(event.buffer).layouts) {
-                            rewrite(layout, event.buffer, event.context, writeInfo.binding, writeInfo.element);
-                        };
-                    };
-                }),
-            },
-        });
+    auto &[_, entry] = *m_WrittenBuffers.insert({buffer, {}}).first;
+
+    if (entry.layouts.contains(layout)) {
+        buffer->eraseCallback<OnDynamicBufferRealloc>(entry.layouts.at(layout).realloc);
     }
 
-    m_WrittenBuffers[&buffer.get()].layouts[layout] = {binding, element};
+    entry.layouts.insert({
+        layout,
+        {
+            .realloc = buffer->addCallback<OnDynamicBufferRealloc>([this, layout, buffer](const OnDynamicBufferRealloc &event) {
+                WriteInfo &writeInfo = m_WrittenBuffers.at(buffer).layouts.at(layout);
+                rewrite(layout, buffer, event.context, writeInfo.binding, writeInfo.element);
+            }),
+            .binding = binding,
+            .element = element,
+        },
+    });
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
@@ -215,22 +218,23 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     }
 
     // check if binding is cached
-    if (!m_WrittenTextures.contains(&texture.get())) {
-        m_WrittenTextures.insert({
-            &texture.get(),
-            {
-                .resize = texture->addCallback<OnTextureRealloc>([&](const OnTextureRealloc &event) {
-                    if (m_WrittenTextures.contains(event.texture)) {
-                        for (const auto &[layout, writeInfo] : m_WrittenTextures.at(event.texture).layouts) {
-                            rewrite(layout, event.texture, event.context, writeInfo.binding, writeInfo.element);
-                        };
-                    };
-                }),
-            },
-        });
+    auto &[_, entry] = *m_WrittenTextures.insert({texture, {}}).first;
+
+    if (entry.layouts.contains(layout)) {
+        texture->eraseCallback<OnTextureRealloc>(entry.layouts.at(layout).realloc);
     }
 
-    m_WrittenTextures[&texture.get()].layouts[layout] = {binding, element};
+    entry.layouts.insert({
+        layout,
+        {
+            .realloc = texture->addCallback<OnTextureRealloc>([this, layout, texture](const OnTextureRealloc &event) {
+                WriteInfo &writeInfo = m_WrittenTextures.at(texture).layouts.at(layout);
+                rewrite(layout, texture, event.context, writeInfo.binding, writeInfo.element);
+            }),
+            .binding = binding,
+            .element = element,
+        },
+    });
 
     vk::DescriptorImageInfo imageInfo = {
         .sampler = texture->getData().sampler.getData().sampler,
@@ -267,22 +271,23 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     }
 
     // check if binding is cached
-    if (!m_WrittenAttachments.contains(&attachment.get())) {
-        m_WrittenAttachments.insert({
-            &attachment.get(),
-            {
-                .resize = attachment->addCallback<OnAttachmentRealloc>([&](const OnAttachmentRealloc &event) {
-                    if (m_WrittenAttachments.contains(event.attachment)) {
-                        for (const auto &[layout, writeInfo] : m_WrittenAttachments.at(event.attachment).layouts) {
-                            rewrite(layout, event.attachment, event.context, writeInfo.binding, writeInfo.element);
-                        };
-                    };
-                }),
-            },
-        });
+    auto &[_, entry] = *m_WrittenAttachments.insert({attachment, {}}).first;
+
+    if (entry.layouts.contains(layout)) {
+        attachment->eraseCallback<OnAttachmentRealloc>(entry.layouts.at(layout).realloc);
     }
 
-    m_WrittenAttachments[&attachment.get()].layouts[layout] = {binding, element};
+    entry.layouts.insert({
+        layout,
+        {
+            .realloc = attachment->addCallback<OnAttachmentRealloc>([this, layout, attachment](const OnAttachmentRealloc &event) {
+                WriteInfo &writeInfo = m_WrittenAttachments.at(attachment).layouts.at(layout);
+                rewrite(layout, attachment, event.context, writeInfo.binding, writeInfo.element);
+            }),
+            .binding = binding,
+            .element = element,
+        },
+    });
 
     const std::array<Attachment::Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = attachment->getRingData();
     std::array<vk::DescriptorImageInfo, detail::MAX_FRAMES_IN_FLIGHT> imageInfos;
@@ -398,7 +403,7 @@ void PipelineLayoutAllocator::bind(const RenderContext &context, const RenderPip
     }
 }
 
-bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const DynamicBuffer *buffer, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
+bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
 
     switch (buffer->getInfo().type) {
@@ -452,7 +457,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     return true;
 }
 
-bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Texture *texture, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
+bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
 
     switch (texture->getInfo().type) {
@@ -497,7 +502,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     return true;
 }
 
-bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Attachment *attachment, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
+bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = vk::DescriptorType::eInputAttachment;
 
     PBZ_ASSERT(
@@ -598,6 +603,30 @@ bool PipelineLayoutAllocator::allocate(const Resource<PipelineLayout> &layout) {
 bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout) {
     if (!m_AllocatedLayouts.contains(layout)) {
         return false;
+    }
+
+    for (auto &[resource, entry] : m_WrittenBuffers) {
+        for (const auto &[layout, writeInfo] : entry.layouts) {
+            resource->eraseCallback<OnDynamicBufferRealloc>(writeInfo.realloc);
+        }
+
+        entry.layouts.erase(layout);
+    }
+
+    for (auto &[resource, entry] : m_WrittenTextures) {
+        for (const auto &[layout, writeInfo] : entry.layouts) {
+            resource->eraseCallback<OnTextureRealloc>(writeInfo.realloc);
+        }
+
+        entry.layouts.erase(layout);
+    }
+
+    for (auto &[resource, entry] : m_WrittenAttachments) {
+        for (const auto &[layout, writeInfo] : entry.layouts) {
+            resource->eraseCallback<OnAttachmentRealloc>(writeInfo.realloc);
+        }
+
+        entry.layouts.erase(layout);
     }
 
     Allocation &alloc = m_AllocatedLayouts[layout];
