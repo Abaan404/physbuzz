@@ -32,7 +32,7 @@ void RenderGraph::merge(const RenderGraph &graph) {
     m_ExecutableNodes.clear();
     m_ExecutableNodeIds.clear();
     m_Resources.buffers.clear();
-    m_Resources.textures.clear();
+    m_Resources.attachments.clear();
 }
 
 bool RenderGraph::compile() {
@@ -40,10 +40,10 @@ bool RenderGraph::compile() {
 
     m_ExecutableNodes.clear();
     m_ExecutableNodeIds.clear();
-    m_Resources.textures.clear();
     m_Resources.buffers.clear();
+    m_Resources.attachments.clear();
 
-    std::unordered_map<ResourceID, std::unordered_set<RenderNodeID>> textureReaders;
+    std::unordered_map<ResourceID, std::unordered_set<RenderNodeID>> attachmentReaders;
     std::unordered_map<ResourceID, std::unordered_set<RenderNodeID>> bufferReaders;
 
     for (auto &[inputId, node] : m_Nodes) {
@@ -52,9 +52,9 @@ bool RenderGraph::compile() {
             bufferReaders.at(resource).emplace(inputId);
         }
 
-        for (auto &resource : node.description.textures.input) {
-            textureReaders.try_emplace(resource);
-            textureReaders.at(resource).emplace(inputId);
+        for (auto &resource : node.description.attachments.input) {
+            attachmentReaders.try_emplace(resource);
+            attachmentReaders.at(resource).emplace(inputId);
         }
     }
 
@@ -71,13 +71,13 @@ bool RenderGraph::compile() {
             }
         }
 
-        for (auto &[resource, _] : node.description.textures.output) {
+        for (auto &[resource, _] : node.description.attachments.output) {
             // unused resource
-            if (!textureReaders.contains(resource)) {
+            if (!attachmentReaders.contains(resource)) {
                 continue;
             }
 
-            for (const auto &inputId : textureReaders.at(resource)) {
+            for (const auto &inputId : attachmentReaders.at(resource)) {
                 m_Graph.insertEdge(outputId, inputId);
             }
         }
@@ -99,11 +99,11 @@ bool RenderGraph::compile() {
 
     // copy and build resources
     for (auto &node : m_ExecutableNodes) {
-        for (auto &[resource, tuple] : node.description.textures.output) {
-            if (!ResourceRegistry<Texture>::contains(resource)) {
-                success &= ResourceRegistry<Texture>::insert(resource, std::get<0>(tuple), std::get<1>(tuple));
+        for (auto &[resource, tuple] : node.description.attachments.output) {
+            if (!ResourceRegistry<Attachment>::contains(resource)) {
+                success &= ResourceRegistry<Attachment>::insert(resource, std::get<0>(tuple), std::get<1>(tuple));
             }
-            m_Resources.textures.emplace(resource);
+            m_Resources.attachments.emplace(resource);
         }
 
         for (auto &[resource, tuple] : node.description.buffers.output) {

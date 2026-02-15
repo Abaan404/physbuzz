@@ -22,29 +22,29 @@ struct PushConstants {
 [[vk::push_constant]]
 PushConstants pc;
 
-[[vk::input_attachment_index(0)]]
 [[vk::binding(0, 0)]]
+ConstantBuffer<Camera> camera;
+
+[[vk::binding(1, 0)]]
+StructuredBuffer<DirectionalLight> directionals;
+
+[[vk::binding(2, 0)]]
+StructuredBuffer<PointLight> points;
+
+[[vk::binding(3, 0)]]
+StructuredBuffer<SpotLight> spots;
+
+[[vk::input_attachment_index(0)]]
+[[vk::binding(4, 0)]]
 SubpassInput<float4> gBuffer0;
 
 [[vk::input_attachment_index(1)]]
-[[vk::binding(1, 0)]]
+[[vk::binding(5, 0)]]
 SubpassInput<float4> gBuffer1;
 
 [[vk::input_attachment_index(2)]]
-[[vk::binding(2, 0)]]
+[[vk::binding(6, 0)]]
 SubpassInput<float4> gBuffer2;
-
-[[vk::binding(0, 1)]]
-ConstantBuffer<Camera> camera;
-
-[[vk::binding(1, 1)]]
-StructuredBuffer<DirectionalLight> directionals;
-
-[[vk::binding(2, 1)]]
-StructuredBuffer<PointLight> points;
-
-[[vk::binding(3, 1)]]
-StructuredBuffer<SpotLight> spots;
 
 struct CoarseVertex {
     float2 texCoord;

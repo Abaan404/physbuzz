@@ -15,11 +15,12 @@ bool StaticBuffer::build(std::uint64_t size) {
     }
 
     Buffer buffer = {{
-        .usage = Buffer::BufferUsageFlagBits::eTransferSrc | Buffer::BufferUsageFlagBits::eTransferDst | Buffer::BufferUsageFlagBits::eShaderDeviceAddress,
+        .usage = Buffer::UsageFlagBits::eTransferSrc | Buffer::UsageFlagBits::eTransferDst | Buffer::UsageFlagBits::eShaderDeviceAddress,
         .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
     }};
 
     if (!buffer.build(size)) {
+        Logger::ERROR("[StaticBuffer] Failed to build buffer.");
         return false;
     }
 

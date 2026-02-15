@@ -416,7 +416,7 @@ bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes
     vmaGetAllocationMemoryProperties(App::Allocator, buffer.m_Allocation, &memPropFlags);
 
     Buffer stagingBuffer = {{
-        .usage = Buffer::BufferUsageFlagBits::eTransferSrc,
+        .usage = Buffer::UsageFlagBits::eTransferSrc,
         .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
     }};
 
@@ -494,7 +494,7 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &bytes, 
 
     // create a staging buffer in host memory
     Buffer stagingBuffer = {{
-        .usage = Buffer::BufferUsageFlagBits::eTransferSrc,
+        .usage = Buffer::UsageFlagBits::eTransferSrc,
         .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
     }};
 

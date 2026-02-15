@@ -61,7 +61,7 @@ class Renderer : public System<> {
 
     struct {
         Image image = {{
-            .usage = Image::ImageUsageFlagBits::eDepthStencilAttachment,
+            .usage = Image::UsageFlagBits::eDepthStencilAttachment,
             .type = Image::Type::e2D,
             .mipLevels = 1,
             .arrayLayers = 1,

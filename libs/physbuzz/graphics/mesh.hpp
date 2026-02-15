@@ -69,11 +69,11 @@ class Mesh {
     Mesh(const Info<T> &info)
         : m_Description(&T::Description),
           m_Vertex({
-              .usage = Buffer::BufferUsageFlagBits::eVertexBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
+              .usage = Buffer::UsageFlagBits::eVertexBuffer | Buffer::UsageFlagBits::eTransferDst,
               .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
           }),
           m_Index({
-              .usage = Buffer::BufferUsageFlagBits::eIndexBuffer | Buffer::BufferUsageFlagBits::eTransferDst,
+              .usage = Buffer::UsageFlagBits::eIndexBuffer | Buffer::UsageFlagBits::eTransferDst,
               .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
           }),
           m_Indices(info.indices) {

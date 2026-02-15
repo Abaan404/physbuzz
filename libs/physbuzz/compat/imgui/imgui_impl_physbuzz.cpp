@@ -6,7 +6,9 @@
 
 #include "../../app/application.hpp"
 #include "../../debug/macros.hpp"
+#include "../../events/descriptor.hpp"
 #include "../../graphics/descriptors/sampler.hpp"
+#include "../../graphics/descriptors/texture.hpp"
 #include "../../graphics/renderer.hpp"
 
 namespace Physbuzz {
@@ -135,8 +137,21 @@ bool ImGuiRenderer::build() {
 }
 
 bool ImGuiRenderer::destroy() {
-    for (const auto &[texture, id] : m_Textures) {
-        ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(id));
+    for (const auto &[resource, tuple] : m_Attachments) {
+        const auto &[attachments, event] = tuple;
+
+        for (const auto attachment : attachments) {
+            ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(attachment));
+        }
+
+        resource->eraseCallback<OnAttachmentRealloc>(event);
+    }
+
+    for (const auto &[resource, tuple] : m_Textures) {
+        const auto &[texture, event] = tuple;
+
+        ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(texture));
+        resource->eraseCallback<OnAttachmentRealloc>(event);
     }
 
     if (m_Pool) {
@@ -164,24 +179,68 @@ ImTextureID ImGuiRenderer::getTexture(const Resource<Texture> &texture) {
     if (!m_Textures.contains(texture)) {
         const Physbuzz::Texture::Data &textureData = texture->getData();
 
-        vk::Sampler sampler = nullptr;
-
+        vk::Sampler sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
         if (texture->getInfo().sampler.type != Sampler::Type::None) {
             sampler = texture->getData().sampler.getData().sampler;
-        } else {
-            sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
         }
 
-        m_Textures.insert({
-            texture,
-            ImGui_ImplVulkan_AddTexture(
+        ImTextureID textureId = ImGui_ImplVulkan_AddTexture(
+            static_cast<VkSampler>(sampler),
+            static_cast<VkImageView>(texture->getData().view),
+            static_cast<VkImageLayout>(texture->getData().layout));
+
+        EventID reallocId = texture->addCallback<OnTextureRealloc>([this, texture](const OnTextureRealloc &event) {
+            ImTextureID &textureId = std::get<0>(m_Textures.at(texture));
+            event.context.deletionQueue->enqueue(textureId);
+
+            vk::Sampler sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
+            if (event.texture->getInfo().sampler.type != Sampler::Type::None) {
+                sampler = event.texture->getData().sampler.getData().sampler;
+            }
+
+            textureId = ImGui_ImplVulkan_AddTexture(
                 static_cast<VkSampler>(sampler),
-                static_cast<VkImageView>(texture->getData().view),
-                static_cast<VkImageLayout>(texture->getData().layout)),
+                static_cast<VkImageView>(event.texture->getData().view),
+                static_cast<VkImageLayout>(event.texture->getData().layout));
         });
+
+        m_Textures[texture] = {textureId, reallocId};
     }
 
-    return m_Textures.at(texture);
+    return std::get<0>(m_Textures.at(texture));
+}
+
+ImTextureID ImGuiRenderer::getTexture(const Resource<Attachment> &attachment, std::uint32_t frameInFlight) {
+    PBZ_ASSERT(frameInFlight < detail::MAX_FRAMES_IN_FLIGHT, "[ImGuiRenderer] Invalid frame in flight");
+
+    if (!m_Attachments.contains(attachment)) {
+        const std::array<Physbuzz::Attachment::Data, detail::MAX_FRAMES_IN_FLIGHT> &attachmentData = attachment->getRingData();
+        std::array<ImTextureID, detail::MAX_FRAMES_IN_FLIGHT> textureIds;
+
+        for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
+            textureIds[i] = ImGui_ImplVulkan_AddTexture(
+                static_cast<VkSampler>(Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler),
+                static_cast<VkImageView>(attachmentData[i].view),
+                static_cast<VkImageLayout>(attachmentData[i].layout));
+        }
+
+        EventID event = attachment->addCallback<OnAttachmentRealloc>([this, attachment](const OnAttachmentRealloc &event) {
+            ImTextureID &textureId = std::get<0>(m_Attachments.at(attachment))[event.context.frameInFlight];
+            event.context.deletionQueue->enqueue(textureId);
+
+            const Physbuzz::Attachment::Data &attachmentData = event.attachment->getRingData()[event.context.frameInFlight];
+            textureId = ImGui_ImplVulkan_AddTexture(
+                static_cast<VkSampler>(Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler),
+                static_cast<VkImageView>(attachmentData.view),
+                static_cast<VkImageLayout>(attachmentData.layout));
+        });
+
+        m_Attachments[attachment] = {textureIds, event};
+
+        return textureIds[frameInFlight];
+    }
+
+    return std::get<0>(m_Attachments.at(attachment))[frameInFlight];
 }
 
 } // namespace Physbuzz

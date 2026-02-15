@@ -80,12 +80,12 @@ void RenderGraph::draw() {
                 ImGui::TreePop();
             }
 
-            if (ImGui::TreeNode("textures")) {
-                for (const auto &texture : node.description.textures.input) {
+            if (ImGui::TreeNode("attachments")) {
+                for (const auto &texture : node.description.attachments.input) {
                     ImGui::Text("input: %s", texture.c_str());
                 }
 
-                for (const auto &texture : node.description.textures.output) {
+                for (const auto &texture : node.description.attachments.output) {
                     ImGui::Text("output: %s", texture.first.c_str());
                 }
 
@@ -99,7 +99,7 @@ void RenderGraph::draw() {
     ImGui::SeparatorText("Resources");
 
     static bool showWindow = false;
-    static Physbuzz::Resource<Physbuzz::Texture> selectedTexture = {""};
+    static Physbuzz::Resource<Physbuzz::Attachment> selectedAttachment = {""};
 
     const Physbuzz::RenderGraph::Resources &resources = graph.getResources();
     if (ImGui::TreeNode("buffers")) {
@@ -110,14 +110,14 @@ void RenderGraph::draw() {
         ImGui::TreePop();
     }
 
-    if (ImGui::TreeNode("textures")) {
-        for (const auto &resource : resources.textures) {
+    if (ImGui::TreeNode("attachments")) {
+        for (const auto &resource : resources.attachments) {
             ImGui::PushID(resource.getIdentifier().c_str());
 
             ImGui::Text("%s", resource.getIdentifier().c_str());
 
             if (ImGui::Button("Show")) {
-                selectedTexture = resource;
+                selectedAttachment = resource;
                 showWindow = true;
             }
 
@@ -129,12 +129,12 @@ void RenderGraph::draw() {
 
     std::shared_ptr<Physbuzz::ImGuiRenderer> imguiImpl = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
 
-    if (showWindow && Physbuzz::ResourceRegistry<Physbuzz::Texture>::contains(selectedTexture)) {
+    if (showWindow && Physbuzz::ResourceRegistry<Physbuzz::Attachment>::contains(selectedAttachment)) {
         drawImageWindow(
-            selectedTexture.getIdentifier().c_str(),
+            "Attachment",
             &showWindow,
-            imguiImpl->getTexture(selectedTexture),
-            {selectedTexture->getSize().x, selectedTexture->getSize().y});
+            imguiImpl->getTexture(selectedAttachment, renderer->getFrameInFlight()),
+            {selectedAttachment->getSize(renderer->getFrameInFlight()).x, selectedAttachment->getSize(renderer->getFrameInFlight()).y});
     }
 
     const char *types[] = {"Deferred", "Forward", "Unknown"};

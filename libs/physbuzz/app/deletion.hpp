@@ -2,6 +2,7 @@
 
 #include "../graphics/memory.hpp"
 #include "../graphics/pipeline.hpp"
+#include "imgui.h"
 
 namespace Physbuzz {
 
@@ -19,6 +20,9 @@ class DeletionQueue {
     void enqueue(vk::Sampler sampler);
     void enqueue(vk::ImageView imageView);
 
+    // imgui handles
+    void enqueue(ImTextureID texId);
+
     void flush();
 
   private:
@@ -28,6 +32,8 @@ class DeletionQueue {
 
     std::vector<vk::Sampler> m_Samplers;
     std::vector<vk::ImageView> m_ImageViews;
+
+    std::vector<ImTextureID> m_ImTextureIds;
 };
 
 } // namespace Physbuzz

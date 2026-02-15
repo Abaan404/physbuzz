@@ -11,8 +11,8 @@ class Transfer;
 
 class Buffer {
   public:
-    using BufferUsageFlagBits = vk::BufferUsageFlagBits;
-    using BufferUsageFlags = vk::BufferUsageFlags;
+    using UsageFlagBits = vk::BufferUsageFlagBits;
+    using UsageFlags = vk::BufferUsageFlags;
     using SharingMode = vk::SharingMode;
 
     using FlagBits = vk::BufferCreateFlagBits;
@@ -27,7 +27,7 @@ class Buffer {
     };
 
     struct Info {
-        BufferUsageFlags usage;
+        UsageFlags usage;
         Flags flags = {};
         MemoryUsage memoryUsage = MemoryUsage::Auto;
         SharingMode sharingMode = SharingMode::eExclusive;
@@ -61,8 +61,8 @@ class Buffer {
 
 class Image {
   public:
-    using ImageUsageFlagBits = vk::ImageUsageFlagBits;
-    using ImageUsageFlags = vk::ImageUsageFlags;
+    using UsageFlagBits = vk::ImageUsageFlagBits;
+    using UsageFlags = vk::ImageUsageFlags;
     using SharingMode = vk::SharingMode;
 
     using Type = vk::ImageType;
@@ -80,7 +80,7 @@ class Image {
     };
 
     struct Info {
-        ImageUsageFlags usage;
+        UsageFlags usage;
         Type type;
         std::uint32_t mipLevels = 1;
         std::uint32_t arrayLayers = 1;

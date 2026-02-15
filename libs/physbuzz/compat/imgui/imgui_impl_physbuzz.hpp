@@ -21,7 +21,7 @@ inline Resource<Sampler> ResourceSampler = {"builtin/imgui/sampler"};
 
 bool build();
 
-} // namespace RenderPipelineForward
+} // namespace RenderPipelineImGui
 
 } // namespace Builtin
 
@@ -43,11 +43,14 @@ class ImGuiRenderer : public System<> {
     const RenderGraph &getGraph() const;
 
     ImTextureID getTexture(const Resource<Texture> &texture);
+    ImTextureID getTexture(const Resource<Attachment> &attachment, std::uint32_t frameInFlight);
 
   private:
     Info m_Info;
 
-    std::unordered_map<Resource<Texture>, ImTextureID> m_Textures;
+    std::unordered_map<Resource<Texture>, std::tuple<ImTextureID, EventID>> m_Textures;
+    std::unordered_map<Resource<Attachment>, std::tuple<std::array<ImTextureID, detail::MAX_FRAMES_IN_FLIGHT>, EventID>> m_Attachments;
+
     vk::DescriptorPool m_Pool = nullptr;
 
     RenderGraph m_Graph = {{

@@ -36,7 +36,6 @@ struct PushConstants {
 };
 
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/deferred/lighting/frame"};
-inline Resource<PipelineLayout> ResourceLayoutGBuffers = {"builtin/deferred/lighting/gbuffers"};
 
 inline Resource<RenderPipeline> Resource = {"builtin/deferred/lighting"};
 

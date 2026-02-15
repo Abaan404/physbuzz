@@ -10,6 +10,7 @@ namespace Physbuzz {
 
 class RenderPipeline;
 class PipelineLayout;
+class Texture;
 class Mesh;
 
 namespace Builtin {

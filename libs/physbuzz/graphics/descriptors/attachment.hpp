@@ -1,59 +1,57 @@
 #pragma once
 
 #include "../../events/handler.hpp"
-#include "../../io/image.hpp"
 #include "../../resources/defines.hpp"
 #include "../defines.hpp"
 #include "../memory.hpp"
-#include "sampler.hpp"
 
 namespace Physbuzz {
 
-class Texture : public EventSubject {
+class Attachment : public EventSubject {
   public:
     using Format = vk::Format;
 
     enum class Type {
-        Cube,
-        Dim2D,
+        Color,
+        Depth,
+        Stencil,
+        DepthStencil,
     };
 
     struct Info {
-        Type type;
-        Sampler::Info sampler;
+        Type type = Type::Color;
         Format format = Format::eR8G8B8A8Unorm;
     };
 
     struct Data {
-        Sampler sampler = {{Sampler::Type::None}};
-        Image image = {{}};
+        Image image;
 
         vk::ImageView view = nullptr;
         vk::ImageLayout layout = vk::ImageLayout::eUndefined;
     };
 
-    Texture(const Info &info);
+    Attachment(const Info &info);
 
-    bool build(std::vector<ImageFile::Info> imageInfo, std::shared_ptr<Transfer> transfer);
-    bool build(const glm::uvec3 &resolution);
+    bool build(const glm::uvec2 &resolution);
     bool destroy();
 
-    bool resize(const RenderContext &context, const glm::uvec3 &size);
+    bool resize(const RenderContext &context, const glm::uvec2 &size);
 
     const Info &getInfo() const;
-    const Data &getData() const;
+    const std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &getRingData() const;
 
-    glm::uvec3 getSize() const;
+    glm::uvec2 getSize(std::uint32_t frameInFlight) const;
 
   private:
     vk::ImageView createImageView(const Image &image) const;
     vk::ImageLayout createLayout() const;
 
     Info m_Info;
-    Data m_Data;
+
+    std::variant<std::monostate, std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>> m_RingData;
 };
 
 template <>
-struct IsResource<Texture> : std::true_type {};
+struct IsResource<Attachment> : std::true_type {};
 
 } // namespace Physbuzz

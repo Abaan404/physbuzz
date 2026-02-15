@@ -103,15 +103,6 @@ bool RenderPipelineDeferred::Lighting::build() {
                         // spots
                         .type = PipelineLayout::Type::eStorageBuffer,
                     },
-                },
-            }});
-    }
-
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutGBuffers)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
-            ResourceLayoutGBuffers,
-            {{
-                .bindings = {
                     {
                         // position
                         .type = PipelineLayout::Type::eInputAttachment,
@@ -128,7 +119,6 @@ bool RenderPipelineDeferred::Lighting::build() {
                         .stage = PipelineLayout::ShaderStageFlags::eFragment,
                     },
                 },
-                .lifetime = PipelineLayout::Lifetime::Global,
             }});
     }
 
@@ -141,7 +131,6 @@ bool RenderPipelineDeferred::Lighting::build() {
             },
             .layouts = {
                 .resources = {
-                    ResourceLayoutGBuffers,
                     ResourceLayoutFrame,
                 },
                 .pushConstantRanges = {
@@ -192,15 +181,14 @@ bool DeferredRenderer::build() {
         "builtin/deferred/gbuffers",
         {
             .description = {
-                .textures = {
+                .attachments = {
                     .output = {
                         {
                             "builtin/deferred/gBuffer0",
                             {
                                 {
-                                    .type = Texture::Type::Attachment,
-                                    .sampler = {Sampler::Type::None},
-                                    .format = Texture::Format::eR16G16B16A16Sfloat,
+                                    .type = Attachment::Type::Color,
+                                    .format = Attachment::Format::eR16G16B16A16Sfloat,
                                 },
                                 glm::uvec3{1, 1, 1},
                             },
@@ -209,9 +197,8 @@ bool DeferredRenderer::build() {
                             "builtin/deferred/gBuffer1",
                             {
                                 {
-                                    .type = Texture::Type::Attachment,
-                                    .sampler = {Sampler::Type::None},
-                                    .format = Texture::Format::eR8G8B8A8Snorm,
+                                    .type = Attachment::Type::Color,
+                                    .format = Attachment::Format::eR8G8B8A8Snorm,
                                 },
                                 glm::uvec3{1, 1, 1},
                             },
@@ -220,9 +207,8 @@ bool DeferredRenderer::build() {
                             "builtin/deferred/gBuffer2",
                             {
                                 {
-                                    .type = Texture::Type::Attachment,
-                                    .sampler = {Sampler::Type::None},
-                                    .format = Texture::Format::eR8G8B8A8Unorm,
+                                    .type = Attachment::Type::Color,
+                                    .format = Attachment::Format::eR8G8B8A8Unorm,
                                 },
                                 glm::uvec3{1, 1, 1},
                             },
@@ -238,22 +224,22 @@ bool DeferredRenderer::build() {
             },
             .execute = [&](Scene *scene, const RenderContext &context) {
                 std::array gBuffers = {
-                    Resource<Texture>("builtin/deferred/gBuffer0"),
-                    Resource<Texture>("builtin/deferred/gBuffer1"),
-                    Resource<Texture>("builtin/deferred/gBuffer2"),
+                    Resource<Attachment>("builtin/deferred/gBuffer0"),
+                    Resource<Attachment>("builtin/deferred/gBuffer1"),
+                    Resource<Attachment>("builtin/deferred/gBuffer2"),
                 };
 
                 std::array<vk::RenderingAttachmentInfo, gBuffers.size()> colorAttachments;
                 std::array<vk::ImageMemoryBarrier2, gBuffers.size()> layoutBarriers;
 
                 for (std::size_t i = 0; i < gBuffers.size(); i++) {
-                    glm::uvec3 resolution = gBuffers[i]->getSize();
+                    glm::uvec2 resolution = gBuffers[i]->getSize(context.frameInFlight);
                     if (resolution.x != context.extent.width || resolution.y != context.extent.height) {
-                        gBuffers[i]->resize(context, {context.extent.width, context.extent.height, 1});
+                        gBuffers[i]->resize(context, {context.extent.width, context.extent.height});
                     }
 
                     colorAttachments[i] = {
-                        .imageView = gBuffers[i]->getData().view,
+                        .imageView = gBuffers[i]->getRingData()[context.frameInFlight].view,
                         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
                         .loadOp = vk::AttachmentLoadOp::eClear,
                         .storeOp = vk::AttachmentStoreOp::eStore,
@@ -267,7 +253,7 @@ bool DeferredRenderer::build() {
                         .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
                         .oldLayout = vk::ImageLayout::eAttachmentOptimal,
                         .newLayout = vk::ImageLayout::eAttachmentOptimal,
-                        .image = gBuffers[i]->getData().image.getData().image,
+                        .image = gBuffers[i]->getRingData()[context.frameInFlight].image.getData().image,
                         .subresourceRange = {
                             .aspectMask = vk::ImageAspectFlagBits::eColor,
                             .baseMipLevel = 0,
@@ -341,7 +327,7 @@ bool DeferredRenderer::build() {
         Output,
         {
             .description = {
-                .textures = {
+                .attachments = {
                     .input = {
                         "builtin/deferred/gBuffer0",
                         "builtin/deferred/gBuffer1",
@@ -422,21 +408,6 @@ bool DeferredRenderer::build() {
 
         // lighting
         success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutGBuffers,
-            Resource<Texture>("builtin/deferred/gBuffer0"),
-            0);
-
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutGBuffers,
-            Resource<Texture>("builtin/deferred/gBuffer1"),
-            1);
-
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutGBuffers,
-            Resource<Texture>("builtin/deferred/gBuffer2"),
-            2);
-
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
             Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::RenderNodeCamera::ResourceBuffer,
             0);
@@ -455,6 +426,21 @@ bool DeferredRenderer::build() {
             Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferSpot,
             3);
+
+        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Resource<Attachment>("builtin/deferred/gBuffer0"),
+            4);
+
+        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Resource<Attachment>("builtin/deferred/gBuffer1"),
+            5);
+
+        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Resource<Attachment>("builtin/deferred/gBuffer2"),
+            6);
     }
 
     return success;

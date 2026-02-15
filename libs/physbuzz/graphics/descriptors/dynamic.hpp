@@ -41,9 +41,9 @@ class DynamicBuffer : public EventSubject {
     bool update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset);
 
     const Info &getInfo() const;
-
-    std::size_t getSize(const RenderContext &context) const;
     const std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &getRingData() const;
+
+    std::size_t getSize(std::uint32_t frameInFlight) const;
 
   private:
     Info m_Info;

@@ -87,15 +87,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
     switch (m_Info.type) {
     case Type::Dim2D:
         image = {{
-            .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eTransferSrc | Image::ImageUsageFlagBits::eTransferDst,
-            .type = Image::Type::e2D,
-            .format = m_Info.format,
-        }};
-        break;
-
-    case Type::Attachment:
-        image = {{
-            .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eColorAttachment | Image::ImageUsageFlagBits::eInputAttachment | Image::ImageUsageFlagBits::eTransferSrc | Image::ImageUsageFlagBits::eTransferDst,
+            .usage = Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
             .type = Image::Type::e2D,
             .format = m_Info.format,
         }};
@@ -103,7 +95,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
 
     case Type::Cube:
         image = {{
-            .usage = Image::ImageUsageFlagBits::eSampled | Image::ImageUsageFlagBits::eTransferSrc | Image::ImageUsageFlagBits::eTransferDst,
+            .usage = Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
             .type = Image::Type::e2D,
             .arrayLayers = 6,
             .flags = Image::FlagBits::eCubeCompatible,
@@ -187,7 +179,7 @@ bool Texture::resize(const RenderContext &context, const glm::uvec3 &size) {
     context.deletionQueue->enqueue(std::move(m_Data.image));
     context.deletionQueue->enqueue(m_Data.view);
     // sampler is erased on app exit
-    // context.deletionQueue->enqueue(m_Data.sampler);
+    // context.deletionQueue->enqueue(m_Data.sampler.getData().sampler);
 
     m_Data = {
         .sampler = m_Data.sampler,
@@ -219,7 +211,6 @@ glm::uvec3 Texture::getSize() const {
 vk::ImageView Texture::createImageView(const Image &image) const {
     switch (m_Info.type) {
     case Type::Dim2D:
-    case Type::Attachment:
         return PBZ_VK_CHECK(App::Device.createImageView({
             .flags = {},
             .image = image.getData().image,
@@ -234,6 +225,7 @@ vk::ImageView Texture::createImageView(const Image &image) const {
                 .layerCount = 1,
             },
         }));
+
     case Type::Cube:
         return PBZ_VK_CHECK(App::Device.createImageView({
             .flags = {},
@@ -258,8 +250,7 @@ vk::ImageLayout Texture::createLayout() const {
     switch (m_Info.type) {
     case Type::Dim2D:
         return vk::ImageLayout::eShaderReadOnlyOptimal;
-    case Type::Attachment:
-        return vk::ImageLayout::eAttachmentOptimal;
+
     case Type::Cube:
         return vk::ImageLayout::eShaderReadOnlyOptimal;
     }

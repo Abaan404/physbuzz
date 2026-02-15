@@ -1,6 +1,7 @@
 #include "deletion.hpp"
 
 #include "application.hpp"
+#include "imgui_impl_vulkan.h"
 #include <ranges>
 
 namespace Physbuzz {
@@ -23,6 +24,10 @@ void DeletionQueue::enqueue(vk::Sampler sampler) {
 
 void DeletionQueue::enqueue(vk::ImageView imageView) {
     m_ImageViews.push_back(imageView);
+}
+
+void DeletionQueue::enqueue(ImTextureID texId) {
+    m_ImTextureIds.push_back(texId);
 }
 
 void DeletionQueue::flush() {
@@ -55,6 +60,10 @@ void DeletionQueue::flush() {
     }
 
     m_Samplers.clear();
+
+    for (auto &texId : std::views::reverse(m_ImTextureIds)) {
+        ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(texId));
+    }
 }
 
 } // namespace Physbuzz

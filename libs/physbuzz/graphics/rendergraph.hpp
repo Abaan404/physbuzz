@@ -2,8 +2,8 @@
 
 #include "../containers/directedgraph.hpp"
 #include "../resources/resource.hpp"
+#include "descriptors/attachment.hpp"
 #include "descriptors/dynamic.hpp"
-#include "descriptors/texture.hpp"
 
 namespace Physbuzz {
 
@@ -18,7 +18,7 @@ struct RenderNode {
     };
 
     struct Description {
-        DescriptorUsage<Texture, glm::uvec3> textures = {};
+        DescriptorUsage<Attachment, glm::uvec2> attachments = {};
         DescriptorUsage<DynamicBuffer, std::uint64_t> buffers = {};
     } description = {};
 
@@ -34,7 +34,7 @@ class RenderGraph {
     RenderGraph(const Info &info);
 
     struct Resources {
-        std::unordered_set<Resource<Texture>> textures;
+        std::unordered_set<Resource<Attachment>> attachments;
         std::unordered_set<Resource<DynamicBuffer>> buffers;
     };
 

@@ -18,34 +18,37 @@ bool DynamicBuffer::build(std::uint64_t size) {
     std::vector<Data> ringData;
     ringData.reserve(detail::MAX_FRAMES_IN_FLIGHT);
 
-    Buffer::BufferUsageFlagBits usage;
+    Buffer::UsageFlagBits usage;
     switch (m_Info.type) {
     case Type::ConstantDynamic:
     case Type::Constant:
-        usage = Buffer::BufferUsageFlagBits::eUniformBuffer;
+        usage = Buffer::UsageFlagBits::eUniformBuffer;
         break;
 
     case Type::StructuredDynamic:
     case Type::Structured:
-        usage = Buffer::BufferUsageFlagBits::eStorageBuffer;
+        usage = Buffer::UsageFlagBits::eStorageBuffer;
         break;
     }
 
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
-        Data &data = ringData.emplace_back<Data>({
-            .buffer = {{
-                .usage = usage | Buffer::BufferUsageFlagBits::eTransferSrc | Buffer::BufferUsageFlagBits::eTransferDst,
-                .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
-            }},
-        });
+        Buffer buffer = {{
+            .usage = usage | Buffer::UsageFlagBits::eTransferSrc | Buffer::UsageFlagBits::eTransferDst,
+            .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+        }};
 
-        if (!data.buffer.build(size)) {
-            for (auto &buffer : ringData) {
+        if (!buffer.build(size)) {
+            for (auto &data : ringData) {
                 data.buffer.destroy();
             }
 
+            Logger::ERROR("[DynamicBuffer] Failed to build buffers.");
             return false;
         }
+
+        ringData.emplace_back<Data>({
+            .buffer = buffer,
+        });
     }
 
     // use pack expansion to create an array from this vector
@@ -79,9 +82,9 @@ bool DynamicBuffer::destroy() {
 }
 
 bool DynamicBuffer::resize(const RenderContext &context, std::uint64_t size) {
-    std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
+    Data &data = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData)[context.frameInFlight];
 
-    Buffer buffer = ringData[context.frameInFlight].buffer.getInfo();
+    Buffer buffer = data.buffer.getInfo();
 
     // create new buffer
     if (!buffer.build(size)) {
@@ -93,15 +96,15 @@ bool DynamicBuffer::resize(const RenderContext &context, std::uint64_t size) {
     std::vector<vk::BufferCopy> copies = {{
         .srcOffset = 0,
         .dstOffset = 0,
-        .size = glm::min(ringData[context.frameInFlight].buffer.getData().bufferInfo.size, buffer.getData().bufferInfo.size),
+        .size = glm::min(data.buffer.getData().bufferInfo.size, buffer.getData().bufferInfo.size),
     }};
 
-    buffer.copy(context.command, ringData[context.frameInFlight].buffer, copies);
+    buffer.copy(context.command, data.buffer, copies);
 
     // mark old buffer for deferred deletion and update
-    context.deletionQueue->enqueue(std::move(ringData[context.frameInFlight].buffer));
+    context.deletionQueue->enqueue(std::move(data.buffer));
 
-    ringData[context.frameInFlight] = {
+    data = {
         .buffer = buffer,
     };
 
@@ -116,7 +119,7 @@ bool DynamicBuffer::resize(const RenderContext &context, std::uint64_t size) {
 bool DynamicBuffer::update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) {
     std::uint64_t requiredSize = offset + bytes.size();
 
-    if (getSize(context) < requiredSize) {
+    if (getSize(context.frameInFlight) < requiredSize) {
         resize(context, requiredSize);
     }
 
@@ -131,15 +134,16 @@ const DynamicBuffer::Info &DynamicBuffer::getInfo() const {
     return m_Info;
 }
 
-std::size_t DynamicBuffer::getSize(const RenderContext &context) const {
-    const std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
-
-    return ringData[context.frameInFlight].buffer.getData().bufferInfo.size;
-}
-
 const std::array<DynamicBuffer::Data, detail::MAX_FRAMES_IN_FLIGHT> &DynamicBuffer::getRingData() const {
     PBZ_ASSERT(!std::holds_alternative<std::monostate>(m_RingData), "[DynamicBuffer] Buffer has not been allocated.");
     return std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
+}
+
+std::size_t DynamicBuffer::getSize(std::uint32_t frameInFlight) const {
+    PBZ_ASSERT(frameInFlight < detail::MAX_FRAMES_IN_FLIGHT, "[DynamicBuffer] Invalid frame in flight");
+    const std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
+
+    return ringData[frameInFlight].buffer.getData().bufferInfo.size;
 }
 
 } // namespace Physbuzz

@@ -1,6 +1,7 @@
 #include "application.hpp"
 
 #include "../debug/macros.hpp"
+#include "../graphics/descriptors/attachment.hpp"
 #include "../graphics/descriptors/dynamic.hpp"
 #include "../graphics/descriptors/static.hpp"
 #include "../graphics/descriptors/texture.hpp"
@@ -311,6 +312,7 @@ bool App::quit() {
     ResourceRegistry<StaticBuffer>::clear();
     ResourceRegistry<DynamicBuffer>::clear();
     ResourceRegistry<Texture>::clear();
+    ResourceRegistry<Attachment>::clear();
     ResourceRegistry<Sampler>::clear();
     ResourceRegistry<Mesh>::clear();
 
