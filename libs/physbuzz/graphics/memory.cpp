@@ -1,6 +1,7 @@
 #include "memory.hpp"
 
 #include "../app/application.hpp"
+#include "../app/deletion.hpp"
 
 namespace Physbuzz {
 
@@ -85,7 +86,54 @@ const Buffer::Data &Buffer::getData() const {
     return m_Data;
 }
 
-bool Buffer::copy(vk::CommandBuffer commandBuffer, const Buffer &src, const std::vector<vk::BufferCopy> &copies) const {
+bool Buffer::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<const std::byte> &bytes, std::uint64_t offset) const {
+    if (m_Allocation == nullptr) {
+        Logger::ERROR("[Transfer] Cannot Transfer an uninitialized allocation.");
+        return false;
+    }
+
+    VkMemoryPropertyFlags memProps = 0;
+    vmaGetAllocationMemoryProperties(App::Allocator, m_Allocation, &memProps);
+
+    // if the buffer can be read by the CPU (i.e. integrated gpus)
+    if (memProps & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
+        PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, bytes.data(), m_Allocation, offset, bytes.size())));
+    }
+
+    // otherwise stage the buffer and copy from host to vram
+    else {
+        Buffer stagingBuffer = {{
+            .usage = Buffer::UsageFlagBits::eTransferSrc,
+            .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+        }};
+
+        if (!stagingBuffer.build(bytes.size())) {
+            Logger::ERROR("[Transfer] Failed to build staging buffer.");
+            return false;
+        }
+
+        PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, bytes.data(), stagingBuffer.m_Allocation, offset, bytes.size())));
+        vmaFlushAllocation(App::Allocator, m_Allocation, offset, bytes.size());
+
+        std::vector<vk::BufferCopy> copies = {{
+            .srcOffset = 0,
+            .dstOffset = offset,
+            .size = bytes.size(),
+        }};
+
+        if (!copy(cmd, stagingBuffer, copies)) {
+            Logger::ERROR("[Transfer] Failed to copy from staging buffer.");
+            stagingBuffer.destroy();
+            return false;
+        }
+
+        deletion->enqueue(std::move(stagingBuffer));
+    }
+
+    return true;
+}
+
+bool Buffer::copy(vk::CommandBuffer cmd, const Buffer &src, const std::vector<vk::BufferCopy> &copies) const {
     if (m_Data.buffer == nullptr || m_Allocation == nullptr) {
         Logger::ERROR("[Buffer] Trying to copy to a destructed buffer.");
         return false;
@@ -127,31 +175,19 @@ bool Buffer::copy(vk::CommandBuffer commandBuffer, const Buffer &src, const std:
         });
     }
 
-    commandBuffer.pipelineBarrier2({
+    cmd.pipelineBarrier2({
         .dependencyFlags = {},
         .bufferMemoryBarrierCount = static_cast<std::uint32_t>(preCopyBarriers.size()),
         .pBufferMemoryBarriers = preCopyBarriers.data(),
     });
 
-    commandBuffer.copyBuffer(src.m_Data.buffer, m_Data.buffer, copies);
+    cmd.copyBuffer(src.m_Data.buffer, m_Data.buffer, copies);
 
-    commandBuffer.pipelineBarrier2({
+    cmd.pipelineBarrier2({
         .dependencyFlags = {},
-        .bufferMemoryBarrierCount = static_cast<std::uint32_t>(preCopyBarriers.size()),
+        .bufferMemoryBarrierCount = static_cast<std::uint32_t>(postCopyBarriers.size()),
         .pBufferMemoryBarriers = postCopyBarriers.data(),
     });
-
-    return true;
-}
-
-bool Buffer::map(const std::span<const std::byte> &data, std::uint64_t offset) const {
-    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, data.data(), m_Allocation, offset, data.size())));
-
-    VkMemoryPropertyFlags memProps = 0;
-    vmaGetAllocationMemoryProperties(App::Allocator, m_Allocation, &memProps);
-    if (!(memProps & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
-        vmaFlushAllocation(App::Allocator, m_Allocation, offset, data.size());
-    }
 
     return true;
 }
@@ -199,7 +235,54 @@ bool Image::destroy() {
     return true;
 }
 
-bool Image::copy(vk::CommandBuffer commandBuffer, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies, vk::ImageLayout layout) const {
+bool Image::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<const std::byte> &bytes, vk::ImageLayout layout) const {
+    if (m_Allocation == nullptr) {
+        Logger::ERROR("[Transfer] Cannot Transfer an uninitialized allocation.");
+        return false;
+    }
+
+    // create a staging buffer in host memory
+    Buffer stagingBuffer = {{
+        .usage = Buffer::UsageFlagBits::eTransferSrc,
+        .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+    }};
+
+    if (!stagingBuffer.build(bytes.size())) {
+        Logger::ERROR("[Transfer] Failed to build image staging buffer.");
+        return false;
+    }
+
+    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, bytes.data(), stagingBuffer.m_Allocation, 0, bytes.size())));
+    vmaFlushAllocation(App::Allocator, stagingBuffer.m_Allocation, 0, bytes.size());
+
+    vk::BufferImageCopy region = {
+        .bufferOffset = 0,
+        .bufferRowLength = 0,
+        .bufferImageHeight = 0,
+        .imageSubresource = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .mipLevel = 0,
+            .baseArrayLayer = 0,
+            .layerCount = m_Info.arrayLayers,
+        },
+        .imageOffset = {0, 0, 0},
+        .imageExtent = m_Data.imageInfo.extent,
+    };
+
+    // copy the buffer into a VkImage on the vram
+    if (!copy(cmd, stagingBuffer, {region}, layout)) {
+        Logger::ERROR("[Transfer] Failed to copy image from staging buffer.");
+        stagingBuffer.destroy();
+        return false;
+    }
+
+    // release the staging buffer
+    deletion->enqueue(std::move(stagingBuffer));
+
+    return true;
+}
+
+bool Image::copy(vk::CommandBuffer cmd, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies, vk::ImageLayout layout) const {
     if (m_Data.image == nullptr || m_Allocation == nullptr) {
         Logger::ERROR("[Image] Trying to copy to a destructed image.");
         return false;
@@ -230,14 +313,14 @@ bool Image::copy(vk::CommandBuffer commandBuffer, const Buffer &src, const std::
             },
         };
 
-        commandBuffer.pipelineBarrier2({
+        cmd.pipelineBarrier2({
             .dependencyFlags = {},
             .imageMemoryBarrierCount = barriers.size(),
             .pImageMemoryBarriers = barriers.data(),
         });
     }
 
-    commandBuffer.copyBufferToImage(src.getData().buffer, m_Data.image, vk::ImageLayout::eTransferDstOptimal, copies);
+    cmd.copyBufferToImage(src.getData().buffer, m_Data.image, vk::ImageLayout::eTransferDstOptimal, copies);
 
     {
         std::array barriers = {
@@ -259,7 +342,7 @@ bool Image::copy(vk::CommandBuffer commandBuffer, const Buffer &src, const std::
             },
         };
 
-        commandBuffer.pipelineBarrier2({
+        cmd.pipelineBarrier2({
             .dependencyFlags = {},
             .imageMemoryBarrierCount = barriers.size(),
             .pImageMemoryBarriers = barriers.data(),
@@ -269,7 +352,7 @@ bool Image::copy(vk::CommandBuffer commandBuffer, const Buffer &src, const std::
     return true;
 }
 
-bool Image::copy(vk::CommandBuffer commandBuffer, const Image &src, const std::vector<vk::ImageCopy> &copies, vk::ImageLayout layout) const {
+bool Image::copy(vk::CommandBuffer cmd, const Image &src, const std::vector<vk::ImageCopy> &copies, vk::ImageLayout layout) const {
     if (m_Data.image == nullptr || m_Allocation == nullptr) {
         Logger::ERROR("[Image] Trying to copy to a destructed image.");
         return false;
@@ -317,14 +400,14 @@ bool Image::copy(vk::CommandBuffer commandBuffer, const Image &src, const std::v
             },
         };
 
-        commandBuffer.pipelineBarrier2({
+        cmd.pipelineBarrier2({
             .dependencyFlags = {},
             .imageMemoryBarrierCount = barriers.size(),
             .pImageMemoryBarriers = barriers.data(),
         });
     }
 
-    commandBuffer.copyImage(src.getData().image, vk::ImageLayout::eTransferSrcOptimal, m_Data.image, vk::ImageLayout::eTransferDstOptimal, {copies});
+    cmd.copyImage(src.getData().image, vk::ImageLayout::eTransferSrcOptimal, m_Data.image, vk::ImageLayout::eTransferDstOptimal, {copies});
 
     {
         std::array barriers = {
@@ -346,7 +429,7 @@ bool Image::copy(vk::CommandBuffer commandBuffer, const Image &src, const std::v
             },
         };
 
-        commandBuffer.pipelineBarrier2({
+        cmd.pipelineBarrier2({
             .dependencyFlags = {},
             .imageMemoryBarrierCount = barriers.size(),
             .pImageMemoryBarriers = barriers.data(),
@@ -362,215 +445,6 @@ const Image::Info &Image::getInfo() const {
 
 const Image::Data &Image::getData() const {
     return m_Data;
-}
-
-bool Transfer::build() {
-    m_Command.pool = PBZ_VK_CHECK(App::Device.createCommandPool({
-        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-        .queueFamilyIndex = App::Indices.transfer,
-    }));
-
-    std::vector<vk::CommandBuffer> buffers = PBZ_VK_CHECK(App::Device.allocateCommandBuffers({
-        .commandPool = m_Command.pool,
-        .level = vk::CommandBufferLevel::ePrimary,
-        .commandBufferCount = 1,
-    }));
-
-    m_Command.buffer = buffers.front();
-
-    m_Fences.submit = PBZ_VK_CHECK(App::Device.createFence({
-        .flags = vk::FenceCreateFlagBits::eSignaled,
-    }));
-
-    return true;
-}
-
-bool Transfer::destroy() {
-    App::Device.destroyFence(m_Fences.submit);
-
-    App::Device.freeCommandBuffers(m_Command.pool, 1, &m_Command.buffer);
-    m_Command.buffer = nullptr;
-
-    App::Device.destroyCommandPool(m_Command.pool);
-    m_Command.pool = nullptr;
-
-    return true;
-}
-
-bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes, std::uint64_t offset) {
-    if (buffer.m_Allocation == nullptr) {
-        Logger::ERROR("[Transfer] Cannot Transfer an uninitialized allocation.");
-        return false;
-    }
-
-    // prepare a one time command buffer
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
-    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.submit));
-    PBZ_VK_CHECK_RESULT(m_Command.buffer.reset());
-
-    PBZ_VK_CHECK_RESULT(m_Command.buffer.begin({
-        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
-    }));
-
-    VkMemoryPropertyFlags memPropFlags;
-    vmaGetAllocationMemoryProperties(App::Allocator, buffer.m_Allocation, &memPropFlags);
-
-    Buffer stagingBuffer = {{
-        .usage = Buffer::UsageFlagBits::eTransferSrc,
-        .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
-    }};
-
-    // if the buffer can be read by the CPU (i.e. integrated gpus)
-    if (memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-        if (!buffer.map(bytes, offset)) {
-            Logger::ERROR("[Transfer] Failed to map buffer.");
-            PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
-            return false;
-        }
-    }
-
-    // otherwise stage the buffer and copy from host to vram
-    else {
-        if (!stagingBuffer.build(bytes.size())) {
-            Logger::ERROR("[Transfer] Failed to build staging buffer.");
-            PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
-            return false;
-        }
-
-        if (!stagingBuffer.map(bytes, 0)) {
-            Logger::ERROR("[Transfer] Failed to map staging buffer.");
-            stagingBuffer.destroy();
-            PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
-            return false;
-        }
-
-        std::vector<vk::BufferCopy> copies = {{
-            .srcOffset = 0,
-            .dstOffset = offset,
-            .size = bytes.size(),
-        }};
-
-        if (!buffer.copy(m_Command.buffer, stagingBuffer, copies)) {
-            Logger::ERROR("[Transfer] Failed to copy from staging buffer.");
-            stagingBuffer.destroy();
-            PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
-            return false;
-        }
-    }
-
-    // submit
-    PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
-
-    const vk::SubmitInfo submitInfo = {
-        .commandBufferCount = 1,
-        .pCommandBuffers = &m_Command.buffer,
-    };
-
-    PBZ_VK_CHECK_RESULT(App::Queues.transfer.submit(submitInfo, m_Fences.submit));
-
-    // release the staging buffer
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
-    if (!(memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
-        stagingBuffer.destroy();
-    }
-
-    return true;
-}
-
-bool Transfer::map(const Image &image, const std::span<const std::byte> &bytes, vk::ImageLayout layout) {
-    if (image.m_Allocation == nullptr) {
-        Logger::ERROR("[Transfer] Cannot Transfer an uninitialized allocation.");
-        return false;
-    }
-
-    // prepare the command buffer
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
-    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.submit));
-    PBZ_VK_CHECK_RESULT(m_Command.buffer.reset());
-
-    PBZ_VK_CHECK_RESULT(m_Command.buffer.begin({
-        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
-    }));
-
-    // create a staging buffer in host memory
-    Buffer stagingBuffer = {{
-        .usage = Buffer::UsageFlagBits::eTransferSrc,
-        .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
-    }};
-
-    if (!stagingBuffer.build(bytes.size())) {
-        Logger::ERROR("[Transfer] Failed to build image staging buffer.");
-        PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
-        return false;
-    }
-
-    if (!stagingBuffer.map(bytes, 0)) {
-        Logger::ERROR("[Transfer] Failed to map image from staging buffer.");
-        stagingBuffer.destroy();
-        PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
-        return false;
-    }
-
-    vk::BufferImageCopy region = {
-        .bufferOffset = 0,
-        .bufferRowLength = 0,
-        .bufferImageHeight = 0,
-        .imageSubresource = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .mipLevel = 0,
-            .baseArrayLayer = 0,
-            .layerCount = image.getInfo().arrayLayers,
-        },
-        .imageOffset = {0, 0, 0},
-        .imageExtent = image.getData().imageInfo.extent,
-    };
-
-    // copy the buffer into a VkImage on the vram
-    if (!image.copy(m_Command.buffer, stagingBuffer, {region}, layout)) {
-        Logger::ERROR("[Transfer] Failed to copy image from staging buffer.");
-        stagingBuffer.destroy();
-        PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
-        return false;
-    }
-
-    // submit
-    PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
-
-    const vk::SubmitInfo submitInfo = {
-        .commandBufferCount = 1,
-        .pCommandBuffers = &m_Command.buffer,
-    };
-
-    PBZ_VK_CHECK_RESULT(App::Queues.transfer.submit(submitInfo, m_Fences.submit));
-
-    // release the staging buffer
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
-    stagingBuffer.destroy();
-
-    return true;
-}
-
-void Transfer::immediate(std::function<void(vk::CommandBuffer)> record) {
-    // prepare the command buffer
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
-    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.submit));
-    PBZ_VK_CHECK_RESULT(m_Command.buffer.reset());
-
-    PBZ_VK_CHECK_RESULT(m_Command.buffer.begin({
-        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
-    }));
-
-    record(m_Command.buffer);
-
-    PBZ_VK_CHECK_RESULT(m_Command.buffer.end());
-
-    vk::SubmitInfo submitInfo = {
-        .commandBufferCount = 1,
-        .pCommandBuffers = &m_Command.buffer,
-    };
-
-    PBZ_VK_CHECK_RESULT(App::Queues.transfer.submit(submitInfo, m_Fences.submit));
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
 }
 
 } // namespace Physbuzz

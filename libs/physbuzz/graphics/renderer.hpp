@@ -28,8 +28,11 @@ class Renderer : public System<> {
     void immediate(std::function<void(vk::CommandBuffer)> record);
 
     void setGraph(const RenderGraph &graph);
-    const RenderGraph &getGraph() const;
 
+    bool map(const Buffer &buffer, const std::span<const std::byte> &bytes, std::uint64_t offset);
+    bool map(const Image &image, const std::span<const std::byte> &bytes);
+
+    const RenderGraph &getGraph() const;
     const Info &getInfo() const;
     std::uint32_t getFrameInFlight() const;
 

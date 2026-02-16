@@ -1,7 +1,8 @@
 #pragma once
 
-#include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/ecs/scene.hpp>
+#include <physbuzz/graphics/pipeline.hpp>
+#include <physbuzz/graphics/renderer.hpp>
 
 inline Physbuzz::RenderPipeline shaderDebugNormal = {{
     // .vertex = {.file = {.path = "resources/shaders/debug/normal.vert"}},

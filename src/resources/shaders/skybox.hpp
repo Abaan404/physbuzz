@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../objects/skybox.hpp"
+#include <physbuzz/graphics/pipeline.hpp>
 #include <physbuzz/graphics/renderer.hpp>
 
 inline Physbuzz::RenderPipeline shaderSkybox = {{

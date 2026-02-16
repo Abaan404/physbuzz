@@ -1,6 +1,6 @@
 #include "application.hpp"
 
-#include "../debug/macros.hpp"
+#include "../ecs/scene.hpp"
 #include "../graphics/descriptors/attachment.hpp"
 #include "../graphics/descriptors/dynamic.hpp"
 #include "../graphics/descriptors/static.hpp"
@@ -8,12 +8,7 @@
 #include "../graphics/layout.hpp"
 #include "../graphics/mesh.hpp"
 #include "../graphics/pipeline.hpp"
-#include <algorithm>
-#include <glm/glm.hpp>
-#include <map>
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_hpp_macros.hpp>
+#include "deletion.hpp"
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -48,6 +43,9 @@ static VKAPI_ATTR vk::Bool32 VKAPI_CALL vulkanDebugCallback(vk::DebugUtilsMessag
 
     return vk::False;
 }
+
+DeletionQueue App::Deletion = {};
+Scene App::GScene = {};
 
 bool App::init() {
     // setup logging

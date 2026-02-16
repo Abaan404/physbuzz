@@ -1,5 +1,6 @@
 #include "lightpoint.hpp"
 
+#include <physbuzz/graphics/transfer.hpp>
 #include <physbuzz/render/defines.hpp>
 #include <physbuzz/shapes/sphere.hpp>
 

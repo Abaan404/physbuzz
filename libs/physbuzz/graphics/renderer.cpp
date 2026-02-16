@@ -1,8 +1,10 @@
 #include "renderer.hpp"
 
 #include "../app/application.hpp"
+#include "../ecs/scene.hpp"
 #include "../events/window.hpp"
 #include "layout.hpp"
+#include "transfer.hpp"
 
 namespace Physbuzz {
 
@@ -327,6 +329,7 @@ const Renderer::Info &Renderer::getInfo() const {
     return m_Info;
 }
 
+// create a custom ImGui_Physbuzz_Impl so this shouldnt be exposed anymore
 std::uint32_t Renderer::getFrameInFlight() const {
     return m_FrameInFlight;
 }

@@ -1,6 +1,8 @@
 #include "sampler.hpp"
 
 #include "../../app/application.hpp"
+#include "../../app/deletion.hpp"
+#include "../../debug/macros.hpp"
 
 namespace Physbuzz {
 

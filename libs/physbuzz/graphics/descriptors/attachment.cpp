@@ -1,6 +1,8 @@
 #include "attachment.hpp"
 
 #include "../../app/application.hpp"
+#include "../../app/deletion.hpp"
+#include "../../debug/macros.hpp"
 #include "../../events/descriptor.hpp"
 
 namespace Physbuzz {

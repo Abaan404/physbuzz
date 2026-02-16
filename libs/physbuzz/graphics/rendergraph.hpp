@@ -7,6 +7,8 @@
 
 namespace Physbuzz {
 
+class Scene;
+
 using RenderNodeID = std::string;
 
 struct RenderNode {

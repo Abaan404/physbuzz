@@ -1,5 +1,6 @@
 #include "rendergraph.hpp"
 
+#include "../ecs/scene.hpp"
 #include "../resources/registry.hpp"
 #include <tuple>
 

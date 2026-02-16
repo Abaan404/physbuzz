@@ -6,6 +6,7 @@
 
 #include "../../app/application.hpp"
 #include "../../debug/macros.hpp"
+#include "../../ecs/scene.hpp"
 #include "../../events/descriptor.hpp"
 #include "../../graphics/descriptors/sampler.hpp"
 #include "../../graphics/descriptors/texture.hpp"

@@ -2,12 +2,9 @@
 
 #include "../graphics/memory.hpp"
 #include "../graphics/pipeline.hpp"
-#include "imgui.h"
+#include <imgui.h>
 
 namespace Physbuzz {
-
-class Buffer;
-class RenderPipeline;
 
 class DeletionQueue {
   public:

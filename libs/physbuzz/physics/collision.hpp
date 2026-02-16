@@ -1,11 +1,13 @@
 #pragma once
 
+#include "../ecs/defines.hpp"
 #include "../events/handler.hpp"
 #include "../render/defines.hpp"
 #include <list>
 
 namespace Physbuzz {
 
+class Scene;
 struct RigidBodyComponent;
 
 struct AABBComponent {

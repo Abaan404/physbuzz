@@ -1,6 +1,8 @@
 #include "static.hpp"
 
 #include "../../app/application.hpp"
+#include "../../app/deletion.hpp"
+#include "../../debug/macros.hpp"
 #include "../../events/descriptor.hpp"
 #include "../defines.hpp"
 
@@ -96,8 +98,7 @@ bool StaticBuffer::update(const RenderContext &context, const std::span<const st
 
     PBZ_ASSERT(m_Data.address != 0, "[StaticBuffer] Buffer has not been allocated.");
 
-    // TODO this doesnt have to happen on the transfer queue
-    return context.systems.transfer->map(m_Data.buffer, bytes, offset);
+    return m_Data.buffer.map(context.command, context.deletionQueue, bytes, offset);
 }
 
 std::size_t StaticBuffer::getSize() const {

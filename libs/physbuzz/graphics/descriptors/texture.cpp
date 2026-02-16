@@ -2,6 +2,7 @@
 
 #include "../../app/application.hpp"
 #include "../../events/descriptor.hpp"
+#include "../transfer.hpp"
 
 namespace Physbuzz {
 

@@ -1,6 +1,7 @@
 #include "pipeline.hpp"
 
 #include "../app/application.hpp"
+#include "../app/deletion.hpp"
 #include "layout.hpp"
 #include "mesh.hpp"
 

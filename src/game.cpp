@@ -16,6 +16,7 @@
 #include <physbuzz/graphics/model.hpp>
 #include <physbuzz/graphics/pipeline.hpp>
 #include <physbuzz/graphics/renderer.hpp>
+#include <physbuzz/graphics/transfer.hpp>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/render/deferred.hpp>
 #include <physbuzz/render/forward.hpp>

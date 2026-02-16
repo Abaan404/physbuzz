@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../ecs/defines.hpp"
 #include "../../graphics/rendergraph.hpp"
 #include "../../resources/resource.hpp"
 

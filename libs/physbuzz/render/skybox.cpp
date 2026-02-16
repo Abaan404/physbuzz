@@ -12,7 +12,7 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool RenderPipelineSkybox::build(const std::shared_ptr<Transfer> transfer) {
+bool RenderPipelineSkybox::build() {
     if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
         return true;
     }
@@ -70,7 +70,7 @@ SkyboxRenderer::SkyboxRenderer(const Info &info)
 bool SkyboxRenderer::build() {
     // build pipeline
     if (m_Info.pipeline == Builtin::RenderPipelineSkybox::Resource) {
-        if (!Builtin::RenderPipelineSkybox::build(m_Scene->getSystem<Transfer>())) {
+        if (!Builtin::RenderPipelineSkybox::build()) {
             Logger::ERROR("[SkyboxRenderer] Could not build skybox shader pipeline.");
             return false;
         }

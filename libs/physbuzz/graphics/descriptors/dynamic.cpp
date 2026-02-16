@@ -126,8 +126,7 @@ bool DynamicBuffer::update(const RenderContext &context, const std::span<const s
     PBZ_ASSERT(!std::holds_alternative<std::monostate>(m_RingData), "[DynamicBuffer] Buffer has not been allocated.");
     const std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
 
-    // TODO this doesnt have to happen on the transfer queue
-    return context.systems.transfer->map(ringData[context.frameInFlight].buffer, bytes, offset);
+    return ringData[context.frameInFlight].buffer.map(context.command, context.deletionQueue, bytes, offset);
 }
 
 const DynamicBuffer::Info &DynamicBuffer::getInfo() const {

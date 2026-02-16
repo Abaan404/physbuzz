@@ -22,7 +22,7 @@ inline Resource<PipelineLayout> ResourceLayoutTexture = {"builtin/skybox/texture
 
 inline Resource<RenderPipeline> Resource = {"builtin/skybox"};
 
-bool build(const std::shared_ptr<Transfer> transfer);
+bool build();
 
 } // namespace RenderPipelineSkybox
 

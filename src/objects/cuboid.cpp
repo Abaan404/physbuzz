@@ -1,5 +1,6 @@
 #include "cuboid.hpp"
 
+#include <physbuzz/graphics/transfer.hpp>
 #include <physbuzz/physics/collision.hpp>
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/defines.hpp>

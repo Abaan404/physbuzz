@@ -5,6 +5,7 @@
 
 namespace Physbuzz {
 
+class Transfer;
 struct RenderComponent;
 struct RenderContext;
 

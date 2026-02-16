@@ -1,13 +1,14 @@
 #pragma once
 
-#include "../ecs/scene.hpp"
 #include "../window/window.hpp"
-#include "deletion.hpp"
 #include <slang-com-ptr.h>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
+
+class Scene;
+class DeletionQueue;
 
 class App {
   public:
@@ -20,7 +21,10 @@ class App {
     static std::shared_ptr<Window> getWindow(const std::string &name);
 
     // global ECS registry
-    inline static Scene GScene;
+    static Scene GScene;
+
+    // global deletion queue
+    static DeletionQueue Deletion;
 
   private:
     // Vulkan instances and extensions
@@ -37,9 +41,6 @@ class App {
 
     // slang
     inline static Slang::ComPtr<slang::IGlobalSession> SlangSession = nullptr;
-
-    // global deletion
-    inline static DeletionQueue Deletion = {};
 
     inline static struct {
         std::uint32_t graphics;

@@ -1,5 +1,6 @@
 #include "skybox.hpp"
 
+#include <physbuzz/graphics/transfer.hpp>
 #include <physbuzz/render/defines.hpp>
 
 struct VertexSkybox {
