@@ -158,7 +158,7 @@ void Renderer::tick() {
     {
         std::array barriers = {
             vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eNone,
+                .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                 .srcAccessMask = vk::AccessFlagBits2::eNone,
                 .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                 .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
@@ -174,7 +174,7 @@ void Renderer::tick() {
                 },
             },
             vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eNone,
+                .srcStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
                 .srcAccessMask = vk::AccessFlagBits2::eNone,
                 .dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
                 .dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite,

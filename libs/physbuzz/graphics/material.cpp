@@ -44,7 +44,8 @@ bool MaterialAllocator::build() {
         success &= Builtin::LayoutMaterial::build();
     }
 
-    m_MaterialBuffer.build(sizeof(Builtin::LayoutMaterial::MaterialBuffer));
+    // TODO dynamic allocation for materials/global sets, hardcoded to 32 max objects
+    m_MaterialBuffer.build(sizeof(Builtin::LayoutMaterial::MaterialBuffer) * 32);
 
     return success;
 }

@@ -27,7 +27,7 @@ class Attachment : public EventSubject {
         Image image;
 
         vk::ImageView view = nullptr;
-        vk::ImageLayout layout = vk::ImageLayout::eUndefined;
+        vk::ImageSubresourceRange subresourceRange = {};
     };
 
     Attachment(const Info &info);
@@ -35,7 +35,7 @@ class Attachment : public EventSubject {
     bool build(const glm::uvec2 &resolution);
     bool destroy();
 
-    bool resize(const RenderContext &context, const glm::uvec2 &size);
+    bool rebuild(const RenderContext &context, const glm::uvec2 &size);
 
     const Info &getInfo() const;
     const std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &getRingData() const;
@@ -43,8 +43,8 @@ class Attachment : public EventSubject {
     glm::uvec2 getSize(std::uint32_t frameInFlight) const;
 
   private:
-    vk::ImageView createImageView(const Image &image) const;
-    vk::ImageLayout createLayout() const;
+    std::tuple<vk::ImageView, vk::ImageSubresourceRange> createImageView(const Image &image) const;
+    vk::ImageSubresourceRange createSubresourceRange(const Image &image) const;
 
     Info m_Info;
 

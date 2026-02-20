@@ -20,7 +20,7 @@ class StaticBuffer : public EventSubject {
     bool build(std::uint64_t size);
     bool destroy();
 
-    bool resize(const RenderContext &context, std::uint64_t size);
+    bool rebuild(const RenderContext &context, std::uint64_t size);
 
     template <typename T>
     bool update(const RenderContext &context, const std::vector<T> &data, std::uint32_t index = 0) {

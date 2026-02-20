@@ -100,8 +100,15 @@ void Game::build() {
         playerId = ObjectBuilder::create(Physbuzz::App::GScene, player);
     }
 
-    Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
     Physbuzz::App::GScene.createSystem<Physbuzz::PipelineLayoutAllocator>(Physbuzz::PipelineLayoutAllocator::Info{});
+
+    std::shared_ptr<Physbuzz::Transfer> transfer = Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
+
+    std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(
+        Physbuzz::Renderer::Info{
+            .window = window,
+        },
+        Physbuzz::RenderGraph{{}});
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "skybox",
@@ -114,13 +121,7 @@ void Game::build() {
             Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/front.jpg"}},
             Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/back.jpg"}},
         },
-        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
-
-    std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(
-        Physbuzz::Renderer::Info{
-            .window = window,
-        },
-        Physbuzz::RenderGraph::Info{});
+        transfer);
 
     Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(Physbuzz::ForwardRenderer::Info{
         .camera = playerId,
@@ -158,19 +159,19 @@ void Game::build() {
         "floor",
         {{.type = Physbuzz::Texture::Type::Dim2D}},
         std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/floor.png"}}},
-        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+        transfer);
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "crate/diffuse",
         {{.type = Physbuzz::Texture::Type::Dim2D}},
         std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/diffuse.png"}}},
-        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+        transfer);
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "crate/specular",
         {{.type = Physbuzz::Texture::Type::Dim2D}},
         std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/specular.png"}}},
-        Physbuzz::App::GScene.getSystem<Physbuzz::Transfer>());
+        transfer);
 
     Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
         "crate",

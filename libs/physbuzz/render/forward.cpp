@@ -85,11 +85,9 @@ ForwardRenderer::ForwardRenderer(const Info &info)
 
 bool ForwardRenderer::build() {
     // build pipeline
-    if (m_Info.pipeline == Builtin::RenderPipelineForward::Resource) {
-        if (!Builtin::RenderPipelineForward::build()) {
-            Logger::ERROR("[ForwardRenderer] Could not build forward shader pipeline.");
-            return false;
-        }
+    if (!Builtin::RenderPipelineForward::build()) {
+        Logger::ERROR("[ForwardRenderer] Could not build forward pipeline.");
+        return false;
     }
 
     m_Events = {
@@ -99,9 +97,9 @@ bool ForwardRenderer::build() {
         }),
     };
 
-    m_Graph.add(Builtin::RenderNodeCamera::Id, Builtin::RenderNodeCamera::build(m_Info.camera));
-    m_Graph.add(Builtin::RenderNodeLights::Id, Builtin::RenderNodeLights::build());
-    m_Graph.add(Builtin::RenderNodeModels::Id, Builtin::RenderNodeModels::build(m_Objects, m_Batches));
+    m_Graph.merge(Builtin::RenderNodeCamera::build(m_Info.camera));
+    m_Graph.merge(Builtin::RenderNodeLights::build());
+    m_Graph.merge(Builtin::RenderNodeModels::build(m_Objects, m_Batches));
 
     m_Graph.add(
         Output,
@@ -109,11 +107,36 @@ bool ForwardRenderer::build() {
             .description = {
                 .buffers = {
                     .input = {
-                        Builtin::RenderNodeCamera::ResourceBuffer,
-                        Builtin::RenderNodeLights::ResourceBufferDirectional,
-                        Builtin::RenderNodeLights::ResourceBufferPoint,
-                        Builtin::RenderNodeLights::ResourceBufferSpot,
-                        Builtin::RenderNodeModels::ResourceBuffer,
+                        {
+                            Builtin::RenderNodeCamera::ResourceBuffer,
+                            {
+                                .stage = RenderNode::Stage::Graphics,
+                            },
+                        },
+                        {
+                            Builtin::RenderNodeLights::ResourceBufferDirectional,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                        {
+                            Builtin::RenderNodeLights::ResourceBufferPoint,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                        {
+                            Builtin::RenderNodeLights::ResourceBufferSpot,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                        {
+                            Builtin::RenderNodeModels::ResourceBuffer,
+                            {
+                                .stage = RenderNode::Stage::Vertex,
+                            },
+                        },
                     },
                 },
             },
@@ -147,7 +170,7 @@ bool ForwardRenderer::build() {
                     .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
                 };
 
-                m_Info.pipeline->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+                Builtin::RenderPipelineForward::Resource->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
 
                 context.command.beginRendering({
                     .renderArea = {
@@ -162,13 +185,13 @@ bool ForwardRenderer::build() {
                 });
 
                 // bind resources
-                m_Info.pipeline->bind(context);
-                context.systems.allocator->bind(context, m_Info.pipeline);
+                Builtin::RenderPipelineForward::Resource->bind(context);
+                context.systems.allocator->bind(context, Builtin::RenderPipelineForward::Resource);
 
                 // draw
                 std::uint32_t object = 0;
                 for (const auto &[mesh, batch] : m_Batches) {
-                    if (mesh->getDescription() != m_Info.pipeline->getInfo().description) {
+                    if (mesh->getDescription() != Builtin::RenderPipelineForward::Resource->getInfo().description) {
                         Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
                         continue;
                     }

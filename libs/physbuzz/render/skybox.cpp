@@ -83,7 +83,7 @@ bool SkyboxRenderer::build() {
         }),
     };
 
-    m_Graph.add(Builtin::RenderNodeCamera::Id, Builtin::RenderNodeCamera::build(m_Info.camera));
+    m_Graph.merge(Builtin::RenderNodeCamera::build(m_Info.camera));
 
     m_Graph.add(
         Output,
@@ -91,7 +91,12 @@ bool SkyboxRenderer::build() {
             .description = {
                 .buffers = {
                     .input = {
-                        Builtin::RenderNodeCamera::ResourceBuffer,
+                        {
+                            Builtin::RenderNodeCamera::ResourceBuffer,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
                     },
                 },
             },

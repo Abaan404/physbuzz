@@ -145,6 +145,45 @@ bool RenderPipelineDeferred::Lighting::build() {
     return success;
 }
 
+bool RenderPipelineDeferred::build() {
+    bool success = true;
+
+    if (!ResourceRegistry<Attachment>::contains(ResourceGBuffers[0])) {
+        success &= ResourceRegistry<Attachment>::insert(
+            ResourceGBuffers[0],
+            {{
+                .type = Attachment::Type::Color,
+                .format = Attachment::Format::eR16G16B16A16Sfloat,
+            }},
+            glm::uvec2{1, 1});
+    }
+
+    if (!ResourceRegistry<Attachment>::contains(ResourceGBuffers[1])) {
+        success &= ResourceRegistry<Attachment>::insert(
+            ResourceGBuffers[1],
+            {{
+                .type = Attachment::Type::Color,
+                .format = Attachment::Format::eR8G8B8A8Snorm,
+            }},
+            glm::uvec2{1, 1});
+    }
+
+    if (!ResourceRegistry<Attachment>::contains(ResourceGBuffers[2])) {
+        success &= ResourceRegistry<Attachment>::insert(
+            ResourceGBuffers[2],
+            {{
+                .type = Attachment::Type::Color,
+                .format = Attachment::Format::eR8G8B8A8Unorm,
+            }},
+            glm::uvec2{1, 1});
+    }
+
+    success &= Builtin::RenderPipelineDeferred::Geometry::build();
+    success &= Builtin::RenderPipelineDeferred::Lighting::build();
+
+    return success;
+}
+
 } // namespace Builtin
 
 DeferredRenderer::DeferredRenderer(const Info &info)
@@ -152,18 +191,9 @@ DeferredRenderer::DeferredRenderer(const Info &info)
 
 bool DeferredRenderer::build() {
     // build pipeline
-    if (m_Info.geometry == Builtin::RenderPipelineDeferred::Geometry::Resource) {
-        if (!Builtin::RenderPipelineDeferred::Geometry::build()) {
-            Logger::ERROR("[DeferredRenderer] Could not build the geometry pipeline.");
-            return false;
-        }
-    }
-
-    if (m_Info.lighting == Builtin::RenderPipelineDeferred::Lighting::Resource) {
-        if (!Builtin::RenderPipelineDeferred::Lighting::build()) {
-            Logger::ERROR("[DeferredRenderer] Could not build the lighting pipeline.");
-            return false;
-        }
+    if (!Builtin::RenderPipelineDeferred::build()) {
+        Logger::ERROR("[DeferredRenderer] Could not build deferred pipeline.");
+        return false;
     }
 
     m_Events = {
@@ -173,54 +203,66 @@ bool DeferredRenderer::build() {
         }),
     };
 
-    m_Graph.add(Builtin::RenderNodeCamera::Id, Builtin::RenderNodeCamera::build(m_Info.camera));
-    m_Graph.add(Builtin::RenderNodeLights::Id, Builtin::RenderNodeLights::build());
-    m_Graph.add(Builtin::RenderNodeModels::Id, Builtin::RenderNodeModels::build(m_Objects, m_Batches));
+    m_Graph.merge(Builtin::RenderNodeCamera::build(m_Info.camera));
+    m_Graph.merge(Builtin::RenderNodeLights::build());
+    m_Graph.merge(Builtin::RenderNodeModels::build(m_Objects, m_Batches));
 
     m_Graph.add(
         "builtin/deferred/gbuffers",
         {
             .description = {
+                .buffers = {
+                    .input = {
+                        {
+                            Builtin::RenderNodeCamera::ResourceBuffer,
+                            {
+                                .stage = RenderNode::Stage::Graphics,
+                            },
+                        },
+                        {
+                            Builtin::RenderNodeModels::ResourceBuffer,
+                            {
+                                .stage = RenderNode::Stage::Graphics,
+                            },
+                        },
+                    },
+                },
                 .attachments = {
                     .output = {
                         {
-                            "builtin/deferred/gBuffer0",
+                            Builtin::RenderPipelineDeferred::ResourceGBuffers[0],
                             {
-                                {
-                                    .type = Attachment::Type::Color,
-                                    .format = Attachment::Format::eR16G16B16A16Sfloat,
-                                },
-                                glm::uvec3{1, 1, 1},
+                                .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            "builtin/deferred/gBuffer1",
+                            Builtin::RenderPipelineDeferred::ResourceGBuffers[1],
                             {
-                                {
-                                    .type = Attachment::Type::Color,
-                                    .format = Attachment::Format::eR8G8B8A8Snorm,
-                                },
-                                glm::uvec3{1, 1, 1},
+                                .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            "builtin/deferred/gBuffer2",
+                            Builtin::RenderPipelineDeferred::ResourceGBuffers[2],
                             {
-                                {
-                                    .type = Attachment::Type::Color,
-                                    .format = Attachment::Format::eR8G8B8A8Unorm,
-                                },
-                                glm::uvec3{1, 1, 1},
+                                .stage = RenderNode::Stage::Fragment,
                             },
                         },
                     },
                 },
-                .buffers = {
-                    .input = {
-                        Builtin::RenderNodeCamera::ResourceBuffer,
-                        Builtin::RenderNodeModels::ResourceBuffer,
-                    },
-                },
+            },
+            .prepare = [&](Scene *scene, const RenderContext &context) {
+                std::array gBuffers = {
+                    Resource<Attachment>("builtin/deferred/gBuffer0"),
+                    Resource<Attachment>("builtin/deferred/gBuffer1"),
+                    Resource<Attachment>("builtin/deferred/gBuffer2"),
+                };
+
+                for (std::size_t i = 0; i < gBuffers.size(); i++) {
+                    glm::uvec2 resolution = gBuffers[i]->getSize(context.frameInFlight);
+                    if (resolution.x != context.extent.width || resolution.y != context.extent.height) {
+                        gBuffers[i]->rebuild(context, {context.extent.width, context.extent.height});
+                    }
+                }
             },
             .execute = [&](Scene *scene, const RenderContext &context) {
                 std::array gBuffers = {
@@ -230,14 +272,8 @@ bool DeferredRenderer::build() {
                 };
 
                 std::array<vk::RenderingAttachmentInfo, gBuffers.size()> colorAttachments;
-                std::array<vk::ImageMemoryBarrier2, gBuffers.size()> layoutBarriers;
 
                 for (std::size_t i = 0; i < gBuffers.size(); i++) {
-                    glm::uvec2 resolution = gBuffers[i]->getSize(context.frameInFlight);
-                    if (resolution.x != context.extent.width || resolution.y != context.extent.height) {
-                        gBuffers[i]->resize(context, {context.extent.width, context.extent.height});
-                    }
-
                     colorAttachments[i] = {
                         .imageView = gBuffers[i]->getRingData()[context.frameInFlight].view,
                         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -245,29 +281,7 @@ bool DeferredRenderer::build() {
                         .storeOp = vk::AttachmentStoreOp::eStore,
                         .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
                     };
-
-                    layoutBarriers[i] = {
-                        .srcStageMask = vk::PipelineStageFlagBits2::eNone,
-                        .srcAccessMask = vk::AccessFlagBits2::eNone,
-                        .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                        .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-                        .oldLayout = vk::ImageLayout::eAttachmentOptimal,
-                        .newLayout = vk::ImageLayout::eAttachmentOptimal,
-                        .image = gBuffers[i]->getRingData()[context.frameInFlight].image.getData().image,
-                        .subresourceRange = {
-                            .aspectMask = vk::ImageAspectFlagBits::eColor,
-                            .baseMipLevel = 0,
-                            .levelCount = 1,
-                            .baseArrayLayer = 0,
-                            .layerCount = 1,
-                        },
-                    };
                 }
-
-                context.command.pipelineBarrier2({
-                    .imageMemoryBarrierCount = layoutBarriers.size(),
-                    .pImageMemoryBarriers = layoutBarriers.data(),
-                });
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth.view,
@@ -282,7 +296,11 @@ bool DeferredRenderer::build() {
                     .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
                 };
 
-                m_Info.geometry->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+                Builtin::RenderPipelineDeferred::Geometry::Resource->updatePushConstants(
+                    context,
+                    RenderPipeline::PushConstantsStageFlags::eAll,
+                    std::as_bytes(std::span(&pushConstants, 1)),
+                    0);
 
                 // issue draw calls
                 context.command.beginRendering({
@@ -305,12 +323,12 @@ bool DeferredRenderer::build() {
                 });
 
                 // bind resources
-                m_Info.geometry->bind(context);
-                context.systems.allocator->bind(context, m_Info.geometry);
+                Builtin::RenderPipelineDeferred::Geometry::Resource->bind(context);
+                context.systems.allocator->bind(context, Builtin::RenderPipelineDeferred::Geometry::Resource);
 
                 std::uint32_t object = 0;
                 for (const auto &[mesh, batch] : m_Batches) {
-                    if (mesh->getDescription() != m_Info.geometry->getInfo().description) {
+                    if (mesh->getDescription() != Builtin::RenderPipelineDeferred::Geometry::Resource->getInfo().description) {
                         Logger::ERROR("[DeferredRenderer] Incompatible vertex state descriptions.");
                         continue;
                     }
@@ -327,19 +345,54 @@ bool DeferredRenderer::build() {
         Output,
         {
             .description = {
-                .attachments = {
-                    .input = {
-                        "builtin/deferred/gBuffer0",
-                        "builtin/deferred/gBuffer1",
-                        "builtin/deferred/gBuffer2",
-                    },
-                },
                 .buffers = {
                     .input = {
-                        Builtin::RenderNodeCamera::ResourceBuffer,
-                        Builtin::RenderNodeLights::ResourceBufferDirectional,
-                        Builtin::RenderNodeLights::ResourceBufferPoint,
-                        Builtin::RenderNodeLights::ResourceBufferSpot,
+                        {
+                            Builtin::RenderNodeCamera::ResourceBuffer,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                        {
+                            Builtin::RenderNodeLights::ResourceBufferDirectional,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                        {
+                            Builtin::RenderNodeLights::ResourceBufferPoint,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                        {
+                            Builtin::RenderNodeLights::ResourceBufferSpot,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                    },
+                },
+                .attachments = {
+                    .input = {
+                        {
+                            Builtin::RenderPipelineDeferred::ResourceGBuffers[0],
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                        {
+                            Builtin::RenderPipelineDeferred::ResourceGBuffers[1],
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                        {
+                            Builtin::RenderPipelineDeferred::ResourceGBuffers[2],
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
                     },
                 },
             },
@@ -371,8 +424,8 @@ bool DeferredRenderer::build() {
                 });
 
                 // bind resources
-                m_Info.lighting->bind(context);
-                context.systems.allocator->bind(context, m_Info.lighting);
+                Builtin::RenderPipelineDeferred::Lighting::Resource->bind(context);
+                context.systems.allocator->bind(context, Builtin::RenderPipelineDeferred::Lighting::Resource);
 
                 // record constants
                 Builtin::RenderPipelineDeferred::Lighting::PushConstants pushConstants = {
@@ -381,7 +434,11 @@ bool DeferredRenderer::build() {
                     .pointCount = static_cast<std::uint32_t>(points.size()),
                 };
 
-                m_Info.lighting->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+                Builtin::RenderPipelineDeferred::Lighting::Resource->updatePushConstants(
+                    context,
+                    RenderPipeline::PushConstantsStageFlags::eAll,
+                    std::as_bytes(std::span(&pushConstants, 1)),
+                    0);
 
                 // draw one triangle
                 context.command.draw(3, 1, 0, 0);

@@ -54,7 +54,7 @@ bool StaticBuffer::destroy() {
     return true;
 }
 
-bool StaticBuffer::resize(const RenderContext &context, std::uint64_t size) {
+bool StaticBuffer::rebuild(const RenderContext &context, std::uint64_t size) {
     Buffer buffer = m_Data.buffer.getInfo();
 
     // create new buffer
@@ -62,15 +62,6 @@ bool StaticBuffer::resize(const RenderContext &context, std::uint64_t size) {
         Logger::ERROR("[StaticBuffer] Failed to create new shader buffers.");
         return false;
     }
-
-    // copy old data to the new buffer
-    std::vector<vk::BufferCopy> copies = {{
-        .srcOffset = 0,
-        .dstOffset = 0,
-        .size = glm::min(m_Data.buffer.getData().bufferInfo.size, buffer.getData().bufferInfo.size),
-    }};
-
-    buffer.copy(context.command, m_Data.buffer, copies);
 
     // mark old buffer for deferred deletion and update
     context.deletionQueue->enqueue(std::move(m_Data.buffer));
@@ -82,7 +73,7 @@ bool StaticBuffer::resize(const RenderContext &context, std::uint64_t size) {
         }),
     };
 
-    notifyCallbacks<OnStaticBufferRealloc>({
+    notifyCallbacks<OnStaticBufferRebuild>({
         .buffer = this,
     });
 
@@ -92,11 +83,11 @@ bool StaticBuffer::resize(const RenderContext &context, std::uint64_t size) {
 bool StaticBuffer::update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) {
     std::uint64_t requiredSize = offset + bytes.size();
 
-    if (getSize() < requiredSize) {
-        resize(context, requiredSize);
-    }
-
     PBZ_ASSERT(m_Data.address != 0, "[StaticBuffer] Buffer has not been allocated.");
+
+    PBZ_ASSERT(
+        requiredSize <= getSize(),
+        std::format("[StaticBuffer] Cannot update buffer with insufficient size ({}) and offset ({}) with size ({})", bytes.size(), offset, getSize()));
 
     return m_Data.buffer.map(context.command, context.deletionQueue, bytes, offset);
 }

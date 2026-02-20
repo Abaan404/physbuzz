@@ -10,22 +10,22 @@ class DynamicBuffer;
 class StaticBuffer;
 struct RenderContext;
 
-struct OnTextureRealloc {
+struct OnTextureRebuild {
     Texture *texture;
     const RenderContext &context;
 };
 
-struct OnAttachmentRealloc {
+struct OnAttachmentRebuild {
     Attachment *attachment;
     const RenderContext &context;
 };
 
-struct OnDynamicBufferRealloc {
+struct OnDynamicBufferRebuild {
     DynamicBuffer *buffer;
     const RenderContext &context;
 };
 
-struct OnStaticBufferRealloc {
+struct OnStaticBufferRebuild {
     StaticBuffer *buffer;
 };
 

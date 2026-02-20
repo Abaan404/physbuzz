@@ -8,57 +8,84 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-RenderNode RenderNodeModels::build(const std::unordered_set<ObjectID> &objects, std::vector<std::pair<Resource<Mesh>, std::size_t>> &batches) {
-    return {
-        .description = {
-            .buffers = {
-                .output = {
-                    {
-                        ResourceBuffer,
+RenderGraph RenderNodeModels::build(const std::unordered_set<ObjectID> &objects, std::vector<std::pair<Resource<Mesh>, std::size_t>> &batches) {
+    RenderGraph graph = {{}};
+
+    bool success = true;
+
+    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBuffer)) {
+        success &= ResourceRegistry<DynamicBuffer>::insert(
+            ResourceBuffer,
+            {{
+                .type = DynamicBuffer::Type::Structured,
+            }},
+            sizeof(ModelBuffer));
+    }
+
+    if (!success) {
+        Logger::ERROR("[RenderNodeModels] Failed to build buffers");
+        return graph;
+    }
+
+    std::shared_ptr<std::vector<ModelBuffer>> data = std::make_shared<std::vector<ModelBuffer>>();
+
+    graph.add(
+        Id,
+        {
+            .description = {
+                .buffers = {
+                    .output = {
                         {
+                            ResourceBuffer,
                             {
-                                .type = DynamicBuffer::Type::Structured,
+                                .stage = RenderNode::Stage::Transfer,
                             },
-                            sizeof(ModelBuffer),
                         },
                     },
                 },
             },
-        },
-        .execute = [&batches, &objects](Scene *scene, const RenderContext &context) {
-            std::unordered_map<Resource<Mesh>, std::vector<ModelBuffer>> instances;
-            batches.clear();
+            .prepare = [&batches, &objects, data](Scene *scene, const RenderContext &context) {
+                std::unordered_map<Resource<Mesh>, std::vector<ModelBuffer>> instances;
 
-            std::size_t meshCount = 0;
-            for (const auto &object : objects) {
-                const auto [render] = scene->getComponent<RenderComponent>(object);
-                context.materialAllocator->refresh(render.model, context);
+                std::size_t meshCount = 0;
+                for (const auto &object : objects) {
+                    const auto [render] = scene->getComponent<RenderComponent>(object);
+                    context.materialAllocator->refresh(render.model, context);
 
-                const Model::Info &model = render.model.getInfo();
-                for (const auto &mesh : model.meshes) {
-                    instances[mesh.mesh].emplace_back<ModelBuffer>({
-                        .model = render.transform.matrix,
-                        .normal = glm::transpose(glm::inverse(render.transform.matrix)),
-                        .materialIdx = context.materialAllocator->query(mesh.material),
-                    });
+                    const Model::Info &model = render.model.getInfo();
+                    for (const auto &mesh : model.meshes) {
+                        instances[mesh.mesh].emplace_back<ModelBuffer>({
+                            .model = render.transform.matrix,
+                            .normal = glm::transpose(glm::inverse(render.transform.matrix)),
+                            .materialIdx = context.materialAllocator->query(mesh.material),
+                        });
+                    }
+
+                    meshCount += render.model.getInfo().meshes.size();
+
+                    batches.clear();
+                    batches.reserve(instances.size());
+
+                    data->clear();
+                    data->reserve(meshCount);
+
+                    for (const auto &[mesh, buffers] : instances) {
+                        batches.emplace_back(std::make_tuple(mesh, buffers.size()));
+                        data->insert(data->end(), std::make_move_iterator(buffers.begin()), std::make_move_iterator(buffers.end()));
+                    }
+
+                    std::size_t requiredSize = meshCount * sizeof(ModelBuffer);
+                    if (ResourceBuffer->getSize(context.frameInFlight) < requiredSize) {
+                        ResourceBuffer->rebuild(context, requiredSize);
+                    }
                 }
+            },
+            .execute = [data](Scene *scene, const RenderContext &context) {
+                ResourceBuffer->update(context, *data);
+            },
+        });
 
-                meshCount += render.model.getInfo().meshes.size();
-            }
-
-            std::vector<ModelBuffer> instanceBuffers;
-
-            instanceBuffers.reserve(meshCount);
-            batches.reserve(instances.size());
-
-            for (const auto &[mesh, buffers] : instances) {
-                instanceBuffers.insert(instanceBuffers.end(), std::make_move_iterator(buffers.begin()), std::make_move_iterator(buffers.end()));
-                batches.emplace_back<std::tuple<Resource<Mesh>, std::size_t>>({mesh, buffers.size()});
-            }
-
-            ResourceBuffer->update(context, instanceBuffers);
-        },
-    };
+    return graph;
 }
 
 } // namespace Builtin

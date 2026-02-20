@@ -48,10 +48,11 @@ bool Attachment::build(const glm::uvec2 &resolution) {
             return false;
         }
 
+        const auto &[view, subresourceRange] = createImageView(image);
         Data &data = ringData.emplace_back<Data>({
             .image = image,
-            .view = createImageView(image),
-            .layout = createLayout(),
+            .view = view,
+            .subresourceRange = subresourceRange,
         });
     }
 
@@ -86,7 +87,7 @@ bool Attachment::destroy() {
     return success;
 }
 
-bool Attachment::resize(const RenderContext &context, const glm::uvec2 &size) {
+bool Attachment::rebuild(const RenderContext &context, const glm::uvec2 &size) {
     Data &data = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData)[context.frameInFlight];
 
     Image image = data.image.getInfo();
@@ -97,42 +98,19 @@ bool Attachment::resize(const RenderContext &context, const glm::uvec2 &size) {
         return false;
     }
 
-    // copy old data to the new image
-    std::vector<vk::ImageCopy> copies = {{
-        .srcSubresource = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .mipLevel = 0,
-            .baseArrayLayer = 0,
-            .layerCount = image.getInfo().arrayLayers,
-        },
-        .srcOffset = {},
-        .dstSubresource = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .mipLevel = 0,
-            .baseArrayLayer = 0,
-            .layerCount = image.getInfo().arrayLayers,
-        },
-        .dstOffset = {},
-        .extent = {
-            .width = glm::min(data.image.getData().imageInfo.extent.width, image.getData().imageInfo.extent.width),
-            .height = glm::min(data.image.getData().imageInfo.extent.height, image.getData().imageInfo.extent.height),
-            .depth = glm::min(data.image.getData().imageInfo.extent.depth, image.getData().imageInfo.extent.depth),
-        },
-    }};
-
-    image.copy(context.command, data.image, copies, data.layout);
-
     // mark old image for deferred deletion and update
     context.deletionQueue->enqueue(std::move(data.image));
     context.deletionQueue->enqueue(data.view);
 
+    const auto &[view, subresourceRange] = createImageView(image);
+
     data = {
         .image = image,
-        .view = createImageView(image),
-        .layout = createLayout(),
+        .view = view,
+        .subresourceRange = subresourceRange,
     };
 
-    notifyCallbacks<OnAttachmentRealloc>({
+    notifyCallbacks<OnAttachmentRebuild>({
         .attachment = this,
         .context = context,
     });
@@ -150,87 +128,75 @@ const std::array<Attachment::Data, detail::MAX_FRAMES_IN_FLIGHT> &Attachment::ge
 }
 
 glm::uvec2 Attachment::getSize(std::uint32_t frameInFlight) const {
-    PBZ_ASSERT(frameInFlight < detail::MAX_FRAMES_IN_FLIGHT, "[ImGuiRenderer] Invalid frame in flight");
-    const std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
+    PBZ_ASSERT(frameInFlight < detail::MAX_FRAMES_IN_FLIGHT, "[DynamicBuffer] Invalid frame in flight");
+    const Data &data = getRingData()[frameInFlight];
 
     return {
-        ringData[frameInFlight].image.getData().imageInfo.extent.width,
-        ringData[frameInFlight].image.getData().imageInfo.extent.height,
+        data.image.getData().imageInfo.extent.width,
+        data.image.getData().imageInfo.extent.height,
     };
 }
 
-vk::ImageView Attachment::createImageView(const Image &image) const {
+std::tuple<vk::ImageView, vk::ImageSubresourceRange> Attachment::createImageView(const Image &image) const {
+    vk::ImageSubresourceRange subresourceRange = {};
+    vk::ImageViewType type = {};
+
     switch (m_Info.type) {
     case Type::Color:
-        return PBZ_VK_CHECK(App::Device.createImageView({
-            .flags = {},
-            .image = image.getData().image,
-            .viewType = vk::ImageViewType::e2D,
-            .format = image.getInfo().format,
-            .components = {},
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        }));
+        type = vk::ImageViewType::e2D;
+        subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        };
+        break;
 
     case Type::Depth:
-        return PBZ_VK_CHECK(App::Device.createImageView({
-            .flags = {},
-            .image = image.getData().image,
-            .viewType = vk::ImageViewType::e2D,
-            .format = image.getInfo().format,
-            .components = {},
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eDepth,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        }));
+        type = vk::ImageViewType::e2D;
+        subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eDepth,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        };
+        break;
 
     case Type::Stencil:
-        return PBZ_VK_CHECK(App::Device.createImageView({
-            .flags = {},
-            .image = image.getData().image,
-            .viewType = vk::ImageViewType::e2D,
-            .format = image.getInfo().format,
-            .components = {},
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eStencil,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        }));
+        type = vk::ImageViewType::e2D;
+        subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eStencil,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        };
+        break;
 
     case Type::DepthStencil:
-        return PBZ_VK_CHECK(App::Device.createImageView({
-            .flags = {},
-            .image = image.getData().image,
-            .viewType = vk::ImageViewType::e2D,
-            .format = image.getInfo().format,
-            .components = {},
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        }));
+        type = vk::ImageViewType::e2D;
+        subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        };
+        break;
     }
 
-    return nullptr;
-}
+    vk::ImageView view = PBZ_VK_CHECK(App::Device.createImageView({
+        .flags = {},
+        .image = image.getData().image,
+        .viewType = type,
+        .format = image.getInfo().format,
+        .components = {},
+        .subresourceRange = subresourceRange,
+    }));
 
-vk::ImageLayout Attachment::createLayout() const {
-    return vk::ImageLayout::eAttachmentOptimal;
+    return std::make_tuple(view, subresourceRange);
 }
 
 } // namespace Physbuzz

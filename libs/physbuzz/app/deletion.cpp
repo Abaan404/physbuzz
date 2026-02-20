@@ -64,6 +64,8 @@ void DeletionQueue::flush() {
     for (auto &texId : std::views::reverse(m_ImTextureIds)) {
         ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(texId));
     }
+
+    m_ImTextureIds.clear();
 }
 
 } // namespace Physbuzz

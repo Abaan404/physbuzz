@@ -146,13 +146,13 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     auto &[_, entry] = *m_WrittenBuffers.insert({buffer, {}}).first;
 
     if (entry.layouts.contains(layout)) {
-        buffer->eraseCallback<OnDynamicBufferRealloc>(entry.layouts.at(layout).realloc);
+        buffer->eraseCallback<OnDynamicBufferRebuild>(entry.layouts.at(layout).rebuild);
     }
 
     entry.layouts.insert({
         layout,
         {
-            .realloc = buffer->addCallback<OnDynamicBufferRealloc>([this, layout, buffer](const OnDynamicBufferRealloc &event) {
+            .rebuild = buffer->addCallback<OnDynamicBufferRebuild>([this, layout, buffer](const OnDynamicBufferRebuild &event) {
                 WriteInfo &writeInfo = m_WrittenBuffers.at(buffer).layouts.at(layout);
                 rewrite(layout, buffer, event.context, writeInfo.binding, writeInfo.element);
             }),
@@ -192,11 +192,14 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
 }
 
 bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
-    vk::DescriptorType type;
+    vk::DescriptorType type = {};
+    vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
     switch (texture->getInfo().type) {
     case Texture::Type::Dim2D:
     case Texture::Type::Cube:
+        imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+
         if (texture->getInfo().sampler.type == Sampler::Type::None) {
             type = vk::DescriptorType::eSampledImage;
         } else {
@@ -221,13 +224,13 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     auto &[_, entry] = *m_WrittenTextures.insert({texture, {}}).first;
 
     if (entry.layouts.contains(layout)) {
-        texture->eraseCallback<OnTextureRealloc>(entry.layouts.at(layout).realloc);
+        texture->eraseCallback<OnTextureRebuild>(entry.layouts.at(layout).rebuild);
     }
 
     entry.layouts.insert({
         layout,
         {
-            .realloc = texture->addCallback<OnTextureRealloc>([this, layout, texture](const OnTextureRealloc &event) {
+            .rebuild = texture->addCallback<OnTextureRebuild>([this, layout, texture](const OnTextureRebuild &event) {
                 WriteInfo &writeInfo = m_WrittenTextures.at(texture).layouts.at(layout);
                 rewrite(layout, texture, event.context, writeInfo.binding, writeInfo.element);
             }),
@@ -239,7 +242,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     vk::DescriptorImageInfo imageInfo = {
         .sampler = texture->getData().sampler.getData().sampler,
         .imageView = texture->getData().view,
-        .imageLayout = texture->getData().layout,
+        .imageLayout = imageLayout,
     };
 
     vk::WriteDescriptorSet writes = {
@@ -258,6 +261,25 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
 
 bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = vk::DescriptorType::eInputAttachment;
+    vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
+
+    switch (attachment->getInfo().type) {
+    case Attachment::Type::Color:
+        imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        break;
+
+    case Attachment::Type::Depth:
+        imageLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
+        break;
+
+    case Attachment::Type::Stencil:
+        imageLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
+        break;
+
+    case Attachment::Type::DepthStencil:
+        imageLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
+        break;
+    }
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
@@ -274,13 +296,13 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     auto &[_, entry] = *m_WrittenAttachments.insert({attachment, {}}).first;
 
     if (entry.layouts.contains(layout)) {
-        attachment->eraseCallback<OnAttachmentRealloc>(entry.layouts.at(layout).realloc);
+        attachment->eraseCallback<OnAttachmentRebuild>(entry.layouts.at(layout).rebuild);
     }
 
     entry.layouts.insert({
         layout,
         {
-            .realloc = attachment->addCallback<OnAttachmentRealloc>([this, layout, attachment](const OnAttachmentRealloc &event) {
+            .rebuild = attachment->addCallback<OnAttachmentRebuild>([this, layout, attachment](const OnAttachmentRebuild &event) {
                 WriteInfo &writeInfo = m_WrittenAttachments.at(attachment).layouts.at(layout);
                 rewrite(layout, attachment, event.context, writeInfo.binding, writeInfo.element);
             }),
@@ -296,7 +318,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     for (std::uint32_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         imageInfos[i] = vk::DescriptorImageInfo{
             .imageView = ringData[i].view,
-            .imageLayout = ringData[i].layout,
+            .imageLayout = imageLayout,
         };
 
         writes[i] = {
@@ -459,10 +481,13 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
 
 bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
+    vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
     switch (texture->getInfo().type) {
     case Texture::Type::Dim2D:
     case Texture::Type::Cube:
+        imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+
         if (texture->getInfo().sampler.type == Sampler::Type::None) {
             type = vk::DescriptorType::eSampledImage;
         } else {
@@ -486,7 +511,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     vk::DescriptorImageInfo imageInfo = {
         .sampler = texture->getData().sampler.getData().sampler,
         .imageView = texture->getData().view,
-        .imageLayout = texture->getData().layout,
+        .imageLayout = imageLayout,
     };
 
     vk::WriteDescriptorSet writes = {
@@ -504,6 +529,25 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
 
 bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = vk::DescriptorType::eInputAttachment;
+    vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
+
+    switch (attachment->getInfo().type) {
+    case Attachment::Type::Color:
+        imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        break;
+
+    case Attachment::Type::Depth:
+        imageLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
+        break;
+
+    case Attachment::Type::Stencil:
+        imageLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
+        break;
+
+    case Attachment::Type::DepthStencil:
+        imageLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
+        break;
+    }
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
@@ -520,7 +564,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
 
     vk::DescriptorImageInfo imageInfo = {
         .imageView = ringData[context.frameInFlight].view,
-        .imageLayout = ringData[context.frameInFlight].layout,
+        .imageLayout = imageLayout,
     };
 
     vk::WriteDescriptorSet write = {
@@ -607,7 +651,7 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
 
     for (auto &[resource, entry] : m_WrittenBuffers) {
         for (const auto &[layout, writeInfo] : entry.layouts) {
-            resource->eraseCallback<OnDynamicBufferRealloc>(writeInfo.realloc);
+            resource->eraseCallback<OnDynamicBufferRebuild>(writeInfo.rebuild);
         }
 
         entry.layouts.erase(layout);
@@ -615,7 +659,7 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
 
     for (auto &[resource, entry] : m_WrittenTextures) {
         for (const auto &[layout, writeInfo] : entry.layouts) {
-            resource->eraseCallback<OnTextureRealloc>(writeInfo.realloc);
+            resource->eraseCallback<OnTextureRebuild>(writeInfo.rebuild);
         }
 
         entry.layouts.erase(layout);
@@ -623,7 +667,7 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
 
     for (auto &[resource, entry] : m_WrittenAttachments) {
         for (const auto &[layout, writeInfo] : entry.layouts) {
-            resource->eraseCallback<OnAttachmentRealloc>(writeInfo.realloc);
+            resource->eraseCallback<OnAttachmentRebuild>(writeInfo.rebuild);
         }
 
         entry.layouts.erase(layout);

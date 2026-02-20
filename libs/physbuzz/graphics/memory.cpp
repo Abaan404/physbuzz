@@ -113,81 +113,34 @@ bool Buffer::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span
         }
 
         PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, bytes.data(), stagingBuffer.m_Allocation, offset, bytes.size())));
-        vmaFlushAllocation(App::Allocator, m_Allocation, offset, bytes.size());
+        vmaFlushAllocation(App::Allocator, stagingBuffer.m_Allocation, offset, bytes.size());
 
-        std::vector<vk::BufferCopy> copies = {{
+        vk::BufferCopy copy = {
             .srcOffset = 0,
             .dstOffset = offset,
             .size = bytes.size(),
-        }};
+        };
 
-        if (!copy(cmd, stagingBuffer, copies)) {
-            Logger::ERROR("[Transfer] Failed to copy from staging buffer.");
-            stagingBuffer.destroy();
-            return false;
-        }
+        vk::BufferMemoryBarrier2 barrier = {
+            .srcStageMask = vk::PipelineStageFlagBits2::eHost,
+            .srcAccessMask = vk::AccessFlagBits2::eHostWrite,
+            .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
+            .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+            .buffer = stagingBuffer.m_Data.buffer,
+            .offset = 0,
+            .size = bytes.size(),
+        };
+
+        cmd.pipelineBarrier2({
+            .dependencyFlags = {},
+            .bufferMemoryBarrierCount = 1,
+            .pBufferMemoryBarriers = &barrier,
+        });
+
+        cmd.copyBuffer(stagingBuffer.m_Data.buffer, m_Data.buffer, copy);
 
         deletion->enqueue(std::move(stagingBuffer));
     }
-
-    return true;
-}
-
-bool Buffer::copy(vk::CommandBuffer cmd, const Buffer &src, const std::vector<vk::BufferCopy> &copies) const {
-    if (m_Data.buffer == nullptr || m_Allocation == nullptr) {
-        Logger::ERROR("[Buffer] Trying to copy to a destructed buffer.");
-        return false;
-    }
-
-    if (src.m_Data.buffer == nullptr || src.m_Allocation == nullptr) {
-        Logger::ERROR("[Buffer] Trying to copy from a destructed buffer.");
-        return false;
-    }
-
-    std::vector<vk::BufferMemoryBarrier2> preCopyBarriers;
-    std::vector<vk::BufferMemoryBarrier2> postCopyBarriers;
-
-    preCopyBarriers.reserve(copies.size());
-    postCopyBarriers.reserve(copies.size());
-
-    for (const auto &copy : copies) {
-        PBZ_ASSERT(copy.srcOffset + copy.size <= src.m_Data.bufferInfo.size, "[Buffer] Not enough space in source buffer to copy from.");
-        PBZ_ASSERT(copy.dstOffset + copy.size <= m_Data.bufferInfo.size, "[Buffer] Not enough space in destination buffer to copy to.");
-
-        preCopyBarriers.emplace_back<vk::BufferMemoryBarrier2>({
-            .srcStageMask = vk::PipelineStageFlagBits2::eNone,
-            .srcAccessMask = vk::AccessFlagBits2::eNone,
-            .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
-            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
-            .buffer = m_Data.buffer,
-            .offset = copy.dstOffset,
-            .size = copy.size,
-        });
-
-        postCopyBarriers.emplace_back<vk::BufferMemoryBarrier2>({
-            .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
-            .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-            .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-            .dstAccessMask = vk::AccessFlagBits2::eShaderRead,
-            .buffer = m_Data.buffer,
-            .offset = copy.dstOffset,
-            .size = copy.size,
-        });
-    }
-
-    cmd.pipelineBarrier2({
-        .dependencyFlags = {},
-        .bufferMemoryBarrierCount = static_cast<std::uint32_t>(preCopyBarriers.size()),
-        .pBufferMemoryBarriers = preCopyBarriers.data(),
-    });
-
-    cmd.copyBuffer(src.m_Data.buffer, m_Data.buffer, copies);
-
-    cmd.pipelineBarrier2({
-        .dependencyFlags = {},
-        .bufferMemoryBarrierCount = static_cast<std::uint32_t>(postCopyBarriers.size()),
-        .pBufferMemoryBarriers = postCopyBarriers.data(),
-    });
 
     return true;
 }
@@ -235,7 +188,7 @@ bool Image::destroy() {
     return true;
 }
 
-bool Image::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<const std::byte> &bytes, vk::ImageLayout layout) const {
+bool Image::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<const std::byte> &bytes) const {
     if (m_Allocation == nullptr) {
         Logger::ERROR("[Transfer] Cannot Transfer an uninitialized allocation.");
         return false;
@@ -255,7 +208,7 @@ bool Image::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<
     PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, bytes.data(), stagingBuffer.m_Allocation, 0, bytes.size())));
     vmaFlushAllocation(App::Allocator, stagingBuffer.m_Allocation, 0, bytes.size());
 
-    vk::BufferImageCopy region = {
+    vk::BufferImageCopy copy = {
         .bufferOffset = 0,
         .bufferRowLength = 0,
         .bufferImageHeight = 0,
@@ -269,172 +222,28 @@ bool Image::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<
         .imageExtent = m_Data.imageInfo.extent,
     };
 
-    // copy the buffer into a VkImage on the vram
-    if (!copy(cmd, stagingBuffer, {region}, layout)) {
-        Logger::ERROR("[Transfer] Failed to copy image from staging buffer.");
-        stagingBuffer.destroy();
-        return false;
+    {
+        vk::BufferMemoryBarrier2 buffer = {
+            .srcStageMask = vk::PipelineStageFlagBits2::eHost,
+            .srcAccessMask = vk::AccessFlagBits2::eHostWrite,
+            .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
+            .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+            .buffer = stagingBuffer.m_Data.buffer,
+            .offset = 0,
+            .size = bytes.size(),
+        };
+
+        cmd.pipelineBarrier2({
+            .dependencyFlags = {},
+            .bufferMemoryBarrierCount = 1,
+            .pBufferMemoryBarriers = &buffer,
+        });
     }
+
+    cmd.copyBufferToImage(stagingBuffer.m_Data.buffer, m_Data.image, vk::ImageLayout::eTransferDstOptimal, {copy});
 
     // release the staging buffer
     deletion->enqueue(std::move(stagingBuffer));
-
-    return true;
-}
-
-bool Image::copy(vk::CommandBuffer cmd, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies, vk::ImageLayout layout) const {
-    if (m_Data.image == nullptr || m_Allocation == nullptr) {
-        Logger::ERROR("[Image] Trying to copy to a destructed image.");
-        return false;
-    }
-
-    if (src.m_Data.buffer == nullptr || src.m_Allocation == nullptr) {
-        Logger::ERROR("[Image] Trying to copy from a destructed buffer.");
-        return false;
-    }
-
-    {
-        std::array barriers = {
-            vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eNone,
-                .srcAccessMask = vk::AccessFlagBits2::eNone,
-                .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
-                .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
-                .oldLayout = vk::ImageLayout::eUndefined,
-                .newLayout = vk::ImageLayout::eTransferDstOptimal,
-                .image = m_Data.image,
-                .subresourceRange = {
-                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .baseMipLevel = 0,
-                    .levelCount = m_Info.mipLevels,
-                    .baseArrayLayer = 0,
-                    .layerCount = m_Info.arrayLayers,
-                },
-            },
-        };
-
-        cmd.pipelineBarrier2({
-            .dependencyFlags = {},
-            .imageMemoryBarrierCount = barriers.size(),
-            .pImageMemoryBarriers = barriers.data(),
-        });
-    }
-
-    cmd.copyBufferToImage(src.getData().buffer, m_Data.image, vk::ImageLayout::eTransferDstOptimal, copies);
-
-    {
-        std::array barriers = {
-            vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
-                .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-                .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-                .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
-                .oldLayout = vk::ImageLayout::eTransferDstOptimal,
-                .newLayout = layout,
-                .image = m_Data.image,
-                .subresourceRange = {
-                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .baseMipLevel = 0,
-                    .levelCount = m_Info.mipLevels,
-                    .baseArrayLayer = 0,
-                    .layerCount = m_Info.arrayLayers,
-                },
-            },
-        };
-
-        cmd.pipelineBarrier2({
-            .dependencyFlags = {},
-            .imageMemoryBarrierCount = barriers.size(),
-            .pImageMemoryBarriers = barriers.data(),
-        });
-    }
-
-    return true;
-}
-
-bool Image::copy(vk::CommandBuffer cmd, const Image &src, const std::vector<vk::ImageCopy> &copies, vk::ImageLayout layout) const {
-    if (m_Data.image == nullptr || m_Allocation == nullptr) {
-        Logger::ERROR("[Image] Trying to copy to a destructed image.");
-        return false;
-    }
-
-    if (src.m_Data.image == nullptr || src.m_Allocation == nullptr) {
-        Logger::ERROR("[Image] Trying to copy from a destructed image.");
-        return false;
-    }
-
-    {
-        // Note: eUndefined trashes the old image data/layout, this could bite me later.
-        std::array barriers = {
-            vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eNone,
-                .srcAccessMask = vk::AccessFlagBits2::eNone,
-                .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
-                .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
-                .oldLayout = vk::ImageLayout::eUndefined,
-                .newLayout = vk::ImageLayout::eTransferDstOptimal,
-                .image = m_Data.image,
-                .subresourceRange = {
-                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .baseMipLevel = 0,
-                    .levelCount = m_Info.mipLevels,
-                    .baseArrayLayer = 0,
-                    .layerCount = m_Info.arrayLayers,
-                },
-            },
-            vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eNone,
-                .srcAccessMask = vk::AccessFlagBits2::eNone,
-                .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
-                .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
-                .oldLayout = vk::ImageLayout::eUndefined,
-                .newLayout = vk::ImageLayout::eTransferSrcOptimal,
-                .image = src.m_Data.image,
-                .subresourceRange = {
-                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .baseMipLevel = 0,
-                    .levelCount = src.m_Info.mipLevels,
-                    .baseArrayLayer = 0,
-                    .layerCount = src.m_Info.arrayLayers,
-                },
-            },
-        };
-
-        cmd.pipelineBarrier2({
-            .dependencyFlags = {},
-            .imageMemoryBarrierCount = barriers.size(),
-            .pImageMemoryBarriers = barriers.data(),
-        });
-    }
-
-    cmd.copyImage(src.getData().image, vk::ImageLayout::eTransferSrcOptimal, m_Data.image, vk::ImageLayout::eTransferDstOptimal, {copies});
-
-    {
-        std::array barriers = {
-            vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
-                .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-                .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-                .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
-                .oldLayout = vk::ImageLayout::eTransferDstOptimal,
-                .newLayout = layout,
-                .image = m_Data.image,
-                .subresourceRange = {
-                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .baseMipLevel = 0,
-                    .levelCount = m_Info.mipLevels,
-                    .baseArrayLayer = 0,
-                    .layerCount = m_Info.arrayLayers,
-                },
-            },
-        };
-
-        cmd.pipelineBarrier2({
-            .dependencyFlags = {},
-            .imageMemoryBarrierCount = barriers.size(),
-            .pImageMemoryBarriers = barriers.data(),
-        });
-    }
 
     return true;
 }

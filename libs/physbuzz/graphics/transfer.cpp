@@ -50,6 +50,24 @@ bool Transfer::map(const Buffer &buffer, const std::span<const std::byte> &bytes
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
     }));
 
+    {
+        vk::BufferMemoryBarrier2 barrier = {
+            .srcStageMask = vk::PipelineStageFlagBits2::eNone,
+            .srcAccessMask = vk::AccessFlagBits2::eNone,
+            .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
+            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+            .buffer = buffer.getData().buffer,
+            .offset = offset,
+            .size = bytes.size(),
+        };
+
+        m_Command.buffer.pipelineBarrier2({
+            .dependencyFlags = {},
+            .bufferMemoryBarrierCount = 1,
+            .pBufferMemoryBarriers = &barrier,
+        });
+    }
+
     if (!buffer.map(m_Command.buffer, &m_Deletion, bytes, offset)) {
         Logger::ERROR("[Transfer] Failed to map buffer.");
     }
@@ -81,8 +99,56 @@ bool Transfer::map(const Image &image, const std::span<const std::byte> &bytes, 
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
     }));
 
-    if (!image.map(m_Command.buffer, &m_Deletion, bytes, layout)) {
+    {
+        vk::ImageMemoryBarrier2 barrier = {
+            .srcStageMask = vk::PipelineStageFlagBits2::eNone,
+            .srcAccessMask = vk::AccessFlagBits2::eNone,
+            .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
+            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+            .oldLayout = vk::ImageLayout::eUndefined,
+            .newLayout = vk::ImageLayout::eTransferDstOptimal,
+            .image = image.getData().image,
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = image.getInfo().mipLevels,
+                .baseArrayLayer = 0,
+                .layerCount = image.getInfo().arrayLayers,
+            },
+        };
+
+        m_Command.buffer.pipelineBarrier2({
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers = &barrier,
+        });
+    }
+
+    if (!image.map(m_Command.buffer, &m_Deletion, bytes)) {
         Logger::ERROR("[Transfer] Failed to map image.");
+    }
+
+    {
+        vk::ImageMemoryBarrier2 barrier = {
+            .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
+            .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+            .dstStageMask = vk::PipelineStageFlagBits2::eNone,
+            .dstAccessMask = vk::AccessFlagBits2::eNone,
+            .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+            .newLayout = layout,
+            .image = image.getData().image,
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = image.getInfo().mipLevels,
+                .baseArrayLayer = 0,
+                .layerCount = image.getInfo().arrayLayers,
+            },
+        };
+
+        m_Command.buffer.pipelineBarrier2({
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers = &barrier,
+        });
     }
 
     // submit

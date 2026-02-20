@@ -69,24 +69,24 @@ void RenderGraph::draw() {
             const Physbuzz::RenderNode &node = graph.get(id);
 
             if (ImGui::TreeNode("buffers")) {
-                for (const auto &buffer : node.description.buffers.input) {
-                    ImGui::Text("input: %s", buffer.c_str());
+                for (const auto &[buffer, _] : node.description.buffers.input) {
+                    ImGui::Text("input: %s", buffer.getIdentifier().c_str());
                 }
 
-                for (const auto &buffer : node.description.buffers.output) {
-                    ImGui::Text("output: %s", buffer.first.c_str());
+                for (const auto &[buffer, _] : node.description.buffers.output) {
+                    ImGui::Text("output: %s", buffer.getIdentifier().c_str());
                 }
 
                 ImGui::TreePop();
             }
 
             if (ImGui::TreeNode("attachments")) {
-                for (const auto &texture : node.description.attachments.input) {
-                    ImGui::Text("input: %s", texture.c_str());
+                for (const auto &[attachment, _] : node.description.attachments.input) {
+                    ImGui::Text("input: %s", attachment.getIdentifier().c_str());
                 }
 
-                for (const auto &texture : node.description.attachments.output) {
-                    ImGui::Text("output: %s", texture.first.c_str());
+                for (const auto &[attachment, _] : node.description.attachments.output) {
+                    ImGui::Text("output: %s", attachment.getIdentifier().c_str());
                 }
 
                 ImGui::TreePop();

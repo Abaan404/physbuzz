@@ -39,8 +39,6 @@ class ForwardRenderer : public System<RenderComponent> {
     struct Info {
         ObjectID camera;
         std::shared_ptr<Window> window;
-
-        Resource<RenderPipeline> pipeline = Builtin::RenderPipelineForward::Resource;
     };
 
     ForwardRenderer(const Info &info);

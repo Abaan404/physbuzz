@@ -9,7 +9,7 @@ namespace Physbuzz {
 Texture::Texture(const Info &info)
     : m_Info(info) {}
 
-bool Texture::build(std::vector<ImageFile::Info> imageInfos, std::shared_ptr<Transfer> transfer) {
+bool Texture::build(std::vector<ImageFile::Info> imageInfos, const std::shared_ptr<Transfer> transfer) {
     if (imageInfos.empty()) {
         Logger::ERROR("[Texture] No images provided.");
         return false;
@@ -66,7 +66,7 @@ bool Texture::build(std::vector<ImageFile::Info> imageInfos, std::shared_ptr<Tra
         return false;
     }
 
-    transfer->map(m_Data.image, bytes, m_Data.layout);
+    transfer->map(m_Data.image, bytes, vk::ImageLayout::eShaderReadOnlyOptimal);
 
     return true;
 }
@@ -110,11 +110,13 @@ bool Texture::build(const glm::uvec3 &resolution) {
         return false;
     }
 
+    const auto &[view, subresourceRange] = createImageView(image);
+
     m_Data = {
         .sampler = sampler,
         .image = image,
-        .view = createImageView(image),
-        .layout = createLayout(),
+        .view = view,
+        .subresourceRange = subresourceRange,
     };
 
     return true;
@@ -142,7 +144,7 @@ bool Texture::destroy() {
     return true;
 }
 
-bool Texture::resize(const RenderContext &context, const glm::uvec3 &size) {
+bool Texture::rebuild(const RenderContext &context, const glm::uvec3 &size) {
     Image image = m_Data.image.getInfo();
 
     // create new image
@@ -151,45 +153,22 @@ bool Texture::resize(const RenderContext &context, const glm::uvec3 &size) {
         return false;
     }
 
-    // copy old data to the new image
-    std::vector<vk::ImageCopy> copies = {{
-        .srcSubresource = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .mipLevel = 0,
-            .baseArrayLayer = 0,
-            .layerCount = image.getInfo().arrayLayers,
-        },
-        .srcOffset = {},
-        .dstSubresource = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .mipLevel = 0,
-            .baseArrayLayer = 0,
-            .layerCount = image.getInfo().arrayLayers,
-        },
-        .dstOffset = {},
-        .extent = {
-            .width = glm::min(m_Data.image.getData().imageInfo.extent.width, image.getData().imageInfo.extent.width),
-            .height = glm::min(m_Data.image.getData().imageInfo.extent.height, image.getData().imageInfo.extent.height),
-            .depth = glm::min(m_Data.image.getData().imageInfo.extent.depth, image.getData().imageInfo.extent.depth),
-        },
-    }};
-
-    image.copy(context.command, m_Data.image, copies, m_Data.layout);
-
     // mark old image for deferred deletion and update
     context.deletionQueue->enqueue(std::move(m_Data.image));
     context.deletionQueue->enqueue(m_Data.view);
     // sampler is erased on app exit
     // context.deletionQueue->enqueue(m_Data.sampler.getData().sampler);
 
+    const auto &[view, subresourceRange] = createImageView(image);
+
     m_Data = {
         .sampler = m_Data.sampler,
         .image = image,
-        .view = createImageView(image),
-        .layout = createLayout(),
+        .view = view,
+        .subresourceRange = subresourceRange,
     };
 
-    notifyCallbacks<OnTextureRealloc>({
+    notifyCallbacks<OnTextureRebuild>({
         .texture = this,
         .context = context,
     });
@@ -209,54 +188,44 @@ glm::uvec3 Texture::getSize() const {
     return glm::uvec3(m_Data.image.getData().imageInfo.extent.width, m_Data.image.getData().imageInfo.extent.height, m_Data.image.getData().imageInfo.extent.depth);
 }
 
-vk::ImageView Texture::createImageView(const Image &image) const {
+std::tuple<vk::ImageView, vk::ImageSubresourceRange> Texture::createImageView(const Image &image) const {
+    vk::ImageSubresourceRange subresourceRange = {};
+    vk::ImageViewType type = {};
+
     switch (m_Info.type) {
     case Type::Dim2D:
-        return PBZ_VK_CHECK(App::Device.createImageView({
-            .flags = {},
-            .image = image.getData().image,
-            .viewType = vk::ImageViewType::e2D,
-            .format = image.getInfo().format,
-            .components = {},
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        }));
+        type = vk::ImageViewType::e2D;
+        subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        };
+        break;
 
     case Type::Cube:
-        return PBZ_VK_CHECK(App::Device.createImageView({
-            .flags = {},
-            .image = image.getData().image,
-            .viewType = vk::ImageViewType::eCube,
-            .format = image.getInfo().format,
-            .components = {},
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 6,
-            },
-        }));
+        type = vk::ImageViewType::eCube;
+        subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 6,
+        };
+        break;
     }
 
-    return nullptr;
-}
+    vk::ImageView view = PBZ_VK_CHECK(App::Device.createImageView({
+        .flags = {},
+        .image = image.getData().image,
+        .viewType = type,
+        .format = image.getInfo().format,
+        .components = {},
+        .subresourceRange = subresourceRange,
+    }));
 
-vk::ImageLayout Texture::createLayout() const {
-    switch (m_Info.type) {
-    case Type::Dim2D:
-        return vk::ImageLayout::eShaderReadOnlyOptimal;
-
-    case Type::Cube:
-        return vk::ImageLayout::eShaderReadOnlyOptimal;
-    }
-
-    return vk::ImageLayout::eUndefined;
+    return std::make_tuple(view, subresourceRange);
 }
 
 } // namespace Physbuzz

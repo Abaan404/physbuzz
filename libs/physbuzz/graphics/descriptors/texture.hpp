@@ -6,8 +6,11 @@
 #include "../defines.hpp"
 #include "../memory.hpp"
 #include "sampler.hpp"
+#include <memory>
 
 namespace Physbuzz {
+
+class Renderer;
 
 class Texture : public EventSubject {
   public:
@@ -29,16 +32,16 @@ class Texture : public EventSubject {
         Image image = {{}};
 
         vk::ImageView view = nullptr;
-        vk::ImageLayout layout = vk::ImageLayout::eUndefined;
+        vk::ImageSubresourceRange subresourceRange = {};
     };
 
     Texture(const Info &info);
 
-    bool build(std::vector<ImageFile::Info> imageInfo, std::shared_ptr<Transfer> transfer);
+    bool build(std::vector<ImageFile::Info> imageInfos, const std::shared_ptr<Transfer> transfer);
     bool build(const glm::uvec3 &resolution);
     bool destroy();
 
-    bool resize(const RenderContext &context, const glm::uvec3 &size);
+    bool rebuild(const RenderContext &context, const glm::uvec3 &size);
 
     const Info &getInfo() const;
     const Data &getData() const;
@@ -46,8 +49,7 @@ class Texture : public EventSubject {
     glm::uvec3 getSize() const;
 
   private:
-    vk::ImageView createImageView(const Image &image) const;
-    vk::ImageLayout createLayout() const;
+    std::tuple<vk::ImageView, vk::ImageSubresourceRange> createImageView(const Image &image) const;
 
     Info m_Info;
     Data m_Data;

@@ -12,18 +12,34 @@ class Scene;
 using RenderNodeID = std::string;
 
 struct RenderNode {
-    template <typename T, typename... Args>
-        requires ResourceBuildableType<T, Args...>
-    struct DescriptorUsage {
-        std::unordered_set<ResourceID> input = {};
-        std::unordered_map<ResourceID, std::tuple<typename T::Info, Args...>> output = {};
+    enum class Stage : std::uint8_t {
+        Vertex,
+        Fragment,
+        Graphics,
+        Compute,
+        Transfer,
     };
 
-    struct Description {
-        DescriptorUsage<Attachment, glm::uvec2> attachments = {};
-        DescriptorUsage<DynamicBuffer, std::uint64_t> buffers = {};
+    struct BufferDesc {
+        Stage stage;
+    };
+
+    struct AttachmentDesc {
+        Stage stage;
+    };
+
+    template <ResourceType T, typename D>
+    struct ResourceUsage {
+        std::unordered_map<Resource<T>, D> input = {};
+        std::unordered_map<Resource<T>, D> output = {};
+    };
+
+    struct {
+        ResourceUsage<DynamicBuffer, BufferDesc> buffers;
+        ResourceUsage<Attachment, AttachmentDesc> attachments;
     } description = {};
 
+    std::function<void(Scene *, const RenderContext &)> prepare;
     std::function<void(Scene *, const RenderContext &)> execute;
 };
 
@@ -53,6 +69,13 @@ class RenderGraph {
     const Info &getInfo() const;
 
   private:
+    struct Barriers {
+        std::vector<std::tuple<vk::BufferMemoryBarrier2, Resource<DynamicBuffer>>> m_BufferBarriers;
+        std::vector<std::tuple<vk::ImageMemoryBarrier2, Resource<Attachment>>> m_AttachmentBarriers;
+
+        void apply(const RenderContext &context) const;
+    };
+
     Info m_Info;
 
     std::unordered_map<RenderNodeID, RenderNode> m_Nodes;
@@ -60,6 +83,8 @@ class RenderGraph {
 
     std::vector<RenderNode> m_ExecutableNodes;
     std::vector<RenderNodeID> m_ExecutableNodeIds;
+    std::vector<Barriers> m_ExecutableNodeBarriers;
+
     Resources m_Resources;
 };
 

@@ -22,7 +22,7 @@ inline Resource<DynamicBuffer> ResourceBuffer = {"builtin/models"};
 
 inline RenderNodeID Id = "builtin/models";
 
-RenderNode build(const std::unordered_set<ObjectID> &objects, std::vector<std::pair<Resource<Mesh>, std::size_t>> &meshes);
+RenderGraph build(const std::unordered_set<ObjectID> &objects, std::vector<std::pair<Resource<Mesh>, std::size_t>> &meshes);
 
 } // namespace RenderNodeModels
 

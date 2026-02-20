@@ -43,6 +43,12 @@ bool build();
 
 } // namespace Lighting
 
+inline std::array<Resource<Attachment>, 3> ResourceGBuffers = {
+    Resource<Attachment>{"builtin/deferred/gBuffer0"},
+    Resource<Attachment>{"builtin/deferred/gBuffer1"},
+    Resource<Attachment>{"builtin/deferred/gBuffer2"},
+};
+
 bool build();
 
 } // namespace RenderPipelineDeferred
@@ -56,9 +62,6 @@ class DeferredRenderer : public System<RenderComponent> {
     struct Info {
         ObjectID camera;
         std::shared_ptr<Window> window;
-
-        Resource<RenderPipeline> geometry = Builtin::RenderPipelineDeferred::Geometry::Resource;
-        Resource<RenderPipeline> lighting = Builtin::RenderPipelineDeferred::Lighting::Resource;
     };
 
     DeferredRenderer(const Info &info);

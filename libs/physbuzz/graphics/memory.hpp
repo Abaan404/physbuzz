@@ -44,8 +44,6 @@ class Buffer {
 
     bool map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<const std::byte> &bytes, std::uint64_t offset) const;
 
-    bool copy(vk::CommandBuffer cmd, const Buffer &src, const std::vector<vk::BufferCopy> &copies) const;
-
     const Info &getInfo() const;
     const Data &getData() const;
 
@@ -99,10 +97,7 @@ class Image {
     bool build(const glm::uvec3 &extent);
     bool destroy();
 
-    bool map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<const std::byte> &bytes, vk::ImageLayout layout) const;
-
-    bool copy(vk::CommandBuffer cmd, const Buffer &src, const std::vector<vk::BufferImageCopy> &copies, vk::ImageLayout layout) const;
-    bool copy(vk::CommandBuffer cmd, const Image &src, const std::vector<vk::ImageCopy> &copies, vk::ImageLayout layout) const;
+    bool map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<const std::byte> &bytes) const;
 
     const Info &getInfo() const;
     const Data &getData() const;

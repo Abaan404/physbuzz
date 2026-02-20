@@ -15,7 +15,7 @@ inline Resource<DynamicBuffer> ResourceBufferSpot = {"builtin/lights/spot"};
 
 inline RenderNodeID Id = "builtin/lights";
 
-RenderNode build();
+RenderGraph build();
 
 } // namespace RenderNodeLights
 

@@ -20,7 +20,7 @@ inline Resource<DynamicBuffer> ResourceBuffer = {"builtin/camera"};
 
 inline RenderNodeID Id = "builtin/camera";
 
-RenderNode build(const ObjectID &object);
+RenderGraph build(const ObjectID &object);
 
 } // namespace RenderNodeCamera
 

@@ -107,7 +107,7 @@ class PipelineLayoutAllocator : public System<> {
     };
 
     struct WriteInfo {
-        EventID realloc = -1;
+        EventID rebuild = -1;
         std::uint32_t binding;
         std::uint32_t element;
     };
