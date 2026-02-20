@@ -284,8 +284,8 @@ bool DeferredRenderer::build() {
                 }
 
                 vk::RenderingAttachmentInfo depthAttachment = {
-                    .imageView = context.depth.view,
-                    .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                    .imageView = context.depth->getRingData()[context.frameInFlight].view,
+                    .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
                     .loadOp = vk::AttachmentLoadOp::eClear,
                     .storeOp = vk::AttachmentStoreOp::eStore,
                     .clearValue = vk::ClearDepthStencilValue{1.0f, 0},

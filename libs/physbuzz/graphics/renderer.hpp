@@ -48,6 +48,11 @@ class Renderer : public System<> {
 
     std::array<DeletionQueue, detail::MAX_FRAMES_IN_FLIGHT> m_DeletionQueues;
 
+    Attachment m_Depth = {{
+        .type = Attachment::Type::DepthStencil,
+        .format = Attachment::Format::eD24UnormS8Uint,
+    }};
+
     struct {
         vk::CommandPool pool = nullptr;
         std::array<vk::CommandBuffer, detail::MAX_FRAMES_IN_FLIGHT> buffers = {};
@@ -61,21 +66,6 @@ class Renderer : public System<> {
     struct {
         std::array<vk::Fence, detail::MAX_FRAMES_IN_FLIGHT> inFlight = {};
     } m_Fences = {};
-
-    struct {
-        Image image = {{
-            .usage = Image::UsageFlagBits::eDepthStencilAttachment,
-            .type = Image::Type::e2D,
-            .mipLevels = 1,
-            .arrayLayers = 1,
-            .format = Image::Format::eD32Sfloat,
-        }};
-        vk::ImageView view;
-    } m_Depth;
-
-    struct {
-        EventID resize = -1;
-    } m_Events = {};
 };
 
 } // namespace Physbuzz

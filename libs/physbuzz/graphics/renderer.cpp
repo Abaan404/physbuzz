@@ -2,7 +2,6 @@
 
 #include "../app/application.hpp"
 #include "../ecs/scene.hpp"
-#include "../events/window.hpp"
 #include "layout.hpp"
 #include "transfer.hpp"
 
@@ -44,27 +43,11 @@ bool Renderer::build() {
     }
 
     // setup depth buffer
-    glm::uvec2 resolution = m_Info.window->getResolution();
-    if (!m_Depth.image.build({resolution.x, resolution.y, 1})) {
-        Logger::ERROR("[Renderer] Could not build a renderer depth buffer.");
+    if (!m_Depth.build(m_Info.window->getResolution())) {
+        Logger::ERROR("[Renderer] Could not build a depth buffer.");
         destroy();
         return false;
     }
-
-    m_Depth.view = PBZ_VK_CHECK(App::Device.createImageView({
-        .flags = {},
-        .image = m_Depth.image.getData().image,
-        .viewType = vk::ImageViewType::e2D,
-        .format = m_Depth.image.getInfo().format,
-        .components = {},
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eDepth,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-        },
-    }));
 
     // setup material handler
     if (!m_MaterialManager.build()) {
@@ -72,12 +55,6 @@ bool Renderer::build() {
         destroy();
         return false;
     }
-
-    m_Events = {
-        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const WindowSwapchainResizeEvent &event) {
-            resize(event.resolution);
-        }),
-    };
 
     return true;
 }
@@ -90,13 +67,14 @@ bool Renderer::destroy() {
         return true;
     }
 
+    // destroy global sets
+    m_MaterialManager.destroy();
+
     // destroy depth buffer
-    if (!m_Depth.image.destroy()) {
+    if (!m_Depth.destroy()) {
         Logger::ERROR("[Renderer] Failed to destroy depth buffer.");
         return false;
     }
-
-    App::Device.destroyImageView(m_Depth.view);
 
     // destroy sync objects
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
@@ -119,8 +97,6 @@ bool Renderer::destroy() {
 
     App::Device.destroyCommandPool(m_Command.pool);
     m_Command.pool = nullptr;
-
-    m_MaterialManager.destroy();
 
     return true;
 }
@@ -155,6 +131,23 @@ void Renderer::tick() {
     m_Command.buffers[m_FrameInFlight].setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f});
     m_Command.buffers[m_FrameInFlight].setScissor(0, vk::Rect2D{{0, 0}, extent});
 
+    RenderContext context = {
+        .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
+        .materialAllocator = &m_MaterialManager,
+        .depth = &m_Depth,
+        .command = m_Command.buffers[m_FrameInFlight],
+        .extent = extent,
+        .frameInFlight = m_FrameInFlight,
+        .color = {
+            .image = m_Info.window->m_SwapChainImages[imageIndex],
+            .view = m_Info.window->m_SwapChainImageViews[imageIndex],
+        },
+        .systems = {
+            .transfer = m_Scene->getSystem<Transfer>(),
+            .allocator = m_Scene->getSystem<PipelineLayoutAllocator>(),
+        },
+    };
+
     {
         std::array barriers = {
             vk::ImageMemoryBarrier2{
@@ -174,13 +167,13 @@ void Renderer::tick() {
                 },
             },
             vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+                .srcStageMask = vk::PipelineStageFlagBits2::eNone,
                 .srcAccessMask = vk::AccessFlagBits2::eNone,
                 .dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
                 .dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
                 .oldLayout = vk::ImageLayout::eUndefined,
                 .newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-                .image = m_Depth.image.getData().image,
+                .image = m_Depth.getRingData()[m_FrameInFlight].image.getData().image,
                 .subresourceRange = {
                     .aspectMask = vk::ImageAspectFlagBits::eDepth,
                     .baseMipLevel = 0,
@@ -197,27 +190,12 @@ void Renderer::tick() {
         });
     }
 
-    m_Graph.execute(
-        m_Scene,
-        {
-            .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
-            .materialAllocator = &m_MaterialManager,
-            .command = m_Command.buffers[m_FrameInFlight],
-            .extent = extent,
-            .frameInFlight = m_FrameInFlight,
-            .color = {
-                .image = m_Info.window->m_SwapChainImages[imageIndex],
-                .view = m_Info.window->m_SwapChainImageViews[imageIndex],
-            },
-            .depth = {
-                .image = m_Depth.image.getData().image,
-                .view = m_Depth.view,
-            },
-            .systems = {
-                .transfer = m_Scene->getSystem<Transfer>(),
-                .allocator = m_Scene->getSystem<PipelineLayoutAllocator>(),
-            },
-        });
+    glm::uvec2 resolution = m_Depth.getSize(m_FrameInFlight);
+    if (resolution.x != extent.width || resolution.y != extent.height) {
+        m_Depth.rebuild(context, {extent.width, extent.height});
+    }
+
+    m_Graph.execute(m_Scene, context);
 
     // transition image
     {
@@ -332,36 +310,6 @@ const Renderer::Info &Renderer::getInfo() const {
 // create a custom ImGui_Physbuzz_Impl so this shouldnt be exposed anymore
 std::uint32_t Renderer::getFrameInFlight() const {
     return m_FrameInFlight;
-}
-
-void Renderer::resize(const glm::ivec2 &resolution) {
-    Image depth = m_Depth.image.getInfo();
-
-    if (!depth.build({resolution, 1})) {
-        Logger::ERROR("[Renderer] Could not rebuild depth image.");
-        return;
-    }
-
-    m_DeletionQueues[m_FrameInFlight].enqueue(std::move(m_Depth.image));
-    m_DeletionQueues[m_FrameInFlight].enqueue(m_Depth.view);
-
-    m_Depth = {
-        .image = depth,
-        .view = PBZ_VK_CHECK(App::Device.createImageView({
-            .flags = {},
-            .image = depth.getData().image,
-            .viewType = vk::ImageViewType::e2D,
-            .format = depth.getInfo().format,
-            .components = {},
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eDepth,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        })),
-    };
 }
 
 } // namespace Physbuzz

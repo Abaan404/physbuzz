@@ -154,7 +154,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
         {
             .rebuild = buffer->addCallback<OnDynamicBufferRebuild>([this, layout, buffer](const OnDynamicBufferRebuild &event) {
                 WriteInfo &writeInfo = m_WrittenBuffers.at(buffer).layouts.at(layout);
-                rewrite(layout, buffer, event.context, writeInfo.binding, writeInfo.element);
+                rewrite(layout, buffer, event.context.frameInFlight, writeInfo.binding, writeInfo.element);
             }),
             .binding = binding,
             .element = element,
@@ -232,7 +232,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
         {
             .rebuild = texture->addCallback<OnTextureRebuild>([this, layout, texture](const OnTextureRebuild &event) {
                 WriteInfo &writeInfo = m_WrittenTextures.at(texture).layouts.at(layout);
-                rewrite(layout, texture, event.context, writeInfo.binding, writeInfo.element);
+                rewrite(layout, texture, writeInfo.binding, writeInfo.element);
             }),
             .binding = binding,
             .element = element,
@@ -304,7 +304,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
         {
             .rebuild = attachment->addCallback<OnAttachmentRebuild>([this, layout, attachment](const OnAttachmentRebuild &event) {
                 WriteInfo &writeInfo = m_WrittenAttachments.at(attachment).layouts.at(layout);
-                rewrite(layout, attachment, event.context, writeInfo.binding, writeInfo.element);
+                rewrite(layout, attachment, event.context.frameInFlight, writeInfo.binding, writeInfo.element);
             }),
             .binding = binding,
             .element = element,
@@ -425,7 +425,7 @@ void PipelineLayoutAllocator::bind(const RenderContext &context, const RenderPip
     }
 }
 
-bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
+bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
 
     switch (buffer->getInfo().type) {
@@ -460,13 +460,13 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     const std::array<DynamicBuffer::Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = buffer->getRingData();
 
     vk::DescriptorBufferInfo bufferInfo = {
-        .buffer = ringData[context.frameInFlight].buffer.getData().buffer,
+        .buffer = ringData[frameInFlight].buffer.getData().buffer,
         .offset = layout->getInfo().bindings[binding].offset + element * layout->getInfo().bindings[binding].range,
         .range = layout->getInfo().bindings[binding].range,
     };
 
     vk::WriteDescriptorSet write = {
-        .dstSet = m_AllocatedLayouts[layout].sets[context.frameInFlight],
+        .dstSet = m_AllocatedLayouts[layout].sets[frameInFlight],
         .dstBinding = binding,
         .dstArrayElement = element,
         .descriptorCount = 1,
@@ -479,7 +479,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     return true;
 }
 
-bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
+bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
@@ -527,7 +527,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     return true;
 }
 
-bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, const RenderContext &context, std::uint32_t binding, std::uint32_t element) {
+bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = vk::DescriptorType::eInputAttachment;
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
@@ -563,12 +563,12 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     const std::array<Attachment::Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = attachment->getRingData();
 
     vk::DescriptorImageInfo imageInfo = {
-        .imageView = ringData[context.frameInFlight].view,
+        .imageView = ringData[frameInFlight].view,
         .imageLayout = imageLayout,
     };
 
     vk::WriteDescriptorSet write = {
-        .dstSet = m_AllocatedLayouts[layout].sets[context.frameInFlight],
+        .dstSet = m_AllocatedLayouts[layout].sets[frameInFlight],
         .dstBinding = binding,
         .dstArrayElement = element,
         .descriptorCount = 1,

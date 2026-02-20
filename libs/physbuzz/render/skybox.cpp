@@ -102,8 +102,8 @@ bool SkyboxRenderer::build() {
             },
             .execute = [&](Scene *, const RenderContext &context) {
                 vk::RenderingAttachmentInfo depthAttachment = {
-                    .imageView = context.depth.view,
-                    .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                    .imageView = context.depth->getRingData()[context.frameInFlight].view,
+                    .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
                     .loadOp = vk::AttachmentLoadOp::eLoad,
                     .storeOp = vk::AttachmentStoreOp::eDontCare,
                     .clearValue = vk::ClearDepthStencilValue{1.0f, 0},

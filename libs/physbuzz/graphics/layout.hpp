@@ -116,9 +116,9 @@ class PipelineLayoutAllocator : public System<> {
         std::unordered_map<Resource<PipelineLayout>, WriteInfo> layouts;
     };
 
-    bool rewrite(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, const RenderContext &context, std::uint32_t binding, std::uint32_t element = 0);
-    bool rewrite(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, const RenderContext &context, std::uint32_t binding, std::uint32_t element = 0);
-    bool rewrite(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, const RenderContext &context, std::uint32_t binding, std::uint32_t element = 0);
+    bool rewrite(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element = 0);
+    bool rewrite(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
+    bool rewrite(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element = 0);
 
     bool allocate(const Resource<PipelineLayout> &layout);
     bool deallocate(const Resource<PipelineLayout> &layout);

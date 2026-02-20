@@ -12,7 +12,6 @@ struct RenderContext;
 
 struct OnTextureRebuild {
     Texture *texture;
-    const RenderContext &context;
 };
 
 struct OnAttachmentRebuild {
@@ -20,13 +19,13 @@ struct OnAttachmentRebuild {
     const RenderContext &context;
 };
 
+struct OnStaticBufferRebuild {
+    StaticBuffer *buffer;
+};
+
 struct OnDynamicBufferRebuild {
     DynamicBuffer *buffer;
     const RenderContext &context;
-};
-
-struct OnStaticBufferRebuild {
-    StaticBuffer *buffer;
 };
 
 } // namespace Physbuzz

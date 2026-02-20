@@ -9,6 +9,7 @@ class PipelineLayoutAllocator;
 class MaterialAllocator;
 class DeletionQueue;
 class Transfer;
+class Attachment;
 
 namespace detail {
 
@@ -20,6 +21,8 @@ struct RenderContext {
     DeletionQueue *deletionQueue;
     MaterialAllocator *materialAllocator;
 
+    const Attachment *depth;
+
     vk::CommandBuffer command;
     vk::Extent2D extent;
     std::uint32_t frameInFlight;
@@ -28,11 +31,6 @@ struct RenderContext {
         vk::Image image;
         vk::ImageView view;
     } color;
-
-    struct {
-        vk::Image image;
-        vk::ImageView view;
-    } depth;
 
     struct {
         std::shared_ptr<Transfer> transfer;

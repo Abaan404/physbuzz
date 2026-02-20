@@ -170,7 +170,6 @@ bool Texture::rebuild(const RenderContext &context, const glm::uvec3 &size) {
 
     notifyCallbacks<OnTextureRebuild>({
         .texture = this,
-        .context = context,
     });
 
     return true;
