@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../ecs/system.hpp"
 #include "../resources/resource.hpp"
 #include "defines.hpp"
 
@@ -12,7 +11,6 @@ class Texture;
 class Sampler;
 class Attachment;
 class RenderPipeline;
-class Renderer;
 
 class PipelineLayout {
   public:
@@ -64,7 +62,7 @@ class PipelineLayout {
 template <>
 struct IsResource<PipelineLayout> : std::true_type {};
 
-class PipelineLayoutAllocator : public System<> {
+class PipelineLayoutAllocator {
   public:
     using Type = vk::DescriptorType;
 

@@ -42,7 +42,7 @@ class Renderer : public System<> {
     Info m_Info;
 
     RenderGraph m_Graph;
-    MaterialAllocator m_MaterialManager = {{}};
+    MaterialAllocator m_MaterialAllocator = {{}};
 
     std::uint32_t m_FrameInFlight = 0;
 
@@ -50,7 +50,7 @@ class Renderer : public System<> {
 
     Attachment m_Depth = {{
         .type = Attachment::Type::DepthStencil,
-        .format = Attachment::Format::eD24UnormS8Uint,
+        .format = Attachment::Format::eD32SfloatS8Uint,
     }};
 
     struct {

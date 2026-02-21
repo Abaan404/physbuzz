@@ -33,6 +33,7 @@ void RenderGraph::merge(const RenderGraph &graph) {
     // merging requires a recompile
     m_ExecutableNodes.clear();
     m_ExecutableNodeIds.clear();
+    m_ExecutableNodeBarriers.clear();
     m_Resources.buffers.clear();
     m_Resources.attachments.clear();
 }
@@ -42,6 +43,7 @@ bool RenderGraph::compile() {
 
     m_ExecutableNodes.clear();
     m_ExecutableNodeIds.clear();
+    m_ExecutableNodeBarriers.clear();
     m_Resources.buffers.clear();
     m_Resources.attachments.clear();
 

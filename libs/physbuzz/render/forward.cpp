@@ -1,5 +1,6 @@
 #include "forward.hpp"
 
+#include "../app/application.hpp"
 #include "../ecs/scene.hpp"
 #include "../events/window.hpp"
 #include "../graphics/layout.hpp"
@@ -186,7 +187,7 @@ bool ForwardRenderer::build() {
 
                 // bind resources
                 Builtin::RenderPipelineForward::Resource->bind(context);
-                context.systems.allocator->bind(context, Builtin::RenderPipelineForward::Resource);
+                App::LayoutAllocator.bind(context, Builtin::RenderPipelineForward::Resource);
 
                 // draw
                 std::uint32_t object = 0;
@@ -209,27 +210,27 @@ bool ForwardRenderer::build() {
     success &= m_Graph.compile();
 
     if (success) {
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
             Builtin::RenderNodeCamera::ResourceBuffer,
             0);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferDirectional,
             1);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferPoint,
             2);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferSpot,
             3);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
             Builtin::RenderNodeModels::ResourceBuffer,
             4);

@@ -1,5 +1,6 @@
 #include "deferred.hpp"
 
+#include "../app/application.hpp"
 #include "../ecs/scene.hpp"
 #include "../events/window.hpp"
 #include "../graphics/layout.hpp"
@@ -324,7 +325,7 @@ bool DeferredRenderer::build() {
 
                 // bind resources
                 Builtin::RenderPipelineDeferred::Geometry::Resource->bind(context);
-                context.systems.allocator->bind(context, Builtin::RenderPipelineDeferred::Geometry::Resource);
+                App::LayoutAllocator.bind(context, Builtin::RenderPipelineDeferred::Geometry::Resource);
 
                 std::uint32_t object = 0;
                 for (const auto &[mesh, batch] : m_Batches) {
@@ -425,7 +426,7 @@ bool DeferredRenderer::build() {
 
                 // bind resources
                 Builtin::RenderPipelineDeferred::Lighting::Resource->bind(context);
-                context.systems.allocator->bind(context, Builtin::RenderPipelineDeferred::Lighting::Resource);
+                App::LayoutAllocator.bind(context, Builtin::RenderPipelineDeferred::Lighting::Resource);
 
                 // record constants
                 Builtin::RenderPipelineDeferred::Lighting::PushConstants pushConstants = {
@@ -453,48 +454,48 @@ bool DeferredRenderer::build() {
 
     if (success) {
         // geometry
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Geometry::ResourceLayoutFrame,
             Builtin::RenderNodeCamera::ResourceBuffer,
             0);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Geometry::ResourceLayoutFrame,
             Builtin::RenderNodeModels::ResourceBuffer,
             1);
 
         // lighting
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::RenderNodeCamera::ResourceBuffer,
             0);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferDirectional,
             1);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferPoint,
             2);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferSpot,
             3);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
             Resource<Attachment>("builtin/deferred/gBuffer0"),
             4);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
             Resource<Attachment>("builtin/deferred/gBuffer1"),
             5);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
             Resource<Attachment>("builtin/deferred/gBuffer2"),
             6);

@@ -89,6 +89,24 @@ bool PipelineLayoutAllocator::destroy() {
         return false;
     }
 
+    for (const auto &[attachment, entry] : m_WrittenAttachments) {
+        for (const auto &[_, writeInfo] : entry.layouts) {
+            attachment->eraseCallback<OnAttachmentRebuild>(writeInfo.rebuild);
+        }
+    }
+
+    for (const auto &[texture, entry] : m_WrittenTextures) {
+        for (const auto &[_, writeInfo] : entry.layouts) {
+            texture->eraseCallback<OnTextureRebuild>(writeInfo.rebuild);
+        }
+    }
+
+    for (const auto &[buffer, entry] : m_WrittenBuffers) {
+        for (const auto &[_, writeInfo] : entry.layouts) {
+            buffer->eraseCallback<OnDynamicBufferRebuild>(writeInfo.rebuild);
+        }
+    }
+
     std::unordered_map<Resource<PipelineLayout>, Allocation> allocatedLayouts = m_AllocatedLayouts;
 
     for (auto [layout, _] : allocatedLayouts) {

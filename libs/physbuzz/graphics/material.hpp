@@ -49,7 +49,7 @@ class MaterialAllocator {
     bool build();
     bool destroy();
 
-    void refresh(const Model &model, const RenderContext &context);
+    void refresh(const RenderContext &context);
 
     std::uint32_t query(const Resource<Material> &material) const;
     std::uint32_t query(const Resource<Texture> &texture) const;
@@ -62,7 +62,15 @@ class MaterialAllocator {
     ResourceTable<Material> m_Materials;
     ResourceTable<Texture> m_Textures;
 
+    std::vector<Builtin::LayoutMaterial::MaterialBuffer> m_Buffer;
+    bool m_BufferIsDirty;
+
     StaticBuffer m_MaterialBuffer;
+
+    struct {
+        EventID build = -1;
+        EventID destroy = -1;
+    } m_Events;
 };
 
 } // namespace Physbuzz

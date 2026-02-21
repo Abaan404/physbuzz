@@ -1,5 +1,6 @@
 #include "material.hpp"
 
+#include "../app/application.hpp"
 #include "layout.hpp"
 #include "model.hpp"
 
@@ -22,7 +23,7 @@ bool LayoutMaterial::build() {
                     // textures
                     .type = PipelineLayout::Type::eCombinedImageSampler,
                     .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
-                    .count = 32,
+                    .count = 512,
                 },
             },
             .flags = PipelineLayout::Flags::eUpdateAfterBindPool,
@@ -44,8 +45,64 @@ bool MaterialAllocator::build() {
         success &= Builtin::LayoutMaterial::build();
     }
 
-    // TODO dynamic allocation for materials/global sets, hardcoded to 32 max objects
-    m_MaterialBuffer.build(sizeof(Builtin::LayoutMaterial::MaterialBuffer) * 32);
+    m_MaterialBuffer.build(sizeof(Builtin::LayoutMaterial::MaterialBuffer));
+
+    m_Events.build = ResourceRegistry<Material>::Events.addCallback<OnResourceBuild>([&](const OnResourceBuild &event) {
+        Resource<Material> material = {event.identifier};
+
+        for (const auto &[type, texture] : material->textures) {
+            // new texture loaded into table, map to bindless descriptor
+            if (m_Textures.add(texture)) {
+                App::LayoutAllocator.write(m_Info.layout, texture, 0, m_Textures.query(texture));
+            }
+        }
+
+        if (m_Materials.add(material)) {
+            // create a new material buffer
+            Builtin::LayoutMaterial::MaterialBuffer buffer = {
+                .diffuseTextureId = material->textures.contains(TextureType::Diffuse)
+                                        ? m_Textures.query(material->textures.at(TextureType::Diffuse))
+                                        : 0,
+                .specularTextureId = material->textures.contains(TextureType::Specular)
+                                         ? m_Textures.query(material->textures.at(TextureType::Specular))
+                                         : 0,
+                .specularity = material->shininess,
+            };
+
+            std::uint32_t idx = m_Materials.query(material);
+
+            if (m_Buffer.size() <= idx) {
+                m_Buffer.resize(idx + 1);
+            }
+
+            m_Buffer[idx] = buffer;
+            m_BufferIsDirty = true;
+        }
+    });
+
+    m_Events.destroy = ResourceRegistry<Material>::Events.addCallback<OnResourceDestroy>([&](const OnResourceDestroy &event) {
+        Resource<Material> material = {event.identifier};
+
+        // untrack from material table
+        m_Materials.remove(material);
+
+        // if no other material references its textures, untrack it too
+        for (const auto &[type, texture] : material->textures) {
+            bool shouldErase = true;
+
+            for (const auto &[material2, _] : m_Materials.getResources()) {
+                for (const auto &[_, texture2] : material2->textures) {
+                    if (texture2 == texture) {
+                        shouldErase = false;
+                    }
+                }
+            }
+
+            if (shouldErase) {
+                m_Textures.remove(texture);
+            }
+        }
+    });
 
     return success;
 }
@@ -54,35 +111,22 @@ bool MaterialAllocator::destroy() {
     m_MaterialBuffer.destroy();
     m_Materials.clear();
     m_Textures.clear();
+    m_Buffer.clear();
+    m_BufferIsDirty = false;
+
+    ResourceRegistry<Material>::Events.eraseCallback<OnResourceBuild>(m_Events.build);
+    ResourceRegistry<Material>::Events.eraseCallback<OnResourceDestroy>(m_Events.destroy);
 
     return true;
 }
 
-void MaterialAllocator::refresh(const Model &model, const RenderContext &context) {
-    for (const auto &mesh : model.getInfo().meshes) {
-        for (const auto &[type, texture] : mesh.material->textures) {
-            // new texture loaded into table, map to bindless descriptor
-            if (m_Textures.add(texture)) {
-                context.systems.allocator->write(m_Info.layout, texture, 0, m_Textures.query(texture));
-            }
-        }
+void MaterialAllocator::refresh(const RenderContext &context) {
+    if (m_BufferIsDirty) {
+        // TODO a buffer copy + offset write would be better
+        m_MaterialBuffer.rebuild(context, m_Buffer.size() * sizeof(Builtin::LayoutMaterial::MaterialBuffer));
+        m_MaterialBuffer.update<Builtin::LayoutMaterial::MaterialBuffer>(context, m_Buffer, 0);
 
-        // fetch material ids
-        if (m_Materials.add(mesh.material)) {
-            // create a new material buffer
-            Builtin::LayoutMaterial::MaterialBuffer material = {
-                .diffuseTextureId = mesh.material->textures.contains(TextureType::Diffuse)
-                                        ? m_Textures.query(mesh.material->textures.at(TextureType::Diffuse))
-                                        : 0,
-                .specularTextureId = mesh.material->textures.contains(TextureType::Specular)
-                                         ? m_Textures.query(mesh.material->textures.at(TextureType::Specular))
-                                         : 0,
-                .specularity = mesh.material->shininess,
-            };
-
-            // upload material data
-            m_MaterialBuffer.update<Builtin::LayoutMaterial::MaterialBuffer>(context, {material}, m_Materials.query(mesh.material));
-        }
+        m_BufferIsDirty = false;
     }
 }
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
@@ -31,11 +30,6 @@ struct RenderContext {
         vk::Image image;
         vk::ImageView view;
     } color;
-
-    struct {
-        std::shared_ptr<Transfer> transfer;
-        std::shared_ptr<PipelineLayoutAllocator> allocator;
-    } systems;
 };
 
 } // namespace Physbuzz

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../graphics/layout.hpp"
 #include "../window/window.hpp"
 #include <slang-com-ptr.h>
 #include <vk_mem_alloc.h>
@@ -12,7 +13,7 @@ class DeletionQueue;
 
 class App {
   public:
-    static bool init();
+    static bool init(const PipelineLayoutAllocator::Info &layoutAllocatorInfo = {});
     static bool quit();
 
     // windowing
@@ -25,6 +26,9 @@ class App {
 
     // global deletion queue
     static DeletionQueue Deletion;
+
+    // global layout allocator
+    static PipelineLayoutAllocator LayoutAllocator;
 
   private:
     // Vulkan instances and extensions

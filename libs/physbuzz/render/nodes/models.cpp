@@ -50,7 +50,6 @@ RenderGraph RenderNodeModels::build(const std::unordered_set<ObjectID> &objects,
                 std::size_t meshCount = 0;
                 for (const auto &object : objects) {
                     const auto [render] = scene->getComponent<RenderComponent>(object);
-                    context.materialAllocator->refresh(render.model, context);
 
                     const Model::Info &model = render.model.getInfo();
                     for (const auto &mesh : model.meshes) {

@@ -1,9 +1,7 @@
 #include "renderer.hpp"
 
 #include "../app/application.hpp"
-#include "../ecs/scene.hpp"
 #include "layout.hpp"
-#include "transfer.hpp"
 
 namespace Physbuzz {
 
@@ -50,7 +48,7 @@ bool Renderer::build() {
     }
 
     // setup material handler
-    if (!m_MaterialManager.build()) {
+    if (!m_MaterialAllocator.build()) {
         Logger::ERROR("[Renderer] Could not create the materials manager.");
         destroy();
         return false;
@@ -68,7 +66,7 @@ bool Renderer::destroy() {
     }
 
     // destroy global sets
-    m_MaterialManager.destroy();
+    m_MaterialAllocator.destroy();
 
     // destroy depth buffer
     if (!m_Depth.destroy()) {
@@ -133,7 +131,7 @@ void Renderer::tick() {
 
     RenderContext context = {
         .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
-        .materialAllocator = &m_MaterialManager,
+        .materialAllocator = &m_MaterialAllocator,
         .depth = &m_Depth,
         .command = m_Command.buffers[m_FrameInFlight],
         .extent = extent,
@@ -141,10 +139,6 @@ void Renderer::tick() {
         .color = {
             .image = m_Info.window->m_SwapChainImages[imageIndex],
             .view = m_Info.window->m_SwapChainImageViews[imageIndex],
-        },
-        .systems = {
-            .transfer = m_Scene->getSystem<Transfer>(),
-            .allocator = m_Scene->getSystem<PipelineLayoutAllocator>(),
         },
     };
 
@@ -172,15 +166,9 @@ void Renderer::tick() {
                 .dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
                 .dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
                 .oldLayout = vk::ImageLayout::eUndefined,
-                .newLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                .newLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
                 .image = m_Depth.getRingData()[m_FrameInFlight].image.getData().image,
-                .subresourceRange = {
-                    .aspectMask = vk::ImageAspectFlagBits::eDepth,
-                    .baseMipLevel = 0,
-                    .levelCount = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1,
-                },
+                .subresourceRange = m_Depth.getRingData()[m_FrameInFlight].subresourceRange,
             },
         };
 
@@ -195,7 +183,11 @@ void Renderer::tick() {
         m_Depth.rebuild(context, {extent.width, extent.height});
     }
 
+    // execute the graph
     m_Graph.execute(m_Scene, context);
+
+    // refresh the material state
+    m_MaterialAllocator.refresh(context);
 
     // transition image
     {

@@ -6,6 +6,7 @@
 #include "../graphics/descriptors/static.hpp"
 #include "../graphics/descriptors/texture.hpp"
 #include "../graphics/layout.hpp"
+#include "../graphics/material.hpp"
 #include "../graphics/mesh.hpp"
 #include "../graphics/pipeline.hpp"
 #include "deletion.hpp"
@@ -46,8 +47,9 @@ static VKAPI_ATTR vk::Bool32 VKAPI_CALL vulkanDebugCallback(vk::DebugUtilsMessag
 
 DeletionQueue App::Deletion = {};
 Scene App::GScene = {};
+PipelineLayoutAllocator App::LayoutAllocator = {{}};
 
-bool App::init() {
+bool App::init(const PipelineLayoutAllocator::Info &layoutAllocatorInfo) {
     // setup logging
     Logger::init();
 
@@ -295,11 +297,20 @@ bool App::init() {
         .transfer = Device.getQueue(Indices.transfer, 0),
     };
 
+    LayoutAllocator = layoutAllocatorInfo;
+
+    if (!LayoutAllocator.build()) {
+        Logger::CRITICAL("[App] Could not build pipeline layout allocator helper.");
+    }
+
     return true;
 }
 
 bool App::quit() {
     PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
+
+    // free allocated pools and sets
+    LayoutAllocator.destroy();
 
     // clear the scene completely
     GScene.clear();
@@ -313,6 +324,7 @@ bool App::quit() {
     ResourceRegistry<Attachment>::clear();
     ResourceRegistry<Sampler>::clear();
     ResourceRegistry<Mesh>::clear();
+    ResourceRegistry<Material>::clear();
 
     vmaDestroyAllocator(Allocator);
     Deletion.flush();

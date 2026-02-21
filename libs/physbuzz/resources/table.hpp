@@ -27,13 +27,18 @@ class ResourceTable {
     }
 
     bool remove(const Resource<T> &resource) {
-        auto it = m_Resources.erase(resource);
-
+        auto it = m_Resources.find(resource);
         if (it == m_Resources.end()) {
             return false;
         }
 
-        m_EmptyIndices.push_front(it);
+        m_EmptyIndices.push_front(it->second);
+        m_Resources.erase(it);
+        return true;
+    }
+
+    const std::unordered_map<Resource<T>, std::uint32_t> &getResources() const {
+        return m_Resources;
     }
 
     bool contains(const Resource<T> &resource) const {

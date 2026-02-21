@@ -1,5 +1,6 @@
 #include "skybox.hpp"
 
+#include "../app/application.hpp"
 #include "../ecs/scene.hpp"
 #include "../events/window.hpp"
 #include "../graphics/layout.hpp"
@@ -133,7 +134,7 @@ bool SkyboxRenderer::build() {
 
                 // bind resources
                 m_Info.pipeline->bind(context);
-                context.systems.allocator->bind(context, m_Info.pipeline);
+                App::LayoutAllocator.bind(context, m_Info.pipeline);
 
                 // cubemap embedded within shader
                 context.command.draw(36, 1, 0, 0);
@@ -147,12 +148,12 @@ bool SkyboxRenderer::build() {
     success &= m_Graph.compile();
 
     if (success) {
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineSkybox::ResourceLayoutTexture,
             m_Info.skybox,
             0);
 
-        success &= m_Scene->getSystem<PipelineLayoutAllocator>()->write(
+        success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineSkybox::ResourceLayoutFrame,
             Builtin::RenderNodeCamera::ResourceBuffer,
             0);
