@@ -75,6 +75,7 @@ bool StaticBuffer::rebuild(const RenderContext &context, std::uint64_t size) {
 
     notifyCallbacks<OnStaticBufferRebuild>({
         .buffer = this,
+        .context = context,
     });
 
     return true;

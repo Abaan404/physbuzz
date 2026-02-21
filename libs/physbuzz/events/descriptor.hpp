@@ -12,6 +12,7 @@ struct RenderContext;
 
 struct OnTextureRebuild {
     Texture *texture;
+    const RenderContext &context;
 };
 
 struct OnAttachmentRebuild {
@@ -21,6 +22,7 @@ struct OnAttachmentRebuild {
 
 struct OnStaticBufferRebuild {
     StaticBuffer *buffer;
+    const RenderContext &context;
 };
 
 struct OnDynamicBufferRebuild {
