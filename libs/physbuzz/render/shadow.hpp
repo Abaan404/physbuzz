@@ -3,61 +3,71 @@
 #include "../ecs/system.hpp"
 #include "../graphics/pipeline.hpp"
 #include "defines.hpp"
+#include "physbuzz/graphics/rendergraph.hpp"
 
 namespace Physbuzz {
 
 namespace Builtin {
 
-namespace ShaderShadowDepth2D {
+namespace RenderPipelineShadowDirectional {
 
-inline Resource<RenderPipeline> Resource = {"builtin/depth/2D"};
+inline Resource<DynamicBuffer> ResourceModel = {"builtin/shadow/directional/model"};
+inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/directional"};
+
+inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/shadow/directional/frame"};
+
+inline Resource<RenderPipeline> Resource = {"builtin/shadow/directional"};
+
+bool build(const glm::uvec2 &resolution);
+
+} // namespace RenderPipelineShadowDirectional
+
+namespace RenderPipelineShadowPoint {
+
+struct PushConstants {
+};
+
+inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/shadow/point/frame"};
+
+inline Resource<RenderPipeline> Resource = {"builtin/shadow/point"};
 
 bool build();
 
-} // namespace ShaderShadowDepth2D
-
-namespace ShaderShaderDepthCubemap {
-
-inline Resource<RenderPipeline> Resource = {"builtin/depth/cubemap"};
-
-bool build();
-
-} // namespace ShaderShaderDepthCubemap
+} // namespace RenderPipelineShadowPoint
 
 } // namespace Builtin
 
 struct ShadowComponent {};
 
-class Shadow : public System<RenderComponent, ShadowComponent> {
+class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
   public:
-    // struct Framebuffers {
-    //     Framebuffer directional;
-    //     Framebuffer point;
-    // };
+    constexpr static RenderNodeID Output = "builtin/shadow";
 
     struct Info {
-        float orthoSize = 100.0f;
-        float depth = 100.0f;
+        glm::uvec2 resolution = {1024, 1024};
     };
 
-    Shadow(const Info &info, const glm::ivec2 &resolution);
+    ShadowRenderer(const Info &info);
 
     bool build();
     bool destroy();
 
     void resize(const glm::ivec2 &resolution);
 
-    void tick() const;
+    const RenderGraph &getGraph() const;
 
-    // const Framebuffers &getFramebuffers() const;
     const Info &getInfo() const;
 
   private:
-    void tickDirectional() const;
     void tickPoint() const;
 
     Info m_Info;
-    // Framebuffers m_Framebuffers;
+
+    std::vector<std::tuple<Resource<Mesh>, std::size_t>> m_Batches;
+
+    RenderGraph m_Graph = {{
+        .output = Output,
+    }};
 };
 
 } // namespace Physbuzz

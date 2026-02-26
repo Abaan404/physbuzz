@@ -126,9 +126,6 @@ void Renderer::tick() {
 
     vk::Extent2D extent = {static_cast<std::uint32_t>(m_Info.window->m_SwapChainExtent.x), static_cast<std::uint32_t>(m_Info.window->m_SwapChainExtent.y)};
 
-    m_Command.buffers[m_FrameInFlight].setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f});
-    m_Command.buffers[m_FrameInFlight].setScissor(0, vk::Rect2D{{0, 0}, extent});
-
     RenderContext context = {
         .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
         .materialAllocator = &m_MaterialAllocator,

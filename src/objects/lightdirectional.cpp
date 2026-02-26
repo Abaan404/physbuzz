@@ -2,8 +2,6 @@
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, LightDirectional &info) {
-    info.directionalLight.direction = glm::normalize(info.directionalLight.direction);
-
     RebuildableComponent rebuilder = {
         .rebuild = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
             if (!scene.containsComponent<Physbuzz::DirectionalLightComponent, IdentifiableComponent>(object)) {

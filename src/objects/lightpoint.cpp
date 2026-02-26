@@ -7,11 +7,10 @@
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, LightPoint &info) {
     // scale unit sphere
-    info.transform.scale = {info.sphere.radius, info.sphere.radius, info.sphere.radius};
+    info.transform.setScale({info.sphere.radius, info.sphere.radius, info.sphere.radius});
     Physbuzz::Builtin::ModelSphere::build(scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
-    info.transform.update();
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = {{
@@ -25,11 +24,11 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     };
 
     // point light matches this object's transform
-    info.pointLight.position = {
-        info.transform.position.x,
-        info.transform.position.y,
-        info.transform.position.z,
-    };
+    info.pointLight.setPosition({
+        info.transform.getInfo().position.x,
+        info.transform.getInfo().position.y,
+        info.transform.getInfo().position.z,
+    });
 
     // create a rebuild callback
     RebuildableComponent rebuilder = {

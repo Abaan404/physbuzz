@@ -3,11 +3,10 @@
 #include "../objects/builder.hpp"
 #include "../objects/circle.hpp"
 #include "../objects/quad.hpp"
-#include "../objects/skybox.hpp"
 #include <glm/glm.hpp>
 #include <imgui.h>
 #include <physbuzz/graphics/renderer.hpp>
-#include <physbuzz/render/camera.hpp>
+#include <physbuzz/render/components/camera.hpp>
 
 struct PickableComponent {
     bool selected = false;
@@ -22,9 +21,9 @@ ObjectPicker::ObjectPicker(Physbuzz::Scene *scene)
             .width = m_PreviewSize.x,
             .height = m_PreviewSize.y,
         },
-        .transform = {
+        .transform = {{
             .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
-        },
+        }},
         .resources = {},
     };
 
@@ -33,13 +32,11 @@ ObjectPicker::ObjectPicker(Physbuzz::Scene *scene)
         .circle = {
             .radius = glm::min(m_PreviewSize.x, m_PreviewSize.y) / 2.0f,
         },
-        .transform = {
+        .transform = {{
             .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
-        },
+        }},
         .resources = {},
     };
-
-    Skybox skybox;
 
     // m_PickerScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
     //     // .passthrough = false,

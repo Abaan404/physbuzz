@@ -5,8 +5,8 @@
 #include "../events/window.hpp"
 #include "../graphics/layout.hpp"
 #include "../graphics/material.hpp"
-#include "camera.hpp"
-#include "lighting.hpp"
+#include "components/camera.hpp"
+#include "components/lights.hpp"
 #include "nodes/camera.hpp"
 #include "nodes/lights.hpp"
 #include "nodes/models.hpp"
@@ -21,6 +21,15 @@ bool RenderPipelineDeferred::Geometry::build() {
     }
 
     bool success = true;
+
+    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceModel)) {
+        success &= ResourceRegistry<DynamicBuffer>::insert(
+            ResourceModel,
+            {{
+                .type = DynamicBuffer::Type::Structured,
+            }},
+            sizeof(RenderNodeModels::ModelBuffer));
+    }
 
     if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
         success &= ResourceRegistry<PipelineLayout>::insert(
@@ -153,7 +162,7 @@ bool RenderPipelineDeferred::build() {
         success &= ResourceRegistry<Attachment>::insert(
             ResourceGBuffers[0],
             {{
-                .type = Attachment::Type::Color,
+                .usage = Attachment::Usage::Color,
                 .format = Attachment::Format::eR16G16B16A16Sfloat,
             }},
             glm::uvec2{1, 1});
@@ -163,7 +172,7 @@ bool RenderPipelineDeferred::build() {
         success &= ResourceRegistry<Attachment>::insert(
             ResourceGBuffers[1],
             {{
-                .type = Attachment::Type::Color,
+                .usage = Attachment::Usage::Color,
                 .format = Attachment::Format::eR8G8B8A8Snorm,
             }},
             glm::uvec2{1, 1});
@@ -173,7 +182,7 @@ bool RenderPipelineDeferred::build() {
         success &= ResourceRegistry<Attachment>::insert(
             ResourceGBuffers[2],
             {{
-                .type = Attachment::Type::Color,
+                .usage = Attachment::Usage::Color,
                 .format = Attachment::Format::eR8G8B8A8Unorm,
             }},
             glm::uvec2{1, 1});
@@ -204,9 +213,9 @@ bool DeferredRenderer::build() {
         }),
     };
 
-    m_Graph.merge(Builtin::RenderNodeCamera::build(m_Info.camera));
-    m_Graph.merge(Builtin::RenderNodeLights::build());
-    m_Graph.merge(Builtin::RenderNodeModels::build(m_Objects, m_Batches));
+    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
+    m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
+    m_Graph.add("builtin/models", Builtin::RenderNodeModels::build(Builtin::RenderPipelineDeferred::Geometry::ResourceModel, m_Objects, m_Batches));
 
     m_Graph.add(
         "builtin/deferred/gbuffers",
@@ -221,7 +230,7 @@ bool DeferredRenderer::build() {
                             },
                         },
                         {
-                            Builtin::RenderNodeModels::ResourceBuffer,
+                            Builtin::RenderPipelineDeferred::Geometry::ResourceModel,
                             {
                                 .stage = RenderNode::Stage::Graphics,
                             },
@@ -251,7 +260,7 @@ bool DeferredRenderer::build() {
                     },
                 },
             },
-            .prepare = [&](Scene *scene, const RenderContext &context) {
+            .prepare = [this](Scene *scene, const RenderContext &context) {
                 std::array gBuffers = {
                     Resource<Attachment>("builtin/deferred/gBuffer0"),
                     Resource<Attachment>("builtin/deferred/gBuffer1"),
@@ -265,7 +274,7 @@ bool DeferredRenderer::build() {
                     }
                 }
             },
-            .execute = [&](Scene *scene, const RenderContext &context) {
+            .execute = [this](Scene *scene, const RenderContext &context) {
                 std::array gBuffers = {
                     Resource<Attachment>("builtin/deferred/gBuffer0"),
                     Resource<Attachment>("builtin/deferred/gBuffer1"),
@@ -302,6 +311,9 @@ bool DeferredRenderer::build() {
                     RenderPipeline::PushConstantsStageFlags::eAll,
                     std::as_bytes(std::span(&pushConstants, 1)),
                     0);
+
+                context.command.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(context.extent.width), static_cast<float>(context.extent.height), 0.0f, 1.0f});
+                context.command.setScissor(0, vk::Rect2D{{0, 0}, context.extent});
 
                 // issue draw calls
                 context.command.beginRendering({
@@ -397,7 +409,7 @@ bool DeferredRenderer::build() {
                     },
                 },
             },
-            .execute = [&](Scene *scene, const RenderContext &context) {
+            .execute = [this](Scene *scene, const RenderContext &context) {
                 const std::vector<DirectionalLightComponent> &directionals = scene->getComponentArray<DirectionalLightComponent>();
                 const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
                 const std::vector<SpotLightComponent> &spots = scene->getComponentArray<SpotLightComponent>();
@@ -461,7 +473,7 @@ bool DeferredRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Geometry::ResourceLayoutFrame,
-            Builtin::RenderNodeModels::ResourceBuffer,
+            Builtin::RenderPipelineDeferred::Geometry::ResourceModel,
             1);
 
         // lighting

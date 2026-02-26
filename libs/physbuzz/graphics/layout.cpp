@@ -155,7 +155,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for dynamic buffer '{}'", binding, element, layout));
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for dynamic buffer '{}'", binding, element, buffer));
     PBZ_ASSERT(
         layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
         std::format("[PipelineLayoutAllocator] Incompatible lifetime for dynamic buffer '{}' and layout '{}'", buffer, layout));
@@ -218,7 +218,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     case Texture::Type::Cube:
         imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-        if (texture->getInfo().sampler.type == Sampler::Type::None) {
+        if (texture->getInfo().sampler.getInfo().type == Sampler::Type::None) {
             type = vk::DescriptorType::eSampledImage;
         } else {
             type = vk::DescriptorType::eCombinedImageSampler;
@@ -229,7 +229,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for texture '{}'", binding, element, layout));
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for texture '{}'", binding, element, texture));
     PBZ_ASSERT(
         layout->getInfo().lifetime == PipelineLayout::Lifetime::Global,
         std::format("[PipelineLayoutAllocator] Incompatible lifetime for texture '{}' and layout '{}'", texture, layout));
@@ -258,7 +258,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     });
 
     vk::DescriptorImageInfo imageInfo = {
-        .sampler = texture->getData().sampler.getData().sampler,
+        .sampler = texture->getInfo().sampler.getData().sampler,
         .imageView = texture->getData().view,
         .imageLayout = imageLayout,
     };
@@ -278,30 +278,39 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
 }
 
 bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t binding, std::uint32_t element) {
-    vk::DescriptorType type = vk::DescriptorType::eInputAttachment;
+    vk::DescriptorType type = {};
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
-    switch (attachment->getInfo().type) {
-    case Attachment::Type::Color:
+    switch (attachment->getInfo().usage) {
+    case Attachment::Usage::Color:
+        type = vk::DescriptorType::eInputAttachment;
         imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
         break;
 
-    case Attachment::Type::Depth:
+    case Attachment::Usage::Depth:
+        type = vk::DescriptorType::eInputAttachment;
         imageLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
         break;
 
-    case Attachment::Type::Stencil:
+    case Attachment::Usage::Stencil:
+        type = vk::DescriptorType::eInputAttachment;
         imageLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
         break;
 
-    case Attachment::Type::DepthStencil:
+    case Attachment::Usage::DepthStencil:
+        type = vk::DescriptorType::eInputAttachment;
         imageLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
         break;
     }
 
+    if (attachment->getInfo().sampler.getInfo().type != Sampler::Type::None) {
+        type = vk::DescriptorType::eCombinedImageSampler;
+        imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+    }
+
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for attachment '{}'", binding, element, layout));
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for attachment '{}'", binding, element, attachment));
     PBZ_ASSERT(
         layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
         std::format("[PipelineLayoutAllocator] Incompatible lifetime for attachment '{}' and layout '{}'", attachment, layout));
@@ -335,6 +344,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
 
     for (std::uint32_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         imageInfos[i] = vk::DescriptorImageInfo{
+            .sampler = attachment->getInfo().sampler.getData().sampler,
             .imageView = ringData[i].view,
             .imageLayout = imageLayout,
         };
@@ -466,7 +476,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for dynamic buffer '{}'", binding, element, layout));
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for dynamic buffer '{}'", binding, element, buffer));
     PBZ_ASSERT(
         layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
         std::format("[PipelineLayoutAllocator] Incompatible lifetime for dynamic buffer at binding '{}' and layout '{}'", binding, layout));
@@ -506,7 +516,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     case Texture::Type::Cube:
         imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-        if (texture->getInfo().sampler.type == Sampler::Type::None) {
+        if (texture->getInfo().sampler.getInfo().type == Sampler::Type::None) {
             type = vk::DescriptorType::eSampledImage;
         } else {
             type = vk::DescriptorType::eCombinedImageSampler;
@@ -517,7 +527,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for texture '{}'", binding, element, layout));
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for texture '{}'", binding, element, texture));
     PBZ_ASSERT(
         layout->getInfo().lifetime == PipelineLayout::Lifetime::Global,
         std::format("[PipelineLayoutAllocator] Incompatible lifetime for texture at binding '{}' and layout '{}'", binding, layout));
@@ -527,7 +537,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     }
 
     vk::DescriptorImageInfo imageInfo = {
-        .sampler = texture->getData().sampler.getData().sampler,
+        .sampler = texture->getInfo().sampler.getData().sampler,
         .imageView = texture->getData().view,
         .imageLayout = imageLayout,
     };
@@ -549,27 +559,32 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     vk::DescriptorType type = vk::DescriptorType::eInputAttachment;
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
-    switch (attachment->getInfo().type) {
-    case Attachment::Type::Color:
+    switch (attachment->getInfo().usage) {
+    case Attachment::Usage::Color:
         imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
         break;
 
-    case Attachment::Type::Depth:
+    case Attachment::Usage::Depth:
         imageLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
         break;
 
-    case Attachment::Type::Stencil:
+    case Attachment::Usage::Stencil:
         imageLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
         break;
 
-    case Attachment::Type::DepthStencil:
+    case Attachment::Usage::DepthStencil:
         imageLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
         break;
     }
 
+    if (attachment->getInfo().sampler.getInfo().type != Sampler::Type::None) {
+        type = vk::DescriptorType::eCombinedImageSampler;
+        imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+    }
+
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for attachment '{}'", binding, element, layout));
+        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for attachment '{}'", binding, element, attachment));
     PBZ_ASSERT(
         layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
         std::format("[PipelineLayoutAllocator] Incompatible lifetime for attachment at binding '{}' and layout '{}'", binding, layout));
@@ -581,6 +596,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     const std::array<Attachment::Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = attachment->getRingData();
 
     vk::DescriptorImageInfo imageInfo = {
+        .sampler = attachment->getInfo().sampler.getData().sampler,
         .imageView = ringData[frameInFlight].view,
         .imageLayout = imageLayout,
     };

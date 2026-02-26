@@ -2,7 +2,7 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include <physbuzz/render/lighting.hpp>
+#include <physbuzz/render/components/lights.hpp>
 
 struct LightDirectional {
     Physbuzz::DirectionalLightComponent directionalLight;

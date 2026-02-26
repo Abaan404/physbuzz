@@ -14,5 +14,5 @@ struct RebuildableComponent {
 };
 
 struct ResourceComponent {
-    Physbuzz::Resource<Physbuzz::Material> material = {""};
+    Physbuzz::Resource<Physbuzz::Material> material = {"default"};
 };

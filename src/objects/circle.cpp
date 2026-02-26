@@ -8,11 +8,10 @@
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Circle &info) {
     // scale unit circle for radius
-    info.transform.scale = {info.circle.radius, info.circle.radius, info.circle.radius};
+    info.transform.setScale({info.circle.radius, info.circle.radius, info.circle.radius});
     Physbuzz::Builtin::ModelCircle::build(scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
-    info.transform.update();
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = {{

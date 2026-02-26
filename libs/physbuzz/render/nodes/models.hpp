@@ -18,11 +18,7 @@ struct ModelBuffer {
     std::uint32_t materialIdx;
 };
 
-inline Resource<DynamicBuffer> ResourceBuffer = {"builtin/models"};
-
-inline RenderNodeID Id = "builtin/models";
-
-RenderGraph build(const std::unordered_set<ObjectID> &objects, std::vector<std::pair<Resource<Mesh>, std::size_t>> &meshes);
+RenderNode build(Resource<DynamicBuffer> buffer, const std::unordered_set<ObjectID> &objects, std::vector<std::tuple<Resource<Mesh>, std::size_t>> &batches);
 
 } // namespace RenderNodeModels
 

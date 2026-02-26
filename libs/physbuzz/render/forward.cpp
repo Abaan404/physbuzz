@@ -6,11 +6,12 @@
 #include "../graphics/layout.hpp"
 #include "../graphics/material.hpp"
 #include "../graphics/pipeline.hpp"
-#include "camera.hpp"
-#include "lighting.hpp"
+#include "components/camera.hpp"
+#include "components/lights.hpp"
 #include "nodes/camera.hpp"
 #include "nodes/lights.hpp"
 #include "nodes/models.hpp"
+#include "shadow.hpp"
 
 namespace Physbuzz {
 
@@ -22,6 +23,15 @@ bool RenderPipelineForward::build() {
     }
 
     bool success = true;
+
+    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceModel)) {
+        success &= ResourceRegistry<DynamicBuffer>::insert(
+            ResourceModel,
+            {{
+                .type = DynamicBuffer::Type::Structured,
+            }},
+            sizeof(RenderNodeModels::ModelBuffer));
+    }
 
     if (!ResourceRegistry<PipelineLayout>::contains(LayoutMaterial::Resource)) {
         success &= LayoutMaterial::build();
@@ -52,6 +62,11 @@ bool RenderPipelineForward::build() {
                     {
                         // instance
                         .type = PipelineLayout::Type::eStorageBuffer,
+                    },
+                    {
+                        // directional shadow depth map
+                        .type = PipelineLayout::Type::eCombinedImageSampler,
+                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
                     },
                 },
             }});
@@ -98,9 +113,9 @@ bool ForwardRenderer::build() {
         }),
     };
 
-    m_Graph.merge(Builtin::RenderNodeCamera::build(m_Info.camera));
-    m_Graph.merge(Builtin::RenderNodeLights::build());
-    m_Graph.merge(Builtin::RenderNodeModels::build(m_Objects, m_Batches));
+    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
+    m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
+    m_Graph.add("builtin/models", Builtin::RenderNodeModels::build(Builtin::RenderPipelineForward::ResourceModel, m_Objects, m_Batches));
 
     m_Graph.add(
         Output,
@@ -133,15 +148,26 @@ bool ForwardRenderer::build() {
                             },
                         },
                         {
-                            Builtin::RenderNodeModels::ResourceBuffer,
+                            Builtin::RenderPipelineForward::ResourceModel,
                             {
                                 .stage = RenderNode::Stage::Vertex,
                             },
                         },
                     },
                 },
+                .attachments = {
+                    .input = {
+                        {
+
+                            Builtin::RenderPipelineShadowDirectional::ResourceAttachment,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                    },
+                },
             },
-            .execute = [&](Scene *scene, const RenderContext &context) {
+            .execute = [this](Scene *scene, const RenderContext &context) {
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth->getRingData()[context.frameInFlight].view,
                     .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
@@ -172,6 +198,9 @@ bool ForwardRenderer::build() {
                 };
 
                 Builtin::RenderPipelineForward::Resource->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+
+                context.command.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(context.extent.width), static_cast<float>(context.extent.height), 0.0f, 1.0f});
+                context.command.setScissor(0, vk::Rect2D{{0, 0}, context.extent});
 
                 context.command.beginRendering({
                     .renderArea = {
@@ -232,8 +261,13 @@ bool ForwardRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
-            Builtin::RenderNodeModels::ResourceBuffer,
+            Builtin::RenderPipelineForward::ResourceModel,
             4);
+
+        success &= App::LayoutAllocator.write(
+            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::RenderPipelineShadowDirectional::ResourceAttachment,
+            5);
     }
 
     return success;

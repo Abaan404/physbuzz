@@ -29,7 +29,7 @@ void AngularResolver2D::solve(const Contact &contact) {
 }
 
 const glm::vec3 AngularResolver2D::calcTorque(const RigidBodyComponent &body, const Transform &transfrom, const glm::vec3 &point, const glm::vec3 &impulse) {
-    const glm::vec3 relPosition = point - transfrom.position;
+    const glm::vec3 relPosition = point - transfrom.getInfo().position;
     return glm::cross(relPosition, impulse);
 }
 

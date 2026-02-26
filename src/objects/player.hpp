@@ -2,8 +2,8 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include <physbuzz/render/camera.hpp>
-#include <physbuzz/render/lighting.hpp>
+#include <physbuzz/render/components/camera.hpp>
+#include <physbuzz/render/components/lights.hpp>
 
 struct PlayerComponent {
     float speed = 5.0f;

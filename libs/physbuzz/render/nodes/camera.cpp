@@ -1,14 +1,14 @@
 #include "camera.hpp"
 
 #include "../../ecs/scene.hpp"
-#include "../camera.hpp"
+#include "../components/camera.hpp"
 
 namespace Physbuzz {
 
 namespace Builtin {
 
-RenderGraph RenderNodeCamera::build(const ObjectID &object) {
-    RenderGraph graph = {{}};
+RenderNode RenderNodeCamera::build(const ObjectID &object) {
+    RenderNode node = {{}};
 
     bool success = true;
 
@@ -23,38 +23,34 @@ RenderGraph RenderNodeCamera::build(const ObjectID &object) {
 
     if (!success) {
         Logger::ERROR("[RenderNodeCamera] Failed to build buffers");
-        return graph;
+        return node;
     }
 
-    graph.add(
-        Id,
-        {
-            .description = {
-                .buffers = {
-                    .output = {
+    return {
+        .description = {
+            .buffers = {
+                .output = {
+                    {
+                        ResourceBuffer,
                         {
-                            ResourceBuffer,
-                            {
-                                .stage = RenderNode::Stage::Transfer,
-                            },
+                            .stage = RenderNode::Stage::Transfer,
                         },
                     },
                 },
             },
-            .execute = [&object](Scene *scene, const RenderContext &context) {
-                const auto [camera] = scene->getComponent<CameraComponent>(object);
+        },
+        .execute = [&object](Scene *scene, const RenderContext &context) {
+            const auto [camera] = scene->getComponent<CameraComponent>(object);
 
-                std::vector<CameraBuffer> buffer = {{
-                    .position = camera.getInfo().view.position,
-                    .view = camera.getView(),
-                    .projection = camera.getProjection(),
-                }};
+            std::vector<CameraBuffer> buffer = {{
+                .position = camera.getInfo().view.position,
+                .view = camera.getView(),
+                .projection = camera.getProjection(),
+            }};
 
-                ResourceBuffer->update(context, buffer);
-            },
-        });
-
-    return graph;
+            ResourceBuffer->update(context, buffer);
+        },
+    };
 }
 
 } // namespace Builtin

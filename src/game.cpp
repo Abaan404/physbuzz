@@ -5,8 +5,7 @@
 #include "objects/lightpoint.hpp"
 #include "objects/model.hpp"
 #include "objects/player.hpp"
-#include "physbuzz/misc/clock.hpp"
-#include "physbuzz/physics/dynamics.hpp"
+#include "objects/quad.hpp"
 #include "ui/handler.hpp"
 #include <filesystem>
 #include <physbuzz/app/application.hpp>
@@ -17,9 +16,12 @@
 #include <physbuzz/graphics/pipeline.hpp>
 #include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/graphics/transfer.hpp>
+#include <physbuzz/misc/clock.hpp>
 #include <physbuzz/misc/context.hpp>
+#include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/deferred.hpp>
 #include <physbuzz/render/forward.hpp>
+#include <physbuzz/render/shadow.hpp>
 #include <physbuzz/render/skybox.hpp>
 #include <physbuzz/window/inputs.hpp>
 #include <random>
@@ -53,7 +55,7 @@ void Game::build() {
         glm::quat yaw = glm::angleAxis(glm::radians(offset.y), glm::cross(camera.getUp(), camera.getFacing()));
 
         camera.setOrientation(pitch * yaw * info.view.orientation);
-        flashlight.direction = camera.getFacing();
+        flashlight.setDirection(camera.getFacing());
     });
 
     // change prespective camera fov when scrolling
@@ -92,9 +94,9 @@ void Game::build() {
                 },
             }},
             .player = {},
-            .flashlight = {
+            .flashlight = {{
                 .intensity = {1000.0f, 1000.0f, 1000.0f},
-            },
+            }},
         };
 
         playerId = ObjectBuilder::create(Physbuzz::App::GScene, player);
@@ -110,7 +112,7 @@ void Game::build() {
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "skybox",
-        {{.type = Physbuzz::Texture::Type::Cube}},
+        {{.type = Physbuzz::Texture::Type::Cube, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
         std::vector{
             Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/right.jpg"}},
             Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/left.jpg"}},
@@ -121,7 +123,11 @@ void Game::build() {
         },
         transfer);
 
-    Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(Physbuzz::ForwardRenderer::Info{
+    std::shared_ptr<Physbuzz::ShadowRenderer> shadow = Physbuzz::App::GScene.createSystem<Physbuzz::ShadowRenderer>(Physbuzz::ShadowRenderer::Info{
+        .resolution = {2048, 2048},
+    });
+
+    std::shared_ptr<Physbuzz::ForwardRenderer> forward = Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(Physbuzz::ForwardRenderer::Info{
         .camera = playerId,
         .window = window,
     });
@@ -143,7 +149,8 @@ void Game::build() {
 
     Physbuzz::RenderGraph graph = {{}};
 
-    graph.merge(deferred->getGraph());
+    graph.merge(shadow->getGraph());
+    graph.merge(forward->getGraph());
     graph.merge(skybox->getGraph());
     graph.merge(imgui->getGraph());
 
@@ -154,22 +161,54 @@ void Game::build() {
     renderer->setGraph(graph);
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        "default/diffuse",
+        {{.type = Physbuzz::Texture::Type::Dim2D, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
+        std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/default/diffuse.png"}}},
+        transfer);
+
+    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        "default/specular",
+        {{.type = Physbuzz::Texture::Type::Dim2D, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
+        std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/default/specular.png"}}},
+        transfer);
+
+    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "floor",
-        {{.type = Physbuzz::Texture::Type::Dim2D}},
+        {{.type = Physbuzz::Texture::Type::Dim2D, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
         std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/floor.png"}}},
         transfer);
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "crate/diffuse",
-        {{.type = Physbuzz::Texture::Type::Dim2D}},
+        {{.type = Physbuzz::Texture::Type::Dim2D, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
         std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/diffuse.png"}}},
         transfer);
 
     Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
         "crate/specular",
-        {{.type = Physbuzz::Texture::Type::Dim2D}},
+        {{.type = Physbuzz::Texture::Type::Dim2D, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
         std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/specular.png"}}},
         transfer);
+
+    Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+        "default",
+        {
+            .shininess = 256.0f,
+            .textures = {
+                {
+                    Physbuzz::TextureType::Diffuse,
+                    {
+                        {"default/diffuse"},
+                    },
+                },
+                {
+                    Physbuzz::TextureType::Specular,
+                    {
+                        {"default/specular"},
+                    },
+                },
+            },
+        });
 
     Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
         "crate",
@@ -222,9 +261,9 @@ void Game::build() {
                     .breadth = 50.0f,
                     .height = 50.0f,
                 },
-                .transform = {
+                .transform = {{
                     .position = {(i - 5 / 2) * 100, 0, 0},
-                },
+                }},
                 .resources = {
                     .material = {"crate"},
                 },
@@ -236,21 +275,38 @@ void Game::build() {
     }
 
     {
+        Quad quad = {
+            .body = {},
+            .quad = {
+                .width = 1500.0f,
+                .height = 1500.0f,
+            },
+            .transform = {{
+                .position = {0.0f, -300.0f, 0.0f},
+                .orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            }},
+            .resources = {
+                .material = {"floor"},
+            },
+        };
+
+        ObjectBuilder::create(Physbuzz::App::GScene, quad);
+    }
+
+    // point lights
+    {
         for (int i = 0; i < 3; ++i) {
             LightPoint point = {
                 .sphere = {
                     .radius = 10.0f,
                 },
-                .transform = {
+                .transform = {{
                     .position = {(i - 5 / 2) * 100, 150, 0},
                     .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
-                },
-                .resources = {
-                    .material = {"floor"},
-                },
-                .pointLight = {
+                }},
+                .pointLight = {{
                     .intensity = {1000.0f, 1000.0f, 1000.0f},
-                },
+                }},
             };
 
             ObjectBuilder::create(Physbuzz::App::GScene, point);
@@ -259,10 +315,12 @@ void Game::build() {
 
     {
         LightDirectional directional = {
-            .directionalLight = {
-                .direction = {1.0f, -1.0f, -1.0f},
+            .directionalLight = {{
+                .direction = glm::normalize(glm::vec3{1.0f, -1.0f, -1.0f}),
                 .intensity = {1.0f, 1.0f, 1.0f},
-            },
+                .orthoSize = 1000.0f,
+                .depth = 2200.0f,
+            }},
         };
 
         ObjectBuilder::create(Physbuzz::App::GScene, directional);
@@ -273,10 +331,10 @@ void Game::build() {
             .model = {
                 .path = "resources/models/backpack/backpack.obj",
             },
-            .transform = {
+            .transform = {{
                 .position = {0, -150, 0},
                 .scale = {30, 30, 30},
-            },
+            }},
             .identifier = {
                 .name = "Backpack",
             },

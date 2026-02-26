@@ -15,7 +15,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         Physbuzz::Logger::WARNING("[ObjectBuilder<Player>] Trying to build more than one player controller. Are you sure? Pretty sure? Threw a trashbag into space?");
     }
 
-    info.flashlight.direction = info.camera.getFacing();
+    info.flashlight.setDirection(info.camera.getFacing());
 
     // setup inputs
     Physbuzz::InputEventComponent inputs = {
@@ -60,7 +60,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                     const auto [_, player, camera, flashlight] = scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>().front();
 
                     camera.setPosition(camera.getInfo().view.position + camera.getFacing() * player.speed);
-                    flashlight.position = camera.getInfo().view.position;
+                    flashlight.setPosition(camera.getInfo().view.position);
                 },
             },
             {
@@ -71,7 +71,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                     const auto [_, player, camera, flashlight] = scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>().front();
 
                     camera.setPosition(camera.getInfo().view.position - camera.getRight() * player.speed);
-                    flashlight.position = camera.getInfo().view.position;
+                    flashlight.setPosition(camera.getInfo().view.position);
                 },
             },
             {
@@ -82,7 +82,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                     const auto [_, player, camera, flashlight] = scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>().front();
 
                     camera.setPosition(camera.getInfo().view.position - camera.getFacing() * player.speed);
-                    flashlight.position = camera.getInfo().view.position;
+                    flashlight.setPosition(camera.getInfo().view.position);
                 },
             },
             {
@@ -93,7 +93,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                     const auto [_, player, camera, flashlight] = scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>().front();
 
                     camera.setPosition(camera.getInfo().view.position + camera.getRight() * player.speed);
-                    flashlight.position = camera.getInfo().view.position;
+                    flashlight.setPosition(camera.getInfo().view.position);
                 },
             },
             {
@@ -104,7 +104,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                     const auto [_, player, camera, flashlight] = scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>().front();
 
                     camera.setPosition(camera.getInfo().view.position - camera.getUp() * player.speed);
-                    flashlight.position = camera.getInfo().view.position;
+                    flashlight.setPosition(camera.getInfo().view.position);
                 },
             },
             {
@@ -115,7 +115,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                     const auto [_, player, camera, flashlight] = scene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>().front();
 
                     camera.setPosition(camera.getInfo().view.position + camera.getUp() * player.speed);
-                    flashlight.position = camera.getInfo().view.position;
+                    flashlight.setPosition(camera.getInfo().view.position);
                 },
             },
         },
@@ -134,10 +134,10 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                             .breadth = 100.0f,
                             .height = 100.0f,
                         },
-                        .transform = {
+                        .transform = {{
                             .position = {0.0f, 0.0f, 0.0f},
                             .orientation = glm::angleAxis(glm::pi<float>() / 4.0f, glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f))),
-                        },
+                        }},
                         .resources = {
                             .material = {"crate"},
                         },
@@ -167,9 +167,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
                         .circle = {
                             .radius = 100.0f,
                         },
-                        .transform = {
+                        .transform = {{
                             .position = {cursor.x, cursor.y, 0.0f},
-                        },
+                        }},
                         .resources = {
                             .material = {"floor"},
                         },

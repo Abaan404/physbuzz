@@ -78,9 +78,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
     }
 
     Image image = {{}};
-    Sampler sampler = m_Info.sampler;
-
-    if (!sampler.build()) {
+    if (!m_Info.sampler.build()) {
         Logger::ERROR("[Texture] Failed to build a sampler.");
         return false;
     }
@@ -113,7 +111,6 @@ bool Texture::build(const glm::uvec3 &resolution) {
     const auto &[view, subresourceRange] = createImageView(image);
 
     m_Data = {
-        .sampler = sampler,
         .image = image,
         .view = view,
         .subresourceRange = subresourceRange,
@@ -131,7 +128,7 @@ bool Texture::destroy() {
     App::Device.destroyImageView(m_Data.view);
     m_Data.view = nullptr;
 
-    if (!m_Data.sampler.destroy()) {
+    if (!m_Info.sampler.destroy()) {
         Logger::WARNING("[Texture] Failed to destroy sampler.");
         return false;
     }
@@ -162,7 +159,6 @@ bool Texture::rebuild(const RenderContext &context, const glm::uvec3 &size) {
     const auto &[view, subresourceRange] = createImageView(image);
 
     m_Data = {
-        .sampler = m_Data.sampler,
         .image = image,
         .view = view,
         .subresourceRange = subresourceRange,

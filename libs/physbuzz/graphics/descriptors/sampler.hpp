@@ -7,9 +7,9 @@ namespace Physbuzz {
 
 class Sampler {
   public:
-    enum class Type : std::size_t {
-        Linear = 0,
-        None = 1,
+    enum class Type {
+        Linear,
+        None,
     };
 
     struct Info {

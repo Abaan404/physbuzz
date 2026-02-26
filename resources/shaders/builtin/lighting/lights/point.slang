@@ -3,6 +3,8 @@ implementing "../lights";
 namespace Physbuzz {
 
 public struct PointLight : ILight {
+    float4x4 projectionView;
+
     float3 position;
     float3 intensity;
 

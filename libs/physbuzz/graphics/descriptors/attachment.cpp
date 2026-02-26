@@ -19,25 +19,46 @@ bool Attachment::build(const glm::uvec2 &resolution) {
     std::vector<Data> ringData;
     ringData.reserve(detail::MAX_FRAMES_IN_FLIGHT);
 
-    Image::UsageFlagBits usage;
-    switch (m_Info.type) {
-    case Type::Color:
-        usage = Image::UsageFlagBits::eColorAttachment;
+    Image::UsageFlags usage;
+    switch (m_Info.usage) {
+    case Usage::Color:
+        usage = Image::UsageFlagBits::eInputAttachment | Image::UsageFlagBits::eColorAttachment;
         break;
 
-    case Type::Depth:
-    case Type::Stencil:
-    case Type::DepthStencil:
-        usage = Image::UsageFlagBits::eDepthStencilAttachment;
+    case Usage::Depth:
+    case Usage::Stencil:
+    case Usage::DepthStencil:
+        usage = Image::UsageFlagBits::eInputAttachment | Image::UsageFlagBits::eDepthStencilAttachment;
         break;
     }
 
+    if (!m_Info.sampler.build()) {
+        Logger::ERROR("[Texture] Failed to build a sampler.");
+        return false;
+    }
+
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
-        Image image = {{
-            .usage = usage | Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eInputAttachment | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
-            .type = Image::Type::e2D,
-            .format = m_Info.format,
-        }};
+        Image image = {{}};
+
+        switch (m_Info.type) {
+        case Type::Dim2D:
+            image = {{
+                .usage = usage | Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
+                .type = Image::Type::e2D,
+                .format = m_Info.format,
+            }};
+            break;
+
+        case Type::Cube:
+            image = {{
+                .usage = usage | Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
+                .type = Image::Type::e2D,
+                .arrayLayers = 6,
+                .flags = Image::FlagBits::eCubeCompatible,
+                .format = m_Info.format,
+            }};
+            break;
+        }
 
         if (!image.build({resolution, 1})) {
             for (auto &data : ringData) {
@@ -70,6 +91,11 @@ bool Attachment::destroy() {
     if (std::holds_alternative<std::monostate>(m_RingData)) {
         Logger::WARNING("[Attachment] Trying to destroy a destructed attachment.");
         return true;
+    }
+
+    if (!m_Info.sampler.destroy()) {
+        Logger::WARNING("[Texture] Failed to destroy sampler.");
+        return false;
     }
 
     std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
@@ -138,14 +164,34 @@ glm::uvec2 Attachment::getSize(std::uint32_t frameInFlight) const {
 }
 
 std::tuple<vk::ImageView, vk::ImageSubresourceRange> Attachment::createImageView(const Image &image) const {
+    vk::ImageAspectFlags aspect;
+
+    switch (m_Info.usage) {
+    case Usage::Color:
+        aspect = vk::ImageAspectFlagBits::eColor;
+        break;
+
+    case Usage::Depth:
+        aspect = vk::ImageAspectFlagBits::eDepth;
+        break;
+
+    case Usage::Stencil:
+        aspect = vk::ImageAspectFlagBits::eStencil;
+        break;
+
+    case Usage::DepthStencil:
+        aspect = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+        break;
+    }
+
     vk::ImageSubresourceRange subresourceRange = {};
     vk::ImageViewType type = {};
 
     switch (m_Info.type) {
-    case Type::Color:
+    case Type::Dim2D:
         type = vk::ImageViewType::e2D;
         subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .aspectMask = aspect,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
@@ -153,36 +199,14 @@ std::tuple<vk::ImageView, vk::ImageSubresourceRange> Attachment::createImageView
         };
         break;
 
-    case Type::Depth:
-        type = vk::ImageViewType::e2D;
+    case Type::Cube:
+        type = vk::ImageViewType::eCube;
         subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eDepth,
+            .aspectMask = aspect,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
-            .layerCount = 1,
-        };
-        break;
-
-    case Type::Stencil:
-        type = vk::ImageViewType::e2D;
-        subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eStencil,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-        };
-        break;
-
-    case Type::DepthStencil:
-        type = vk::ImageViewType::e2D;
-        subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
+            .layerCount = 6,
         };
         break;
     }

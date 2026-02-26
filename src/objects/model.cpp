@@ -9,7 +9,6 @@
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Model &info) {
     // setup rendering
-    info.transform.update();
     Physbuzz::ShadowComponent shadow;
     Physbuzz::RenderComponent render = {
         .transform = info.transform,

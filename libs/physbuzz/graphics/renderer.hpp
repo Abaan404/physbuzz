@@ -49,7 +49,7 @@ class Renderer : public System<> {
     std::array<DeletionQueue, detail::MAX_FRAMES_IN_FLIGHT> m_DeletionQueues;
 
     Attachment m_Depth = {{
-        .type = Attachment::Type::DepthStencil,
+        .usage = Attachment::Usage::DepthStencil,
         .format = Attachment::Format::eD32SfloatS8Uint,
     }};
 

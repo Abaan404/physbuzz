@@ -4,6 +4,7 @@
 #include "../../resources/defines.hpp"
 #include "../defines.hpp"
 #include "../memory.hpp"
+#include "sampler.hpp"
 
 namespace Physbuzz {
 
@@ -12,6 +13,11 @@ class Attachment : public EventSubject {
     using Format = vk::Format;
 
     enum class Type {
+        Dim2D,
+        Cube,
+    };
+
+    enum class Usage {
         Color,
         Depth,
         Stencil,
@@ -19,7 +25,9 @@ class Attachment : public EventSubject {
     };
 
     struct Info {
-        Type type = Type::Color;
+        Type type = Type::Dim2D;
+        Sampler sampler = {{Sampler::Type::None}};
+        Usage usage = Usage::Color;
         Format format = Format::eR8G8B8A8Unorm;
     };
 

@@ -22,6 +22,8 @@ struct PushConstants {
     std::uint64_t materialBaseAddress;
 };
 
+inline Resource<DynamicBuffer> ResourceModel = {"builtin/forward/model"};
+
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/forward/frame"};
 
 inline Resource<RenderPipeline> Resource = {"builtin/forward"};
@@ -53,7 +55,7 @@ class ForwardRenderer : public System<RenderComponent> {
   private:
     Info m_Info;
 
-    std::vector<std::pair<Resource<Mesh>, std::size_t>> m_Batches;
+    std::vector<std::tuple<Resource<Mesh>, std::size_t>> m_Batches;
 
     RenderGraph m_Graph = {{
         .output = Output,

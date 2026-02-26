@@ -23,9 +23,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             .width = info.wall.thickness,
             .height = info.wall.height,
         },
-        .transform = {
+        .transform = {{
             .position = {min.x - info.wall.thickness / 2.0f, info.wall.position.y, 0.0f},
-        },
+        }},
         .identifier = info.identifier,
         .resources = {},
         .hasPhysics = info.isCollidable,
@@ -42,9 +42,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             .width = info.wall.thickness,
             .height = info.wall.height,
         },
-        .transform = {
+        .transform = {{
             .position = {max.x + info.wall.thickness / 2.0f, info.wall.position.y, 0.0f},
-        },
+        }},
         .identifier = info.identifier,
         .resources = {},
         .hasPhysics = info.isCollidable,
@@ -61,9 +61,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             .width = info.wall.width,
             .height = info.wall.thickness,
         },
-        .transform = {
+        .transform = {{
             .position = {info.wall.position.x, min.y - info.wall.thickness / 2.0f, 0.0f},
-        },
+        }},
         .identifier = info.identifier,
         .resources = {},
         .hasPhysics = info.isCollidable,
@@ -80,9 +80,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
             .width = info.wall.width,
             .height = info.wall.thickness,
         },
-        .transform = {
+        .transform = {{
             .position = {info.wall.position.x, max.y + info.wall.thickness / 2.0f, 0.0f},
-        },
+        }},
         .identifier = info.identifier,
         .resources = {},
         .hasPhysics = info.isCollidable,

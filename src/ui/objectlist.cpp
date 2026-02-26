@@ -7,7 +7,7 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
-#include <physbuzz/render/lighting.hpp>
+#include <physbuzz/render/components/lights.hpp>
 #include <physbuzz/render/defines.hpp>
 #include <unordered_set>
 
@@ -64,25 +64,27 @@ void ObjectList::draw() {
 
                 const auto [render] = m_Scene->getComponent<Physbuzz::RenderComponent>(object);
 
-                if (ImGui::DragFloat3("position", glm::value_ptr(render.transform.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    render.transform.update();
+                Physbuzz::Transform::Info info = render.transform.getInfo();
+
+                if (ImGui::DragFloat3("position", glm::value_ptr(info.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    render.transform.update(info);
                 }
 
-                if (ImGui::DragFloat3("scale", glm::value_ptr(render.transform.scale), 0.1f, MIN_VALUE, MAX_VALUE)) {
-                    render.transform.update();
+                if (ImGui::DragFloat3("scale", glm::value_ptr(info.scale), 0.1f, MIN_VALUE, MAX_VALUE)) {
+                    render.transform.update(info);
                 }
 
-                glm::vec3 axis = glm::axis(render.transform.orientation);
-                float angle = glm::angle(render.transform.orientation);
+                glm::vec3 axis = glm::axis(info.orientation);
+                float angle = glm::angle(info.orientation);
 
                 if (ImGui::DragFloat3("rotAxis", glm::value_ptr(axis), 0.01f, 0.0f, 1.0f)) {
-                    render.transform.orientation = glm::angleAxis(angle, glm::normalize(axis));
-                    render.transform.update();
+                    info.orientation = glm::angleAxis(angle, glm::normalize(axis));
+                    render.transform.update(info);
                 }
 
                 if (ImGui::DragFloat("rotMag", &angle, glm::pi<float>() / 50.0f, 0.0f, 2 * glm::pi<float>())) {
-                    render.transform.orientation = glm::angleAxis(angle, glm::normalize(axis));
-                    render.transform.update();
+                    info.orientation = glm::angleAxis(angle, glm::normalize(axis));
+                    render.transform.update(info);
                 }
             }
 
@@ -140,8 +142,16 @@ void ObjectList::draw() {
                 ImGui::SeparatorText("PointLight");
 
                 const auto [pointLight] = m_Scene->getComponent<Physbuzz::PointLightComponent>(object);
-                ImGui::DragFloat3("position", glm::value_ptr(pointLight.position), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("intensity", glm::value_ptr(pointLight.intensity), 0.01f, MIN_VALUE, MAX_VALUE);
+
+                Physbuzz::PointLightComponent::Info info = pointLight.getInfo();
+
+                if (ImGui::DragFloat3("position", glm::value_ptr(info.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    pointLight.update(info);
+                }
+
+                if (ImGui::DragFloat3("intensity", glm::value_ptr(info.intensity), 0.01f, MIN_VALUE, MAX_VALUE)) {
+                    pointLight.update(info);
+                }
             }
 
             if (m_Scene->containsComponent<Physbuzz::SpotLightComponent>(object)) {
@@ -149,11 +159,27 @@ void ObjectList::draw() {
 
                 const auto [spotLight] = m_Scene->getComponent<Physbuzz::SpotLightComponent>(object);
 
-                ImGui::DragFloat3("position", glm::value_ptr(spotLight.position), 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("direction", glm::value_ptr(spotLight.direction), 0.01f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("intensity", glm::value_ptr(spotLight.intensity), 0.01f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat("cutOff", &spotLight.cutOff, 1.0f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat("outerCutOff", &spotLight.outerCutOff, 1.0f, MIN_VALUE, MAX_VALUE);
+                Physbuzz::SpotLightComponent::Info info = spotLight.getInfo();
+
+                if (ImGui::DragFloat3("position", glm::value_ptr(info.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    spotLight.update(info);
+                }
+
+                if (ImGui::DragFloat3("direction", glm::value_ptr(info.direction), 0.01f, MIN_VALUE, MAX_VALUE)) {
+                    spotLight.update(info);
+                }
+
+                if (ImGui::DragFloat3("intensity", glm::value_ptr(info.intensity), 0.01f, MIN_VALUE, MAX_VALUE)) {
+                    spotLight.update(info);
+                }
+
+                if (ImGui::DragFloat("cutOff", &info.cutOff, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    spotLight.update(info);
+                }
+
+                if (ImGui::DragFloat("outerCutOff", &info.outerCutOff, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    spotLight.update(info);
+                }
             }
 
             if (m_Scene->containsComponent<Physbuzz::DirectionalLightComponent>(object)) {
@@ -161,10 +187,23 @@ void ObjectList::draw() {
 
                 const auto [directionalLight] = m_Scene->getComponent<Physbuzz::DirectionalLightComponent>(object);
 
-                ImGui::DragFloat3("direction", glm::value_ptr(directionalLight.direction), 0.01f, MIN_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("intensity", glm::value_ptr(directionalLight.intensity), 0.01f, MIN_VALUE, MAX_VALUE);
+                Physbuzz::DirectionalLightComponent::Info info = directionalLight.getInfo();
 
-                rebuild = true;
+                if (ImGui::DragFloat3("direction", glm::value_ptr(info.direction), 0.01f, MIN_VALUE, MAX_VALUE)) {
+                    directionalLight.update(info);
+                }
+
+                if (ImGui::DragFloat3("intensity", glm::value_ptr(info.intensity), 0.01f, MIN_VALUE, MAX_VALUE)) {
+                    directionalLight.update(info);
+                }
+
+                if (ImGui::DragFloat("orthoSize", &info.orthoSize, 0.01f, MIN_VALUE, MAX_VALUE)) {
+                    directionalLight.update(info);
+                }
+
+                if (ImGui::DragFloat("depth", &info.depth, 0.01f, MIN_VALUE, MAX_VALUE)) {
+                    directionalLight.update(info);
+                }
             }
 
             if (rebuild && m_Scene->containsComponent<RebuildableComponent>(object)) {

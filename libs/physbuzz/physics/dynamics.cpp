@@ -61,12 +61,13 @@ void Dynamics::tickMotion(ObjectID id) const {
     // rotate object wrt axis and length of angular velocity vector
     // Note: t**2 is approx 0 for t << 0 (at high framerate)
     {
-        render.transform.position += body.velocity * m_DeltaTime;
+        Transform::Info info = render.transform.getInfo();
+        info.position += body.velocity * m_DeltaTime;
         if (glm::length(body.angular.velocity) > 0.0f) {
-            render.transform.orientation = glm::angleAxis(glm::length(body.angular.velocity) * m_DeltaTime, glm::normalize(body.angular.velocity)) * render.transform.orientation;
+            info.orientation = glm::angleAxis(glm::length(body.angular.velocity) * m_DeltaTime, glm::normalize(body.angular.velocity)) * info.orientation;
         }
 
-        render.transform.update();
+        render.transform.update(info);
 
         // adjust collision bounding box
         AABBComponent aabb = AABBComponent(render, body);

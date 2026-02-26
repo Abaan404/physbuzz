@@ -16,16 +16,6 @@ bool RenderPipeline::build() {
         return true;
     }
 
-    if (m_Info.blend.attachments.size() < 1) {
-        Logger::ERROR("[RenderPipeline] No blend attachments attached.");
-        return false;
-    }
-
-    if (m_Info.attachments.colors.size() < 1) {
-        Logger::ERROR("[RenderPipeline] No attachments attached.");
-        return false;
-    }
-
     if (std::ranges::none_of(m_Info.dynamicStates, [](vk::DynamicState state) {
             return state == vk::DynamicState::eViewport;
         })) {
@@ -105,7 +95,7 @@ bool RenderPipeline::build() {
 #if !defined(NDEBUG)
     compilerOptions.emplace_back<slang::CompilerOptionEntry>({
         .name = slang::CompilerOptionName::DebugInformation,
-        .value = {slang::CompilerOptionValueKind::Int, SLANG_DEBUG_INFO_LEVEL_STANDARD},
+        .value = {slang::CompilerOptionValueKind::Int, SLANG_DEBUG_INFO_LEVEL_MAXIMAL},
     });
 #endif
 

@@ -6,7 +6,7 @@
 #include "../graphics/layout.hpp"
 #include "../graphics/mesh.hpp"
 #include "../graphics/pipeline.hpp"
-#include "camera.hpp"
+#include "components/camera.hpp"
 #include "nodes/camera.hpp"
 
 namespace Physbuzz {
@@ -84,7 +84,7 @@ bool SkyboxRenderer::build() {
         }),
     };
 
-    m_Graph.merge(Builtin::RenderNodeCamera::build(m_Info.camera));
+    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
 
     m_Graph.add(
         Output,
@@ -101,7 +101,7 @@ bool SkyboxRenderer::build() {
                     },
                 },
             },
-            .execute = [&](Scene *, const RenderContext &context) {
+            .execute = [this](Scene *, const RenderContext &context) {
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth->getRingData()[context.frameInFlight].view,
                     .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
@@ -119,6 +119,9 @@ bool SkyboxRenderer::build() {
                         .clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f),
                     },
                 };
+
+                context.command.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(context.extent.width), static_cast<float>(context.extent.height), 0.0f, 1.0f});
+                context.command.setScissor(0, vk::Rect2D{{0, 0}, context.extent});
 
                 context.command.beginRendering({
                     .renderArea = {

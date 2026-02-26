@@ -192,8 +192,8 @@ ImTextureID ImGuiRenderer::getTexture(const Resource<Texture> &texture) {
         const Physbuzz::Texture::Data &textureData = texture->getData();
 
         vk::Sampler sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
-        if (texture->getInfo().sampler.type != Sampler::Type::None) {
-            sampler = texture->getData().sampler.getData().sampler;
+        if (texture->getInfo().sampler.getInfo().type != Sampler::Type::None) {
+            sampler = texture->getInfo().sampler.getData().sampler;
         }
 
         ImTextureID textureId = ImGui_ImplVulkan_AddTexture(
@@ -215,8 +215,8 @@ ImTextureID ImGuiRenderer::getTexture(const Resource<Texture> &texture) {
             event.context.deletionQueue->enqueue(textureId);
 
             vk::Sampler sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
-            if (event.texture->getInfo().sampler.type != Sampler::Type::None) {
-                sampler = event.texture->getData().sampler.getData().sampler;
+            if (event.texture->getInfo().sampler.getInfo().type != Sampler::Type::None) {
+                sampler = event.texture->getInfo().sampler.getData().sampler;
             }
 
             textureId = ImGui_ImplVulkan_AddTexture(
@@ -237,22 +237,26 @@ ImTextureID ImGuiRenderer::getTexture(const Resource<Attachment> &attachment, st
     if (!m_Attachments.contains(attachment)) {
         vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
-        switch (attachment->getInfo().type) {
-        case Attachment::Type::Color:
+        switch (attachment->getInfo().usage) {
+        case Attachment::Usage::Color:
             imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
             break;
 
-        case Attachment::Type::Depth:
+        case Attachment::Usage::Depth:
             imageLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
             break;
 
-        case Attachment::Type::Stencil:
+        case Attachment::Usage::Stencil:
             imageLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
             break;
 
-        case Attachment::Type::DepthStencil:
+        case Attachment::Usage::DepthStencil:
             imageLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
             break;
+        }
+
+        if (attachment->getInfo().sampler.getInfo().type != Sampler::Type::None) {
+            imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
         }
 
         const std::array<Physbuzz::Attachment::Data, detail::MAX_FRAMES_IN_FLIGHT> &attachmentData = attachment->getRingData();
@@ -268,23 +272,28 @@ ImTextureID ImGuiRenderer::getTexture(const Resource<Attachment> &attachment, st
         EventID event = attachment->addCallback<OnAttachmentRebuild>([this, attachment](const OnAttachmentRebuild &event) {
             vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
-            switch (attachment->getInfo().type) {
-            case Attachment::Type::Color:
+            switch (attachment->getInfo().usage) {
+            case Attachment::Usage::Color:
                 imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
                 break;
 
-            case Attachment::Type::Depth:
+            case Attachment::Usage::Depth:
                 imageLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
                 break;
 
-            case Attachment::Type::Stencil:
+            case Attachment::Usage::Stencil:
                 imageLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
                 break;
 
-            case Attachment::Type::DepthStencil:
+            case Attachment::Usage::DepthStencil:
                 imageLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
                 break;
             }
+
+            if (attachment->getInfo().sampler.getInfo().type != Sampler::Type::None) {
+                imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+            }
+
             ImTextureID &textureId = std::get<0>(m_Attachments.at(attachment))[event.context.frameInFlight];
             event.context.deletionQueue->enqueue(textureId);
 

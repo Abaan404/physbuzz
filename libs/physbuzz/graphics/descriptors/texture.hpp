@@ -23,12 +23,11 @@ class Texture : public EventSubject {
 
     struct Info {
         Type type;
-        Sampler::Info sampler;
+        Sampler sampler = {{Sampler::Type::None}};
         Format format = Format::eR8G8B8A8Unorm;
     };
 
     struct Data {
-        Sampler sampler = {{Sampler::Type::None}};
         Image image = {{}};
 
         vk::ImageView view = nullptr;

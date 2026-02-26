@@ -129,6 +129,7 @@ Model::MaterialResult Model::processMaterial(const aiMaterial *aimaterial) {
             result.textures[static_cast<TextureType>(type)] = {
                 .info = {
                     .type = Texture::Type::Dim2D,
+                    .sampler = {{Physbuzz::Sampler::Type::Linear}},
                 },
                 .path = aiPath.C_Str(),
             };

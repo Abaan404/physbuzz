@@ -8,11 +8,10 @@
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Quad &info) {
     // scale unit square for quad
-    info.transform.scale = {info.quad.width, info.quad.height, 0.0f};
+    info.transform.setScale({info.quad.width, info.quad.height, 1.0f});
     Physbuzz::Builtin::ModelSquare::build(scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
-    info.transform.update();
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = {{

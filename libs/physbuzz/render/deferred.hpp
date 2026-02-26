@@ -19,6 +19,8 @@ struct PushConstants {
     std::uint64_t materialBaseAddress;
 };
 
+inline Resource<DynamicBuffer> ResourceModel = {"builtin/deferred/geometry/model"};
+
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/deferred/geometry/frame"};
 
 inline Resource<RenderPipeline> Resource = {"builtin/deferred/geometry"};
@@ -76,7 +78,7 @@ class DeferredRenderer : public System<RenderComponent> {
   private:
     Info m_Info;
 
-    std::vector<std::pair<Resource<Mesh>, std::size_t>> m_Batches;
+    std::vector<std::tuple<Resource<Mesh>, std::size_t>> m_Batches;
 
     RenderGraph m_Graph = {{
         .output = Output,

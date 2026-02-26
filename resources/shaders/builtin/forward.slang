@@ -56,6 +56,9 @@ StructuredBuffer<SpotLight> spots;
 [[vk::binding(4, 1)]]
 StructuredBuffer<InstanceData> models;
 
+[[vk::binding(5, 1)]]
+Sampler2D<float> directionalDepth;
+
 struct VSInput {
     float3 position : POSITION;
     float3 normal : NORMAL;
@@ -123,7 +126,7 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     float3 color = {};
 
     for (int i = 0; i < pc.directionalCount; i++) {
-        color += directionals[i].illuminate(geometry, brdf, viewDirection);
+        color += directionals[i].shadow(geometry, directionalDepth) * directionals[i].illuminate(geometry, brdf, viewDirection);
     }
 
     for (int i = 0; i < pc.pointCount; i++) {

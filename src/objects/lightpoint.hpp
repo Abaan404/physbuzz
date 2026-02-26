@@ -1,7 +1,7 @@
 #pragma once
 
 #include "circle.hpp"
-#include <physbuzz/render/lighting.hpp>
+#include <physbuzz/render/components/lights.hpp>
 
 struct LightPoint {
     // geometry

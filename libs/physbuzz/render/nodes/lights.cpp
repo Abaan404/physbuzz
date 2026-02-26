@@ -1,14 +1,16 @@
 #include "lights.hpp"
 
 #include "../../ecs/scene.hpp"
-#include "../lighting.hpp"
+#include "../components/lights.hpp"
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
 
 namespace Physbuzz {
 
 namespace Builtin {
 
-RenderGraph RenderNodeLights::build() {
-    RenderGraph graph = {{}};
+RenderNode RenderNodeLights::build() {
+    RenderNode node = {{}};
 
     bool success = true;
 
@@ -18,7 +20,7 @@ RenderGraph RenderNodeLights::build() {
             {{
                 .type = DynamicBuffer::Type::Structured,
             }},
-            sizeof(DirectionalLightComponent));
+            sizeof(DirectionalLightBuffer));
     }
 
     if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferPoint)) {
@@ -27,7 +29,7 @@ RenderGraph RenderNodeLights::build() {
             {{
                 .type = DynamicBuffer::Type::Structured,
             }},
-            sizeof(PointLightComponent));
+            sizeof(PointLightBuffer));
     }
 
     if (!ResourceRegistry<DynamicBuffer>::contains(ResourceBufferSpot)) {
@@ -36,70 +38,112 @@ RenderGraph RenderNodeLights::build() {
             {{
                 .type = DynamicBuffer::Type::Structured,
             }},
-            sizeof(SpotLightComponent));
+            sizeof(SpotLightBuffer));
     }
 
     if (!success) {
         Logger::ERROR("[RenderNodeLights] Failed to build buffers");
-        return graph;
+        return node;
     }
 
-    std::shared_ptr<std::vector<DirectionalLightComponent>> directionals = std::make_shared<std::vector<DirectionalLightComponent>>();
-    std::shared_ptr<std::vector<PointLightComponent>> points = std::make_shared<std::vector<PointLightComponent>>();
-    std::shared_ptr<std::vector<SpotLightComponent>> spots = std::make_shared<std::vector<SpotLightComponent>>();
+    std::shared_ptr<std::vector<DirectionalLightBuffer>> directionals = std::make_shared<std::vector<DirectionalLightBuffer>>();
+    std::shared_ptr<std::vector<PointLightBuffer>> points = std::make_shared<std::vector<PointLightBuffer>>();
+    std::shared_ptr<std::vector<SpotLightBuffer>> spots = std::make_shared<std::vector<SpotLightBuffer>>();
 
-    graph.add(
-        Id,
-        {
-            .description = {
-                .buffers = {
-                    .output = {
+    node = {
+        .description = {
+            .buffers = {
+                .output = {
+                    {
+                        ResourceBufferDirectional,
                         {
-                            ResourceBufferDirectional,
-                            {
-                                .stage = RenderNode::Stage::Transfer,
-                            },
+                            .stage = RenderNode::Stage::Transfer,
                         },
+                    },
+                    {
+                        ResourceBufferPoint,
                         {
-                            ResourceBufferPoint,
-                            {
-                                .stage = RenderNode::Stage::Transfer,
-                            },
+                            .stage = RenderNode::Stage::Transfer,
                         },
+                    },
+                    {
+                        ResourceBufferSpot,
                         {
-                            ResourceBufferSpot,
-                            {
-                                .stage = RenderNode::Stage::Transfer,
-                            },
+                            .stage = RenderNode::Stage::Transfer,
                         },
                     },
                 },
             },
-            .prepare = [](Scene *scene, const RenderContext &context) {
-                std::size_t requiredSizeDirectional = scene->getComponentArray<DirectionalLightComponent>().size() * sizeof(DirectionalLightComponent);
-                std::size_t requiredSizePoint = scene->getComponentArray<PointLightComponent>().size() * sizeof(PointLightComponent);
-                std::size_t requiredSizeSpot = scene->getComponentArray<SpotLightComponent>().size() * sizeof(SpotLightComponent);
+        },
+        .prepare = [directionals, points, spots](Scene *scene, const RenderContext &context) {
+            std::vector<DirectionalLightComponent> directionalComponents = scene->getComponentArray<DirectionalLightComponent>();
+            std::size_t requiredSizeDirectionals = directionalComponents.size() * sizeof(DirectionalLightBuffer);
 
-                if (ResourceBufferDirectional->getSize(context.frameInFlight) < requiredSizeDirectional) {
-                    ResourceBufferDirectional->rebuild(context, requiredSizeDirectional);
-                }
+            if (ResourceBufferDirectional->getSize(context.frameInFlight) < requiredSizeDirectionals) {
+                ResourceBufferDirectional->rebuild(context, requiredSizeDirectionals);
+            }
 
-                if (ResourceBufferPoint->getSize(context.frameInFlight) < requiredSizePoint) {
-                    ResourceBufferPoint->rebuild(context, requiredSizePoint);
-                }
+            directionals->clear();
+            directionals->reserve(directionalComponents.size());
+            for (const auto &directional : directionalComponents) {
+                const DirectionalLightComponent::Info &info = directional.getInfo();
 
-                if (ResourceBufferSpot->getSize(context.frameInFlight) < requiredSizeSpot) {
-                    ResourceBufferSpot->rebuild(context, requiredSizeSpot);
-                }
-            },
-            .execute = [](Scene *scene, const RenderContext &context) {
-                ResourceBufferDirectional->update(context, scene->getComponentArray<DirectionalLightComponent>());
-                ResourceBufferPoint->update(context, scene->getComponentArray<PointLightComponent>());
-                ResourceBufferSpot->update(context, scene->getComponentArray<SpotLightComponent>());
-            },
-        });
+                directionals->emplace_back<DirectionalLightBuffer>({
+                    .projectionView = directional.getProjectionView(),
+                    .direction = info.direction,
+                    .intensity = info.intensity,
+                });
+            }
 
-    return graph;
+            std::vector<PointLightComponent> pointComponents = scene->getComponentArray<PointLightComponent>();
+            std::size_t requiredSizePoints = pointComponents.size() * sizeof(PointLightBuffer);
+
+            if (ResourceBufferPoint->getSize(context.frameInFlight) < requiredSizePoints) {
+                ResourceBufferPoint->rebuild(context, requiredSizePoints);
+            }
+
+            points->clear();
+            points->reserve(pointComponents.size());
+            for (const auto &point : pointComponents) {
+                const PointLightComponent::Info &info = point.getInfo();
+
+                points->emplace_back<PointLightBuffer>({
+                    .projectionView = {},
+                    .position = info.position,
+                    .intensity = info.intensity,
+                });
+            }
+
+            std::vector<SpotLightComponent> spotComponents = scene->getComponentArray<SpotLightComponent>();
+            std::size_t requiredSizeSpots = spotComponents.size() * sizeof(SpotLightBuffer);
+
+            if (ResourceBufferSpot->getSize(context.frameInFlight) < requiredSizeSpots) {
+                ResourceBufferSpot->rebuild(context, requiredSizeSpots);
+            }
+
+            spots->clear();
+            spots->reserve(spotComponents.size());
+            for (const auto &spot : spotComponents) {
+                const SpotLightComponent::Info &info = spot.getInfo();
+
+                spots->emplace_back<SpotLightBuffer>({
+                    .projectionView = {},
+                    .position = info.position,
+                    .direction = info.direction,
+                    .intensity = info.intensity,
+                    .cutOff = info.cutOff,
+                    .outerCutOff = info.outerCutOff,
+                });
+            }
+        },
+        .execute = [directionals, points, spots](Scene *scene, const RenderContext &context) {
+            ResourceBufferDirectional->update(context, *directionals);
+            ResourceBufferPoint->update(context, *points);
+            ResourceBufferSpot->update(context, *spots);
+        },
+    };
+
+    return node;
 }
 
 } // namespace Builtin

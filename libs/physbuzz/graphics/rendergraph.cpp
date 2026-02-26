@@ -301,38 +301,43 @@ bool RenderGraph::compile() {
 
                 case RenderNode::Stage::Fragment:
                 case RenderNode::Stage::Graphics:
-                    switch (attachment->getInfo().type) {
-                    case Attachment::Type::Color:
+                    switch (attachment->getInfo().usage) {
+                    case Attachment::Usage::Color:
                         nextAccess |= vk::AccessFlagBits2::eInputAttachmentRead;
                         break;
 
-                    case Attachment::Type::Depth:
-                    case Attachment::Type::Stencil:
-                    case Attachment::Type::DepthStencil:
+                    case Attachment::Usage::Depth:
+                    case Attachment::Usage::Stencil:
+                    case Attachment::Usage::DepthStencil:
                         nextAccess |= vk::AccessFlagBits2::eDepthStencilAttachmentRead;
                         break;
                     }
 
-                    switch (attachment->getInfo().type) {
-                    case Attachment::Type::Color:
+                    switch (attachment->getInfo().usage) {
+                    case Attachment::Usage::Color:
                         nextLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
                         nextStage |= vk::PipelineStageFlagBits2::eFragmentShader;
                         break;
 
-                    case Attachment::Type::Depth:
+                    case Attachment::Usage::Depth:
                         nextLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
                         nextStage |= vk::PipelineStageFlagBits2::eFragmentShader;
                         break;
 
-                    case Attachment::Type::Stencil:
+                    case Attachment::Usage::Stencil:
                         nextLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
                         nextStage |= vk::PipelineStageFlagBits2::eFragmentShader;
                         break;
 
-                    case Attachment::Type::DepthStencil:
+                    case Attachment::Usage::DepthStencil:
                         nextLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
                         nextStage |= vk::PipelineStageFlagBits2::eFragmentShader;
                         break;
+                    }
+
+                    if (attachment->getInfo().sampler.getInfo().type != Sampler::Type::None) {
+                        nextLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+                        nextAccess = vk::AccessFlagBits2::eShaderRead;
                     }
                     break;
 
@@ -353,35 +358,35 @@ bool RenderGraph::compile() {
 
                 case RenderNode::Stage::Graphics:
                 case RenderNode::Stage::Fragment:
-                    switch (attachment->getInfo().type) {
-                    case Attachment::Type::Color:
+                    switch (attachment->getInfo().usage) {
+                    case Attachment::Usage::Color:
                         nextAccess |= vk::AccessFlagBits2::eColorAttachmentWrite;
                         break;
 
-                    case Attachment::Type::Depth:
-                    case Attachment::Type::Stencil:
-                    case Attachment::Type::DepthStencil:
+                    case Attachment::Usage::Depth:
+                    case Attachment::Usage::Stencil:
+                    case Attachment::Usage::DepthStencil:
                         nextAccess |= vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
                         break;
                     }
 
-                    switch (attachment->getInfo().type) {
-                    case Attachment::Type::Color:
+                    switch (attachment->getInfo().usage) {
+                    case Attachment::Usage::Color:
                         nextLayout = vk::ImageLayout::eAttachmentOptimal;
                         nextStage |= vk::PipelineStageFlagBits2::eColorAttachmentOutput;
                         break;
 
-                    case Attachment::Type::Depth:
+                    case Attachment::Usage::Depth:
                         nextLayout = vk::ImageLayout::eDepthAttachmentOptimal;
                         nextStage |= vk::PipelineStageFlagBits2::eEarlyFragmentTests;
                         break;
 
-                    case Attachment::Type::Stencil:
+                    case Attachment::Usage::Stencil:
                         nextLayout = vk::ImageLayout::eStencilAttachmentOptimal;
                         nextStage |= vk::PipelineStageFlagBits2::eEarlyFragmentTests;
                         break;
 
-                    case Attachment::Type::DepthStencil:
+                    case Attachment::Usage::DepthStencil:
                         nextLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
                         nextStage |= vk::PipelineStageFlagBits2::eEarlyFragmentTests;
                         break;
