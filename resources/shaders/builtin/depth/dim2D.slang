@@ -1,4 +1,4 @@
-module Dim2D;
+module dim2D;
 
 import "../lighting/lights";
 
@@ -30,7 +30,7 @@ VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstan
     uint objectId = instanceId + baseInstance;
 
     InstanceData instance = models[objectId];
-    output.sv_position = directionals[0].toLightSpace(mul(float4(input.position, 1.0), instance.model).xyz);
+    output.sv_position = directionals[0].toLightSpace(mul(float4(input.position, 1.0), instance.model));
 
     return output;
 }

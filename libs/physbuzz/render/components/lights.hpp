@@ -37,6 +37,8 @@ struct PointLightComponent {
     struct Info {
         glm::vec3 position = {0.0f, 0.0f, 0.0f};
         glm::vec3 intensity = {0.0f, 0.0f, 0.0f};
+
+        float depth = 10.0f;
     };
 
     PointLightComponent(const Info &info);
@@ -47,11 +49,14 @@ struct PointLightComponent {
     void update(const Info &info);
 
     const Info &getInfo() const;
+    const std::array<glm::mat4, 6> &getProjectionView() const;
 
   private:
+    void updateProjectionView();
+
     Info m_Info;
 
-    glm::mat4 m_ProjectionView = {1.0f};
+    std::array<glm::mat4, 6> m_ProjectionView = {1.0f};
 };
 
 struct SpotLightComponent {

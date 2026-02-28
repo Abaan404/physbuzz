@@ -59,6 +59,9 @@ StructuredBuffer<InstanceData> models;
 [[vk::binding(5, 1)]]
 Sampler2D<float> directionalDepth;
 
+[[vk::binding(6, 1)]]
+SamplerCube<float> pointDepth;
+
 struct VSInput {
     float3 position : POSITION;
     float3 normal : NORMAL;
@@ -130,7 +133,7 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     }
 
     for (int i = 0; i < pc.pointCount; i++) {
-        color += points[i].illuminate(geometry, brdf, viewDirection);
+        color += points[i].shadow(geometry, pointDepth) * points[i].illuminate(geometry, brdf, viewDirection);
     }
 
     for (int i = 0; i < pc.spotCount; i++) {

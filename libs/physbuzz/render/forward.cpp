@@ -68,6 +68,11 @@ bool RenderPipelineForward::build() {
                         .type = PipelineLayout::Type::eCombinedImageSampler,
                         .stage = PipelineLayout::ShaderStageFlags::eFragment,
                     },
+                    {
+                        // point shadow depth map
+                        .type = PipelineLayout::Type::eCombinedImageSampler,
+                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
+                    },
                 },
             }});
     }
@@ -159,7 +164,14 @@ bool ForwardRenderer::build() {
                     .input = {
                         {
 
-                            Builtin::RenderPipelineShadowDirectional::ResourceAttachment,
+                            Builtin::RenderPipelineShadow::Directional::ResourceAttachment,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                        {
+
+                            Builtin::RenderPipelineShadow::Point::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
@@ -266,8 +278,13 @@ bool ForwardRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
-            Builtin::RenderPipelineShadowDirectional::ResourceAttachment,
+            Builtin::RenderPipelineShadow::Directional::ResourceAttachment,
             5);
+
+        success &= App::LayoutAllocator.write(
+            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::RenderPipelineShadow::Point::ResourceAttachment,
+            6);
     }
 
     return success;

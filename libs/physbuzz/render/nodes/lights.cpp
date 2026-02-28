@@ -108,8 +108,9 @@ RenderNode RenderNodeLights::build() {
                 const PointLightComponent::Info &info = point.getInfo();
 
                 points->emplace_back<PointLightBuffer>({
-                    .projectionView = {},
+                    .projectionView = point.getProjectionView(),
                     .position = info.position,
+                    .depth = point.getInfo().depth,
                     .intensity = info.intensity,
                 });
             }

@@ -9,9 +9,10 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-namespace RenderPipelineShadowDirectional {
+namespace RenderPipelineShadow {
 
-inline Resource<DynamicBuffer> ResourceModel = {"builtin/shadow/directional/model"};
+namespace Directional {
+
 inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/directional"};
 
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/shadow/directional/frame"};
@@ -20,20 +21,23 @@ inline Resource<RenderPipeline> Resource = {"builtin/shadow/directional"};
 
 bool build(const glm::uvec2 &resolution);
 
-} // namespace RenderPipelineShadowDirectional
+} // namespace Directional
 
-namespace RenderPipelineShadowPoint {
+namespace Point {
 
-struct PushConstants {
-};
+inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/point"};
 
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/shadow/point/frame"};
 
 inline Resource<RenderPipeline> Resource = {"builtin/shadow/point"};
 
-bool build();
+bool build(const glm::uvec2 &resolution);
 
-} // namespace RenderPipelineShadowPoint
+} // namespace Point
+
+inline Resource<DynamicBuffer> ResourceModel = {"builtin/shadow/model"};
+
+} // namespace RenderPipelineShadow
 
 } // namespace Builtin
 
@@ -41,7 +45,8 @@ struct ShadowComponent {};
 
 class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
   public:
-    constexpr static RenderNodeID Output = "builtin/shadow";
+    constexpr static RenderNodeID Output2D = "builtin/shadow/2D";
+    constexpr static RenderNodeID OutputCube = "builtin/shadow/cube";
 
     struct Info {
         glm::uvec2 resolution = {1024, 1024};
@@ -52,22 +57,16 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
     bool build();
     bool destroy();
 
-    void resize(const glm::ivec2 &resolution);
-
     const RenderGraph &getGraph() const;
 
     const Info &getInfo() const;
 
   private:
-    void tickPoint() const;
-
     Info m_Info;
 
     std::vector<std::tuple<Resource<Mesh>, std::size_t>> m_Batches;
 
-    RenderGraph m_Graph = {{
-        .output = Output,
-    }};
+    RenderGraph m_Graph = {{}};
 };
 
 } // namespace Physbuzz

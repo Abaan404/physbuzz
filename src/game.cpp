@@ -295,7 +295,7 @@ void Game::build() {
 
     // point lights
     {
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 1; ++i) {
             LightPoint point = {
                 .sphere = {
                     .radius = 10.0f,
@@ -305,7 +305,8 @@ void Game::build() {
                     .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
                 }},
                 .pointLight = {{
-                    .intensity = {1000.0f, 1000.0f, 1000.0f},
+                    .intensity = {10000.0f, 10000.0f, 10000.0f},
+                    .depth = 2000.0f,
                 }},
             };
 

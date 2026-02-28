@@ -1,0 +1,51 @@
+module cube;
+
+import "../lighting/lights";
+
+namespace Physbuzz {
+
+struct InstanceData {
+    float4x4 model;
+    float4x4 normal;
+    uint materialIdx;
+};
+
+[[vk::binding(0, 0)]]
+StructuredBuffer<PointLight> points;
+
+[[vk::binding(1, 0)]]
+StructuredBuffer<InstanceData> models;
+
+struct VSInput {
+    float3 position : POSITION;
+};
+
+struct CoarseVertex {
+    float3 position;
+};
+
+struct VSOutput {
+    float4 sv_position : SV_Position;
+    CoarseVertex coarseVertex;
+};
+
+[shader("vertex")]
+VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation, uint viewIdx: SV_ViewID) {
+    VSOutput output;
+    uint objectId = instanceId + baseInstance;
+
+    InstanceData instance = models[objectId];
+    output.sv_position = points[0].toLightSpace(mul(float4(input.position, 1.0), instance.model), viewIdx);
+
+    output.coarseVertex.position = mul(float4(input.position, 1.0), instance.model).xyz;
+
+    return output;
+}
+
+[shader("fragment")]
+float4 fragMain(VSOutput output) : SV_Depth {
+    float lightDistance = length(output.coarseVertex.position - points[0].position);
+    return lightDistance / points[0].farPlane;
+}
+
+}

@@ -221,6 +221,7 @@ bool App::init(const PipelineLayoutAllocator::Info &layoutAllocatorInfo) {
         deviceFeatureChain = {
             deviceFeatures,
             {
+                .multiview = true,
                 .shaderDrawParameters = true,
             },
             {

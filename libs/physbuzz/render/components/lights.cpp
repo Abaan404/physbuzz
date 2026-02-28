@@ -46,6 +46,7 @@ PointLightComponent::PointLightComponent(const Info &info) {
 
 void PointLightComponent::setPosition(const glm::vec3 &position) {
     m_Info.position = position;
+    updateProjectionView();
 }
 
 void PointLightComponent::setIntensity(const glm::vec3 &intensity) {
@@ -54,10 +55,28 @@ void PointLightComponent::setIntensity(const glm::vec3 &intensity) {
 
 void PointLightComponent::update(const Info &info) {
     m_Info = info;
+    updateProjectionView();
 }
 
 const PointLightComponent::Info &PointLightComponent::getInfo() const {
     return m_Info;
+}
+
+const std::array<glm::mat4, 6> &PointLightComponent::getProjectionView() const {
+    return m_ProjectionView;
+}
+
+void PointLightComponent::updateProjectionView() {
+    glm::mat4 projection = glm::perspective(glm::radians(90.0f), 1.0f, 1.0f, m_Info.depth);
+
+    m_ProjectionView = {
+        projection * glm::lookAt(m_Info.position, m_Info.position + glm::vec3(1.0f, 0.0f, 0.0f), {0.0f, -1.0f, 0.0f}),
+        projection * glm::lookAt(m_Info.position, m_Info.position + glm::vec3(-1.0f, 0.0f, 0.0f), {0.0f, -1.0f, 0.0f}),
+        projection * glm::lookAt(m_Info.position, m_Info.position + glm::vec3(0.0f, 1.0f, 0.0f), {0.0f, 0.0f, 1.0f}),
+        projection * glm::lookAt(m_Info.position, m_Info.position + glm::vec3(0.0f, -1.0f, 0.0f), {0.0f, 0.0f, -1.0f}),
+        projection * glm::lookAt(m_Info.position, m_Info.position + glm::vec3(0.0f, 0.0f, 1.0f), {0.0f, -1.0f, 0.0f}),
+        projection * glm::lookAt(m_Info.position, m_Info.position + glm::vec3(0.0f, 0.0f, -1.0f), {0.0f, -1.0f, 0.0f}),
+    };
 }
 
 SpotLightComponent::SpotLightComponent(const Info &info) {

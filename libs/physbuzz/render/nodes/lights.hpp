@@ -17,9 +17,10 @@ struct DirectionalLightBuffer {
 };
 
 struct PointLightBuffer {
-    glm::mat4 projectionView;
+    std::array<glm::mat4, 6> projectionView;
 
-    alignas(16) glm::vec3 position;
+    glm::vec3 position;
+    float depth;
     alignas(16) glm::vec3 intensity;
 };
 

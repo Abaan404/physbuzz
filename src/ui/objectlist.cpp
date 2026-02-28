@@ -152,6 +152,10 @@ void ObjectList::draw() {
                 if (ImGui::DragFloat3("intensity", glm::value_ptr(info.intensity), 0.01f, MIN_VALUE, MAX_VALUE)) {
                     pointLight.update(info);
                 }
+
+                if (ImGui::DragFloat("depth", &info.depth, 1.0f, MIN_VALUE, MAX_VALUE)) {
+                    pointLight.update(info);
+                }
             }
 
             if (m_Scene->containsComponent<Physbuzz::SpotLightComponent>(object)) {

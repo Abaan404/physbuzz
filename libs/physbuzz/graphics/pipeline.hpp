@@ -101,6 +101,7 @@ class RenderPipeline {
         struct {
             std::vector<Format> color = {Format::eR8G8B8A8Srgb};
             Format depth = Format::eD32SfloatS8Uint;
+            std::uint32_t viewMask = 0;
         } formats = {};
 
         struct {

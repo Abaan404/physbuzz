@@ -284,6 +284,7 @@ bool RenderPipeline::build() {
             .renderPass = nullptr,
         },
         {
+            .viewMask = m_Info.formats.viewMask,
             .colorAttachmentCount = static_cast<std::uint32_t>(m_Info.formats.color.size()),
             .pColorAttachmentFormats = m_Info.formats.color.data(),
             .depthAttachmentFormat = m_Info.formats.depth,

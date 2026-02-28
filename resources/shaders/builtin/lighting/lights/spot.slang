@@ -3,14 +3,14 @@ implementing "../lights";
 namespace Physbuzz {
 
 public struct SpotLight : ILight {
-    float4x4 projectionView;
+    public const float4x4 projectionView;
 
-    float3 position;
-    float3 direction;
-    float3 intensity;
+    public const float3 position;
+    public const float3 direction;
+    public const float3 intensity;
 
-    float cutOff;
-    float outerCutOff;
+    public const float cutOff;
+    public const float outerCutOff;
 
     public float3 illuminate<B : IBRDF>(Geometry geometry, B brdf, float3 viewDirection) {
         float3 L = this.position - geometry.position;

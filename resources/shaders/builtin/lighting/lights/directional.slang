@@ -3,19 +3,19 @@ implementing "../lights";
 namespace Physbuzz {
 
 public struct DirectionalLight : ILight {
-    float4x4 projectionView;
+    public const float4x4 projectionView;
 
-    float3 direction;
-    float3 intensity;
+    public const float3 direction;
+    public const float3 intensity;
 
-    public float4 toLightSpace(float3 position) {
-        return mul(float4(position, 1.0), this.projectionView);
+    public float4 toLightSpace(float4 position) {
+        return mul(position, this.projectionView);
     };
 
     public float shadow(Geometry geometry, Sampler2D<float> depth) {
         constexpr float AMBIENT_SHADOW = 0.1;
 
-        float4 projCoords = this.toLightSpace(geometry.position);
+        float4 projCoords = this.toLightSpace(float4(geometry.position, 1.0));
         projCoords.xyz /= projCoords.w;
 
         float currentDepth = projCoords.z;
