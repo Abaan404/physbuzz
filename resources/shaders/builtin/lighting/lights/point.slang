@@ -9,23 +9,23 @@ public struct PointLight : ILight {
     public const float farPlane;
     public const float3 intensity;
 
-    public float4 toLightSpace(float4 position, uint face) {
-        return mul(position, this.projectionView[face]);
-    }
+    private static const float3 sampleOffsetDirections[20] = {
+        float3(1, 1, 1), float3(1, -1, 1), float3(-1, -1, 1), float3(-1, 1, 1),
+        float3(1, 1, -1), float3(1, -1, -1), float3(-1, -1, -1), float3(-1, 1, -1),
+        float3(1, 1, 0), float3(1, -1, 0), float3(-1, -1, 0), float3(-1, 1, 0),
+        float3(1, 0, 1), float3(-1, 0, 1), float3(1, 0, -1), float3(-1, 0, -1),
+        float3(0, 1, 1), float3(0, -1, 1), float3(0, -1, -1), float3(0, 1, -1)
+    };
 
-    public float shadow(Geometry geometry, SamplerCube<float> depth) {
-        constexpr float AMBIENT_SHADOW = 0.1;
+    public float shadow(Geometry geometry, SamplerCube<float> shadowMap) {
+        static const float DISK_RADIUS = 1.5f;
 
-        float3 fragToLight = geometry.position - this.position;
-
-        float currentDepth = length(fragToLight);
-        float closestDepth = depth.Sample(fragToLight).r * this.farPlane;
-
-        if (currentDepth > closestDepth) {
-            return 0.0f;
+        float shadowFactor = 0.0f;
+        for (int i = 0; i < sampleOffsetDirections.getCount(); ++i) {
+            shadowFactor += this.shadowProj(geometry, sampleOffsetDirections[i] * DISK_RADIUS, shadowMap);
         }
 
-        return 1.0f;
+        return shadowFactor / sampleOffsetDirections.getCount();
     }
 
     public float3 illuminate<B : IBRDF>(Geometry geometry, B brdf, float3 viewDirection) {
@@ -39,6 +39,24 @@ public struct PointLight : ILight {
 
         return illuminance * brdf.evaluate(incident, viewDirection, geometry.normal) * NdotL;
     }
-};
+
+    private float shadowProj(Geometry geometry, float3 offset, SamplerCube<float> shadowMap) {
+        static const float AMBIENT_SHADOW = 0.1;
+
+        float3 direction = geometry.position - this.position;
+
+        // fix shadow acne with bias
+        float bias = max(0.05f * (1.0f - dot(geometry.normal, -direction)), 0.005f);
+        float depth = length(direction);
+
+        float closestDepth = shadowMap.Sample(direction + offset).r * this.farPlane;
+
+        if (depth - bias > closestDepth) {
+            return AMBIENT_SHADOW;
+        }
+
+        return 1.0f;
+    }
+}
 
 }
