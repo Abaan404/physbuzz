@@ -1,6 +1,6 @@
-module dim2D;
+module directional;
 
-import "../lighting/lights";
+import "../../lighting/lights";
 
 namespace Physbuzz {
 

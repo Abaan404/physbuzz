@@ -80,7 +80,7 @@ bool RenderPipelineForward::build() {
     success &= ResourceRegistry<RenderPipeline>::insert(
         Resource,
         {{
-            .module = "builtin/forward",
+            .module = "builtin/render/forward",
             .description = &Model::Vertex::Description,
             .layouts = {
                 .resources = {

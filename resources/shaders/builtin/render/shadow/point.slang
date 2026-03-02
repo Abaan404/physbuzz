@@ -1,6 +1,6 @@
-module cube;
+module point;
 
-import "../lighting/lights";
+import "../../lighting/lights";
 
 namespace Physbuzz {
 

@@ -51,7 +51,7 @@ bool RenderPipelineSkybox::build() {
     success &= ResourceRegistry<RenderPipeline>::insert(
         Resource,
         {{
-            .module = "builtin/skybox",
+            .module = "builtin/render/skybox",
             .layouts = {
                 .resources = {
                     ResourceLayoutTexture,

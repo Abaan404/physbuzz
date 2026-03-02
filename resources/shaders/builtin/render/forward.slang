@@ -1,9 +1,9 @@
 module forward;
 
-import "lighting/brdf";
-import "lighting/lights";
-import "lighting/material";
-import "lighting/geometry";
+import "../lighting/brdf";
+import "../lighting/lights";
+import "../lighting/material";
+import "../lighting/geometry";
 
 namespace Physbuzz {
 

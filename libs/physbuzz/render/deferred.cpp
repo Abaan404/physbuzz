@@ -53,7 +53,7 @@ bool RenderPipelineDeferred::Geometry::build() {
     success &= ResourceRegistry<RenderPipeline>::insert(
         Resource,
         {{
-            .module = "builtin/deferred/geometry",
+            .module = "builtin/render/deferred/geometry",
             .description = &Model::Vertex::Description,
             .blend = {
                 .attachments = {3, {{}}},
@@ -146,7 +146,7 @@ bool RenderPipelineDeferred::Lighting::build() {
     success &= ResourceRegistry<RenderPipeline>::insert(
         Resource,
         {{
-            .module = "builtin/deferred/lighting",
+            .module = "builtin/render/deferred/lighting",
             .rasterization = {
                 .cullMode = RenderPipeline::CullModeFlags::eNone,
             },

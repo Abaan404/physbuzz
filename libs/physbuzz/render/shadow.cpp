@@ -60,7 +60,7 @@ bool RenderPipelineShadow::Directional::build(const glm::uvec2 &resolution) {
     success &= ResourceRegistry<RenderPipeline>::insert(
         Resource,
         {{
-            .module = "builtin/depth/dim2D",
+            .module = "builtin/render/shadow/directional",
             .description = &Model::Vertex::Description,
             .rasterization = {
                 .cullMode = vk::CullModeFlagBits::eFront,
@@ -135,7 +135,7 @@ bool RenderPipelineShadow::Point::build(const glm::uvec2 &resolution) {
     success &= ResourceRegistry<RenderPipeline>::insert(
         Resource,
         {{
-            .module = "builtin/depth/cube",
+            .module = "builtin/render/shadow/point",
             .description = &Model::Vertex::Description,
             .rasterization = {
                 .cullMode = vk::CullModeFlagBits::eFront,
