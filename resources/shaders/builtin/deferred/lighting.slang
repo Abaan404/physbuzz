@@ -72,7 +72,6 @@ VSOutput vertMain(uint vertexIdx: SV_VertexID) {
 [shader("fragment")]
 float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
     Geometry geometry = {
-        {},
         gBuffer0.SubpassLoad().xyz,
         gBuffer1.SubpassLoad().xyz,
     };

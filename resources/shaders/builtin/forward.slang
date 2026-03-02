@@ -16,9 +16,10 @@ struct Camera {
 struct Material {
     uint diffuseTextureId;
     uint specularTextureId;
+    uint heightTextureId;
     float specularity;
 
-    static const uint STRIDE = 12;
+    static const uint STRIDE = 16;
 };
 
 struct InstanceData {
@@ -105,11 +106,6 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     InstanceData instance = models[coarseVertex.objectId];
 
     Geometry geometry = {
-        {
-            coarseVertex.tangent,
-            coarseVertex.bitangent,
-            coarseVertex.normal,
-        },
         coarseVertex.position,
         coarseVertex.normal,
     };
@@ -125,6 +121,18 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
 
     if (boundMaterial.specularTextureId != -1) {
         specular = textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).r;
+    }
+
+    if (boundMaterial.heightTextureId != -1) {
+        float3x3 TBN = {
+            coarseVertex.tangent,
+            coarseVertex.bitangent,
+            coarseVertex.normal,
+        };
+
+        geometry.normal = textures[boundMaterial.heightTextureId].Sample(coarseVertex.texCoord0).rgb;
+        geometry.normal = geometry.normal * 2.0 - 1.0;
+        geometry.normal = normalize(mul(geometry.normal, TBN));
     }
 
     SimpleMaterial material = {

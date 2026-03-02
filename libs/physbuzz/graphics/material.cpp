@@ -66,6 +66,9 @@ bool MaterialAllocator::build() {
                 .specularTextureId = material->textures.contains(TextureType::Specular)
                                          ? m_Textures.query(material->textures.at(TextureType::Specular))
                                          : -1,
+                .heightTextureId = material->textures.contains(TextureType::Height)
+                                         ? m_Textures.query(material->textures.at(TextureType::Height))
+                                         : -1,
                 .specularity = material->shininess,
             };
 

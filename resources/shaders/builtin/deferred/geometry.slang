@@ -16,9 +16,10 @@ struct Camera {
 struct Material {
     uint diffuseTextureId;
     uint specularTextureId;
+    uint heightTextureId;
     float specularity;
 
-    static const uint STRIDE = 12;
+    static const uint STRIDE = 16;
 };
 
 struct InstanceData {
@@ -96,6 +97,7 @@ FSOutput fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
     Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialIdx * Material.STRIDE);
 
     float3 albedo = float3(0.0f);
+    float3 normal = coarseVertex.normal;
     float specular = 0.0f;
 
     if (boundMaterial.diffuseTextureId != -1) {
@@ -106,8 +108,20 @@ FSOutput fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
         specular = textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).r;
     }
 
+    if (boundMaterial.heightTextureId != -1) {
+        float3x3 TBN = {
+            coarseVertex.tangent,
+            coarseVertex.bitangent,
+            coarseVertex.normal,
+        };
+
+        normal = textures[boundMaterial.heightTextureId].Sample(coarseVertex.texCoord0).rgb;
+        normal = normal * 2.0 - 1.0;
+        normal = normalize(mul(normal, TBN));
+    }
+
     output.position = { coarseVertex.position, 1.0f };
-    output.normal = { coarseVertex.normal, 1.0f };
+    output.normal = { normal, 1.0f };
     output.albedo = { albedo, specular };
 
     return output;

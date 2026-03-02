@@ -18,6 +18,7 @@ namespace LayoutMaterial {
 struct MaterialBuffer {
     std::uint32_t diffuseTextureId;
     std::uint32_t specularTextureId;
+    std::uint32_t heightTextureId;
     float specularity;
 };
 
