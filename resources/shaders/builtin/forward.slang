@@ -117,8 +117,8 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialIdx * Material.STRIDE);
 
     SimpleMaterial material = {
-        textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0),
-        textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0),
+        textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).rgb,
+        textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).rrr,
         125.0f,
     };
 

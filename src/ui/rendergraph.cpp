@@ -5,6 +5,7 @@
 #include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/render/deferred.hpp>
 #include <physbuzz/render/forward.hpp>
+#include <physbuzz/render/shadow.hpp>
 #include <physbuzz/render/skybox.hpp>
 
 static void drawImageWindow(std::string label, bool *show, ImTextureID id, const glm::uvec2 &resolution) {
@@ -157,6 +158,7 @@ void RenderGraph::draw() {
     if (currentType != 2 && ImGui::Combo("Type", &currentType, types, IM_ARRAYSIZE(types))) {
         Physbuzz::RenderGraph graph = {{}};
 
+        std::shared_ptr<Physbuzz::ShadowRenderer> shadow = m_Scene->getSystem<Physbuzz::ShadowRenderer>();
         std::shared_ptr<Physbuzz::DeferredRenderer> deferred = m_Scene->getSystem<Physbuzz::DeferredRenderer>();
         std::shared_ptr<Physbuzz::ForwardRenderer> forward = m_Scene->getSystem<Physbuzz::ForwardRenderer>();
         std::shared_ptr<Physbuzz::ImGuiRenderer> imgui = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
@@ -164,12 +166,14 @@ void RenderGraph::draw() {
 
         switch (currentType) {
         case 0: // Deferred
+            graph.merge(shadow->getGraph());
             graph.merge(deferred->getGraph());
             graph.merge(skybox->getGraph());
             graph.merge(imgui->getGraph());
             break;
 
         case 1: // Forward
+            graph.merge(shadow->getGraph());
             graph.merge(forward->getGraph());
             graph.merge(skybox->getGraph());
             graph.merge(imgui->getGraph());

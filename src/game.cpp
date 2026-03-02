@@ -150,7 +150,7 @@ void Game::build() {
     Physbuzz::RenderGraph graph = {{}};
 
     graph.merge(shadow->getGraph());
-    graph.merge(forward->getGraph());
+    graph.merge(deferred->getGraph());
     graph.merge(skybox->getGraph());
     graph.merge(imgui->getGraph());
 

@@ -46,6 +46,12 @@ SubpassInput<float4> gBuffer1;
 [[vk::binding(6, 0)]]
 SubpassInput<float4> gBuffer2;
 
+[[vk::binding(7, 0)]]
+Sampler2D<float> directionalDepth;
+
+[[vk::binding(8, 0)]]
+SamplerCube<float> pointDepth;
+
 struct CoarseVertex {
     float2 texCoord;
 };
@@ -73,7 +79,7 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
 
     SimpleMaterial material = {
         gBuffer2.SubpassLoad().rgb,
-        gBuffer2.SubpassLoad().a,
+        gBuffer2.SubpassLoad().aaa,
         125.0f,
     };
 
@@ -84,11 +90,11 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
     float3 color = {};
 
     for (int i = 0; i < pc.directionalCount; i++) {
-        color += directionals[i].illuminate(geometry, brdf, viewDirection);
+        color += directionals[i].shadow(geometry, directionalDepth) * directionals[i].illuminate(geometry, brdf, viewDirection);
     }
 
     for (int i = 0; i < pc.pointCount; i++) {
-        color += points[i].illuminate(geometry, brdf, viewDirection);
+        color += points[i].shadow(geometry, pointDepth) * points[i].illuminate(geometry, brdf, viewDirection);
     }
 
     for (int i = 0; i < pc.spotCount; i++) {

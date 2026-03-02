@@ -10,6 +10,7 @@
 #include "nodes/camera.hpp"
 #include "nodes/lights.hpp"
 #include "nodes/models.hpp"
+#include "shadow.hpp"
 
 namespace Physbuzz {
 
@@ -126,6 +127,16 @@ bool RenderPipelineDeferred::Lighting::build() {
                     {
                         // albedospec
                         .type = PipelineLayout::Type::eInputAttachment,
+                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
+                    },
+                    {
+                        // directional shadow depth map
+                        .type = PipelineLayout::Type::eCombinedImageSampler,
+                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
+                    },
+                    {
+                        // point shadow depth map
+                        .type = PipelineLayout::Type::eCombinedImageSampler,
                         .stage = PipelineLayout::ShaderStageFlags::eFragment,
                     },
                 },
@@ -406,6 +417,18 @@ bool DeferredRenderer::build() {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
+                        {
+                            Builtin::RenderPipelineShadow::Directional::ResourceAttachment,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
+                        {
+                            Builtin::RenderPipelineShadow::Point::ResourceAttachment,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
                     },
                 },
             },
@@ -511,6 +534,16 @@ bool DeferredRenderer::build() {
             Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
             Resource<Attachment>("builtin/deferred/gBuffer2"),
             6);
+
+        success &= App::LayoutAllocator.write(
+            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::RenderPipelineShadow::Directional::ResourceAttachment,
+            7);
+
+        success &= App::LayoutAllocator.write(
+            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::RenderPipelineShadow::Point::ResourceAttachment,
+            8);
     }
 
     return success;

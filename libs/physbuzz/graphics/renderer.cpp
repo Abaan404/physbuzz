@@ -139,6 +139,11 @@ void Renderer::tick() {
         },
     };
 
+    glm::uvec2 resolution = m_Depth.getSize(m_FrameInFlight);
+    if (resolution.x != extent.width || resolution.y != extent.height) {
+        m_Depth.rebuild(context, {extent.width, extent.height});
+    }
+
     {
         std::array barriers = {
             vk::ImageMemoryBarrier2{
@@ -173,11 +178,6 @@ void Renderer::tick() {
             .imageMemoryBarrierCount = barriers.size(),
             .pImageMemoryBarriers = barriers.data(),
         });
-    }
-
-    glm::uvec2 resolution = m_Depth.getSize(m_FrameInFlight);
-    if (resolution.x != extent.width || resolution.y != extent.height) {
-        m_Depth.rebuild(context, {extent.width, extent.height});
     }
 
     // execute the graph

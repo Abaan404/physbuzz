@@ -163,14 +163,12 @@ bool ForwardRenderer::build() {
                 .attachments = {
                     .input = {
                         {
-
                             Builtin::RenderPipelineShadow::Directional::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-
                             Builtin::RenderPipelineShadow::Point::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
