@@ -79,7 +79,7 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
 
     SimpleMaterial material = {
         gBuffer2.SubpassLoad().rgb,
-        gBuffer2.SubpassLoad().aaa,
+        gBuffer2.SubpassLoad().a,
         125.0f,
     };
 

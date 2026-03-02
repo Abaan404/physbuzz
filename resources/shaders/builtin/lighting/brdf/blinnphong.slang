@@ -4,7 +4,7 @@ namespace Physbuzz {
 
 public struct BlinnPhong : IBRDF {
     public const float3 kd;
-    public const float3 ks;
+    public const float ks;
     public const float shininess;
 
     public float3 evaluate(float3 incident, float3 exitant, float3 normal) {

@@ -62,10 +62,10 @@ bool MaterialAllocator::build() {
             Builtin::LayoutMaterial::MaterialBuffer buffer = {
                 .diffuseTextureId = material->textures.contains(TextureType::Diffuse)
                                         ? m_Textures.query(material->textures.at(TextureType::Diffuse))
-                                        : 0,
+                                        : -1,
                 .specularTextureId = material->textures.contains(TextureType::Specular)
                                          ? m_Textures.query(material->textures.at(TextureType::Specular))
-                                         : 0,
+                                         : -1,
                 .specularity = material->shininess,
             };
 

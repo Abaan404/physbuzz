@@ -51,11 +51,9 @@ public struct PointLight : ILight {
 
         float closestDepth = shadowMap.Sample(direction + offset).r * this.farPlane;
 
-        if (depth - bias > closestDepth) {
-            return AMBIENT_SHADOW;
-        }
+        float shadow = step(closestDepth, depth - bias);
 
-        return 1.0f;
+        return lerp(1.0f, AMBIENT_SHADOW, shadow);
     }
 }
 

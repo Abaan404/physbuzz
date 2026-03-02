@@ -95,10 +95,20 @@ FSOutput fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
 
     Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialIdx * Material.STRIDE);
 
+    float3 albedo = float3(0.0f);
+    float specular = 0.0f;
+
+    if (boundMaterial.diffuseTextureId != -1) {
+        albedo = textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).rgb;
+    }
+
+    if (boundMaterial.specularTextureId != -1) {
+        specular = textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).r;
+    }
+
     output.position = { coarseVertex.position, 1.0f };
     output.normal = { coarseVertex.normal, 1.0f };
-    output.albedo = { textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).xyz,
-                      textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).x };
+    output.albedo = { albedo, specular };
 
     return output;
 }

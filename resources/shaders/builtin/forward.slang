@@ -116,9 +116,20 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
 
     Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialIdx * Material.STRIDE);
 
+    float3 albedo = float3(0.0f);
+    float specular = 0.0f;
+
+    if (boundMaterial.diffuseTextureId != -1) {
+        albedo = textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).rgb;
+    }
+
+    if (boundMaterial.specularTextureId != -1) {
+        specular = textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).r;
+    }
+
     SimpleMaterial material = {
-        textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).rgb,
-        textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).rrr,
+        albedo,
+        specular,
         125.0f,
     };
 
