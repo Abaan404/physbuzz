@@ -286,6 +286,8 @@ bool DeferredRenderer::build() {
                 }
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
+                TracyVkZone(context.tracy, context.command, "Deferred/GBuffer");
+
                 std::array gBuffers = {
                     Resource<Attachment>("builtin/deferred/gBuffer0"),
                     Resource<Attachment>("builtin/deferred/gBuffer1"),
@@ -433,12 +435,14 @@ bool DeferredRenderer::build() {
                 },
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
+                TracyVkZone(context.tracy, context.command, "Deferred/Lighting");
+
                 const std::vector<DirectionalLightComponent> &directionals = scene->getComponentArray<DirectionalLightComponent>();
                 const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
                 const std::vector<SpotLightComponent> &spots = scene->getComponentArray<SpotLightComponent>();
 
-                std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
-                    {
+                std::array colorAttachments = {
+                    vk::RenderingAttachmentInfo{
                         .imageView = context.color.view,
                         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
                         .loadOp = vk::AttachmentLoadOp::eClear,

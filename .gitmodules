@@ -7,3 +7,6 @@
 [submodule "submodules/efsw"]
 	path = submodules/efsw
 	url = https://github.com/SpartanJ/efsw
+[submodule "submodules/tracy"]
+	path = submodules/tracy
+	url = https://github.com/wolfpld/tracy

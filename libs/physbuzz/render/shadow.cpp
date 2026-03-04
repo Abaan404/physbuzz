@@ -207,6 +207,8 @@ bool ShadowRenderer::build() {
                 },
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
+                TracyVkZone(context.tracy, context.command, "Shadow/Directional");
+
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = Builtin::RenderPipelineShadow::Directional::ResourceAttachment->getRingData()[context.frameInFlight].view,
                     .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
@@ -280,6 +282,8 @@ bool ShadowRenderer::build() {
                 },
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
+                TracyVkZone(context.tracy, context.command, "Shadow/Point");
+
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = Builtin::RenderPipelineShadow::Point::ResourceAttachment->getRingData()[context.frameInFlight].view,
                     .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,

@@ -10,6 +10,9 @@ set(CMAKE_BUILD_PARALLEL_LEVEL 12)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(PHYSBUZZ_ENABLE_TRACY "Enable Tracy profiler" OFF)
+option(PHYSBUZZ_ENABLE_VALIDATION "Enable Vulkan Validation" OFF)
+
 find_package(glm REQUIRED)
 find_package(assimp REQUIRED)
 find_package(glfw3 REQUIRED)
@@ -30,12 +33,17 @@ target_include_directories(stb INTERFACE ${STB_PATH})
 # ImGui
 set(IMGUI_PATH "${CMAKE_SOURCE_DIR}/submodules/imgui")
 file(GLOB IMGUI_SRCS ${IMGUI_PATH}/*.cpp
-     ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
-     ${IMGUI_PATH}/backends/imgui_impl_vulkan.cpp)
+  ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
+  ${IMGUI_PATH}/backends/imgui_impl_vulkan.cpp)
 
 add_library(imgui SHARED ${IMGUI_SRCS})
 target_include_directories(imgui PUBLIC ${IMGUI_PATH} ${IMGUI_PATH}/backends
                                         ${GLFW_PATH}/include) # for glfw backend
+
+# Tracy
+set(TRACY_PATH "${CMAKE_SOURCE_DIR}/submodules/tracy")
+option(TRACY_ENABLE "" ${PHYSBUZZ_ENABLE_TRACY})
+add_subdirectory(${TRACY_PATH})
 
 # physbuzz
 set(ENGINE_PATH "libs")
@@ -63,7 +71,16 @@ target_link_libraries(
          Vulkan::Vulkan
          glm
          imgui
-         slang)
+         slang
+         Tracy::TracyClient)
+
+if(PHYSBUZZ_ENABLE_TRACY)
+  target_compile_definitions(physbuzz PUBLIC PHYSBUZZ_ENABLE_TRACY)
+endif()
+
+if(PHYSBUZZ_ENABLE_VALIDATION)
+  target_compile_definitions(physbuzz PUBLIC PHYSBUZZ_ENABLE_VALIDATION)
+endif()
 
 # driver code
 file(GLOB_RECURSE SRCS "${CMAKE_SOURCE_DIR}/src/*.cpp")

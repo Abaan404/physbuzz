@@ -2,6 +2,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include <tracy/TracyVulkan.hpp>
+
 namespace Physbuzz {
 
 class PipelineLayoutAllocator;
@@ -21,6 +23,7 @@ struct RenderContext {
     MaterialAllocator *materialAllocator;
 
     const Attachment *depth;
+    TracyVkCtx tracy;
 
     vk::CommandBuffer command;
     vk::Extent2D extent;

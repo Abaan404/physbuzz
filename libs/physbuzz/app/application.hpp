@@ -46,6 +46,9 @@ class App {
     // slang
     inline static Slang::ComPtr<slang::IGlobalSession> SlangSession = nullptr;
 
+    // tracy
+    inline static TracyVkCtx Tracy = nullptr;
+
     inline static struct {
         std::uint32_t graphics;
         std::uint32_t present;

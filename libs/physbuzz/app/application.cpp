@@ -10,15 +10,12 @@
 #include "../graphics/mesh.hpp"
 #include "../graphics/pipeline.hpp"
 #include "deletion.hpp"
+#include <tracy/Tracy.hpp>
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
-
-#if !defined(NDEBUG)
-#define ENABLE_VALIDATION_LAYERS
-#endif
 
 namespace Physbuzz {
 
@@ -72,7 +69,7 @@ bool App::init(const PipelineLayoutAllocator::Info &layoutAllocatorInfo) {
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init();
 
-#ifdef ENABLE_VALIDATION_LAYERS
+#ifdef PHYSBUZZ_ENABLE_VALIDATION
     extensions.emplace_back(vk::EXTDebugUtilsExtensionName);
     layers.emplace_back("VK_LAYER_KHRONOS_validation");
 #endif
@@ -121,7 +118,7 @@ bool App::init(const PipelineLayoutAllocator::Info &layoutAllocatorInfo) {
     PBZ_VK_CHECK_RESULT(vk::createInstance(&createInfo, nullptr, &Instance));
     VULKAN_HPP_DEFAULT_DISPATCHER.init(Instance);
 
-#ifdef ENABLE_VALIDATION_LAYERS
+#ifdef PHYSBUZZ_ENABLE_VALIDATION
     vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoEXT = {
         .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
                            vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
@@ -232,6 +229,9 @@ bool App::init(const PipelineLayoutAllocator::Info &layoutAllocatorInfo) {
                 .descriptorBindingStorageImageUpdateAfterBind = true,
                 .descriptorBindingPartiallyBound = true,
                 .runtimeDescriptorArray = true,
+#ifdef PHYSBUZZ_ENABLE_TRACY
+                .hostQueryReset = true,
+#endif
                 .bufferDeviceAddress = true,
             },
             {
@@ -264,6 +264,10 @@ bool App::init(const PipelineLayoutAllocator::Info &layoutAllocatorInfo) {
         vk::KHRSynchronization2ExtensionName,
         vk::KHRCreateRenderpass2ExtensionName,
     };
+
+#ifdef PHYSBUZZ_ENABLE_TRACY
+    deviceExtensions.emplace_back(vk::EXTCalibratedTimestampsExtensionName);
+#endif
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-designated-field-initializers" // ignore deprecated properties
@@ -298,6 +302,23 @@ bool App::init(const PipelineLayoutAllocator::Info &layoutAllocatorInfo) {
         .transfer = Device.getQueue(Indices.transfer, 0),
     };
 
+#ifdef PHYSBUZZ_ENABLE_TRACY
+    PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT vkGetPhysicalDeviceCalibrateableTimeDomainsEXT =
+        (PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT)
+            vkGetInstanceProcAddr(App::Instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT");
+
+    PFN_vkGetCalibratedTimestampsEXT vkGetCalibratedTimestampsEXT =
+        (PFN_vkGetCalibratedTimestampsEXT)
+            vkGetDeviceProcAddr(App::Device, "vkGetCalibratedTimestampsEXT");
+
+    Tracy = TracyVkContextHostCalibrated(
+        App::PhysicalDevice,
+        App::Device,
+        vkResetQueryPool,
+        vkGetPhysicalDeviceCalibrateableTimeDomainsEXT,
+        vkGetCalibratedTimestampsEXT);
+#endif
+
     LayoutAllocator = layoutAllocatorInfo;
 
     if (!LayoutAllocator.build()) {
@@ -315,6 +336,12 @@ bool App::quit() {
 
     // clear the scene completely
     GScene.clear();
+
+    // destroy tracy context
+#ifdef PHYSBUZZ_ENABLE_TRACY
+    TracyVkDestroy(Tracy);
+    Tracy = nullptr;
+#endif
 
     // cleanup vulkan resources
     ResourceRegistry<RenderPipeline>::clear();
@@ -345,7 +372,7 @@ bool App::quit() {
         return false;
     }
 
-#ifdef ENABLE_VALIDATION_LAYERS
+#ifdef PHYSBUZZ_ENABLE_VALIDATION
     Instance.destroyDebugUtilsMessengerEXT(DebugMessenger);
     DebugMessenger = nullptr;
 #endif

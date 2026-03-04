@@ -2,6 +2,7 @@
 
 #include "../app/application.hpp"
 #include "layout.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -28,13 +29,24 @@ bool Renderer::build() {
 
     PBZ_VK_CHECK_RESULT(App::Device.allocateCommandBuffers(&allocateInfo, m_Command.buffers.begin()));
 
+    // create immediate buffers
+    vk::CommandBufferAllocateInfo immediateAllocateInfo = {
+        .commandPool = m_Command.pool,
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1,
+    };
+
+    PBZ_VK_CHECK_RESULT(App::Device.allocateCommandBuffers(&allocateInfo, &m_Command.immediate));
+
     // create sync objects
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         m_Semaphores.presentComplete[i] = PBZ_VK_CHECK(App::Device.createSemaphore({}));
-        m_Fences.inFlight[i] = (PBZ_VK_CHECK(App::Device.createFence({
+        m_Fences.inFlight[i] = PBZ_VK_CHECK(App::Device.createFence({
             .flags = vk::FenceCreateFlagBits::eSignaled,
-        })));
+        }));
     }
+
+    m_Fences.immediate = PBZ_VK_CHECK(App::Device.createFence(vk::FenceCreateInfo{}));
 
     for (std::size_t i = 0; i < m_Info.window->m_SwapChainImages.size(); i++) {
         m_Semaphores.renderFinished.emplace_back(PBZ_VK_CHECK(App::Device.createSemaphore({})));
@@ -58,7 +70,7 @@ bool Renderer::build() {
 }
 
 bool Renderer::destroy() {
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
+    PBZ_VK_CHECK_RESULT(App::Device.waitIdle());
 
     if (m_Command.pool == nullptr) {
         Logger::WARNING("[Renderer] Trying to destroy a destructed renderer.");
@@ -75,6 +87,8 @@ bool Renderer::destroy() {
     }
 
     // destroy sync objects
+    App::Device.destroyFence(m_Fences.immediate);
+
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         m_DeletionQueues[i].flush();
         App::Device.destroySemaphore(m_Semaphores.presentComplete[i]);
@@ -90,6 +104,9 @@ bool Renderer::destroy() {
     m_Fences.inFlight.fill(nullptr);
 
     // destroy command objects
+    App::Device.freeCommandBuffers(m_Command.pool, 1, &m_Command.immediate);
+    m_Command.immediate = nullptr;
+
     App::Device.freeCommandBuffers(m_Command.pool, m_Command.buffers.size(), m_Command.buffers.data());
     m_Command.buffers.fill(nullptr);
 
@@ -124,12 +141,15 @@ void Renderer::tick() {
 
     PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].begin(vk::CommandBufferBeginInfo{}));
 
+    TracyVkCollect(App::Tracy, m_Command.buffers[m_FrameInFlight]);
+
     vk::Extent2D extent = {static_cast<std::uint32_t>(m_Info.window->m_SwapChainExtent.x), static_cast<std::uint32_t>(m_Info.window->m_SwapChainExtent.y)};
 
     RenderContext context = {
         .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
         .materialAllocator = &m_MaterialAllocator,
         .depth = &m_Depth,
+        .tracy = App::Tracy,
         .command = m_Command.buffers[m_FrameInFlight],
         .extent = extent,
         .frameInFlight = m_FrameInFlight,
@@ -180,8 +200,12 @@ void Renderer::tick() {
         });
     }
 
-    // execute the graph
-    m_Graph.execute(m_Scene, context);
+    {
+        TracyVkZone(App::Tracy, m_Command.buffers[m_FrameInFlight], "RenderGraph");
+
+        // execute the graph
+        m_Graph.execute(m_Scene, context);
+    }
 
     // refresh the material state
     m_MaterialAllocator.refresh(context);
@@ -257,31 +281,29 @@ void Renderer::tick() {
     }
 
     m_FrameInFlight = (m_FrameInFlight + 1) % detail::MAX_FRAMES_IN_FLIGHT;
+    FrameMark;
 }
 
 void Renderer::immediate(std::function<void(vk::CommandBuffer)> record) {
     // prepare the command buffer
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
-    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.inFlight[m_FrameInFlight]));
-    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].reset());
+    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.immediate));
+    PBZ_VK_CHECK_RESULT(m_Command.immediate.reset());
 
-    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].begin({
+    PBZ_VK_CHECK_RESULT(m_Command.immediate.begin({
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
     }));
 
-    record(m_Command.buffers[m_FrameInFlight]);
+    record(m_Command.immediate);
 
-    PBZ_VK_CHECK_RESULT(m_Command.buffers[m_FrameInFlight].end());
+    PBZ_VK_CHECK_RESULT(m_Command.immediate.end());
 
     vk::SubmitInfo submitInfo = {
         .commandBufferCount = 1,
-        .pCommandBuffers = &m_Command.buffers[m_FrameInFlight],
+        .pCommandBuffers = &m_Command.immediate,
     };
 
-    PBZ_VK_CHECK_RESULT(App::Queues.graphics.submit(submitInfo, m_Fences.inFlight[m_FrameInFlight]));
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
-
-    m_FrameInFlight = (m_FrameInFlight + 1) % detail::MAX_FRAMES_IN_FLIGHT;
+    PBZ_VK_CHECK_RESULT(App::Queues.graphics.submit(submitInfo, m_Fences.immediate));
+    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.immediate, vk::True, std::numeric_limits<std::uint64_t>::max()));
 }
 
 void Renderer::setGraph(const RenderGraph &graph) {

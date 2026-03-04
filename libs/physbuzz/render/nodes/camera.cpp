@@ -40,6 +40,8 @@ RenderNode RenderNodeCamera::build(const ObjectID &object) {
             },
         },
         .execute = [&object](Scene *scene, const RenderContext &context) {
+            TracyVkZone(context.tracy, context.command, "Camera");
+
             const auto [camera] = scene->getComponent<CameraComponent>(object);
 
             std::vector<CameraBuffer> buffer = {{

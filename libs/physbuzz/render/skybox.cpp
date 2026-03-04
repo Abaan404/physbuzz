@@ -102,6 +102,8 @@ bool SkyboxRenderer::build() {
                 },
             },
             .execute = [this](Scene *, const RenderContext &context) {
+                TracyVkZone(context.tracy, context.command, "Skybox");
+
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth->getRingData()[context.frameInFlight].view,
                     .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
@@ -110,8 +112,8 @@ bool SkyboxRenderer::build() {
                     .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
                 };
 
-                std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
-                    {
+                std::array colorAttachments = {
+                    vk::RenderingAttachmentInfo{
                         .imageView = context.color.view,
                         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
                         .loadOp = vk::AttachmentLoadOp::eLoad,

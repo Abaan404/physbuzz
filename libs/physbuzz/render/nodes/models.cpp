@@ -61,6 +61,8 @@ RenderNode RenderNodeModels::build(Resource<DynamicBuffer> buffer, const std::un
             }
         },
         .execute = [buffer, data](Scene *scene, const RenderContext &context) {
+            TracyVkZone(context.tracy, context.command, "Model");
+
             buffer->update(context, *data);
         },
     };

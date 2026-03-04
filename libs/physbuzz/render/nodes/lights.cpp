@@ -138,6 +138,8 @@ RenderNode RenderNodeLights::build() {
             }
         },
         .execute = [directionals, points, spots](Scene *scene, const RenderContext &context) {
+            TracyVkZone(context.tracy, context.command, "Light");
+
             ResourceBufferDirectional->update(context, *directionals);
             ResourceBufferPoint->update(context, *points);
             ResourceBufferSpot->update(context, *spots);

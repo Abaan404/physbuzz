@@ -56,6 +56,7 @@ class Renderer : public System<> {
     struct {
         vk::CommandPool pool = nullptr;
         std::array<vk::CommandBuffer, detail::MAX_FRAMES_IN_FLIGHT> buffers = {};
+        vk::CommandBuffer immediate = nullptr;
     } m_Command = {};
 
     struct {
@@ -65,6 +66,7 @@ class Renderer : public System<> {
 
     struct {
         std::array<vk::Fence, detail::MAX_FRAMES_IN_FLIGHT> inFlight = {};
+        vk::Fence immediate = nullptr;
     } m_Fences = {};
 };
 
