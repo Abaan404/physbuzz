@@ -54,7 +54,7 @@ bool ImageFile::write(const Info &info, const Data &data) {
     }
 
     for (std::size_t i = 0; i < m_Info.files.size(); i++) {
-        const std::byte *buffer = data.image.data() + (m_Data.meta.resolution.x * m_Data.meta.resolution.y * STBI_rgb_alpha) * i;
+        const std::byte *buffer = data.image.data() + m_Data.image.size() * i;
 
         bool ret = stbi_write_png(info.files[i].path.c_str(), data.meta.resolution.x, data.meta.resolution.y, STBI_rgb_alpha, buffer, data.meta.resolution.x * STBI_rgb_alpha);
 

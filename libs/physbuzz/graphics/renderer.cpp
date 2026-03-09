@@ -274,7 +274,7 @@ void Renderer::tick() {
     FrameMark;
 }
 
-void Renderer::immediate(std::function<void(vk::CommandBuffer)> record) {
+void Renderer::immediate(const std::function<void(vk::CommandBuffer)> &record) {
     // prepare the command buffer
     vk::CommandBuffer immediate = nullptr;
 

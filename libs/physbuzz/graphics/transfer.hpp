@@ -44,16 +44,25 @@ class TransferBatch {
 
 class Transfer : public System<> {
   public:
-    Transfer();
+    struct Info {
+        std::size_t maxChunkSize = 64 * 1024 * 1024;
+    };
+
+    Transfer(const Info &info);
 
     bool build() override;
     bool destroy() override;
 
     void submit(const TransferBatch &batch);
-    void immediate(std::function<void(vk::CommandBuffer)> record);
+    void immediate(const std::function<void(vk::CommandBuffer)> &record);
 
   private:
+    Info m_Info;
+
     DeletionQueue m_Deletion;
+
+    template <typename T>
+    void submit(const std::vector<T> &writes, std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const T &)> record);
 
     struct {
         vk::CommandPool pool;
@@ -64,5 +73,17 @@ class Transfer : public System<> {
         vk::Fence immediate = nullptr;
     } m_Fences;
 };
+
+extern template void Transfer::submit<TransferBatch::BufferWrite>(
+    const std::vector<TransferBatch::BufferWrite> &,
+    std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const TransferBatch::BufferWrite &)>);
+
+extern template void Transfer::submit<TransferBatch::ImageWrite>(
+    const std::vector<TransferBatch::ImageWrite> &,
+    std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const TransferBatch::ImageWrite &)>);
+
+extern template void Transfer::submit<TransferBatch::ImageFileWrite>(
+    const std::vector<TransferBatch::ImageFileWrite> &,
+    std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const TransferBatch::ImageFileWrite &)>);
 
 } // namespace Physbuzz

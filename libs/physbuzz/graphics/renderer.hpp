@@ -25,7 +25,7 @@ class Renderer : public System<> {
     bool destroy() override;
 
     void tick();
-    void immediate(std::function<void(vk::CommandBuffer)> record);
+    void immediate(const std::function<void(vk::CommandBuffer)> &record);
 
     void setGraph(const RenderGraph &graph);
 

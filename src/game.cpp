@@ -105,7 +105,7 @@ void Game::build() {
         playerId = ObjectBuilder::create(Physbuzz::App::GScene, player);
     }
 
-    std::shared_ptr<Physbuzz::Transfer> transfer = Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>();
+    std::shared_ptr<Physbuzz::Transfer> transfer = Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>(Physbuzz::Transfer::Info{});
 
     std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(
         Physbuzz::Renderer::Info{
