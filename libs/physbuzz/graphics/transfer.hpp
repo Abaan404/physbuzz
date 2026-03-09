@@ -1,9 +1,46 @@
 #pragma once
 
-#include "../ecs/system.hpp"
 #include "../app/deletion.hpp"
+#include "../ecs/system.hpp"
+#include "../io/image.hpp"
 
 namespace Physbuzz {
+
+class TransferBatch {
+  public:
+    struct BufferWrite {
+        const Buffer &buffer;
+        std::vector<std::byte> bytes;
+        std::uint64_t offset;
+    };
+
+    struct ImageWrite {
+        const Image &image;
+        std::vector<std::byte> bytes;
+    };
+
+    struct ImageFileWrite {
+        const Image &image;
+        ImageFile::Info imageFile;
+    };
+
+    struct Info {
+        std::vector<BufferWrite> buffers;
+        std::vector<ImageWrite> images;
+        std::vector<ImageFileWrite> imageFiles;
+    };
+
+    TransferBatch(const Info &info);
+
+    bool add(const Buffer &buffer, std::vector<std::byte> &&bytes, std::uint64_t offset);
+    bool add(const Image &image, std::vector<std::byte> &&bytes);
+    bool add(const Image &image, const ImageFile::Info &imageFile);
+
+    const Info &getInfo() const;
+
+  private:
+    Info m_Info;
+};
 
 class Transfer : public System<> {
   public:
@@ -12,8 +49,7 @@ class Transfer : public System<> {
     bool build() override;
     bool destroy() override;
 
-    bool map(const Buffer &buffer, const std::span<const std::byte> &bytes, std::uint64_t offset);
-    bool map(const Image &image, const std::span<const std::byte> &bytes, vk::ImageLayout layout);
+    void submit(const TransferBatch &batch);
     void immediate(std::function<void(vk::CommandBuffer)> record);
 
   private:
@@ -21,11 +57,11 @@ class Transfer : public System<> {
 
     struct {
         vk::CommandPool pool;
-        vk::CommandBuffer buffer;
     } m_Command;
 
     struct {
-        vk::Fence submit;
+        vk::Fence submit = nullptr;
+        vk::Fence immediate = nullptr;
     } m_Fences;
 };
 

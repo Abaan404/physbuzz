@@ -12,7 +12,7 @@ class Scene;
 using RenderNodeID = std::string;
 
 struct RenderNode {
-    enum class Stage : std::uint8_t {
+    enum class Stage {
         Vertex,
         Fragment,
         Graphics,

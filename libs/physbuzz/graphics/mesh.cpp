@@ -2,6 +2,7 @@
 
 #include "defines.hpp"
 #include "transfer.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -28,27 +29,11 @@ const VertexDescription::Info &VertexDescription::getInfo() const {
     return m_Info;
 }
 
-bool Mesh::build(const std::shared_ptr<Transfer> transfer) {
-    if (transfer == nullptr) {
-        Logger::ERROR("[Mesh] No transfer system provided for mesh.");
-        return false;
-    }
-
+bool Mesh::build() {
     bool success = true;
 
-    success &= m_Vertex.build(m_Vertices.size() * sizeof(std::byte));
-    success &= m_Index.build(m_Indices.size() * sizeof(Index));
-
-    if (!success) {
-        destroy();
-        return false;
-    }
-
-    std::span<const std::byte> vertices = std::as_bytes(std::span(m_Vertices));
-    std::span<const std::byte> indices = std::as_bytes(std::span(m_Indices));
-
-    success &= transfer->map(m_Vertex, vertices, 0);
-    success &= transfer->map(m_Index, indices, 0);
+    success &= m_Vertex.build(m_Info.vertexCount * sizeof(std::byte) * m_Info.description->getInfo().size);
+    success &= m_Index.build(m_Info.indexCount * sizeof(Index));
 
     if (!success) {
         destroy();
@@ -67,18 +52,29 @@ bool Mesh::destroy() {
     return success;
 }
 
+bool Mesh::write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&indices, TransferBatch &batch) const {
+    bool success = true;
+
+    success &= batch.add(m_Vertex, std::move(vertices), 0);
+    success &= batch.add(m_Index, std::move(indices), 0);
+
+    return success;
+}
+
 void Mesh::draw(const RenderContext &context, std::uint32_t instances, std::uint32_t object) const {
+    ZoneScopedN("Mesh/Draw");
+
     const Buffer::Data &vertex = m_Vertex.getData();
     const Buffer::Data &index = m_Index.getData();
 
     context.command.bindVertexBuffers(0, vertex.buffer, {0});
     context.command.bindIndexBuffer(index.buffer, 0, vk::IndexType::eUint32);
 
-    context.command.drawIndexed(m_Indices.size(), instances, 0, 0, object);
+    context.command.drawIndexed(m_Info.indexCount, instances, 0, 0, object);
 }
 
-const VertexDescription *Mesh::getDescription() const {
-    return m_Description;
+const Mesh::Info &Mesh::getInfo() const {
+    return m_Info;
 }
 
 } // namespace Physbuzz

@@ -30,8 +30,7 @@ bool build();
 
 } // namespace Builtin
 
-class Material {
-  public:
+struct Material {
     float shininess = 32.0f;
     std::unordered_map<TextureType, Resource<Texture>> textures;
 };

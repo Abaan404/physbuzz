@@ -82,6 +82,8 @@ bool StaticBuffer::rebuild(const RenderContext &context, std::uint64_t size) {
 }
 
 bool StaticBuffer::update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) {
+    TracyVkZone(context.tracy, context.command, "StaticBuffer/Update");
+
     std::uint64_t requiredSize = offset + bytes.size();
 
     PBZ_ASSERT(m_Data.address != 0, "[StaticBuffer] Buffer has not been allocated.");

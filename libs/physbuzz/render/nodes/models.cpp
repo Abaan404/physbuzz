@@ -4,6 +4,7 @@
 #include "../../graphics/material.hpp"
 #include "../defines.hpp"
 #include <memory>
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -26,6 +27,8 @@ RenderNode RenderNodeModels::build(Resource<DynamicBuffer> buffer, const std::un
             },
         },
         .prepare = [&objects, &batches, buffer, data](Scene *scene, const RenderContext &context) {
+            ZoneScopedN("RenderNodeModel/Prepare");
+
             std::unordered_map<Resource<Mesh>, std::vector<ModelBuffer>> instances;
 
             std::size_t meshCount = 0;
@@ -61,6 +64,7 @@ RenderNode RenderNodeModels::build(Resource<DynamicBuffer> buffer, const std::un
             }
         },
         .execute = [buffer, data](Scene *scene, const RenderContext &context) {
+            ZoneScopedN("RenderNodeModel/Execute");
             TracyVkZone(context.tracy, context.command, "Model");
 
             buffer->update(context, *data);

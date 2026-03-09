@@ -6,6 +6,7 @@
 #include "objects/model.hpp"
 #include "objects/player.hpp"
 #include "objects/quad.hpp"
+#include "resources/loader.hpp"
 #include "ui/handler.hpp"
 #include <filesystem>
 #include <physbuzz/app/application.hpp>
@@ -23,6 +24,10 @@
 #include <physbuzz/render/forward.hpp>
 #include <physbuzz/render/shadow.hpp>
 #include <physbuzz/render/skybox.hpp>
+#include <physbuzz/shapes/circle.hpp>
+#include <physbuzz/shapes/cube.hpp>
+#include <physbuzz/shapes/sphere.hpp>
+#include <physbuzz/shapes/square.hpp>
 #include <physbuzz/window/inputs.hpp>
 #include <random>
 
@@ -38,7 +43,6 @@ void Game::build() {
     window->addCallback<Physbuzz::MousePositionEvent>([](const Physbuzz::MousePositionEvent &event) {
         static glm::vec2 lastPosition = event.window->getResolution() >> 1u;
 
-        std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>();
         const auto [_, player, camera, flashlight] = Physbuzz::App::GScene.getComponents<PlayerComponent, Physbuzz::CameraComponent, Physbuzz::SpotLightComponent>().front();
 
         glm::vec2 offset = (static_cast<glm::vec2>(event.position) - lastPosition) * player.sensitivity;
@@ -60,7 +64,6 @@ void Game::build() {
 
     // change prespective camera fov when scrolling
     window->addCallback<Physbuzz::MouseScrollEvent>([&](const Physbuzz::MouseScrollEvent &event) {
-        std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.getSystem<Physbuzz::Renderer>();
         const auto [_, player, camera] = Physbuzz::App::GScene.getComponents<PlayerComponent, Physbuzz::CameraComponent>().front();
 
         Physbuzz::CameraComponent::Info info = camera.getInfo();
@@ -110,18 +113,94 @@ void Game::build() {
         },
         Physbuzz::RenderGraph{{}});
 
-    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+    Physbuzz::TransferBatch batch = {{}};
+
+    Physbuzz::Builtin::ModelCube::build(batch);
+    Physbuzz::Builtin::ModelSquare::build(batch);
+    Physbuzz::Builtin::ModelCircle::build(batch);
+    Physbuzz::Builtin::ModelSphere::build(batch);
+
+    {
+        ResourceLoader::loadTexture("default/diffuse", {.files = {{.path = "resources/textures/default/diffuse.png"}}}, batch);
+        ResourceLoader::loadTexture("default/specular", {.files = {{.path = "resources/textures/default/specular.png"}}}, batch);
+
+        Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+            "default",
+            {
+                .shininess = 256.0f,
+                .textures = {
+                    {
+                        Physbuzz::TextureType::Diffuse,
+                        {
+                            {"default/diffuse"},
+                        },
+                    },
+                    {
+                        Physbuzz::TextureType::Specular,
+                        {
+                            {"default/specular"},
+                        },
+                    },
+                },
+            });
+    }
+
+    {
+        ResourceLoader::loadTexture("crate/diffuse", {.files = {{.path = "resources/textures/crate/diffuse.png"}}}, batch);
+        ResourceLoader::loadTexture("crate/specular", {.files = {{.path = "resources/textures/crate/specular.png"}}}, batch);
+
+        Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+            "crate",
+            {
+                .shininess = 256.0f,
+                .textures = {
+                    {
+                        Physbuzz::TextureType::Diffuse,
+                        {
+                            {"crate/diffuse"},
+                        },
+                    },
+                    {
+                        Physbuzz::TextureType::Specular,
+                        {
+                            {"crate/specular"},
+                        },
+                    },
+                },
+            });
+    }
+
+    {
+        ResourceLoader::loadTexture("floor", {.files = {{.path = "resources/textures/floor.png"}}}, batch);
+
+        Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+            "floor",
+            {
+                .shininess = 256.0f,
+                .textures = {
+                    {
+                        Physbuzz::TextureType::Diffuse,
+                        {
+                            {"floor"},
+                        },
+                    },
+                },
+            });
+    }
+
+    ResourceLoader::loadCubemap(
         "skybox",
-        {{.type = Physbuzz::Texture::Type::Cube, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
-        std::vector{
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/right.jpg"}},
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/left.jpg"}},
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/top.jpg"}},
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/bottom.jpg"}},
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/front.jpg"}},
-            Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/skybox/back.jpg"}},
+        {
+            .files = {
+                {.path = "resources/textures/skybox/right.jpg"},
+                {.path = "resources/textures/skybox/left.jpg"},
+                {.path = "resources/textures/skybox/top.jpg"},
+                {.path = "resources/textures/skybox/bottom.jpg"},
+                {.path = "resources/textures/skybox/front.jpg"},
+                {.path = "resources/textures/skybox/back.jpg"},
+            },
         },
-        transfer);
+        batch);
 
     std::shared_ptr<Physbuzz::ShadowRenderer> shadow = Physbuzz::App::GScene.createSystem<Physbuzz::ShadowRenderer>(Physbuzz::ShadowRenderer::Info{
         .resolution = {2048, 2048},
@@ -147,6 +226,8 @@ void Game::build() {
         .skybox = {"skybox"},
     });
 
+    transfer->submit(batch);
+
     Physbuzz::RenderGraph graph = {{}};
 
     graph.merge(shadow->getGraph());
@@ -159,90 +240,6 @@ void Game::build() {
     }
 
     renderer->setGraph(graph);
-
-    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
-        "default/diffuse",
-        {{.type = Physbuzz::Texture::Type::Dim2D, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
-        std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/default/diffuse.png"}}},
-        transfer);
-
-    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
-        "default/specular",
-        {{.type = Physbuzz::Texture::Type::Dim2D, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
-        std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/default/specular.png"}}},
-        transfer);
-
-    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
-        "floor",
-        {{.type = Physbuzz::Texture::Type::Dim2D, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
-        std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/floor.png"}}},
-        transfer);
-
-    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
-        "crate/diffuse",
-        {{.type = Physbuzz::Texture::Type::Dim2D, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
-        std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/diffuse.png"}}},
-        transfer);
-
-    Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
-        "crate/specular",
-        {{.type = Physbuzz::Texture::Type::Dim2D, .sampler = {{Physbuzz::Sampler::Type::Linear}}}},
-        std::vector{Physbuzz::ImageFile::Info{.file = {.path = "resources/textures/crate/specular.png"}}},
-        transfer);
-
-    Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
-        "default",
-        {
-            .shininess = 256.0f,
-            .textures = {
-                {
-                    Physbuzz::TextureType::Diffuse,
-                    {
-                        {"default/diffuse"},
-                    },
-                },
-                {
-                    Physbuzz::TextureType::Specular,
-                    {
-                        {"default/specular"},
-                    },
-                },
-            },
-        });
-
-    Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
-        "crate",
-        {
-            .shininess = 256.0f,
-            .textures = {
-                {
-                    Physbuzz::TextureType::Diffuse,
-                    {
-                        {"crate/diffuse"},
-                    },
-                },
-                {
-                    Physbuzz::TextureType::Specular,
-                    {
-                        {"crate/specular"},
-                    },
-                },
-            },
-        });
-
-    Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
-        "floor",
-        {
-            .shininess = 256.0f,
-            .textures = {
-                {
-                    Physbuzz::TextureType::Diffuse,
-                    {
-                        {"floor"},
-                    },
-                },
-            },
-        });
 
     Physbuzz::App::GScene.createSystem<Physbuzz::InputEvents>(window);
     Physbuzz::App::GScene.createSystem<Physbuzz::Clock>();

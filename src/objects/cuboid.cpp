@@ -11,7 +11,6 @@ template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Cuboid &info) {
     // scale unit cube for cuboid
     info.transform.setScale({info.cuboid.width, info.cuboid.breadth, info.cuboid.height});
-    Physbuzz::Builtin::ModelCube::build(scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
     Physbuzz::ShadowComponent shadow;

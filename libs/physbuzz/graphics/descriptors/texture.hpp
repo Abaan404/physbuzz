@@ -6,11 +6,11 @@
 #include "../defines.hpp"
 #include "../memory.hpp"
 #include "sampler.hpp"
-#include <memory>
 
 namespace Physbuzz {
 
 class Renderer;
+class TransferBatch;
 
 class Texture : public EventSubject {
   public:
@@ -36,9 +36,11 @@ class Texture : public EventSubject {
 
     Texture(const Info &info);
 
-    bool build(std::vector<ImageFile::Info> imageInfos, const std::shared_ptr<Transfer> transfer);
     bool build(const glm::uvec3 &resolution);
     bool destroy();
+
+    bool write(const ImageFile::Info &imageFile, TransferBatch &batch) const;
+    bool write(std::vector<std::byte> &&bytes, TransferBatch &batch) const;
 
     bool rebuild(const RenderContext &context, const glm::uvec3 &size);
 

@@ -108,6 +108,8 @@ bool DynamicBuffer::rebuild(const RenderContext &context, std::uint64_t size) {
 }
 
 bool DynamicBuffer::update(const RenderContext &context, const std::span<const std::byte> &bytes, std::uint64_t offset) {
+    TracyVkZone(context.tracy, context.command, "DynamicBuffer/Update");
+
     std::uint64_t requiredSize = offset + bytes.size();
 
     PBZ_ASSERT(!std::holds_alternative<std::monostate>(m_RingData), "[DynamicBuffer] Buffer has not been allocated.");

@@ -2,6 +2,7 @@
 
 #include "../ecs/scene.hpp"
 #include "../resources/registry.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -430,14 +431,20 @@ bool RenderGraph::compile() {
 
 void RenderGraph::execute(Scene *scene, const RenderContext &context) const {
     // prepare any nodes for rebuilding, validating, etc
-    for (std::size_t i = 0; i < m_ExecutableNodeIds.size(); i++) {
-        m_ExecutableNodes[i].prepare(scene, context);
+    {
+        ZoneScopedN("RenderGraph/Prepare");
+        for (std::size_t i = 0; i < m_ExecutableNodeIds.size(); i++) {
+            m_ExecutableNodes[i].prepare(scene, context);
+        }
     }
 
     // insert barriers and execute
-    for (std::size_t i = 0; i < m_ExecutableNodeIds.size(); i++) {
-        m_ExecutableNodeBarriers[i].apply(context);
-        m_ExecutableNodes[i].execute(scene, context);
+    {
+        ZoneScopedN("RenderGraph/Execute");
+        for (std::size_t i = 0; i < m_ExecutableNodeIds.size(); i++) {
+            m_ExecutableNodeBarriers[i].apply(context);
+            m_ExecutableNodes[i].execute(scene, context);
+        }
     }
 }
 

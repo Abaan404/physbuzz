@@ -8,6 +8,7 @@
 #include "../graphics/pipeline.hpp"
 #include "components/camera.hpp"
 #include "nodes/camera.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -102,7 +103,8 @@ bool SkyboxRenderer::build() {
                 },
             },
             .execute = [this](Scene *, const RenderContext &context) {
-                TracyVkZone(context.tracy, context.command, "Skybox");
+                ZoneScopedN("SkyboxRenderer/Execute");
+                TracyVkZone(context.tracy, context.command, "SkyboxRenderer");
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth->getRingData()[context.frameInFlight].view,

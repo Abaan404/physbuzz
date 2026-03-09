@@ -4,6 +4,7 @@
 #include "../components/lights.hpp"
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -76,6 +77,8 @@ RenderNode RenderNodeLights::build() {
             },
         },
         .prepare = [directionals, points, spots](Scene *scene, const RenderContext &context) {
+            ZoneScopedN("RenderNodeLights/Prepare");
+
             std::vector<DirectionalLightComponent> directionalComponents = scene->getComponentArray<DirectionalLightComponent>();
             std::size_t requiredSizeDirectionals = directionalComponents.size() * sizeof(DirectionalLightBuffer);
 
@@ -138,6 +141,7 @@ RenderNode RenderNodeLights::build() {
             }
         },
         .execute = [directionals, points, spots](Scene *scene, const RenderContext &context) {
+            ZoneScopedN("RenderNodeLights/Execute");
             TracyVkZone(context.tracy, context.command, "Light");
 
             ResourceBufferDirectional->update(context, *directionals);

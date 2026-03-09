@@ -98,49 +98,48 @@ bool Buffer::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span
     // if the buffer can be read by the CPU (i.e. integrated gpus)
     if (memProps & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
         PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, bytes.data(), m_Allocation, offset, bytes.size())));
+        return true;
     }
 
     // otherwise stage the buffer and copy from host to vram
-    else {
-        Buffer stagingBuffer = {{
-            .usage = Buffer::UsageFlagBits::eTransferSrc,
-            .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
-        }};
+    Buffer stagingBuffer = {{
+        .usage = Buffer::UsageFlagBits::eTransferSrc,
+        .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+    }};
 
-        if (!stagingBuffer.build(bytes.size())) {
-            Logger::ERROR("[Transfer] Failed to build staging buffer.");
-            return false;
-        }
-
-        PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, bytes.data(), stagingBuffer.m_Allocation, offset, bytes.size())));
-        vmaFlushAllocation(App::Allocator, stagingBuffer.m_Allocation, offset, bytes.size());
-
-        vk::BufferCopy copy = {
-            .srcOffset = 0,
-            .dstOffset = offset,
-            .size = bytes.size(),
-        };
-
-        vk::BufferMemoryBarrier2 barrier = {
-            .srcStageMask = vk::PipelineStageFlagBits2::eHost,
-            .srcAccessMask = vk::AccessFlagBits2::eHostWrite,
-            .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
-            .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
-            .buffer = stagingBuffer.m_Data.buffer,
-            .offset = 0,
-            .size = bytes.size(),
-        };
-
-        cmd.pipelineBarrier2({
-            .dependencyFlags = {},
-            .bufferMemoryBarrierCount = 1,
-            .pBufferMemoryBarriers = &barrier,
-        });
-
-        cmd.copyBuffer(stagingBuffer.m_Data.buffer, m_Data.buffer, copy);
-
-        deletion->enqueue(std::move(stagingBuffer));
+    if (!stagingBuffer.build(bytes.size())) {
+        Logger::ERROR("[Transfer] Failed to build staging buffer.");
+        return false;
     }
+
+    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, bytes.data(), stagingBuffer.m_Allocation, offset, bytes.size())));
+    vmaFlushAllocation(App::Allocator, stagingBuffer.m_Allocation, offset, bytes.size());
+
+    vk::BufferCopy copy = {
+        .srcOffset = 0,
+        .dstOffset = offset,
+        .size = bytes.size(),
+    };
+
+    vk::BufferMemoryBarrier2 barrier = {
+        .srcStageMask = vk::PipelineStageFlagBits2::eHost,
+        .srcAccessMask = vk::AccessFlagBits2::eHostWrite,
+        .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+        .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+        .buffer = stagingBuffer.m_Data.buffer,
+        .offset = 0,
+        .size = bytes.size(),
+    };
+
+    cmd.pipelineBarrier2({
+        .dependencyFlags = {},
+        .bufferMemoryBarrierCount = 1,
+        .pBufferMemoryBarriers = &barrier,
+    });
+
+    cmd.copyBuffer(stagingBuffer.m_Data.buffer, m_Data.buffer, copy);
+
+    deletion->enqueue(std::move(stagingBuffer));
 
     return true;
 }
@@ -223,10 +222,10 @@ bool Image::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<
     };
 
     {
-        vk::BufferMemoryBarrier2 buffer = {
+        vk::BufferMemoryBarrier2 barrier = {
             .srcStageMask = vk::PipelineStageFlagBits2::eHost,
             .srcAccessMask = vk::AccessFlagBits2::eHostWrite,
-            .dstStageMask = vk::PipelineStageFlagBits2::eCopy,
+            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
             .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
             .buffer = stagingBuffer.m_Data.buffer,
             .offset = 0,
@@ -236,7 +235,7 @@ bool Image::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<
         cmd.pipelineBarrier2({
             .dependencyFlags = {},
             .bufferMemoryBarrierCount = 1,
-            .pBufferMemoryBarriers = &buffer,
+            .pBufferMemoryBarriers = &barrier,
         });
     }
 

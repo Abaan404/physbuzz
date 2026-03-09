@@ -5,7 +5,7 @@
 
 namespace Physbuzz {
 
-class Transfer;
+class TransferBatch;
 struct RenderComponent;
 struct RenderContext;
 
@@ -49,54 +49,52 @@ class VertexDescription {
     friend class Mesh;
 };
 
-template <typename T>
-concept VertexDescriptionType =
-    std::is_class_v<T> &&
-    std::is_trivial_v<T> &&
-    std::is_standard_layout_v<T> &&
-    requires {
-        { T::Description } -> std::same_as<VertexDescription &>;
-    };
-
 class Mesh {
   public:
-    template <VertexDescriptionType T>
     struct Info {
-        std::vector<T> vertices;
-        std::vector<Index> indices;
+        const VertexDescription *description;
+        std::uint64_t vertexCount;
+        std::uint64_t indexCount;
     };
 
-    template <VertexDescriptionType T>
-    Mesh(const Info<T> &info)
-        : m_Description(&T::Description),
-          m_Vertex({
-              .usage = Buffer::UsageFlagBits::eVertexBuffer | Buffer::UsageFlagBits::eTransferDst,
-              .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
-          }),
-          m_Index({
-              .usage = Buffer::UsageFlagBits::eIndexBuffer | Buffer::UsageFlagBits::eTransferDst,
-              .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
-          }),
-          m_Indices(info.indices) {
-        std::span<const std::byte> bytes = std::as_bytes(std::span(info.vertices));
-        m_Vertices.assign(bytes.begin(), bytes.end());
+    Mesh(const Info &info)
+        : m_Info(info) {}
+
+    bool build();
+    bool destroy();
+
+    template <typename T>
+    bool write(std::vector<T> &&vertices, std::vector<Index> &&indices, TransferBatch &batch) const {
+        std::vector<std::byte> vertexBytes(
+            reinterpret_cast<std::byte *>(vertices.data()),
+            reinterpret_cast<std::byte *>(vertices.data() + vertices.size()));
+
+        // Reinterpret index data as bytes
+        std::vector<std::byte> indexBytes(
+            reinterpret_cast<std::byte *>(indices.data()),
+            reinterpret_cast<std::byte *>(indices.data() + indices.size()));
+
+        return write(std::move(vertexBytes), std::move(indexBytes), batch);
     }
 
-    bool build(const std::shared_ptr<Transfer> transfer);
-    bool destroy();
+    bool write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&indices, TransferBatch &batch) const;
 
     void draw(const RenderContext &context, std::uint32_t instances, std::uint32_t object) const;
 
-    const VertexDescription *getDescription() const;
+    const Info &getInfo() const;
 
   private:
-    VertexDescription *m_Description = nullptr;
+    Info m_Info;
 
-    Buffer m_Vertex;
-    Buffer m_Index;
+    Buffer m_Vertex = {{
+        .usage = Buffer::UsageFlagBits::eVertexBuffer | Buffer::UsageFlagBits::eTransferDst,
+        .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+    }};
 
-    std::vector<std::byte> m_Vertices = {};
-    std::vector<Index> m_Indices = {};
+    Buffer m_Index = {{
+        .usage = Buffer::UsageFlagBits::eIndexBuffer | Buffer::UsageFlagBits::eTransferDst,
+        .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+    }};
 };
 
 template <>

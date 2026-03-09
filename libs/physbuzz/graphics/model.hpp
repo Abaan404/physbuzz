@@ -72,7 +72,9 @@ class Model {
         std::uint32_t meshIdx;
         std::uint32_t materialIdx;
 
-        Mesh::Info<Vertex> info;
+        Mesh::Info info;
+        std::vector<Vertex> vertices;
+        std::vector<Index> indices;
     };
 
     struct TextureResult {

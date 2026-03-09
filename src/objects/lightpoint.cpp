@@ -8,7 +8,6 @@ template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, LightPoint &info) {
     // scale unit sphere
     info.transform.setScale({info.sphere.radius, info.sphere.radius, info.sphere.radius});
-    Physbuzz::Builtin::ModelSphere::build(scene.getSystem<Physbuzz::Transfer>());
 
     // setup rendering
     Physbuzz::RenderComponent render = {

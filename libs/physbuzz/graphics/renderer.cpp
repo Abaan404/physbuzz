@@ -29,15 +29,6 @@ bool Renderer::build() {
 
     PBZ_VK_CHECK_RESULT(App::Device.allocateCommandBuffers(&allocateInfo, m_Command.buffers.begin()));
 
-    // create immediate buffers
-    vk::CommandBufferAllocateInfo immediateAllocateInfo = {
-        .commandPool = m_Command.pool,
-        .level = vk::CommandBufferLevel::ePrimary,
-        .commandBufferCount = 1,
-    };
-
-    PBZ_VK_CHECK_RESULT(App::Device.allocateCommandBuffers(&allocateInfo, &m_Command.immediate));
-
     // create sync objects
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         m_Semaphores.presentComplete[i] = PBZ_VK_CHECK(App::Device.createSemaphore({}));
@@ -104,9 +95,6 @@ bool Renderer::destroy() {
     m_Fences.inFlight.fill(nullptr);
 
     // destroy command objects
-    App::Device.freeCommandBuffers(m_Command.pool, 1, &m_Command.immediate);
-    m_Command.immediate = nullptr;
-
     App::Device.freeCommandBuffers(m_Command.pool, m_Command.buffers.size(), m_Command.buffers.data());
     m_Command.buffers.fill(nullptr);
 
@@ -117,6 +105,8 @@ bool Renderer::destroy() {
 }
 
 void Renderer::tick() {
+    ZoneScopedN("Renderer/Tick");
+
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
     m_DeletionQueues[m_FrameInFlight].flush();
 
@@ -286,24 +276,36 @@ void Renderer::tick() {
 
 void Renderer::immediate(std::function<void(vk::CommandBuffer)> record) {
     // prepare the command buffer
-    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.immediate));
-    PBZ_VK_CHECK_RESULT(m_Command.immediate.reset());
+    vk::CommandBuffer immediate = nullptr;
 
-    PBZ_VK_CHECK_RESULT(m_Command.immediate.begin({
+    // create immediate buffers
+    vk::CommandBufferAllocateInfo allocateInfo = {
+        .commandPool = m_Command.pool,
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1,
+    };
+
+    PBZ_VK_CHECK_RESULT(App::Device.allocateCommandBuffers(&allocateInfo, &immediate));
+    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.immediate));
+
+    PBZ_VK_CHECK_RESULT(immediate.begin({
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
     }));
 
-    record(m_Command.immediate);
+    record(immediate);
 
-    PBZ_VK_CHECK_RESULT(m_Command.immediate.end());
+    PBZ_VK_CHECK_RESULT(immediate.end());
 
     vk::SubmitInfo submitInfo = {
         .commandBufferCount = 1,
-        .pCommandBuffers = &m_Command.immediate,
+        .pCommandBuffers = &immediate,
     };
 
     PBZ_VK_CHECK_RESULT(App::Queues.graphics.submit(submitInfo, m_Fences.immediate));
     PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.immediate, vk::True, std::numeric_limits<std::uint64_t>::max()));
+
+    App::Device.freeCommandBuffers(m_Command.pool, 1, &immediate);
+    immediate = nullptr;
 }
 
 void Renderer::setGraph(const RenderGraph &graph) {

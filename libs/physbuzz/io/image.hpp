@@ -9,13 +9,17 @@ namespace Physbuzz {
 class ImageFile {
   public:
     struct Info {
-        File::Info file;
+        std::vector<File::Info> files;
         bool flipVertically = false;
     };
 
     struct Data {
         std::vector<std::byte> image;
-        glm::uvec2 resolution = {0, 0};
+
+        struct {
+            glm::uvec2 resolution = {0, 0};
+            std::size_t size = 0;
+        } meta;
     };
 
     ImageFile(const Info &image);
@@ -23,6 +27,8 @@ class ImageFile {
 
     bool read();
     bool write(const Info &info, const Data &data);
+
+    bool readMeta();
 
     const Data &getData() const;
     const Info &getInfo() const;

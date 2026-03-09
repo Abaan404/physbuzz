@@ -4,7 +4,7 @@
 
 namespace Physbuzz {
 
-class Transfer;
+class TransferBatch;
 class Mesh;
 
 namespace Builtin {
@@ -13,7 +13,7 @@ namespace ModelSquare {
 
 inline Resource<Mesh> Resource = {"builtin/square"};
 
-bool build(const std::shared_ptr<Transfer> transfer);
+bool build(TransferBatch &batch);
 
 } // namespace ModelSquare
 

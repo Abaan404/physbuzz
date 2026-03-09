@@ -7,16 +7,26 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool ModelCube::build(const std::shared_ptr<Transfer> transfer) {
+bool ModelCube::build(TransferBatch &batch) {
     if (ResourceRegistry<Mesh>::contains(Resource)) {
         return true;
+    }
+
+    Physbuzz::Mesh::Info info = {
+        .description = &Model::Vertex::Description,
+        .vertexCount = 24,
+        .indexCount = 36,
+    };
+
+    if (!Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(Resource, info)) {
+        return false;
     }
 
     constexpr float min = -0.5f;
     constexpr float max = 0.5f;
 
-    Physbuzz::Mesh::Info<Physbuzz::Model::Vertex> mesh = {
-        .vertices = {
+    return Resource->write<Model::Vertex>(
+        {
             {{min, min, min}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
             {{min, min, max}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
             {{min, max, max}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
@@ -47,10 +57,8 @@ bool ModelCube::build(const std::shared_ptr<Transfer> transfer) {
             {{min, max, max}, {0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
             {{max, max, max}, {0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
         },
-        .indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20},
-    };
-
-    return Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(Resource, mesh, transfer);
+        {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20},
+        batch);
 }
 
 } // namespace Builtin

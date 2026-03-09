@@ -8,7 +8,7 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool ModelSphere::build(const std::shared_ptr<Transfer> transfer) {
+bool ModelSphere::build(TransferBatch &batch) {
     if (ResourceRegistry<Mesh>::contains(Resource)) {
         return true;
     }
@@ -16,13 +16,21 @@ bool ModelSphere::build(const std::shared_ptr<Transfer> transfer) {
     constexpr std::uint32_t rings = 32;
     constexpr std::uint32_t sectors = 64;
 
-    Physbuzz::Mesh::Info<Physbuzz::Model::Vertex> mesh = {
-        .vertices = {},
-        .indices = {},
+    Mesh::Info info = {
+        .description = &Model::Vertex::Description,
+        .vertexCount = (rings + 1) * (sectors + 1),
+        .indexCount = rings * sectors * 6,
     };
 
-    mesh.vertices.reserve((rings + 1) * (sectors + 1));
-    mesh.indices.reserve(rings * sectors * 6);
+    if (!Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(Resource, info)) {
+        return false;
+    }
+
+    std::vector<Model::Vertex> vertices;
+    std::vector<Index> indices;
+
+    vertices.reserve(info.vertexCount);
+    indices.reserve(info.indexCount);
 
     for (std::uint32_t ring = 0; ring <= rings; ++ring) {
         float v = static_cast<float>(ring) / rings;
@@ -44,7 +52,7 @@ bool ModelSphere::build(const std::shared_ptr<Transfer> transfer) {
             glm::vec3 tangent = {-std::sin(theta), 0.0f, std::cos(theta)};
             tangent = glm::normalize(tangent - normal * glm::dot(normal, tangent));
 
-            mesh.vertices.emplace_back<Physbuzz::Model::Vertex>({
+            vertices.emplace_back<Physbuzz::Model::Vertex>({
                 .position = position,
                 .normal = normal,
                 .tangent = tangent,
@@ -62,17 +70,17 @@ bool ModelSphere::build(const std::shared_ptr<Transfer> transfer) {
             std::uint32_t i2 = (r + 1) * stride + (s + 1);
             std::uint32_t i3 = r * stride + (s + 1);
 
-            mesh.indices.emplace_back(i0);
-            mesh.indices.emplace_back(i1);
-            mesh.indices.emplace_back(i2);
+            indices.emplace_back(i0);
+            indices.emplace_back(i1);
+            indices.emplace_back(i2);
 
-            mesh.indices.emplace_back(i0);
-            mesh.indices.emplace_back(i2);
-            mesh.indices.emplace_back(i3);
+            indices.emplace_back(i0);
+            indices.emplace_back(i2);
+            indices.emplace_back(i3);
         }
     }
 
-    return Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(Resource, mesh, transfer);
+    return Resource->write(std::move(vertices), std::move(indices), batch);
 }
 
 } // namespace Builtin

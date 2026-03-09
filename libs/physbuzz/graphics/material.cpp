@@ -3,6 +3,7 @@
 #include "../app/application.hpp"
 #include "layout.hpp"
 #include "model.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -124,6 +125,8 @@ bool MaterialAllocator::destroy() {
 }
 
 void MaterialAllocator::refresh(const RenderContext &context) {
+    ZoneScopedN("Material/Refresh");
+
     if (m_BufferIsDirty) {
         // TODO a buffer copy + offset write would be better
         m_MaterialBuffer.rebuild(context, m_Buffer.size() * sizeof(Builtin::LayoutMaterial::MaterialBuffer));

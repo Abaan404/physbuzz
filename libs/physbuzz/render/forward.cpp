@@ -12,6 +12,7 @@
 #include "nodes/lights.hpp"
 #include "nodes/models.hpp"
 #include "shadow.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -178,7 +179,8 @@ bool ForwardRenderer::build() {
                 },
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
-                TracyVkZone(context.tracy, context.command, "Forward");
+                ZoneScopedN("ForwardRenderer/Execute");
+                TracyVkZone(context.tracy, context.command, "ForwardRenderer");
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth->getRingData()[context.frameInFlight].view,
@@ -233,7 +235,7 @@ bool ForwardRenderer::build() {
                 // draw
                 std::uint32_t object = 0;
                 for (const auto &[mesh, batch] : m_Batches) {
-                    if (mesh->getDescription() != Builtin::RenderPipelineForward::Resource->getInfo().description) {
+                    if (mesh->getInfo().description != Builtin::RenderPipelineForward::Resource->getInfo().description) {
                         Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
                         continue;
                     }

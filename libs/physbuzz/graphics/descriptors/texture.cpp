@@ -9,68 +9,6 @@ namespace Physbuzz {
 Texture::Texture(const Info &info)
     : m_Info(info) {}
 
-bool Texture::build(std::vector<ImageFile::Info> imageInfos, const std::shared_ptr<Transfer> transfer) {
-    if (imageInfos.empty()) {
-        Logger::ERROR("[Texture] No images provided.");
-        return false;
-    }
-
-    if (transfer == nullptr) {
-        Logger::ERROR("[Texture] No transfer system provided for texture.");
-        return false;
-    }
-
-    std::vector<ImageFile> imageFiles;
-    imageFiles.reserve(imageInfos.size());
-
-    // read every image
-    for (const auto &imageInfo : imageInfos) {
-        ImageFile &imageFile = imageFiles.emplace_back(imageInfo);
-        if (!imageFile.read()) {
-            Logger::ERROR("[Texture] Could not read image file: '{}'", imageInfo.file.path.string());
-            return false;
-        }
-    }
-
-    glm::uvec2 resolution = imageFiles.begin()->getData().resolution;
-    std::size_t bufferSize = 0;
-
-    // validate resolution
-    for (const auto &imageFile : imageFiles) {
-        const ImageFile::Data &imageData = imageFile.getData();
-
-        if (imageData.resolution != resolution) {
-            Logger::ERROR("[Texture] Uneven texture resolution in images.");
-            return false;
-        }
-
-        bufferSize += imageFile.getData().image.size();
-    }
-
-    std::vector<std::byte> bytes;
-    bytes.reserve(bufferSize);
-
-    // measure sizes
-    for (const auto &imageFile : imageFiles) {
-        const ImageFile::Data &imageData = imageFile.getData();
-
-        bytes.insert(bytes.end(), std::make_move_iterator(imageData.image.begin()), std::make_move_iterator(imageData.image.end()));
-    }
-
-    build({resolution, 1.0f});
-
-    // can only inspect this after building an image type
-    if (m_Data.image.getInfo().arrayLayers != imageFiles.size()) {
-        destroy();
-        Logger::ERROR("[Texture] Incorrect image layers provided (required {} got {}).", m_Data.image.getInfo().arrayLayers, imageFiles.size());
-        return false;
-    }
-
-    transfer->map(m_Data.image, bytes, vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    return true;
-}
-
 bool Texture::build(const glm::uvec3 &resolution) {
     if (m_Data.view != nullptr) {
         Logger::WARNING("[Texture] Trying to construct a built texture.");
@@ -139,6 +77,14 @@ bool Texture::destroy() {
     }
 
     return true;
+}
+
+bool Texture::write(const ImageFile::Info &imageFile, TransferBatch &batch) const {
+    return batch.add(m_Data.image, imageFile);
+}
+
+bool Texture::write(std::vector<std::byte> &&bytes, TransferBatch &batch) const {
+    return batch.add(m_Data.image, std::move(bytes));
 }
 
 bool Texture::rebuild(const RenderContext &context, const glm::uvec3 &size) {

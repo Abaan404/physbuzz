@@ -5,6 +5,7 @@
 #include "../graphics/layout.hpp"
 #include "nodes/lights.hpp"
 #include "nodes/models.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -207,7 +208,8 @@ bool ShadowRenderer::build() {
                 },
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
-                TracyVkZone(context.tracy, context.command, "Shadow/Directional");
+                ZoneScopedN("ShadowRenderer/Directional/Execute");
+                TracyVkZone(context.tracy, context.command, "ShadowRenderer/Directional");
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = Builtin::RenderPipelineShadow::Directional::ResourceAttachment->getRingData()[context.frameInFlight].view,
@@ -237,7 +239,7 @@ bool ShadowRenderer::build() {
 
                 std::uint32_t object = 0;
                 for (const auto &[mesh, batch] : m_Batches) {
-                    if (mesh->getDescription() != Builtin::RenderPipelineShadow::Directional::Resource->getInfo().description) {
+                    if (mesh->getInfo().description != Builtin::RenderPipelineShadow::Directional::Resource->getInfo().description) {
                         Logger::ERROR("[ShadowRenderer] Incompatible vertex state descriptions.");
                         continue;
                     }
@@ -282,7 +284,8 @@ bool ShadowRenderer::build() {
                 },
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
-                TracyVkZone(context.tracy, context.command, "Shadow/Point");
+                ZoneScopedN("ShadowRenderer/Point/Execute");
+                TracyVkZone(context.tracy, context.command, "ShadowRenderer/Point");
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = Builtin::RenderPipelineShadow::Point::ResourceAttachment->getRingData()[context.frameInFlight].view,
@@ -312,7 +315,7 @@ bool ShadowRenderer::build() {
 
                 std::uint32_t object = 0;
                 for (const auto &[mesh, batch] : m_Batches) {
-                    if (mesh->getDescription() != Builtin::RenderPipelineShadow::Point::Resource->getInfo().description) {
+                    if (mesh->getInfo().description != Builtin::RenderPipelineShadow::Point::Resource->getInfo().description) {
                         Logger::ERROR("[ShadowRenderer] Incompatible vertex state descriptions.");
                         continue;
                     }

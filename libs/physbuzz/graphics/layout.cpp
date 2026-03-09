@@ -8,6 +8,7 @@
 #include "descriptors/sampler.hpp"
 #include "descriptors/texture.hpp"
 #include "pipeline.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -416,6 +417,8 @@ void PipelineLayoutAllocator::reset() {
 }
 
 void PipelineLayoutAllocator::bind(const RenderContext &context, const RenderPipeline &pipeline, std::uint32_t idx) {
+    ZoneScopedN("PipelineLayoutAllocator/Bind");
+
     for (std::size_t i = 0; i < pipeline.getInfo().layouts.resources.size(); i++) {
         const Resource<PipelineLayout> &layout = pipeline.getInfo().layouts.resources[i];
         PBZ_ASSERT(m_AllocatedLayouts.contains(layout), std::format("[PipelineLayoutAllocator] Unallocated layout '{}'", layout));

@@ -17,6 +17,21 @@
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
+#ifdef PHYSBUZZ_ENABLE_TRACY
+
+void *operator new(std ::size_t count) {
+    auto ptr = malloc(count);
+    TracyAlloc(ptr, count);
+    return ptr;
+}
+
+void operator delete(void *ptr) noexcept {
+    TracyFree(ptr);
+    free(ptr);
+}
+
+#endif
+
 namespace Physbuzz {
 
 static VKAPI_ATTR vk::Bool32 VKAPI_CALL vulkanDebugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {

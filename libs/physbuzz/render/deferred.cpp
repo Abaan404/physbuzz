@@ -11,6 +11,7 @@
 #include "nodes/lights.hpp"
 #include "nodes/models.hpp"
 #include "shadow.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -272,6 +273,8 @@ bool DeferredRenderer::build() {
                 },
             },
             .prepare = [this](Scene *scene, const RenderContext &context) {
+                ZoneScopedN("DeferredRenderer/GBuffer/Prepare");
+
                 std::array gBuffers = {
                     Resource<Attachment>("builtin/deferred/gBuffer0"),
                     Resource<Attachment>("builtin/deferred/gBuffer1"),
@@ -286,7 +289,8 @@ bool DeferredRenderer::build() {
                 }
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
-                TracyVkZone(context.tracy, context.command, "Deferred/GBuffer");
+                ZoneScopedN("DeferredRenderer/GBuffer/Execute");
+                TracyVkZone(context.tracy, context.command, "DeferredRenderer/GBuffer");
 
                 std::array gBuffers = {
                     Resource<Attachment>("builtin/deferred/gBuffer0"),
@@ -354,7 +358,7 @@ bool DeferredRenderer::build() {
 
                 std::uint32_t object = 0;
                 for (const auto &[mesh, batch] : m_Batches) {
-                    if (mesh->getDescription() != Builtin::RenderPipelineDeferred::Geometry::Resource->getInfo().description) {
+                    if (mesh->getInfo().description != Builtin::RenderPipelineDeferred::Geometry::Resource->getInfo().description) {
                         Logger::ERROR("[DeferredRenderer] Incompatible vertex state descriptions.");
                         continue;
                     }
@@ -435,7 +439,8 @@ bool DeferredRenderer::build() {
                 },
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
-                TracyVkZone(context.tracy, context.command, "Deferred/Lighting");
+                ZoneScopedN("DeferredRenderer/Lighting/Execute");
+                TracyVkZone(context.tracy, context.command, "DeferredRenderer/Lighting");
 
                 const std::vector<DirectionalLightComponent> &directionals = scene->getComponentArray<DirectionalLightComponent>();
                 const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
