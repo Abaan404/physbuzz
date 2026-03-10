@@ -60,18 +60,33 @@ bool MaterialAllocator::build() {
 
         if (m_Materials.add(material)) {
             // create a new material buffer
-            Builtin::LayoutMaterial::MaterialBuffer buffer = {
-                .diffuseTextureId = material->textures.contains(TextureType::Diffuse)
-                                        ? m_Textures.query(material->textures.at(TextureType::Diffuse))
-                                        : -1,
-                .specularTextureId = material->textures.contains(TextureType::Specular)
-                                         ? m_Textures.query(material->textures.at(TextureType::Specular))
-                                         : -1,
-                .heightTextureId = material->textures.contains(TextureType::Height)
-                                         ? m_Textures.query(material->textures.at(TextureType::Height))
-                                         : -1,
-                .specularity = material->shininess,
-            };
+            Builtin::LayoutMaterial::MaterialBuffer buffer;
+
+            for (const auto &[type, texture] : material->textures) {
+                switch (type) {
+                case TextureType::BaseColor:
+                case TextureType::Diffuse:
+                    buffer.diffuseTextureId = m_Textures.query(texture);
+                    break;
+
+                case TextureType::Metalness:
+                case TextureType::Specular:
+                case TextureType::Shininess:
+                    buffer.specularTextureId = m_Textures.query(texture);
+                    break;
+
+                case TextureType::Height:
+                case TextureType::Normals:
+                    buffer.heightTextureId = m_Textures.query(texture);
+                    break;
+
+                default:
+                    Logger::WARNING("[MaterialAllocator] Unhandled texture type {}", Model::getTextureTypeName(type));
+                    break;
+                }
+            }
+
+            buffer.specularity = material->shininess;
 
             std::uint32_t idx = m_Materials.query(material);
 

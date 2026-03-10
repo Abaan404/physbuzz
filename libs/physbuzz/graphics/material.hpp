@@ -16,10 +16,10 @@ namespace Builtin {
 namespace LayoutMaterial {
 
 struct MaterialBuffer {
-    std::uint32_t diffuseTextureId;
-    std::uint32_t specularTextureId;
-    std::uint32_t heightTextureId;
-    float specularity;
+    std::uint32_t diffuseTextureId = -1;
+    std::uint32_t specularTextureId = -1;
+    std::uint32_t heightTextureId = -1;
+    float specularity = 256.0f;
 };
 
 inline Resource<PipelineLayout> Resource = {"builtin/material"};

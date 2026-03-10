@@ -340,6 +340,20 @@ void Game::build() {
 
         ObjectBuilder::create(Physbuzz::App::GScene, model);
     }
+
+    {
+        Model model = {
+            .model = {
+                .path = "resources/models/Sponza/glTF/Sponza.gltf",
+            },
+            .transform = {{}},
+            .identifier = {
+                .name = "Sponza",
+            },
+        };
+
+        ObjectBuilder::create(Physbuzz::App::GScene, model);
+    }
 }
 
 void Game::rebuild() {
