@@ -59,10 +59,16 @@ class Transfer : public System<> {
   private:
     Info m_Info;
 
-    DeletionQueue m_Deletion;
-
     template <typename T>
-    void submit(const std::vector<T> &writes, std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const T &)> record);
+    void submit(
+        const std::vector<T> &writes,
+        std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const T &)> record);
+
+    template <typename T, typename Result>
+    void submit(
+        const std::vector<T> &writes,
+        std::function<std::optional<Result>(const T &)> prepare,
+        std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const T &, const Result &)> record);
 
     struct {
         vk::CommandPool pool;
@@ -82,8 +88,9 @@ extern template void Transfer::submit<TransferBatch::ImageWrite>(
     const std::vector<TransferBatch::ImageWrite> &,
     std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const TransferBatch::ImageWrite &)>);
 
-extern template void Transfer::submit<TransferBatch::ImageFileWrite>(
+extern template void Transfer::submit<TransferBatch::ImageFileWrite, ImageFile::Data>(
     const std::vector<TransferBatch::ImageFileWrite> &,
-    std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const TransferBatch::ImageFileWrite &)>);
+    std::function<std::optional<ImageFile::Data>(const TransferBatch::ImageFileWrite &)> prepare,
+    std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const TransferBatch::ImageFileWrite &, const ImageFile::Data &)> record);
 
 } // namespace Physbuzz
