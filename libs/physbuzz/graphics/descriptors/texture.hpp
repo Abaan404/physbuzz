@@ -39,8 +39,8 @@ class Texture : public EventSubject {
     bool build(const glm::uvec3 &resolution);
     bool destroy();
 
-    bool write(const ImageFile::Info &imageFile, TransferBatch &batch) const;
-    bool write(std::vector<std::byte> &&bytes, TransferBatch &batch) const;
+    bool write(const ImageFile::Info &imageFile, TransferBatch &batch);
+    bool write(std::vector<std::byte> &&bytes, TransferBatch &batch);
 
     bool rebuild(const RenderContext &context, const glm::uvec3 &size);
 

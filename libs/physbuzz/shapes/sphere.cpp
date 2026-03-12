@@ -20,6 +20,13 @@ bool ModelSphere::build(TransferBatch &batch) {
         .description = &Model::Vertex::Description,
         .vertexCount = (rings + 1) * (sectors + 1),
         .indexCount = rings * sectors * 6,
+        .submeshes = {
+            {
+                .indexCount = rings * sectors * 6,
+                .firstIndex = 0,
+                .vertexOffset = 0,
+            },
+        },
     };
 
     if (!Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(Resource, info)) {

@@ -16,6 +16,13 @@ bool ModelCube::build(TransferBatch &batch) {
         .description = &Model::Vertex::Description,
         .vertexCount = 24,
         .indexCount = 36,
+        .submeshes = {
+            {
+                .indexCount = 36,
+                .firstIndex = 0,
+                .vertexOffset = 0,
+            },
+        },
     };
 
     if (!Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(Resource, info)) {

@@ -1,5 +1,7 @@
 #include "clock.hpp"
 
+#include <tracy/Tracy.hpp>
+
 namespace Physbuzz {
 
 Clock::Clock() {
@@ -17,6 +19,7 @@ std::uint32_t Clock::getDelta() const {
 }
 
 void Clock::tick() {
+    ZoneScopedN("Clock/Tick");
     auto now = std::chrono::steady_clock::now();
     m_Delta = now - m_Prev;
     m_Prev = now;

@@ -51,13 +51,10 @@ class Model {
         static VertexDescription Description;
     };
 
-    struct Data {
-        Resource<Material> material;
-        Resource<Mesh> mesh;
-    };
-
     struct Info {
-        std::vector<Data> meshes = {};
+        Resource<Mesh> mesh;
+        std::vector<Resource<Material>> materials;
+        std::vector<std::size_t> submeshMaterialIndices;
     };
 
     Model(const Info &info);
@@ -68,11 +65,18 @@ class Model {
     const Info &getInfo() const;
 
   private:
-    struct MeshResult {
-        std::uint32_t meshIdx;
+    struct SubMeshResult {
+        std::uint32_t submeshIdx;
         std::uint32_t materialIdx;
 
+        std::vector<Vertex> vertices;
+        std::vector<Index> indices;
+    };
+
+    struct MeshResult {
         Mesh::Info info;
+        std::vector<std::size_t> submeshMaterialIndices;
+
         std::vector<Vertex> vertices;
         std::vector<Index> indices;
     };
@@ -90,8 +94,8 @@ class Model {
     Info m_Info;
 
     MaterialResult processMaterial(const aiMaterial *aimaterial);
-    std::vector<MeshResult> processNodes(const aiNode *ainode, const aiScene *aiscene);
-    MeshResult processMesh(const aiMesh *aimesh);
+    MeshResult processMesh(const aiNode *ainode, const aiScene *aiscene);
+    SubMeshResult processSubMesh(const aiMesh *aimesh);
 };
 
 } // namespace Physbuzz

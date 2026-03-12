@@ -32,8 +32,8 @@ const VertexDescription::Info &VertexDescription::getInfo() const {
 bool Mesh::build() {
     bool success = true;
 
-    success &= m_Vertex.build(m_Info.vertexCount * sizeof(std::byte) * m_Info.description->getInfo().size);
-    success &= m_Index.build(m_Info.indexCount * sizeof(Index));
+    success &= m_Vertices.build(m_Info.vertexCount * sizeof(std::byte) * m_Info.description->getInfo().size);
+    success &= m_Indices.build(m_Info.indexCount * sizeof(Index));
 
     if (!success) {
         destroy();
@@ -46,31 +46,43 @@ bool Mesh::build() {
 bool Mesh::destroy() {
     bool success = true;
 
-    success &= m_Vertex.destroy();
-    success &= m_Index.destroy();
+    success &= m_Vertices.destroy();
+    success &= m_Indices.destroy();
 
     return success;
 }
 
-bool Mesh::write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&indices, TransferBatch &batch) const {
+bool Mesh::write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&indices, TransferBatch &batch) {
     bool success = true;
 
-    success &= batch.add(m_Vertex, std::move(vertices), 0);
-    success &= batch.add(m_Index, std::move(indices), 0);
+    success &= batch.add(m_Vertices, std::move(vertices), 0);
+    success &= batch.add(m_Indices, std::move(indices), 0);
 
     return success;
 }
 
-void Mesh::draw(const RenderContext &context, std::uint32_t instances, std::uint32_t object) const {
+void Mesh::draw(const RenderContext &context, std::uint32_t instanceCount, std::uint32_t meshOffset) const {
     ZoneScopedN("Mesh/Draw");
 
-    const Buffer::Data &vertex = m_Vertex.getData();
-    const Buffer::Data &index = m_Index.getData();
+    const Buffer::Data &vertices = m_Vertices.getData();
+    const Buffer::Data &indices = m_Indices.getData();
 
-    context.command.bindVertexBuffers(0, vertex.buffer, {0});
-    context.command.bindIndexBuffer(index.buffer, 0, vk::IndexType::eUint32);
+    context.command.bindVertexBuffers(0, vertices.buffer, {0});
+    context.command.bindIndexBuffer(indices.buffer, 0, vk::IndexType::eUint32);
 
-    context.command.drawIndexed(m_Info.indexCount, instances, 0, 0, object);
+    for (std::size_t submeshIdx = 0; submeshIdx < m_Info.submeshes.size(); submeshIdx++) {
+        const SubMesh &submesh = m_Info.submeshes[submeshIdx];
+
+        // each submesh is packed as SoA objects, calculate baseInstance accordingly
+        // final offset is calculated as:
+        //  objectIdx = instanceId + submeshIdx * instanceCount + meshOffset_(n-1)
+        context.command.drawIndexed(
+            submesh.indexCount,
+            instanceCount,
+            submesh.firstIndex,
+            submesh.vertexOffset,
+            submeshIdx * instanceCount + meshOffset);
+    }
 }
 
 const Mesh::Info &Mesh::getInfo() const {

@@ -16,6 +16,13 @@ bool ModelSquare::build(TransferBatch &batch) {
         .description = &Model::Vertex::Description,
         .vertexCount = 4,
         .indexCount = 6,
+        .submeshes = {
+            {
+                .indexCount = 6,
+                .firstIndex = 0,
+                .vertexOffset = 0,
+            },
+        },
     };
 
     if (!Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(Resource, info)) {

@@ -20,6 +20,13 @@ bool ModelCircle::build(TransferBatch &batch) {
         .description = &Model::Vertex::Description,
         .vertexCount = maxVertices,
         .indexCount = (maxVertices - 2) * 3,
+        .submeshes = {
+            {
+                .indexCount = (maxVertices - 2) * 3,
+                .firstIndex = 0,
+                .vertexOffset = 0,
+            },
+        },
     };
 
     if (!ResourceRegistry<Mesh>::insert(Resource, info)) {

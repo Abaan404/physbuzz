@@ -10,7 +10,7 @@ TransferBatch::TransferBatch(const Info &info)
     : m_Info(info) {}
 
 bool TransferBatch::add(const Buffer &buffer, std::vector<std::byte> &&bytes, std::uint64_t offset) {
-    if (buffer.getData().bufferInfo.size > bytes.size() + offset) {
+    if (buffer.getData().bufferInfo.size < bytes.size() + offset) {
         Logger::ERROR(
             "[TransferBatch] Failed to map buffer using bytes ({}) and offset ({}) of size ({})",
             bytes.size(),

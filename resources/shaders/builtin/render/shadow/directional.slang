@@ -4,7 +4,7 @@ import "../../lighting/lights";
 
 namespace Physbuzz {
 
-struct InstanceData {
+struct ObjectData {
     float4x4 model;
     float4x4 normal;
     uint materialIdx;
@@ -14,7 +14,7 @@ struct InstanceData {
 StructuredBuffer<DirectionalLight> directionals;
 
 [[vk::binding(1, 0)]]
-StructuredBuffer<InstanceData> models;
+StructuredBuffer<ObjectData> objects;
 
 struct VSInput {
     float3 position : POSITION;
@@ -29,8 +29,8 @@ VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstan
     VSOutput output;
     uint objectId = instanceId + baseInstance;
 
-    InstanceData instance = models[objectId];
-    output.sv_position = mul(mul(float4(input.position, 1.0), instance.model), directionals[0].projectionView);
+    ObjectData object = objects[objectId];
+    output.sv_position = mul(mul(float4(input.position, 1.0), object.model), directionals[0].projectionView);
 
     return output;
 }

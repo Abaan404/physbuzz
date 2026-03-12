@@ -237,15 +237,15 @@ bool ShadowRenderer::build() {
                 Builtin::RenderPipelineShadow::Directional::Resource->bind(context);
                 App::LayoutAllocator.bind(context, Builtin::RenderPipelineShadow::Directional::Resource);
 
-                std::uint32_t object = 0;
-                for (const auto &[mesh, batch] : m_Batches) {
+                std::uint32_t meshOffset = 0;
+                for (const auto &[mesh, instances] : m_Batches) {
                     if (mesh->getInfo().description != Builtin::RenderPipelineShadow::Directional::Resource->getInfo().description) {
                         Logger::ERROR("[ShadowRenderer] Incompatible vertex state descriptions.");
                         continue;
                     }
 
-                    mesh->draw(context, batch, object);
-                    object += batch;
+                    mesh->draw(context, instances, meshOffset);
+                    meshOffset += instances * mesh->getInfo().submeshes.size();
                 }
 
                 context.command.endRendering();
@@ -313,15 +313,15 @@ bool ShadowRenderer::build() {
                 Builtin::RenderPipelineShadow::Point::Resource->bind(context);
                 App::LayoutAllocator.bind(context, Builtin::RenderPipelineShadow::Point::Resource);
 
-                std::uint32_t object = 0;
-                for (const auto &[mesh, batch] : m_Batches) {
+                std::uint32_t meshOffset = 0;
+                for (const auto &[mesh, instances] : m_Batches) {
                     if (mesh->getInfo().description != Builtin::RenderPipelineShadow::Point::Resource->getInfo().description) {
                         Logger::ERROR("[ShadowRenderer] Incompatible vertex state descriptions.");
                         continue;
                     }
 
-                    mesh->draw(context, batch, object);
-                    object += batch;
+                    mesh->draw(context, instances, meshOffset);
+                    meshOffset += instances * mesh->getInfo().submeshes.size();
                 }
 
                 context.command.endRendering();

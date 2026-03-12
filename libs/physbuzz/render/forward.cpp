@@ -233,15 +233,15 @@ bool ForwardRenderer::build() {
                 App::LayoutAllocator.bind(context, Builtin::RenderPipelineForward::Resource);
 
                 // draw
-                std::uint32_t object = 0;
-                for (const auto &[mesh, batch] : m_Batches) {
+                std::uint32_t meshOffset = 0;
+                for (const auto &[mesh, instanceCount] : m_Batches) {
                     if (mesh->getInfo().description != Builtin::RenderPipelineForward::Resource->getInfo().description) {
                         Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
                         continue;
                     }
 
-                    mesh->draw(context, batch, object);
-                    object += batch;
+                    mesh->draw(context, instanceCount, meshOffset);
+                    meshOffset += instanceCount * mesh->getInfo().submeshes.size();
                 }
 
                 context.command.endRendering();

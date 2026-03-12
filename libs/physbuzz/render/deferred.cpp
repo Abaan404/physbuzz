@@ -356,15 +356,15 @@ bool DeferredRenderer::build() {
                 Builtin::RenderPipelineDeferred::Geometry::Resource->bind(context);
                 App::LayoutAllocator.bind(context, Builtin::RenderPipelineDeferred::Geometry::Resource);
 
-                std::uint32_t object = 0;
-                for (const auto &[mesh, batch] : m_Batches) {
+                std::uint32_t meshOffset = 0;
+                for (const auto &[mesh, instanceCount] : m_Batches) {
                     if (mesh->getInfo().description != Builtin::RenderPipelineDeferred::Geometry::Resource->getInfo().description) {
                         Logger::ERROR("[DeferredRenderer] Incompatible vertex state descriptions.");
                         continue;
                     }
 
-                    mesh->draw(context, batch, object);
-                    object += batch;
+                    mesh->draw(context, instanceCount, meshOffset);
+                    meshOffset += instanceCount * mesh->getInfo().submeshes.size();
                 }
 
                 context.command.endRendering();

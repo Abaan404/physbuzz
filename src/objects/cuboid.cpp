@@ -17,12 +17,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = {{
-            .meshes = {
-                {
-                    .material = info.resources.material,
-                    .mesh = Physbuzz::Builtin::ModelCube::Resource,
-                },
-            },
+            .mesh = Physbuzz::Builtin::ModelCube::Resource,
+            .materials = {info.resources.material},
+            .submeshMaterialIndices = {0},
         }},
     };
 

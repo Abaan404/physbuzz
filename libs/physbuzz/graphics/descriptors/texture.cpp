@@ -79,11 +79,11 @@ bool Texture::destroy() {
     return true;
 }
 
-bool Texture::write(const ImageFile::Info &imageFile, TransferBatch &batch) const {
+bool Texture::write(const ImageFile::Info &imageFile, TransferBatch &batch) {
     return batch.add(m_Data.image, imageFile);
 }
 
-bool Texture::write(std::vector<std::byte> &&bytes, TransferBatch &batch) const {
+bool Texture::write(std::vector<std::byte> &&bytes, TransferBatch &batch) {
     return batch.add(m_Data.image, std::move(bytes));
 }
 

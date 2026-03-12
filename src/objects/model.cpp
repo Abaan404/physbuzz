@@ -1,10 +1,8 @@
 #include "model.hpp"
 
 #include <physbuzz/graphics/transfer.hpp>
-#include <physbuzz/graphics/renderer.hpp>
-#include <physbuzz/render/deferred.hpp>
-#include <physbuzz/render/forward.hpp>
 #include <physbuzz/render/shadow.hpp>
+#include <physbuzz/shapes/cube.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Model &info) {
@@ -12,7 +10,11 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Physbuzz::ShadowComponent shadow;
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
-        .model = {{}},
+        .model = Physbuzz::Model::Info{
+            .mesh = Physbuzz::Builtin::ModelCube::Resource,
+            .materials = {{"default"}},
+            .submeshMaterialIndices = {0},
+        },
     };
 
     render.model.load(info.model.path, scene.getSystem<Physbuzz::Transfer>());

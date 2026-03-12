@@ -2,6 +2,7 @@
 
 #include "../ecs/scene.hpp"
 #include "../window/window.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -50,6 +51,8 @@ bool InputEvents::destroy() {
 }
 
 void InputEvents::tick() {
+    ZoneScopedN("InputEvents/Tick");
+
     if (m_Window == nullptr) {
         Logger::ERROR("[Inputs] Cant tick with a missing window");
         return;

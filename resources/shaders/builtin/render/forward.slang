@@ -22,7 +22,7 @@ struct Material {
     static const uint STRIDE = 16;
 };
 
-struct InstanceData {
+struct ObjectData {
     float4x4 model;
     float4x4 normal;
     uint materialIdx;
@@ -55,7 +55,7 @@ StructuredBuffer<PointLight> points;
 StructuredBuffer<SpotLight> spots;
 
 [[vk::binding(4, 1)]]
-StructuredBuffer<InstanceData> models;
+StructuredBuffer<ObjectData> objects;
 
 [[vk::binding(5, 1)]]
 Sampler2D<float> directionalDepth;
@@ -89,12 +89,12 @@ VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstan
     VSOutput output;
     output.coarseVertex.objectId = instanceId + baseInstance;
 
-    InstanceData instance = models[output.coarseVertex.objectId];
-    output.sv_position = mul(mul(mul(float4(input.position, 1.0), instance.model), camera.view), camera.projection);
+    ObjectData object = objects[output.coarseVertex.objectId];
+    output.sv_position = mul(mul(mul(float4(input.position, 1.0), object.model), camera.view), camera.projection);
 
-    output.coarseVertex.position = mul(float4(input.position, 1.0), instance.model).xyz;
-    output.coarseVertex.normal = normalize(mul(input.normal, float3x3(instance.normal)));
-    output.coarseVertex.tangent = normalize(mul(input.tangent, float3x3(instance.model)));
+    output.coarseVertex.position = mul(float4(input.position, 1.0), object.model).xyz;
+    output.coarseVertex.normal = normalize(mul(input.normal, float3x3(object.normal)));
+    output.coarseVertex.tangent = normalize(mul(input.tangent, float3x3(object.model)));
     output.coarseVertex.bitangent = cross(output.coarseVertex.normal, output.coarseVertex.tangent);
     output.coarseVertex.texCoord0 = input.texCoord0;
 
@@ -103,14 +103,14 @@ VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstan
 
 [shader("fragment")]
 float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
-    InstanceData instance = models[coarseVertex.objectId];
+    ObjectData object = objects[coarseVertex.objectId];
 
     Geometry geometry = {
         coarseVertex.position,
         coarseVertex.normal,
     };
 
-    Material *boundMaterial = (Material *)(pc.materialBaseAddress + instance.materialIdx * Material.STRIDE);
+    Material *boundMaterial = (Material *)(pc.materialBaseAddress + object.materialIdx * Material.STRIDE);
 
     float3 albedo = float3(0.0f);
     float specular = 0.0f;

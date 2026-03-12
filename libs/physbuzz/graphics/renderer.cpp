@@ -107,7 +107,10 @@ bool Renderer::destroy() {
 void Renderer::tick() {
     ZoneScopedN("Renderer/Tick");
 
-    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
+    {
+        ZoneScopedN("Renderer/Tick/WaitForFence");
+        PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.inFlight[m_FrameInFlight], vk::True, std::numeric_limits<std::uint64_t>::max()));
+    }
     m_DeletionQueues[m_FrameInFlight].flush();
 
     // fetch the next available swapchain image
@@ -190,15 +193,15 @@ void Renderer::tick() {
         });
     }
 
+    // refresh the material state
+    m_MaterialAllocator.refresh(context);
+
     {
         TracyVkZone(App::Tracy, m_Command.buffers[m_FrameInFlight], "RenderGraph");
 
         // execute the graph
         m_Graph.execute(m_Scene, context);
     }
-
-    // refresh the material state
-    m_MaterialAllocator.refresh(context);
 
     // transition image
     {

@@ -3,6 +3,7 @@
 #include "../ecs/scene.hpp"
 #include "../misc/clock.hpp"
 #include "collision.hpp"
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -12,6 +13,8 @@ Dynamics::Dynamics(float dtime)
 Dynamics::~Dynamics() {}
 
 void Dynamics::tick() {
+    ZoneScopedN("Dynamics/Tick");
+
     if (!m_IsRunning) {
         return;
     }

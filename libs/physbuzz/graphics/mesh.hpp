@@ -51,10 +51,18 @@ class VertexDescription {
 
 class Mesh {
   public:
+    struct SubMesh {
+        std::uint32_t indexCount;
+        std::uint32_t firstIndex;
+        std::uint32_t vertexOffset;
+    };
+
     struct Info {
         const VertexDescription *description;
         std::uint64_t vertexCount;
         std::uint64_t indexCount;
+
+        std::vector<SubMesh> submeshes;
     };
 
     Mesh(const Info &info)
@@ -64,12 +72,11 @@ class Mesh {
     bool destroy();
 
     template <typename T>
-    bool write(std::vector<T> &&vertices, std::vector<Index> &&indices, TransferBatch &batch) const {
+    bool write(std::vector<T> &&vertices, std::vector<Index> &&indices, TransferBatch &batch) {
         std::vector<std::byte> vertexBytes(
             reinterpret_cast<std::byte *>(vertices.data()),
             reinterpret_cast<std::byte *>(vertices.data() + vertices.size()));
 
-        // Reinterpret index data as bytes
         std::vector<std::byte> indexBytes(
             reinterpret_cast<std::byte *>(indices.data()),
             reinterpret_cast<std::byte *>(indices.data() + indices.size()));
@@ -77,21 +84,21 @@ class Mesh {
         return write(std::move(vertexBytes), std::move(indexBytes), batch);
     }
 
-    bool write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&indices, TransferBatch &batch) const;
+    bool write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&indices, TransferBatch &batch);
 
-    void draw(const RenderContext &context, std::uint32_t instances, std::uint32_t object) const;
+    void draw(const RenderContext &context, std::uint32_t instanceCount, std::uint32_t meshOffset) const;
 
     const Info &getInfo() const;
 
   private:
     Info m_Info;
 
-    Buffer m_Vertex = {{
+    Buffer m_Vertices = {{
         .usage = Buffer::UsageFlagBits::eVertexBuffer | Buffer::UsageFlagBits::eTransferDst,
         .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
     }};
 
-    Buffer m_Index = {{
+    Buffer m_Indices = {{
         .usage = Buffer::UsageFlagBits::eIndexBuffer | Buffer::UsageFlagBits::eTransferDst,
         .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
     }};

@@ -5,6 +5,7 @@
 #include <imgui_impl_vulkan.h>
 #include <memory>
 #include <physbuzz/compat/imgui/imgui_impl_physbuzz.hpp>
+#include <tracy/Tracy.hpp>
 
 #include "camera.hpp"
 #include "demo.hpp"
@@ -43,6 +44,7 @@ bool InterfaceManager::destroy() {
 }
 
 void InterfaceManager::tick() {
+    ZoneScopedN("InterfaceManager/Tick");
     m_Scene->getSystem<Physbuzz::ImGuiRenderer>()->newFrame();
     ImGui::NewFrame();
 
