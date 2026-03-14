@@ -14,8 +14,7 @@ struct OnResourceDestroy {
 };
 
 struct OnResourceReload {
-    const ResourceID &identifier;
-    std::filesystem::path filePath;
+    const std::filesystem::path &filePath;
     WatchAction action;
 };
 

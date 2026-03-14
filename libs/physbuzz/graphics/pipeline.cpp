@@ -11,9 +11,123 @@ RenderPipeline::RenderPipeline(const Info &info)
     : m_Info(info) {}
 
 bool RenderPipeline::build() {
-    if (m_Pipeline != nullptr) {
-        Logger::WARNING("[RenderPipeline] Trying to build a constructed pipeline.");
+    std::vector<vk::DescriptorSetLayout> layouts;
+    for (const auto &layout : m_Info.layouts.resources) {
+        layouts.emplace_back(layout->m_Layout);
+    }
+
+    m_Layout = PBZ_VK_CHECK(App::Device.createPipelineLayout({
+        .setLayoutCount = static_cast<std::uint32_t>(layouts.size()),
+        .pSetLayouts = layouts.data(),
+        .pushConstantRangeCount = static_cast<std::uint32_t>(m_Info.layouts.pushConstantRanges.size()),
+        .pPushConstantRanges = m_Info.layouts.pushConstantRanges.data(),
+    }));
+
+    std::vector zero(m_Info.specialization.size, std::byte(0));
+
+    if (!specialize(std::as_bytes(std::span(zero)))) {
+        destroy();
+        return false;
+    }
+
+    m_Events = {
+        .reload = ResourceRegistry<RenderPipeline>::Events.addCallback<OnResourceReload>([this](const OnResourceReload &event) {
+            // FIXME this capture is invalid after a move
+            // if (event.action != WatchAction::Modified || !m_DependencyFilePaths.contains(event.filePath)) {
+            //     return;
+            // }
+            //
+            // Logger::INFO("[RenderPipeline] Reloading shader '{}' ({}).", m_Info.module, event.filePath.string());
+            // ResourceRegistry<RenderPipeline>::Events.eraseCallback<OnResourceReload>(m_Events.reload);
+            //
+            // RenderPipeline newPipeline = m_Info;
+            // newPipeline.build();
+            //
+            // {
+            //     std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
+            //     App::Deletion.enqueue(std::move(this));
+            //
+            //     m_Layout = nullptr;
+            //     m_Pipelines = {};
+            //     m_Specializations = {};
+            //     m_ActivePipeline = -1;
+            //
+            //     build();
+            // }
+        }),
+    };
+
+    return true;
+}
+
+bool RenderPipeline::destroy() {
+    if (m_Pipelines.empty()) {
+        Logger::WARNING("[ShaderPipeline] Trying to destroy a destructed pipeline.");
         return true;
+    }
+
+    ResourceRegistry<RenderPipeline>::Events.eraseCallback<OnResourceReload>(m_Events.reload);
+
+    App::Device.destroyPipelineLayout(m_Layout);
+    m_Layout = nullptr;
+
+    for (const auto &pipeline : m_Pipelines) {
+        App::Device.destroyPipeline(pipeline);
+    }
+
+    m_Pipelines = {};
+    m_Specializations = {};
+    m_ActivePipeline = -1;
+
+    return true;
+}
+
+bool RenderPipeline::specialize(const std::span<const std::byte> &specializationData) {
+    std::size_t specHash = std::hash<std::string_view>{}({
+        reinterpret_cast<const char *>(specializationData.data()),
+        specializationData.size(),
+    });
+
+    if (!m_Specializations.contains(specHash)) {
+        std::optional<vk::Pipeline> pipeline = createSpecializedPipeline(specializationData);
+
+        if (!pipeline) {
+            return false;
+        }
+
+        m_Pipelines.emplace_back(*pipeline);
+        m_Specializations[specHash] = m_Pipelines.size() - 1;
+    }
+
+    m_ActivePipeline = m_Specializations.at(specHash);
+
+    return true;
+}
+
+void RenderPipeline::updatePushConstants(const RenderContext &context, const PushConstantsStage &stage, const std::span<const std::byte> &bytes, std::uint32_t offset) {
+    vk::PushConstantsInfo info = {
+        .layout = m_Layout,
+        .stageFlags = stage,
+        .offset = offset,
+        .size = static_cast<std::uint32_t>(bytes.size()),
+        .pValues = bytes.data(),
+    };
+
+    context.command.pushConstants2(info);
+}
+
+void RenderPipeline::bind(const RenderContext &context) {
+    context.command.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipelines[m_ActivePipeline]);
+}
+
+const RenderPipeline::Info &RenderPipeline::getInfo() const {
+    return m_Info;
+}
+
+std::optional<vk::Pipeline> RenderPipeline::createSpecializedPipeline(const std::span<const std::byte> &data) {
+    if (data.size() < m_Info.specialization.size) {
+        Logger::ERROR("[RenderPipeline] Invalid specialization size, required {} found {}", m_Info.specialization.size, data.size());
+        return std::nullopt;
     }
 
     if (std::ranges::none_of(m_Info.dynamicStates, [](vk::DynamicState state) {
@@ -73,7 +187,7 @@ bool RenderPipeline::build() {
         .logicOp = m_Info.blend.logicOp,
         .attachmentCount = static_cast<std::uint32_t>(colorBlendAttachments.size()),
         .pAttachments = colorBlendAttachments.data(),
-        .blendConstants = m_Info.blend.blendConstants,
+        .blendConstants = m_Info.blend.constants,
     };
 
     vk::PipelineMultisampleStateCreateInfo multisampling = {
@@ -86,6 +200,29 @@ bool RenderPipeline::build() {
         .depthWriteEnable = m_Info.depthStencil.depthWriteEnable,
         .depthCompareOp = m_Info.depthStencil.depthCompareOp,
         .stencilTestEnable = m_Info.depthStencil.stencilTestEnable,
+    };
+
+    std::vector<vk::SpecializationMapEntry> specializationEntries;
+
+    for (std::uint32_t i = 0; i < m_Info.specialization.offsets.size(); i++) {
+        std::uint32_t nextOffset = m_Info.specialization.size;
+
+        if (i + 1 < m_Info.specialization.offsets.size()) {
+            nextOffset = m_Info.specialization.offsets[i + 1];
+        }
+
+        specializationEntries.emplace_back<vk::SpecializationMapEntry>({
+            .constantID = i,
+            .offset = m_Info.specialization.offsets[i],
+            .size = nextOffset - m_Info.specialization.offsets[i],
+        });
+    }
+
+    vk::SpecializationInfo specialization = {
+        .mapEntryCount = static_cast<std::uint32_t>(specializationEntries.size()),
+        .pMapEntries = specializationEntries.data(),
+        .dataSize = data.size(),
+        .pData = data.data(),
     };
 
     std::filesystem::path resourcePath = ResourceRegistry<RenderPipeline>::getResourceDirectory();
@@ -107,6 +244,7 @@ bool RenderPipeline::build() {
         .compilerOptionEntries = compilerOptions.data(),
         .compilerOptionEntryCount = static_cast<std::uint32_t>(compilerOptions.size()),
     }};
+
     std::array searchPaths = {resourcePath.c_str()};
 
     slang::SessionDesc sessionDesc = {
@@ -125,7 +263,7 @@ bool RenderPipeline::build() {
     if (diagnostics) {
         Logger::ERROR("[RenderPipeline] Failed loading shader module '{}'", m_Info.module);
         Logger::ERROR((const char *)diagnostics->getBufferPointer());
-        return false;
+        return std::nullopt;
     }
 
     for (int i = 0; i < module->getDependencyFileCount(); i++) {
@@ -147,7 +285,7 @@ bool RenderPipeline::build() {
     if (diagnostics) {
         Logger::ERROR("[RenderPipeline] Failed composing shader module '{}'", m_Info.module);
         Logger::ERROR((const char *)diagnostics->getBufferPointer());
-        return false;
+        return std::nullopt;
     }
 
     slang::ProgramLayout *layout = program->getLayout(0, diagnostics.writeRef());
@@ -155,7 +293,7 @@ bool RenderPipeline::build() {
     if (diagnostics) {
         Logger::ERROR("[RenderPipeline] Failed loading shader layout for module '{}'", m_Info.module);
         Logger::ERROR((const char *)diagnostics->getBufferPointer());
-        return false;
+        return std::nullopt;
     }
 
     Slang::ComPtr<slang::IComponentType> linkedProgram;
@@ -164,7 +302,7 @@ bool RenderPipeline::build() {
     if (diagnostics) {
         Logger::ERROR("[RenderPipeline] Failed linking shader module '{}'", m_Info.module);
         Logger::ERROR((const char *)diagnostics->getBufferPointer());
-        return false;
+        return std::nullopt;
     }
 
     std::vector<vk::ShaderModule> modules;
@@ -177,7 +315,7 @@ bool RenderPipeline::build() {
         if (diagnostics) {
             Logger::ERROR("[RenderPipeline] Failed to get entrypoint '{}' code for module '{}'", i, m_Info.module);
             Logger::ERROR((const char *)diagnostics->getBufferPointer());
-            return false;
+            return std::nullopt;
         }
 
         slang::EntryPointReflection *entrypointLayout = layout->getEntryPointByIndex(i);
@@ -239,21 +377,9 @@ bool RenderPipeline::build() {
             .stage = stage,
             .module = module,
             .pName = "main",
-            .pSpecializationInfo = nullptr, // TODO
+            .pSpecializationInfo = specialization.dataSize > 0 ? &specialization : nullptr,
         });
     }
-
-    std::vector<vk::DescriptorSetLayout> layouts;
-    for (const auto &layout : m_Info.layouts.resources) {
-        layouts.emplace_back(layout->m_Layout);
-    }
-
-    m_Layout = PBZ_VK_CHECK(App::Device.createPipelineLayout({
-        .setLayoutCount = static_cast<std::uint32_t>(layouts.size()),
-        .pSetLayouts = layouts.data(),
-        .pushConstantRangeCount = static_cast<std::uint32_t>(m_Info.layouts.pushConstantRanges.size()),
-        .pPushConstantRanges = m_Info.layouts.pushConstantRanges.data(),
-    }));
 
     vk::PipelineVertexInputStateCreateInfo vertexInputState = {
         .vertexBindingDescriptionCount = 0,
@@ -290,86 +416,20 @@ bool RenderPipeline::build() {
             .depthAttachmentFormat = m_Info.formats.depth,
         },
         {
-            .colorAttachmentCount = static_cast<std::uint32_t>(m_Info.attachments.colors.size()),
-            .pColorAttachmentInputIndices = m_Info.attachments.colors.data(),
-            .pDepthInputAttachmentIndex = m_Info.attachments.depth.has_value() ? &(*m_Info.attachments.depth) : nullptr,
-            .pStencilInputAttachmentIndex = m_Info.attachments.depth.has_value() ? &(*m_Info.attachments.depth) : nullptr,
+            .colorAttachmentCount = static_cast<std::uint32_t>(m_Info.inputs.colors.size()),
+            .pColorAttachmentInputIndices = m_Info.inputs.colors.data(),
+            .pDepthInputAttachmentIndex = m_Info.inputs.depth.has_value() ? &(*m_Info.inputs.depth) : nullptr,
+            .pStencilInputAttachmentIndex = m_Info.inputs.depth.has_value() ? &(*m_Info.inputs.depth) : nullptr,
         },
     };
 
-    m_Pipeline = PBZ_VK_CHECK(App::Device.createGraphicsPipeline(nullptr, chain.get()));
+    vk::Pipeline pipeline = PBZ_VK_CHECK(App::Device.createGraphicsPipeline(nullptr, chain.get()));
 
     for (const auto &module : modules) {
         App::Device.destroyShaderModule(module);
     }
 
-    m_Events = {
-        .reload = ResourceRegistry<RenderPipeline>::Events.addCallback<OnResourceReload>([](const OnResourceReload &event) {
-            Resource<RenderPipeline> pipeline = {event.identifier};
-
-            if (event.action != WatchAction::Modified || !pipeline->isDependantFile(event.filePath)) {
-                return;
-            }
-
-            Logger::INFO("[RenderPipeline] Reloading resource '{}'.", event.identifier, event.filePath.string());
-
-            App::Deletion.enqueue(std::move(pipeline.get()));
-
-            // kinda hacky
-            std::lock_guard<std::mutex> lock(pipeline->m_ReloadMutex);
-
-            pipeline->m_Pipeline = nullptr;
-            pipeline->m_Layout = nullptr;
-            ResourceRegistry<RenderPipeline>::Events.eraseCallback<OnResourceReload>(pipeline->m_Events.reload);
-
-            pipeline->build();
-        }),
-    };
-
-    return true;
-}
-
-bool RenderPipeline::destroy() {
-    if (m_Pipeline == nullptr) {
-        Logger::WARNING("[ShaderPipeline] Trying to destroy a destructed pipeline.");
-        return true;
-    }
-
-    App::Device.destroyPipelineLayout(m_Layout);
-    m_Layout = nullptr;
-
-    App::Device.destroyPipeline(m_Pipeline);
-    m_Pipeline = nullptr;
-
-    ResourceRegistry<RenderPipeline>::Events.eraseCallback<OnResourceReload>(m_Events.reload);
-    return true;
-}
-
-bool RenderPipeline::isDependantFile(const std::filesystem::path &file) {
-    return m_DependencyFilePaths.contains(std::filesystem::weakly_canonical(file));
-}
-
-void RenderPipeline::updatePushConstants(const RenderContext &context, const PushConstantsStage &stage, const std::span<const std::byte> &bytes, std::uint32_t offset) {
-    std::lock_guard<std::mutex> lock(m_ReloadMutex);
-
-    vk::PushConstantsInfo info = {
-        .layout = m_Layout,
-        .stageFlags = stage,
-        .offset = offset,
-        .size = static_cast<std::uint32_t>(bytes.size()),
-        .pValues = bytes.data(),
-    };
-
-    context.command.pushConstants2(info);
-}
-
-void RenderPipeline::bind(const RenderContext &context) {
-    std::lock_guard<std::mutex> lock(m_ReloadMutex);
-    context.command.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline);
-}
-
-const RenderPipeline::Info &RenderPipeline::getInfo() const {
-    return m_Info;
+    return pipeline;
 }
 
 } // namespace Physbuzz

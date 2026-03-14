@@ -118,9 +118,6 @@ class Scene : public EventSubject {
         (..., m_SystemManager.tick<T>(std::forward<Args>(args)...));
     }
 
-    void buildSystems();
-    void destroySystems();
-
     void clear();
 
   private:

@@ -36,6 +36,9 @@ struct PushConstants {
     uint64_t materialBaseAddress;
 };
 
+[[vk::constant_id(0)]]
+const bool enableShadows;
+
 [[vk::push_constant]]
 PushConstants pc;
 
@@ -147,12 +150,23 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
 
     float3 color = {};
 
-    for (int i = 0; i < pc.directionalCount; i++) {
-        color += directionals[i].shadow(geometry, directionalDepth) * directionals[i].illuminate(geometry, brdf, viewDirection);
-    }
+    static if (enableShadows) {
+        for (int i = 0; i < pc.directionalCount; i++) {
+            color += directionals[i].shadow(geometry, directionalDepth) * directionals[i].illuminate(geometry, brdf, viewDirection);
+        }
 
-    for (int i = 0; i < pc.pointCount; i++) {
-        color += points[i].shadow(geometry, pointDepth) * points[i].illuminate(geometry, brdf, viewDirection);
+        for (int i = 0; i < pc.pointCount; i++) {
+            color += points[i].shadow(geometry, pointDepth) * points[i].illuminate(geometry, brdf, viewDirection);
+        }
+    }
+    else {
+        for (int i = 0; i < pc.directionalCount; i++) {
+            color += directionals[i].illuminate(geometry, brdf, viewDirection);
+        }
+
+        for (int i = 0; i < pc.pointCount; i++) {
+            color += points[i].illuminate(geometry, brdf, viewDirection);
+        }
     }
 
     for (int i = 0; i < pc.spotCount; i++) {

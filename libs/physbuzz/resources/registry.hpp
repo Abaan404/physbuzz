@@ -119,14 +119,15 @@ class ResourceRegistry {
     inline static efsw::FileWatcher m_Watcher;
     inline static class : public efsw::FileWatchListener {
       public:
-        void handleFileAction(efsw::WatchID, const std::string &directory, const std::string &filename, efsw::Action action, std::string) override {
-            for (const auto &[identifier, _] : m_Registry) {
-                Events.notifyCallbacks<OnResourceReload>({
-                    .identifier = identifier,
-                    .filePath = directory + filename,
-                    .action = static_cast<WatchAction>(action),
-                });
+        void handleFileAction(efsw::WatchID id, const std::string &directory, const std::string &filename, efsw::Action action, std::string) override {
+            if (id != m_WatchID) {
+                return;
             }
+
+            Events.notifyCallbacks<OnResourceReload>({
+                .filePath = directory + filename,
+                .action = static_cast<WatchAction>(action),
+            });
         }
     } m_Listener;
 

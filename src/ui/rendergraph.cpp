@@ -55,17 +55,40 @@ void RenderGraph::draw() {
     const std::shared_ptr<Physbuzz::Renderer> renderer = m_Scene->getSystem<Physbuzz::Renderer>();
 
     ImGuiWindowFlags windowFlags = 0;
-    if (!ImGui::Begin("Renderer", &show, windowFlags)) {
+    if (!ImGui::Begin("RenderGraph", &show, windowFlags)) {
         ImGui::End();
         return;
     }
 
     const Physbuzz::RenderGraph &graph = renderer->getGraph();
 
+    bool updateGraph = false;
+
+    static bool enableShadows = false;
+    updateGraph |= ImGui::Checkbox("Shadows", &enableShadows);
+
+    const char *types[] = {"Deferred", "Forward", "Unknown"};
+    static int currentType = 2;
+
+    for (const auto &node : graph.getExecutableNodes()) {
+        if (node == Physbuzz::DeferredRenderer::Output) {
+            currentType = 0;
+            break;
+        }
+
+        if (node == Physbuzz::ForwardRenderer::Output) {
+            currentType = 1;
+            break;
+        }
+
+        currentType = 2;
+    }
+
+    updateGraph |= ImGui::Combo("Type", &currentType, types, IM_ARRAYSIZE(types));
+
     ImGui::SeparatorText("Nodes");
 
     for (const auto &id : graph.getExecutableNodes()) {
-
         if (ImGui::TreeNode(id.c_str())) {
             const Physbuzz::RenderNode &node = graph.get(id);
 
@@ -138,24 +161,7 @@ void RenderGraph::draw() {
             {selectedAttachment->getSize(renderer->getFrameInFlight()).x, selectedAttachment->getSize(renderer->getFrameInFlight()).y});
     }
 
-    const char *types[] = {"Deferred", "Forward", "Unknown"};
-    static int currentType = 2;
-
-    for (const auto &node : graph.getExecutableNodes()) {
-        if (node == Physbuzz::DeferredRenderer::Output) {
-            currentType = 0;
-            break;
-        }
-
-        if (node == Physbuzz::ForwardRenderer::Output) {
-            currentType = 1;
-            break;
-        }
-
-        currentType = 2;
-    }
-
-    if (currentType != 2 && ImGui::Combo("Type", &currentType, types, IM_ARRAYSIZE(types))) {
+    if (updateGraph) {
         Physbuzz::RenderGraph graph = {{}};
 
         std::shared_ptr<Physbuzz::ShadowRenderer> shadow = m_Scene->getSystem<Physbuzz::ShadowRenderer>();
@@ -164,22 +170,30 @@ void RenderGraph::draw() {
         std::shared_ptr<Physbuzz::ImGuiRenderer> imgui = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
         std::shared_ptr<Physbuzz::SkyboxRenderer> skybox = m_Scene->getSystem<Physbuzz::SkyboxRenderer>();
 
+        if (enableShadows) {
+            graph.merge(shadow->getGraph());
+        }
+
         switch (currentType) {
         case 0: // Deferred
-            graph.merge(shadow->getGraph());
+            deferred->specialize({
+                .enableShadows = enableShadows,
+            });
+
             graph.merge(deferred->getGraph());
             graph.merge(skybox->getGraph());
             graph.merge(imgui->getGraph());
             break;
 
         case 1: // Forward
-            graph.merge(shadow->getGraph());
+        default:
+            forward->specialize({
+                .enableShadows = enableShadows,
+            });
+
             graph.merge(forward->getGraph());
             graph.merge(skybox->getGraph());
             graph.merge(imgui->getGraph());
-            break;
-
-        default:
             break;
         }
 

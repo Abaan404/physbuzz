@@ -95,7 +95,7 @@ class RenderPipeline {
             bool logicOpEnable = false;
             LogicOp logicOp = LogicOp::eCopy;
             std::vector<ColorBlendAttachmentInfo> attachments = {1, {{}}};
-            std::array<float, 4> blendConstants = {0.0f, 0.0f, 0.0f, 0.0f};
+            std::array<float, 4> constants = {0.0f, 0.0f, 0.0f, 0.0f};
         } blend = {};
 
         struct {
@@ -113,7 +113,12 @@ class RenderPipeline {
             std::vector<std::uint32_t> colors = {0};
             std::optional<std::uint32_t> depth = std::nullopt;
             std::optional<std::uint32_t> stencil = std::nullopt;
-        } attachments = {};
+        } inputs = {};
+
+        struct {
+            std::vector<std::uint32_t> offsets;
+            std::size_t size;
+        } specialization;
 
         std::vector<DynamicState> dynamicStates = {};
     };
@@ -123,22 +128,33 @@ class RenderPipeline {
     bool build();
     bool destroy();
 
-    bool isDependantFile(const std::filesystem::path &file);
+    template <typename T>
+    bool specialize(const T &data) {
+        std::span<const std::byte> bytes = std::as_bytes(std::span(&data, 1));
+        return specialize(bytes);
+    }
+
+    bool specialize(const std::span<const std::byte> &data);
 
     void updatePushConstants(const RenderContext &context, const PushConstantsStage &stage, const std::span<const std::byte> &bytes, std::uint32_t offset);
     void bind(const RenderContext &context);
 
     const Info &getInfo() const;
 
+    inline static std::mutex ReloadMutex;
+
   private:
+    std::optional<vk::Pipeline> createSpecializedPipeline(const std::span<const std::byte> &specializationData);
+
     Info m_Info;
 
     vk::PipelineLayout m_Layout = nullptr;
-    vk::Pipeline m_Pipeline = nullptr;
+
+    std::vector<vk::Pipeline> m_Pipelines;
+    std::unordered_map<std::size_t, std::size_t> m_Specializations;
+    std::size_t m_ActivePipeline = -1u;
 
     std::unordered_set<std::filesystem::path> m_DependencyFilePaths;
-
-    inline static std::mutex m_ReloadMutex;
 
     struct {
         EventID reload = -1;

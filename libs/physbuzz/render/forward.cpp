@@ -95,6 +95,12 @@ bool RenderPipelineForward::build() {
                     },
                 },
             },
+            .specialization = {
+                .offsets = {
+                    offsetof(Specialization, enableShadows),
+                },
+                .size = sizeof(Specialization),
+            },
         }});
 
     return success;
@@ -181,6 +187,8 @@ bool ForwardRenderer::build() {
             .execute = [this](Scene *scene, const RenderContext &context) {
                 ZoneScopedN("ForwardRenderer/Execute");
                 TracyVkZone(context.tracy, context.command, "ForwardRenderer");
+
+                std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth->getRingData()[context.frameInFlight].view,
@@ -295,6 +303,10 @@ bool ForwardRenderer::build() {
 bool ForwardRenderer::destroy() {
     m_Info.window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
     return true;
+}
+
+bool ForwardRenderer::specialize(const Builtin::RenderPipelineForward::Specialization &specialization) {
+    return Builtin::RenderPipelineForward::Resource->specialize(specialization);
 }
 
 const RenderGraph &ForwardRenderer::getGraph() const {

@@ -66,10 +66,10 @@ void Dockspace::draw() {
         // setup left hand side
         {
             ImGuiID dockspaceCamera = ImGui::GetID("DockspaceCamera");
-            ImGuiID dockspaceRenderer = ImGui::GetID("DockspaceRenderer");
-            ImGui::DockBuilderSplitNode(dockspaceLeft, ImGuiDir_Up, 0.5f, &dockspaceCamera, &dockspaceRenderer);
+            ImGuiID dockspaceRenderGraph = ImGui::GetID("DockspaceRenderGraph");
+            ImGui::DockBuilderSplitNode(dockspaceLeft, ImGuiDir_Up, 0.5f, &dockspaceCamera, &dockspaceRenderGraph);
             ImGui::DockBuilderDockWindow("Camera", dockspaceCamera);
-            ImGui::DockBuilderDockWindow("Renderer", dockspaceRenderer);
+            ImGui::DockBuilderDockWindow("RenderGraph", dockspaceRenderGraph);
         }
 
         ImGui::DockBuilderFinish(dockspace);

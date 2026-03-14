@@ -37,6 +37,10 @@ struct PushConstants {
     std::uint32_t pointCount;
 };
 
+struct Specialization {
+    std::uint32_t enableShadows;
+};
+
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/deferred/lighting/frame"};
 
 inline Resource<RenderPipeline> Resource = {"builtin/deferred/lighting"};
@@ -70,6 +74,8 @@ class DeferredRenderer : public System<RenderComponent> {
 
     bool build() override;
     bool destroy() override;
+
+    bool specialize(const Builtin::RenderPipelineDeferred::Lighting::Specialization &specialization);
 
     const RenderGraph &getGraph() const;
 

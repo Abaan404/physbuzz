@@ -22,6 +22,10 @@ struct PushConstants {
     std::uint64_t materialBaseAddress;
 };
 
+struct Specialization {
+    std::uint32_t enableShadows;
+};
+
 inline Resource<DynamicBuffer> ResourceModel = {"builtin/forward/model"};
 
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/forward/frame"};
@@ -47,6 +51,8 @@ class ForwardRenderer : public System<RenderComponent> {
 
     bool build() override;
     bool destroy() override;
+
+    bool specialize(const Builtin::RenderPipelineForward::Specialization &specialization);
 
     const RenderGraph &getGraph() const;
 

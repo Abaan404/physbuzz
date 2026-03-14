@@ -78,7 +78,7 @@ bool RenderPipelineDeferred::Geometry::build() {
                     },
                 },
             },
-            .attachments = {
+            .inputs = {
                 .colors = {0, 1, 2},
             },
         }});
@@ -161,6 +161,12 @@ bool RenderPipelineDeferred::Lighting::build() {
                         .size = sizeof(PushConstants),
                     },
                 },
+            },
+            .specialization = {
+                .offsets = {
+                    offsetof(Specialization, enableShadows),
+                },
+                .size = sizeof(Specialization),
             },
         }});
 
@@ -291,6 +297,8 @@ bool DeferredRenderer::build() {
             .execute = [this](Scene *scene, const RenderContext &context) {
                 ZoneScopedN("DeferredRenderer/GBuffer/Execute");
                 TracyVkZone(context.tracy, context.command, "DeferredRenderer/GBuffer");
+
+                std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
 
                 std::array gBuffers = {
                     Resource<Attachment>("builtin/deferred/gBuffer0"),
@@ -442,6 +450,8 @@ bool DeferredRenderer::build() {
                 ZoneScopedN("DeferredRenderer/Lighting/Execute");
                 TracyVkZone(context.tracy, context.command, "DeferredRenderer/Lighting");
 
+                std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
+
                 const std::vector<DirectionalLightComponent> &directionals = scene->getComponentArray<DirectionalLightComponent>();
                 const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
                 const std::vector<SpotLightComponent> &spots = scene->getComponentArray<SpotLightComponent>();
@@ -558,14 +568,19 @@ bool DeferredRenderer::build() {
     return success;
 }
 
-const RenderGraph &DeferredRenderer::getGraph() const {
-    return m_Graph;
-}
-
 bool DeferredRenderer::destroy() {
     m_Info.window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
 
     return true;
+}
+
+bool DeferredRenderer::specialize(const Builtin::RenderPipelineDeferred::Lighting::Specialization &specialization) {
+    return Builtin::RenderPipelineDeferred::Lighting::Resource->specialize(specialization);
+}
+
+
+const RenderGraph &DeferredRenderer::getGraph() const {
+    return m_Graph;
 }
 
 const DeferredRenderer::Info &DeferredRenderer::getInfo() const {
