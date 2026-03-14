@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../resources/defines.hpp"
-#include <filesystem>
 
 namespace Physbuzz {
 
@@ -14,8 +13,7 @@ struct OnResourceDestroy {
 };
 
 struct OnResourceReload {
-    const std::filesystem::path &filePath;
-    WatchAction action;
+    const ResourceID &identifier;
 };
 
 } // namespace Physbuzz

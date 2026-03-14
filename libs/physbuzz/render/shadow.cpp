@@ -211,7 +211,7 @@ bool ShadowRenderer::build() {
                 ZoneScopedN("ShadowRenderer/Directional/Execute");
                 TracyVkZone(context.tracy, context.command, "ShadowRenderer/Directional");
 
-                std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = Builtin::RenderPipelineShadow::Directional::ResourceAttachment->getRingData()[context.frameInFlight].view,
@@ -289,7 +289,7 @@ bool ShadowRenderer::build() {
                 ZoneScopedN("ShadowRenderer/Point/Execute");
                 TracyVkZone(context.tracy, context.command, "ShadowRenderer/Point");
 
-                std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = Builtin::RenderPipelineShadow::Point::ResourceAttachment->getRingData()[context.frameInFlight].view,

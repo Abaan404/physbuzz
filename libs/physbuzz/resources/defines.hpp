@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <efsw/efsw.hpp>
+#include <filesystem>
 #include <string>
 #include <type_traits>
 
@@ -35,6 +36,13 @@ concept ResourceDestructibleType =
     ResourceType<T> &&
     requires(T a, Args... args) {
         { a.destroy(args...) } -> std::same_as<bool>;
+    };
+
+template <typename T>
+concept IsResourceFilesystem =
+    ResourceType<T> &&
+    requires(T a, std::filesystem::path path, WatchAction action) {
+        { a.reload(action, path) } -> std::same_as<bool>;
     };
 
 } // namespace Physbuzz

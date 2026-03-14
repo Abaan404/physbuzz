@@ -106,7 +106,7 @@ bool SkyboxRenderer::build() {
                 ZoneScopedN("SkyboxRenderer/Execute");
                 TracyVkZone(context.tracy, context.command, "SkyboxRenderer");
 
-                std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth->getRingData()[context.frameInFlight].view,

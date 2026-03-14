@@ -88,14 +88,6 @@ add_executable(game ${SRCS})
 
 target_link_libraries(game PRIVATE physbuzz imgui)
 
-# resources
-set(RESOURCES_PATH "${CMAKE_SOURCE_DIR}/resources")
-add_custom_command(
-  TARGET game
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/resources
-          $<TARGET_FILE_DIR:game>/resources)
-
 # tests
 set(TEST_PATH "tests")
 file(GLOB_RECURSE TESTS_SRCS "${TEST_PATH}/*.cpp")

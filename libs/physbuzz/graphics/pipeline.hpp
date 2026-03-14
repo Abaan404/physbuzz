@@ -128,6 +128,8 @@ class RenderPipeline {
     bool build();
     bool destroy();
 
+    bool reload(WatchAction action, const std::filesystem::path &path);
+
     template <typename T>
     bool specialize(const T &data) {
         std::span<const std::byte> bytes = std::as_bytes(std::span(&data, 1));
@@ -141,8 +143,6 @@ class RenderPipeline {
 
     const Info &getInfo() const;
 
-    inline static std::mutex ReloadMutex;
-
   private:
     std::optional<vk::Pipeline> createSpecializedPipeline(const std::span<const std::byte> &specializationData);
 
@@ -155,10 +155,6 @@ class RenderPipeline {
     std::size_t m_ActivePipeline = -1u;
 
     std::unordered_set<std::filesystem::path> m_DependencyFilePaths;
-
-    struct {
-        EventID reload = -1;
-    } m_Events;
 
     friend class PipelineLayoutAllocator;
 };

@@ -80,7 +80,10 @@ class ResourceRegistry {
         Events.clearCallbacks();
     }
 
-    inline static void watch() {
+    inline static void watch()
+        requires IsResourceFilesystem<T>
+    {
+
         if (m_WatchID != -1) {
             return;
         }
@@ -89,7 +92,10 @@ class ResourceRegistry {
         m_Watcher.watch();
     }
 
-    inline static bool setResourceDirectory(const std::filesystem::path &directory) {
+    inline static bool setResourceDirectory(const std::filesystem::path &directory)
+        requires IsResourceFilesystem<T>
+    {
+
         if (!std::filesystem::is_directory(directory)) {
             Logger::ERROR("[ResourceRegistry] path {} is not a directory.", directory.string());
             return false;
@@ -105,11 +111,15 @@ class ResourceRegistry {
         return true;
     }
 
-    inline static const std::filesystem::path &getResourceDirectory() {
+    inline static const std::filesystem::path &getResourceDirectory()
+        requires IsResourceFilesystem<T>
+    {
         return m_ResourceDirectory;
     }
 
     static inline EventSubject Events;
+
+    inline static std::mutex ReloadMutex;
 
   private:
     inline static std::unordered_map<ResourceID, T> m_Registry;
@@ -120,14 +130,21 @@ class ResourceRegistry {
     inline static class : public efsw::FileWatchListener {
       public:
         void handleFileAction(efsw::WatchID id, const std::string &directory, const std::string &filename, efsw::Action action, std::string) override {
+            if constexpr (!IsResourceFilesystem<T>) {
+                return;
+            }
+
             if (id != m_WatchID) {
                 return;
             }
 
-            Events.notifyCallbacks<OnResourceReload>({
-                .filePath = directory + filename,
-                .action = static_cast<WatchAction>(action),
-            });
+            for (auto &[identifier, resource] : m_Registry) {
+                if (resource.reload(static_cast<WatchAction>(action), directory + filename)) {
+                    Events.notifyCallbacks<OnResourceReload>({
+                        .identifier = identifier,
+                    });
+                }
+            }
         }
     } m_Listener;
 

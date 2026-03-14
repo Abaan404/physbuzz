@@ -188,7 +188,7 @@ bool ForwardRenderer::build() {
                 ZoneScopedN("ForwardRenderer/Execute");
                 TracyVkZone(context.tracy, context.command, "ForwardRenderer");
 
-                std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth->getRingData()[context.frameInFlight].view,

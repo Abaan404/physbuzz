@@ -30,33 +30,6 @@ bool RenderPipeline::build() {
         return false;
     }
 
-    m_Events = {
-        .reload = ResourceRegistry<RenderPipeline>::Events.addCallback<OnResourceReload>([this](const OnResourceReload &event) {
-            // FIXME this capture is invalid after a move
-            // if (event.action != WatchAction::Modified || !m_DependencyFilePaths.contains(event.filePath)) {
-            //     return;
-            // }
-            //
-            // Logger::INFO("[RenderPipeline] Reloading shader '{}' ({}).", m_Info.module, event.filePath.string());
-            // ResourceRegistry<RenderPipeline>::Events.eraseCallback<OnResourceReload>(m_Events.reload);
-            //
-            // RenderPipeline newPipeline = m_Info;
-            // newPipeline.build();
-            //
-            // {
-            //     std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
-            //     App::Deletion.enqueue(std::move(this));
-            //
-            //     m_Layout = nullptr;
-            //     m_Pipelines = {};
-            //     m_Specializations = {};
-            //     m_ActivePipeline = -1;
-            //
-            //     build();
-            // }
-        }),
-    };
-
     return true;
 }
 
@@ -65,8 +38,6 @@ bool RenderPipeline::destroy() {
         Logger::WARNING("[ShaderPipeline] Trying to destroy a destructed pipeline.");
         return true;
     }
-
-    ResourceRegistry<RenderPipeline>::Events.eraseCallback<OnResourceReload>(m_Events.reload);
 
     App::Device.destroyPipelineLayout(m_Layout);
     m_Layout = nullptr;
@@ -78,6 +49,32 @@ bool RenderPipeline::destroy() {
     m_Pipelines = {};
     m_Specializations = {};
     m_ActivePipeline = -1;
+
+    return true;
+}
+
+bool RenderPipeline::reload(WatchAction action, const std::filesystem::path &path) {
+    if (action != WatchAction::Modified) {
+        return false;
+    }
+
+    if (!m_DependencyFilePaths.contains(path)) {
+        return false;
+    }
+
+    Logger::DEBUG("[RenderPipeline] Reloading module '{}'.", m_Info.module);
+
+    RenderPipeline pipeline = m_Info;
+    if (!pipeline.build()) {
+        return false;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
+        App::Deletion.enqueue(std::move(*this));
+
+        *this = std::move(pipeline);
+    }
 
     return true;
 }

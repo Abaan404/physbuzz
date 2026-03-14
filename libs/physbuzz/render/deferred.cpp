@@ -298,7 +298,7 @@ bool DeferredRenderer::build() {
                 ZoneScopedN("DeferredRenderer/GBuffer/Execute");
                 TracyVkZone(context.tracy, context.command, "DeferredRenderer/GBuffer");
 
-                std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
 
                 std::array gBuffers = {
                     Resource<Attachment>("builtin/deferred/gBuffer0"),
@@ -450,7 +450,7 @@ bool DeferredRenderer::build() {
                 ZoneScopedN("DeferredRenderer/Lighting/Execute");
                 TracyVkZone(context.tracy, context.command, "DeferredRenderer/Lighting");
 
-                std::lock_guard<std::mutex> lock(RenderPipeline::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
 
                 const std::vector<DirectionalLightComponent> &directionals = scene->getComponentArray<DirectionalLightComponent>();
                 const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
