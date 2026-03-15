@@ -80,7 +80,7 @@ Transfer::Transfer(const Info &info)
 bool Transfer::build() {
     m_Command.pool = PBZ_VK_CHECK(App::Device.createCommandPool({
         .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-        .queueFamilyIndex = App::Indices.transfer,
+        .queueFamilyIndex = App::Indices.graphics,
     }));
 
     m_Fences.submit = PBZ_VK_CHECK(App::Device.createFence({
@@ -144,7 +144,7 @@ void Transfer::submit(
             .pCommandBuffers = &submit,
         };
 
-        PBZ_VK_CHECK_RESULT(App::Queues.transfer.submit(submitInfo, m_Fences.submit));
+        PBZ_VK_CHECK_RESULT(App::Queues.graphics.submit(submitInfo, m_Fences.submit));
 
         // wait for submission
         PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
@@ -231,7 +231,7 @@ void Transfer::submit(
             .pCommandBuffers = &submit,
         };
 
-        PBZ_VK_CHECK_RESULT(App::Queues.transfer.submit(submitInfo, m_Fences.submit));
+        PBZ_VK_CHECK_RESULT(App::Queues.graphics.submit(submitInfo, m_Fences.submit));
 
         // wait for submission
         PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.submit, vk::True, std::numeric_limits<std::uint64_t>::max()));
@@ -254,7 +254,7 @@ void Transfer::submit(const TransferBatch &batch) {
             ZoneScopedN("Transfer/Mesh");
             vk::BufferMemoryBarrier2 barrier = {
                 .srcStageMask = vk::PipelineStageFlagBits2::eHost,
-                .srcAccessMask = vk::AccessFlagBits2::eNone,
+                .srcAccessMask = vk::AccessFlagBits2::eHostWrite,
                 .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
                 .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
                 .buffer = write.buffer.getData().buffer,
@@ -290,7 +290,7 @@ void Transfer::submit(const TransferBatch &batch) {
 
             vk::ImageMemoryBarrier2 barrierPre = {
                 .srcStageMask = vk::PipelineStageFlagBits2::eHost,
-                .srcAccessMask = vk::AccessFlagBits2::eHostRead,
+                .srcAccessMask = vk::AccessFlagBits2::eHostWrite,
                 .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
                 .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
                 .oldLayout = vk::ImageLayout::eUndefined,
@@ -315,18 +315,97 @@ void Transfer::submit(const TransferBatch &batch) {
                 return 0ul;
             }
 
+            glm::ivec2 mipResolution = {imageData.imageInfo.extent.width, imageData.imageInfo.extent.height};
+
+            for (uint32_t i = 1; i < imageInfo.mipLevels; i++) {
+                vk::ImageMemoryBarrier2 barrierPre = {
+                    .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                    .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                    .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                    .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+                    .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+                    .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+                    .image = imageData.image,
+                    .subresourceRange = {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .baseMipLevel = i - 1,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = imageInfo.arrayLayers,
+                    },
+                };
+
+                submit.pipelineBarrier2({
+                    .imageMemoryBarrierCount = 1,
+                    .pImageMemoryBarriers = &barrierPre,
+                });
+
+                glm::ivec2 nextMipResolution = glm::max(glm::ivec2{1}, mipResolution / 2);
+
+                vk::ImageBlit2 blit = {
+                    .srcSubresource = {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .mipLevel = i - 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = imageInfo.arrayLayers,
+                    },
+                    .srcOffsets = {{vk::Offset3D{0, 0, 0}, vk::Offset3D{mipResolution.x, mipResolution.y, 1}}},
+                    .dstSubresource = {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .mipLevel = i,
+                        .baseArrayLayer = 0,
+                        .layerCount = imageInfo.arrayLayers,
+                    },
+                    .dstOffsets = {{vk::Offset3D{0, 0, 0}, vk::Offset3D{nextMipResolution.x, nextMipResolution.y, 1}}},
+                };
+
+                submit.blitImage2({
+                    .srcImage = imageData.image,
+                    .srcImageLayout = vk::ImageLayout::eTransferSrcOptimal,
+                    .dstImage = imageData.image,
+                    .dstImageLayout = vk::ImageLayout::eTransferDstOptimal,
+                    .regionCount = 1,
+                    .pRegions = &blit,
+                    .filter = vk::Filter::eLinear,
+                });
+
+                vk::ImageMemoryBarrier2 barrierPost = {
+                    .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                    .srcAccessMask = vk::AccessFlagBits2::eTransferRead,
+                    .dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader,
+                    .dstAccessMask = vk::AccessFlagBits2::eShaderSampledRead,
+                    .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+                    .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                    .image = imageData.image,
+                    .subresourceRange = {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .baseMipLevel = i - 1,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = imageInfo.arrayLayers,
+                    },
+                };
+
+                submit.pipelineBarrier2({
+                    .imageMemoryBarrierCount = 1,
+                    .pImageMemoryBarriers = &barrierPost,
+                });
+
+                mipResolution = nextMipResolution;
+            }
+
             vk::ImageMemoryBarrier2 barrierPost = {
                 .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
                 .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-                .dstStageMask = vk::PipelineStageFlagBits2::eNone,
-                .dstAccessMask = vk::AccessFlagBits2::eNone,
+                .dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader,
+                .dstAccessMask = vk::AccessFlagBits2::eShaderSampledRead,
                 .oldLayout = vk::ImageLayout::eTransferDstOptimal,
                 .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
                 .image = imageData.image,
                 .subresourceRange = {
                     .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .baseMipLevel = 0,
-                    .levelCount = imageInfo.mipLevels,
+                    .baseMipLevel = imageInfo.mipLevels - 1,
+                    .levelCount = 1,
                     .baseArrayLayer = 0,
                     .layerCount = imageInfo.arrayLayers,
                 },
@@ -369,7 +448,7 @@ void Transfer::submit(const TransferBatch &batch) {
 
             vk::ImageMemoryBarrier2 barrierPre = {
                 .srcStageMask = vk::PipelineStageFlagBits2::eHost,
-                .srcAccessMask = vk::AccessFlagBits2::eHostRead,
+                .srcAccessMask = vk::AccessFlagBits2::eHostWrite,
                 .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
                 .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
                 .oldLayout = vk::ImageLayout::eUndefined,
@@ -394,18 +473,97 @@ void Transfer::submit(const TransferBatch &batch) {
                 return 0ul;
             }
 
+            glm::ivec2 mipResolution = {imageData.imageInfo.extent.width, imageData.imageInfo.extent.height};
+
+            for (uint32_t i = 1; i < imageInfo.mipLevels; i++) {
+                vk::ImageMemoryBarrier2 barrierPre = {
+                    .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                    .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                    .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                    .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+                    .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+                    .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+                    .image = imageData.image,
+                    .subresourceRange = {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .baseMipLevel = i - 1,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = imageInfo.arrayLayers,
+                    },
+                };
+
+                submit.pipelineBarrier2({
+                    .imageMemoryBarrierCount = 1,
+                    .pImageMemoryBarriers = &barrierPre,
+                });
+
+                glm::ivec2 nextMipResolution = glm::max(glm::ivec2{1}, mipResolution / 2);
+
+                vk::ImageBlit2 blit = {
+                    .srcSubresource = {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .mipLevel = i - 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = imageInfo.arrayLayers,
+                    },
+                    .srcOffsets = {{vk::Offset3D{0, 0, 0}, vk::Offset3D{mipResolution.x, mipResolution.y, 1}}},
+                    .dstSubresource = {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .mipLevel = i,
+                        .baseArrayLayer = 0,
+                        .layerCount = imageInfo.arrayLayers,
+                    },
+                    .dstOffsets = {{vk::Offset3D{0, 0, 0}, vk::Offset3D{nextMipResolution.x, nextMipResolution.y, 1}}},
+                };
+
+                submit.blitImage2({
+                    .srcImage = imageData.image,
+                    .srcImageLayout = vk::ImageLayout::eTransferSrcOptimal,
+                    .dstImage = imageData.image,
+                    .dstImageLayout = vk::ImageLayout::eTransferDstOptimal,
+                    .regionCount = 1,
+                    .pRegions = &blit,
+                    .filter = vk::Filter::eLinear,
+                });
+
+                vk::ImageMemoryBarrier2 barrierPost = {
+                    .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                    .srcAccessMask = vk::AccessFlagBits2::eTransferRead,
+                    .dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader,
+                    .dstAccessMask = vk::AccessFlagBits2::eShaderSampledRead,
+                    .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+                    .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                    .image = imageData.image,
+                    .subresourceRange = {
+                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+                        .baseMipLevel = i - 1,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = imageInfo.arrayLayers,
+                    },
+                };
+
+                submit.pipelineBarrier2({
+                    .imageMemoryBarrierCount = 1,
+                    .pImageMemoryBarriers = &barrierPost,
+                });
+
+                mipResolution = nextMipResolution;
+            }
+
             vk::ImageMemoryBarrier2 barrierPost = {
                 .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
                 .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-                .dstStageMask = vk::PipelineStageFlagBits2::eNone,
-                .dstAccessMask = vk::AccessFlagBits2::eNone,
+                .dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader,
+                .dstAccessMask = vk::AccessFlagBits2::eShaderSampledRead,
                 .oldLayout = vk::ImageLayout::eTransferDstOptimal,
                 .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
                 .image = imageData.image,
                 .subresourceRange = {
                     .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .baseMipLevel = 0,
-                    .levelCount = imageInfo.mipLevels,
+                    .baseMipLevel = imageInfo.mipLevels - 1,
+                    .levelCount = 1,
                     .baseArrayLayer = 0,
                     .layerCount = imageInfo.arrayLayers,
                 },

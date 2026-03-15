@@ -21,11 +21,14 @@ bool Texture::build(const glm::uvec3 &resolution) {
         return false;
     }
 
+    std::uint32_t mipLevels = std::floor(std::log2(std::max(resolution.x, resolution.y))) + 1;
+
     switch (m_Info.type) {
     case Type::Dim2D:
         image = {{
             .usage = Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
             .type = Image::Type::e2D,
+            .mipLevels = mipLevels,
             .format = m_Info.format,
         }};
         break;
@@ -34,6 +37,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
         image = {{
             .usage = Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
             .type = Image::Type::e2D,
+            .mipLevels = mipLevels,
             .arrayLayers = 6,
             .flags = Image::FlagBits::eCubeCompatible,
             .format = m_Info.format,
@@ -140,7 +144,7 @@ std::tuple<vk::ImageView, vk::ImageSubresourceRange> Texture::createImageView(co
         subresourceRange = {
             .aspectMask = vk::ImageAspectFlagBits::eColor,
             .baseMipLevel = 0,
-            .levelCount = 1,
+            .levelCount = image.getInfo().mipLevels,
             .baseArrayLayer = 0,
             .layerCount = 1,
         };
@@ -151,7 +155,7 @@ std::tuple<vk::ImageView, vk::ImageSubresourceRange> Texture::createImageView(co
         subresourceRange = {
             .aspectMask = vk::ImageAspectFlagBits::eColor,
             .baseMipLevel = 0,
-            .levelCount = 1,
+            .levelCount = image.getInfo().mipLevels,
             .baseArrayLayer = 0,
             .layerCount = 6,
         };
