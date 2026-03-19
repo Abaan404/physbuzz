@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../resources/defines.hpp"
-#include "memory.hpp"
+#include "descriptors/static.hpp"
 
 namespace Physbuzz {
 
@@ -54,13 +54,13 @@ class Mesh {
     struct SubMesh {
         std::uint32_t indexCount;
         std::uint32_t firstIndex;
-        std::uint32_t vertexOffset;
+        std::int32_t vertexOffset;
     };
 
     struct Info {
         const VertexDescription *description;
-        std::uint64_t vertexCount;
-        std::uint64_t indexCount;
+        std::uint32_t vertexCount;
+        std::uint32_t indexCount;
 
         std::vector<SubMesh> submeshes;
     };
@@ -86,21 +86,20 @@ class Mesh {
 
     bool write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&indices, TransferBatch &batch);
 
-    void draw(const RenderContext &context, std::uint32_t instanceCount, std::uint32_t meshOffset) const;
+    void bind(const RenderContext &context) const;
+    [[deprecated]] void draw(const RenderContext &context, std::uint32_t instanceCount, std::uint32_t meshOffset) const;
 
     const Info &getInfo() const;
 
   private:
     Info m_Info;
 
-    Buffer m_Vertices = {{
-        .usage = Buffer::UsageFlagBits::eVertexBuffer | Buffer::UsageFlagBits::eTransferDst,
-        .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+    StaticBuffer m_Vertices = {{
+        .type = StaticBuffer::Type::Vertex,
     }};
 
-    Buffer m_Indices = {{
-        .usage = Buffer::UsageFlagBits::eIndexBuffer | Buffer::UsageFlagBits::eTransferDst,
-        .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+    StaticBuffer m_Indices = {{
+        .type = StaticBuffer::Type::Index,
     }};
 };
 

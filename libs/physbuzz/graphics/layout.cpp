@@ -141,6 +141,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
         type = vk::DescriptorType::eUniformBuffer;
         break;
 
+    case DynamicBuffer::Type::Indirect:
     case DynamicBuffer::Type::Structured:
         type = vk::DescriptorType::eStorageBuffer;
         break;
@@ -463,6 +464,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
         type = vk::DescriptorType::eUniformBuffer;
         break;
 
+    case DynamicBuffer::Type::Indirect:
     case DynamicBuffer::Type::Structured:
         type = vk::DescriptorType::eStorageBuffer;
         break;

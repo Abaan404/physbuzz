@@ -55,20 +55,27 @@ bool Mesh::destroy() {
 bool Mesh::write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&indices, TransferBatch &batch) {
     bool success = true;
 
-    success &= batch.add(m_Vertices, std::move(vertices), 0);
-    success &= batch.add(m_Indices, std::move(indices), 0);
+    success &= batch.add(m_Vertices.getData().buffer, std::move(vertices), 0);
+    success &= batch.add(m_Indices.getData().buffer, std::move(indices), 0);
 
     return success;
+}
+
+void Mesh::bind(const RenderContext &context) const {
+    ZoneScopedN("Mesh/Draw");
+
+    context.command.bindVertexBuffers(0, m_Vertices.getData().buffer.getData().buffer, {0});
+    context.command.bindIndexBuffer(m_Indices.getData().buffer.getData().buffer, 0, vk::IndexType::eUint32);
 }
 
 void Mesh::draw(const RenderContext &context, std::uint32_t instanceCount, std::uint32_t meshOffset) const {
     ZoneScopedN("Mesh/Draw");
 
-    const Buffer::Data &vertices = m_Vertices.getData();
-    const Buffer::Data &indices = m_Indices.getData();
+    const StaticBuffer::Data &vertices = m_Vertices.getData();
+    const StaticBuffer::Data &indices = m_Indices.getData();
 
-    context.command.bindVertexBuffers(0, vertices.buffer, {0});
-    context.command.bindIndexBuffer(indices.buffer, 0, vk::IndexType::eUint32);
+    context.command.bindVertexBuffers(0, m_Vertices.getData().buffer.getData().buffer, {0});
+    context.command.bindIndexBuffer(m_Indices.getData().buffer.getData().buffer, 0, vk::IndexType::eUint32);
 
     for (std::size_t submeshIdx = 0; submeshIdx < m_Info.submeshes.size(); submeshIdx++) {
         const SubMesh &submesh = m_Info.submeshes[submeshIdx];

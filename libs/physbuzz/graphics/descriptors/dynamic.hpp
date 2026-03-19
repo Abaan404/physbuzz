@@ -15,6 +15,7 @@ class DynamicBuffer : public EventSubject {
         Structured,
         ConstantDynamic,
         StructuredDynamic,
+        Indirect,
     };
 
     struct Info {

@@ -167,6 +167,10 @@ bool RenderGraph::compile() {
             // select pipeline stage flags
             vk::PipelineStageFlags2 nextStage = {};
             switch (desc.stage) {
+            case RenderNode::Stage::Indirect:
+                nextStage = vk::PipelineStageFlagBits2::eDrawIndirect;
+                break;
+
             case RenderNode::Stage::Vertex:
                 nextStage = vk::PipelineStageFlagBits2::eVertexShader;
                 break;
@@ -194,11 +198,16 @@ bool RenderGraph::compile() {
             // read buffers
             if (node.description.buffers.input.contains(buffer)) {
                 switch (desc.stage) {
+                case RenderNode::Stage::Indirect:
                 case RenderNode::Stage::Vertex:
                 case RenderNode::Stage::Fragment:
                 case RenderNode::Stage::Graphics:
                 case RenderNode::Stage::Compute:
                     switch (buffer->getInfo().type) {
+                    case DynamicBuffer::Type::Indirect:
+                        nextAccess |= vk::AccessFlagBits2::eIndirectCommandRead;
+                        break;
+
                     case DynamicBuffer::Type::Constant:
                     case DynamicBuffer::Type::ConstantDynamic:
                         nextAccess |= vk::AccessFlagBits2::eUniformRead;
@@ -220,6 +229,7 @@ bool RenderGraph::compile() {
             // write buffers
             if (node.description.buffers.output.contains(buffer)) {
                 switch (desc.stage) {
+                case RenderNode::Stage::Indirect:
                 case RenderNode::Stage::Vertex:
                 case RenderNode::Stage::Fragment:
                 case RenderNode::Stage::Graphics:
@@ -230,6 +240,7 @@ bool RenderGraph::compile() {
                         Logger::ERROR("[RenderGraph] Cannot write to a uniform buffer");
                         return false;
 
+                    case DynamicBuffer::Type::Indirect:
                     case DynamicBuffer::Type::Structured:
                     case DynamicBuffer::Type::StructuredDynamic:
                         nextAccess |= vk::AccessFlagBits2::eShaderStorageWrite;
@@ -295,6 +306,10 @@ bool RenderGraph::compile() {
             // read attachment
             if (node.description.attachments.input.contains(attachment)) {
                 switch (desc.stage) {
+                case RenderNode::Stage::Indirect:
+                    Logger::ERROR("[RenderGraph] Cannot use attachment in Indirect stage.");
+                    return false;
+
                 case RenderNode::Stage::Vertex:
                 case RenderNode::Stage::Compute:
                     Logger::ERROR("[RenderGraph] Cannot use attachment in Vertex or Compute stage.");
@@ -352,6 +367,10 @@ bool RenderGraph::compile() {
             // write attachment
             if (node.description.attachments.output.contains(attachment)) {
                 switch (desc.stage) {
+                case RenderNode::Stage::Indirect:
+                    Logger::ERROR("[RenderGraph] Cannot use attachment in Indirect stage.");
+                    return false;
+
                 case RenderNode::Stage::Vertex:
                 case RenderNode::Stage::Compute:
                     Logger::ERROR("[RenderGraph] Cannot use attachment in Vertex or Compute stage.");

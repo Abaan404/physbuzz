@@ -8,7 +8,8 @@
 
 namespace Physbuzz {
 
-StaticBuffer::StaticBuffer() {}
+StaticBuffer::StaticBuffer(const Info &info)
+    : m_Info(info) {}
 
 bool StaticBuffer::build(std::uint64_t size) {
     if (m_Data.address != 0) {
@@ -16,9 +17,22 @@ bool StaticBuffer::build(std::uint64_t size) {
         return true;
     }
 
+    Buffer::UsageFlagBits usage = {};
+
+    switch (m_Info.type) {
+    case Type::Vertex:
+        usage = Buffer::UsageFlagBits::eVertexBuffer;
+        break;
+    case Type::Index:
+        usage = Buffer::UsageFlagBits::eIndexBuffer;
+        break;
+    case Type::None:
+        break;
+    }
+
     Buffer buffer = {{
-        .usage = Buffer::UsageFlagBits::eTransferSrc | Buffer::UsageFlagBits::eTransferDst | Buffer::UsageFlagBits::eShaderDeviceAddress,
-        .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
+        .usage = usage | Buffer::UsageFlagBits::eTransferSrc | Buffer::UsageFlagBits::eTransferDst | Buffer::UsageFlagBits::eShaderDeviceAddress,
+        .memoryUsage = Buffer::MemoryUsage::GPUOnly,
     }};
 
     if (!buffer.build(size)) {

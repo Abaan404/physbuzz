@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ecs/system.hpp"
-#include "../graphics/rendergraph.hpp"
+#include "../graphics/renderstate.hpp"
 #include "../window/window.hpp"
 #include "defines.hpp"
 
@@ -25,8 +25,6 @@ struct PushConstants {
 struct Specialization {
     std::uint32_t enableShadows;
 };
-
-inline Resource<DynamicBuffer> ResourceModel = {"builtin/forward/model"};
 
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/forward/frame"};
 
@@ -61,7 +59,10 @@ class ForwardRenderer : public System<RenderComponent> {
   private:
     Info m_Info;
 
-    std::vector<std::tuple<Resource<Mesh>, std::size_t>> m_Batches;
+    RenderState m_State = {{
+        .instanceBufferId = "builtin/forward/instance",
+        .indirectBufferId = "builtin/forward/indirect",
+    }};
 
     RenderGraph m_Graph = {{
         .output = Output,

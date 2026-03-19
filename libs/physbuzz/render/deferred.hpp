@@ -2,7 +2,7 @@
 
 #include "../ecs/system.hpp"
 #include "../graphics/pipeline.hpp"
-#include "../graphics/rendergraph.hpp"
+#include "../graphics/renderstate.hpp"
 #include "../resources/resource.hpp"
 #include "../window/window.hpp"
 #include "defines.hpp"
@@ -18,8 +18,6 @@ namespace Geometry {
 struct PushConstants {
     std::uint64_t materialBaseAddress;
 };
-
-inline Resource<DynamicBuffer> ResourceModel = {"builtin/deferred/geometry/model"};
 
 inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/deferred/geometry/frame"};
 
@@ -84,7 +82,10 @@ class DeferredRenderer : public System<RenderComponent> {
   private:
     Info m_Info;
 
-    std::vector<std::tuple<Resource<Mesh>, std::size_t>> m_Batches;
+    RenderState m_State = {{
+        .instanceBufferId = "builtin/deferred/instance",
+        .indirectBufferId = "builtin/deferred/indirect",
+    }};
 
     RenderGraph m_Graph = {{
         .output = Output,

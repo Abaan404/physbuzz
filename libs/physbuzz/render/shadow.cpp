@@ -4,7 +4,6 @@
 #include "../ecs/scene.hpp"
 #include "../graphics/layout.hpp"
 #include "nodes/lights.hpp"
-#include "nodes/models.hpp"
 #include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
@@ -17,15 +16,6 @@ bool RenderPipelineShadow::Directional::build(const glm::uvec2 &resolution) {
     }
 
     bool success = true;
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceModel)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceModel,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(RenderNodeModels::ModelBuffer));
-    }
 
     if (!ResourceRegistry<Attachment>::contains(ResourceAttachment)) {
         success &= ResourceRegistry<Attachment>::insert(
@@ -92,15 +82,6 @@ bool RenderPipelineShadow::Point::build(const glm::uvec2 &resolution) {
     }
 
     bool success = true;
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceModel)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceModel,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(RenderNodeModels::ModelBuffer));
-    }
 
     if (!ResourceRegistry<Attachment>::contains(ResourceAttachment)) {
         success &= ResourceRegistry<Attachment>::insert(
@@ -173,8 +154,10 @@ bool ShadowRenderer::build() {
     success &= Builtin::RenderPipelineShadow::Directional::build(m_Info.resolution);
     success &= Builtin::RenderPipelineShadow::Point::build(m_Info.resolution);
 
-    m_Graph.add("builtin/shadow/models", Builtin::RenderNodeModels::build(Builtin::RenderPipelineShadow::ResourceModel, m_Objects, m_Batches));
+    m_State.build(m_Objects);
+
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
+    m_Graph.add("builtin/models", m_State.getRenderNode());
 
     m_Graph.add(
         Output2D,
@@ -183,9 +166,15 @@ bool ShadowRenderer::build() {
                 .buffers = {
                     .input = {
                         {
-                            Builtin::RenderPipelineShadow::ResourceModel,
+                            m_State.getInfo().instanceBufferId,
                             {
                                 .stage = RenderNode::Stage::Vertex,
+                            },
+                        },
+                        {
+                            m_State.getInfo().indirectBufferId,
+                            {
+                                .stage = RenderNode::Stage::Indirect,
                             },
                         },
                         {
@@ -239,16 +228,8 @@ bool ShadowRenderer::build() {
                 Builtin::RenderPipelineShadow::Directional::Resource->bind(context);
                 App::LayoutAllocator.bind(context, Builtin::RenderPipelineShadow::Directional::Resource);
 
-                std::uint32_t meshOffset = 0;
-                for (const auto &[mesh, instances] : m_Batches) {
-                    if (mesh->getInfo().description != Builtin::RenderPipelineShadow::Directional::Resource->getInfo().description) {
-                        Logger::ERROR("[ShadowRenderer] Incompatible vertex state descriptions.");
-                        continue;
-                    }
-
-                    mesh->draw(context, instances, meshOffset);
-                    meshOffset += instances * mesh->getInfo().submeshes.size();
-                }
+                // draw
+                m_State.draw(context);
 
                 context.command.endRendering();
             },
@@ -261,9 +242,15 @@ bool ShadowRenderer::build() {
                 .buffers = {
                     .input = {
                         {
-                            Builtin::RenderPipelineShadow::ResourceModel,
+                            m_State.getInfo().instanceBufferId,
                             {
                                 .stage = RenderNode::Stage::Vertex,
+                            },
+                        },
+                        {
+                            m_State.getInfo().indirectBufferId,
+                            {
+                                .stage = RenderNode::Stage::Indirect,
                             },
                         },
                         {
@@ -317,16 +304,8 @@ bool ShadowRenderer::build() {
                 Builtin::RenderPipelineShadow::Point::Resource->bind(context);
                 App::LayoutAllocator.bind(context, Builtin::RenderPipelineShadow::Point::Resource);
 
-                std::uint32_t meshOffset = 0;
-                for (const auto &[mesh, instances] : m_Batches) {
-                    if (mesh->getInfo().description != Builtin::RenderPipelineShadow::Point::Resource->getInfo().description) {
-                        Logger::ERROR("[ShadowRenderer] Incompatible vertex state descriptions.");
-                        continue;
-                    }
-
-                    mesh->draw(context, instances, meshOffset);
-                    meshOffset += instances * mesh->getInfo().submeshes.size();
-                }
+                // draw
+                m_State.draw(context);
 
                 context.command.endRendering();
             },
@@ -340,7 +319,7 @@ bool ShadowRenderer::build() {
 
         App::LayoutAllocator.write(
             Builtin::RenderPipelineShadow::Directional::ResourceLayoutFrame,
-            Builtin::RenderPipelineShadow::ResourceModel,
+            Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
             1);
 
         App::LayoutAllocator.write(
@@ -350,7 +329,7 @@ bool ShadowRenderer::build() {
 
         App::LayoutAllocator.write(
             Builtin::RenderPipelineShadow::Point::ResourceLayoutFrame,
-            Builtin::RenderPipelineShadow::ResourceModel,
+            Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
             1);
     }
 

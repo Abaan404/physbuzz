@@ -65,7 +65,7 @@ class MaterialAllocator {
     std::vector<Builtin::LayoutMaterial::MaterialBuffer> m_Buffer;
     bool m_BufferIsDirty;
 
-    StaticBuffer m_MaterialBuffer;
+    StaticBuffer m_MaterialBuffer = {{}};
 
     struct {
         EventID build = -1;

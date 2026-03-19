@@ -13,6 +13,7 @@ using RenderNodeID = std::string;
 
 struct RenderNode {
     enum class Stage {
+        Indirect,
         Vertex,
         Fragment,
         Graphics,

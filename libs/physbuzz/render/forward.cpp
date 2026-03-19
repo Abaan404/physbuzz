@@ -10,7 +10,6 @@
 #include "components/lights.hpp"
 #include "nodes/camera.hpp"
 #include "nodes/lights.hpp"
-#include "nodes/models.hpp"
 #include "shadow.hpp"
 #include <tracy/Tracy.hpp>
 
@@ -24,15 +23,6 @@ bool RenderPipelineForward::build() {
     }
 
     bool success = true;
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceModel)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceModel,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(RenderNodeModels::ModelBuffer));
-    }
 
     if (!ResourceRegistry<PipelineLayout>::contains(LayoutMaterial::Resource)) {
         success &= LayoutMaterial::build();
@@ -125,9 +115,11 @@ bool ForwardRenderer::build() {
         }),
     };
 
+    m_State.build(m_Objects);
+
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
-    m_Graph.add("builtin/models", Builtin::RenderNodeModels::build(Builtin::RenderPipelineForward::ResourceModel, m_Objects, m_Batches));
+    m_Graph.add("builtin/models", m_State.getRenderNode());
 
     m_Graph.add(
         Output,
@@ -160,9 +152,15 @@ bool ForwardRenderer::build() {
                             },
                         },
                         {
-                            Builtin::RenderPipelineForward::ResourceModel,
+                            m_State.getInfo().instanceBufferId,
                             {
                                 .stage = RenderNode::Stage::Vertex,
+                            },
+                        },
+                        {
+                            m_State.getInfo().indirectBufferId,
+                            {
+                                .stage = RenderNode::Stage::Indirect,
                             },
                         },
                     },
@@ -241,16 +239,7 @@ bool ForwardRenderer::build() {
                 App::LayoutAllocator.bind(context, Builtin::RenderPipelineForward::Resource);
 
                 // draw
-                std::uint32_t meshOffset = 0;
-                for (const auto &[mesh, instanceCount] : m_Batches) {
-                    if (mesh->getInfo().description != Builtin::RenderPipelineForward::Resource->getInfo().description) {
-                        Logger::ERROR("[ForwardRenderer] Incompatible vertex state descriptions.");
-                        continue;
-                    }
-
-                    mesh->draw(context, instanceCount, meshOffset);
-                    meshOffset += instanceCount * mesh->getInfo().submeshes.size();
-                }
+                m_State.draw(context);
 
                 context.command.endRendering();
             },
@@ -283,7 +272,7 @@ bool ForwardRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineForward::ResourceLayoutFrame,
-            Builtin::RenderPipelineForward::ResourceModel,
+            Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
             4);
 
         success &= App::LayoutAllocator.write(
@@ -302,6 +291,9 @@ bool ForwardRenderer::build() {
 
 bool ForwardRenderer::destroy() {
     m_Info.window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
+
+    m_State.destroy();
+
     return true;
 }
 

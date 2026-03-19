@@ -2,8 +2,8 @@
 
 #include "../ecs/system.hpp"
 #include "../graphics/pipeline.hpp"
+#include "../graphics/renderstate.hpp"
 #include "defines.hpp"
-#include "physbuzz/graphics/rendergraph.hpp"
 
 namespace Physbuzz {
 
@@ -35,8 +35,6 @@ bool build(const glm::uvec2 &resolution);
 
 } // namespace Point
 
-inline Resource<DynamicBuffer> ResourceModel = {"builtin/shadow/model"};
-
 } // namespace RenderPipelineShadow
 
 } // namespace Builtin
@@ -64,7 +62,10 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
   private:
     Info m_Info;
 
-    std::vector<std::tuple<Resource<Mesh>, std::size_t>> m_Batches;
+    RenderState m_State = {{
+        .instanceBufferId = "builtin/shadow/instance",
+        .indirectBufferId = "builtin/shadow/indirect",
+    }};
 
     RenderGraph m_Graph = {{}};
 };

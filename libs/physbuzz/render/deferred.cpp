@@ -9,7 +9,6 @@
 #include "components/lights.hpp"
 #include "nodes/camera.hpp"
 #include "nodes/lights.hpp"
-#include "nodes/models.hpp"
 #include "shadow.hpp"
 #include <tracy/Tracy.hpp>
 
@@ -23,15 +22,6 @@ bool RenderPipelineDeferred::Geometry::build() {
     }
 
     bool success = true;
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(ResourceModel)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            ResourceModel,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(RenderNodeModels::ModelBuffer));
-    }
 
     if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
         success &= ResourceRegistry<PipelineLayout>::insert(
@@ -231,9 +221,11 @@ bool DeferredRenderer::build() {
         }),
     };
 
+    m_State.build(m_Objects);
+
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
-    m_Graph.add("builtin/models", Builtin::RenderNodeModels::build(Builtin::RenderPipelineDeferred::Geometry::ResourceModel, m_Objects, m_Batches));
+    m_Graph.add("builtin/models", m_State.getRenderNode());
 
     m_Graph.add(
         "builtin/deferred/gbuffers",
@@ -248,9 +240,15 @@ bool DeferredRenderer::build() {
                             },
                         },
                         {
-                            Builtin::RenderPipelineDeferred::Geometry::ResourceModel,
+                            m_State.getInfo().instanceBufferId,
                             {
-                                .stage = RenderNode::Stage::Graphics,
+                                .stage = RenderNode::Stage::Vertex,
+                            },
+                        },
+                        {
+                            m_State.getInfo().indirectBufferId,
+                            {
+                                .stage = RenderNode::Stage::Indirect,
                             },
                         },
                     },
@@ -364,16 +362,8 @@ bool DeferredRenderer::build() {
                 Builtin::RenderPipelineDeferred::Geometry::Resource->bind(context);
                 App::LayoutAllocator.bind(context, Builtin::RenderPipelineDeferred::Geometry::Resource);
 
-                std::uint32_t meshOffset = 0;
-                for (const auto &[mesh, instanceCount] : m_Batches) {
-                    if (mesh->getInfo().description != Builtin::RenderPipelineDeferred::Geometry::Resource->getInfo().description) {
-                        Logger::ERROR("[DeferredRenderer] Incompatible vertex state descriptions.");
-                        continue;
-                    }
-
-                    mesh->draw(context, instanceCount, meshOffset);
-                    meshOffset += instanceCount * mesh->getInfo().submeshes.size();
-                }
+                // draw
+                m_State.draw(context);
 
                 context.command.endRendering();
             },
@@ -515,7 +505,7 @@ bool DeferredRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::RenderPipelineDeferred::Geometry::ResourceLayoutFrame,
-            Builtin::RenderPipelineDeferred::Geometry::ResourceModel,
+            Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
             1);
 
         // lighting
@@ -577,7 +567,6 @@ bool DeferredRenderer::destroy() {
 bool DeferredRenderer::specialize(const Builtin::RenderPipelineDeferred::Lighting::Specialization &specialization) {
     return Builtin::RenderPipelineDeferred::Lighting::Resource->specialize(specialization);
 }
-
 
 const RenderGraph &DeferredRenderer::getGraph() const {
     return m_Graph;

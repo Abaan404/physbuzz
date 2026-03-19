@@ -10,12 +10,22 @@ struct RenderContext;
 
 class StaticBuffer : public EventSubject {
   public:
+    enum class Type {
+        Vertex,
+        Index,
+        None,
+    };
+
+    struct Info {
+        Type type = Type::None;
+    };
+
     struct Data {
         Buffer buffer = {{}};
         vk::DeviceAddress address = 0;
     };
 
-    StaticBuffer();
+    StaticBuffer(const Info &info);
 
     bool build(std::uint64_t size);
     bool destroy();
@@ -34,6 +44,7 @@ class StaticBuffer : public EventSubject {
     const Data &getData() const;
 
   private:
+    Info m_Info;
     Data m_Data;
 };
 

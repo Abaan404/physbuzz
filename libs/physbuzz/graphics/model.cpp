@@ -210,8 +210,8 @@ Model::MeshResult Model::processMesh(const aiNode *root, const aiScene *aiscene)
 
             result.info.submeshes.emplace_back<Mesh::SubMesh>({
                 .indexCount = static_cast<std::uint32_t>(submesh.indices.size()),
-                .firstIndex = static_cast<std::uint32_t>(result.info.indexCount),
-                .vertexOffset = static_cast<std::uint32_t>(result.info.vertexCount),
+                .firstIndex = result.info.indexCount,
+                .vertexOffset = static_cast<std::int32_t>(result.info.vertexCount),
             });
 
             result.info.indexCount += submesh.indices.size();
