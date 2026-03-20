@@ -7,6 +7,7 @@
 namespace Physbuzz {
 
 class GraphicsPipeline;
+class ComputePipeline;
 class DescriptorLayoutAllocator;
 class MaterialAllocator;
 class DeletionQueue;
@@ -38,6 +39,7 @@ struct RenderContext {
 
 template <typename T>
 concept PipelineType =
-    std::same_as<T, GraphicsPipeline>;
+    std::same_as<T, GraphicsPipeline> ||
+    std::same_as<T, ComputePipeline>;
 
 } // namespace Physbuzz

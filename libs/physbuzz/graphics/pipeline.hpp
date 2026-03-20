@@ -206,7 +206,39 @@ class GraphicsPipeline : public Pipeline<GraphicsPipeline> {
     friend class Pipeline<GraphicsPipeline>;
 };
 
+class ComputePipeline : public Pipeline<ComputePipeline> {
+  public:
+    // layouts
+    using PushConstants = vk::PushConstantRange;
+    using PushConstantsStage = vk::ShaderStageFlags;
+    using PushConstantsStageFlags = vk::ShaderStageFlagBits;
+
+    struct Info {
+        struct {
+            std::vector<Resource<DescriptorLayout>> resources = {};
+            std::vector<PushConstants> pushConstantRanges = {};
+        } layouts = {};
+    };
+
+    ComputePipeline(const Shader::Info &shaderInfo, const Info &info);
+
+    const Info &getInfo() const;
+
+  private:
+    Info m_Info;
+
+    void bindImpl(const RenderContext &context, vk::Pipeline pipeline);
+
+    std::optional<vk::PipelineLayout> createPipelineLayoutImpl();
+    std::optional<vk::Pipeline> createPipelineImpl(const Shader::Info &shaderInfo, const std::span<const std::byte> &specializationData);
+
+    friend class Pipeline<ComputePipeline>;
+};
+
 template <>
 struct IsResource<GraphicsPipeline> : std::true_type {};
+
+template <>
+struct IsResource<ComputePipeline> : std::true_type {};
 
 } // namespace Physbuzz

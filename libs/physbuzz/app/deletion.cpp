@@ -18,6 +18,10 @@ void DeletionQueue::enqueue(Pipeline<GraphicsPipeline> &&pipeline) {
     m_GraphicsPipelines.push_back(pipeline);
 }
 
+void DeletionQueue::enqueue(Pipeline<ComputePipeline> &&pipeline) {
+    m_ComputePipelines.push_back(pipeline);
+}
+
 void DeletionQueue::enqueue(vk::Sampler sampler) {
     m_Samplers.push_back(sampler);
 }
@@ -54,6 +58,12 @@ void DeletionQueue::flush() {
     }
 
     m_GraphicsPipelines.clear();
+
+    for (auto &pipeline : std::views::reverse(m_ComputePipelines)) {
+        pipeline.destroy();
+    }
+
+    m_ComputePipelines.clear();
 
     for (auto &sampler : std::views::reverse(m_Samplers)) {
         App::Device.destroySampler(sampler);

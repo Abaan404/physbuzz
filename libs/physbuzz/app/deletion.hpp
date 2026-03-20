@@ -12,6 +12,7 @@ class DeletionQueue {
     void enqueue(Buffer &&buffer);
     void enqueue(Image &&image);
     void enqueue(Pipeline<GraphicsPipeline> &&pipeline);
+    void enqueue(Pipeline<ComputePipeline> &&pipeline);
 
     // vk handles
     void enqueue(vk::Sampler sampler);
@@ -26,6 +27,7 @@ class DeletionQueue {
     std::vector<Buffer> m_Buffers;
     std::vector<Image> m_Images;
     std::vector<Pipeline<GraphicsPipeline>> m_GraphicsPipelines;
+    std::vector<Pipeline<ComputePipeline>> m_ComputePipelines;
 
     std::vector<vk::Sampler> m_Samplers;
     std::vector<vk::ImageView> m_ImageViews;

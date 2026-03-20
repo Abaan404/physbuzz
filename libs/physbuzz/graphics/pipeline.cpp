@@ -521,6 +521,61 @@ const GraphicsPipeline::Info &GraphicsPipeline::getInfo() const {
     return m_Info;
 }
 
+ComputePipeline::ComputePipeline(const Shader::Info &shaderInfo, const Info &info)
+    : m_Info(info), Pipeline<ComputePipeline>(shaderInfo) {}
+
+const ComputePipeline::Info &ComputePipeline::getInfo() const {
+    return m_Info;
+}
+
+void ComputePipeline::bindImpl(const RenderContext &context, vk::Pipeline pipeline) {
+    context.command.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
+}
+
+std::optional<vk::PipelineLayout> ComputePipeline::createPipelineLayoutImpl() {
+    std::vector<vk::DescriptorSetLayout> layouts;
+    for (const auto &layout : m_Info.layouts.resources) {
+        layouts.emplace_back(layout->getData().layout);
+    }
+
+    return PBZ_VK_CHECK(App::Device.createPipelineLayout({
+        .setLayoutCount = static_cast<std::uint32_t>(layouts.size()),
+        .pSetLayouts = layouts.data(),
+        .pushConstantRangeCount = static_cast<std::uint32_t>(m_Info.layouts.pushConstantRanges.size()),
+        .pPushConstantRanges = m_Info.layouts.pushConstantRanges.data(),
+    }));
+}
+
+std::optional<vk::Pipeline> ComputePipeline::createPipelineImpl(const Shader::Info &shaderInfo, const std::span<const std::byte> &specializationData) {
+    Shader shader = shaderInfo;
+
+    if (!shader.build(specializationData)) {
+        return std::nullopt;
+    }
+
+    vk::StructureChain<vk::ComputePipelineCreateInfo> chain = {
+        {
+            .stage = {},
+            .layout = getPipelineLayout(),
+        },
+    };
+
+    for (const auto &shaderStage : shader.getData().stages) {
+        if (shaderStage.stage == vk::ShaderStageFlagBits::eCompute) {
+            chain.get<vk::ComputePipelineCreateInfo>().stage = shaderStage;
+            break;
+        }
+    }
+
+    vk::Pipeline pipeline = PBZ_VK_CHECK(App::Device.createComputePipeline(nullptr, chain.get()));
+
+    m_DependencyFilePaths = shader.getData().dependencyFilePaths;
+    shader.destroy();
+
+    return pipeline;
+}
+
 template class Pipeline<GraphicsPipeline>;
+template class Pipeline<ComputePipeline>;
 
 } // namespace Physbuzz

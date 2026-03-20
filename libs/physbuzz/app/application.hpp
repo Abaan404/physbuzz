@@ -80,6 +80,7 @@ class App {
     template <PipelineType>
     friend class Pipeline;
     friend class GraphicsPipeline;
+    friend class ComputePipeline;
     friend class Shader;
 
     friend class Transfer;
