@@ -35,18 +35,19 @@ class VertexDescription {
         InputRate inputRate = InputRate::eVertex;
     };
 
+    struct Data {
+        vk::VertexInputBindingDescription binding;
+        std::vector<vk::VertexInputAttributeDescription> attributes;
+    };
+
     VertexDescription(const Info &info);
 
     const Info &getInfo() const;
+    const Data &getData() const;
 
   private:
     Info m_Info;
-
-    std::vector<vk::VertexInputAttributeDescription> m_Attributes;
-    vk::VertexInputBindingDescription m_Binding;
-
-    friend class RenderPipeline;
-    friend class Mesh;
+    Data m_Data;
 };
 
 class Mesh {

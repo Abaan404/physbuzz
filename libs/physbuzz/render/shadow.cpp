@@ -10,8 +10,8 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool RenderPipelineShadow::Directional::build(const glm::uvec2 &resolution) {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
+bool PipelineShadow::Directional::build(const glm::uvec2 &resolution) {
+    if (ResourceRegistry<GraphicsPipeline>::contains(Resource)) {
         return true;
     }
 
@@ -31,53 +31,57 @@ bool RenderPipelineShadow::Directional::build(const glm::uvec2 &resolution) {
             resolution);
     }
 
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
+    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutFrame)) {
+        success &= ResourceRegistry<DescriptorLayout>::insert(
             ResourceLayoutFrame,
             {{
                 .bindings = {
                     {
                         // lights
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
                         // instance
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                 },
             }});
     }
 
-    success &= ResourceRegistry<RenderPipeline>::insert(
+    success &= ResourceRegistry<GraphicsPipeline>::insert(
         Resource,
-        {{
-            .module = "builtin/render/shadow/directional",
-            .description = &Model::Vertex::Description,
-            .rasterization = {
-                .cullMode = vk::CullModeFlagBits::eFront,
+        {
+            {
+                .module = "builtin/render/shadow/directional",
             },
-            .blend = {
-                .attachments = {{}},
-            },
-            .formats = {
-                .color = {},
-                .depth = RenderPipeline::Format::eD32Sfloat,
-            },
-            .layouts = {
-                .resources = {
-                    ResourceLayoutFrame,
+            {
+                .description = &Model::Vertex::Description,
+                .rasterization = {
+                    .cullMode = vk::CullModeFlagBits::eFront,
+                },
+                .blend = {
+                    .attachments = {{}},
+                },
+                .formats = {
+                    .color = {},
+                    .depth = GraphicsPipeline::Format::eD32Sfloat,
+                },
+                .layouts = {
+                    .resources = {
+                        ResourceLayoutFrame,
+                    },
+                },
+                .inputs = {
+                    .colors = {},
                 },
             },
-            .inputs = {
-                .colors = {},
-            },
-        }});
+        });
 
     return success;
 }
 
-bool RenderPipelineShadow::Point::build(const glm::uvec2 &resolution) {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
+bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
+    if (ResourceRegistry<GraphicsPipeline>::contains(Resource)) {
         return true;
     }
 
@@ -97,48 +101,52 @@ bool RenderPipelineShadow::Point::build(const glm::uvec2 &resolution) {
             resolution);
     }
 
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
+    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutFrame)) {
+        success &= ResourceRegistry<DescriptorLayout>::insert(
             ResourceLayoutFrame,
             {{
                 .bindings = {
                     {
                         // lights
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
                         // instance
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                 },
             }});
     }
 
-    success &= ResourceRegistry<RenderPipeline>::insert(
+    success &= ResourceRegistry<GraphicsPipeline>::insert(
         Resource,
-        {{
-            .module = "builtin/render/shadow/point",
-            .description = &Model::Vertex::Description,
-            .rasterization = {
-                .cullMode = vk::CullModeFlagBits::eFront,
+        {
+            {
+                .module = "builtin/render/shadow/point",
             },
-            .blend = {
-                .attachments = {{}},
-            },
-            .formats = {
-                .color = {},
-                .depth = RenderPipeline::Format::eD32Sfloat,
-                .viewMask = 0x3F,
-            },
-            .layouts = {
-                .resources = {
-                    ResourceLayoutFrame,
+            {
+                .description = &Model::Vertex::Description,
+                .rasterization = {
+                    .cullMode = vk::CullModeFlagBits::eFront,
+                },
+                .blend = {
+                    .attachments = {{}},
+                },
+                .formats = {
+                    .color = {},
+                    .depth = GraphicsPipeline::Format::eD32Sfloat,
+                    .viewMask = 0x3F,
+                },
+                .layouts = {
+                    .resources = {
+                        ResourceLayoutFrame,
+                    },
+                },
+                .inputs = {
+                    .colors = {},
                 },
             },
-            .inputs = {
-                .colors = {},
-            },
-        }});
+        });
 
     return success;
 }
@@ -151,8 +159,13 @@ ShadowRenderer::ShadowRenderer(const Info &info)
 bool ShadowRenderer::build() {
     bool success = true;
 
-    success &= Builtin::RenderPipelineShadow::Directional::build(m_Info.resolution);
-    success &= Builtin::RenderPipelineShadow::Point::build(m_Info.resolution);
+    success &= Builtin::PipelineShadow::Directional::build(m_Info.resolution);
+    success &= Builtin::PipelineShadow::Point::build(m_Info.resolution);
+
+    if (!success) {
+        Logger::ERROR("[DeferredRenderer] Could not build shadow pipeline.");
+        return false;
+    }
 
     m_State.build(m_Objects);
 
@@ -188,7 +201,7 @@ bool ShadowRenderer::build() {
                 .attachments = {
                     .output = {
                         {
-                            Builtin::RenderPipelineShadow::Directional::ResourceAttachment,
+                            Builtin::PipelineShadow::Directional::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
@@ -200,10 +213,10 @@ bool ShadowRenderer::build() {
                 ZoneScopedN("ShadowRenderer/Directional/Execute");
                 TracyVkZone(context.tracy, context.command, "ShadowRenderer/Directional");
 
-                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
                 vk::RenderingAttachmentInfo depthAttachment = {
-                    .imageView = Builtin::RenderPipelineShadow::Directional::ResourceAttachment->getRingData()[context.frameInFlight].view,
+                    .imageView = Builtin::PipelineShadow::Directional::ResourceAttachment->getRingData()[context.frameInFlight].view,
                     .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
                     .loadOp = vk::AttachmentLoadOp::eClear,
                     .storeOp = vk::AttachmentStoreOp::eStore,
@@ -225,8 +238,8 @@ bool ShadowRenderer::build() {
                 });
 
                 // bind resources
-                Builtin::RenderPipelineShadow::Directional::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::RenderPipelineShadow::Directional::Resource);
+                Builtin::PipelineShadow::Directional::Resource->bind(context);
+                App::LayoutAllocator.bind(context, Builtin::PipelineShadow::Directional::Resource);
 
                 // draw
                 m_State.draw(context);
@@ -264,7 +277,7 @@ bool ShadowRenderer::build() {
                 .attachments = {
                     .output = {
                         {
-                            Builtin::RenderPipelineShadow::Point::ResourceAttachment,
+                            Builtin::PipelineShadow::Point::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
@@ -276,10 +289,10 @@ bool ShadowRenderer::build() {
                 ZoneScopedN("ShadowRenderer/Point/Execute");
                 TracyVkZone(context.tracy, context.command, "ShadowRenderer/Point");
 
-                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
                 vk::RenderingAttachmentInfo depthAttachment = {
-                    .imageView = Builtin::RenderPipelineShadow::Point::ResourceAttachment->getRingData()[context.frameInFlight].view,
+                    .imageView = Builtin::PipelineShadow::Point::ResourceAttachment->getRingData()[context.frameInFlight].view,
                     .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
                     .loadOp = vk::AttachmentLoadOp::eClear,
                     .storeOp = vk::AttachmentStoreOp::eStore,
@@ -301,8 +314,8 @@ bool ShadowRenderer::build() {
                 });
 
                 // bind resources
-                Builtin::RenderPipelineShadow::Point::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::RenderPipelineShadow::Point::Resource);
+                Builtin::PipelineShadow::Point::Resource->bind(context);
+                App::LayoutAllocator.bind(context, Builtin::PipelineShadow::Point::Resource);
 
                 // draw
                 m_State.draw(context);
@@ -313,22 +326,22 @@ bool ShadowRenderer::build() {
 
     if (success) {
         App::LayoutAllocator.write(
-            Builtin::RenderPipelineShadow::Directional::ResourceLayoutFrame,
+            Builtin::PipelineShadow::Directional::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferDirectional,
             0);
 
         App::LayoutAllocator.write(
-            Builtin::RenderPipelineShadow::Directional::ResourceLayoutFrame,
+            Builtin::PipelineShadow::Directional::ResourceLayoutFrame,
             Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
             1);
 
         App::LayoutAllocator.write(
-            Builtin::RenderPipelineShadow::Point::ResourceLayoutFrame,
+            Builtin::PipelineShadow::Point::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferPoint,
             0);
 
         App::LayoutAllocator.write(
-            Builtin::RenderPipelineShadow::Point::ResourceLayoutFrame,
+            Builtin::PipelineShadow::Point::ResourceLayoutFrame,
             Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
             1);
     }

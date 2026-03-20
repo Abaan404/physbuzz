@@ -8,25 +8,36 @@ namespace Physbuzz {
 
 VertexDescription::VertexDescription(const Info &info)
     : m_Info(info) {
-    m_Binding = {
+    vk::VertexInputBindingDescription binding = {
         .binding = m_Info.binding,
         .stride = m_Info.size,
         .inputRate = m_Info.inputRate,
     };
 
-    m_Attributes.clear();
+    std::vector<vk::VertexInputAttributeDescription> attributes;
+    attributes.reserve(m_Info.attributes.size());
+
     for (std::size_t i = 0; i < m_Info.attributes.size(); i++) {
-        m_Attributes.push_back({
+        attributes.emplace_back<vk::VertexInputAttributeDescription>({
             .location = static_cast<std::uint32_t>(i),
             .binding = m_Info.binding,
             .format = m_Info.attributes[i].format,
             .offset = m_Info.attributes[i].offset,
         });
     }
+
+    m_Data = {
+        .binding = binding,
+        .attributes = attributes,
+    };
 }
 
 const VertexDescription::Info &VertexDescription::getInfo() const {
     return m_Info;
+}
+
+const VertexDescription::Data &VertexDescription::getData() const {
+    return m_Data;
 }
 
 bool Mesh::build() {

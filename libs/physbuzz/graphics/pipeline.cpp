@@ -7,25 +7,251 @@
 
 namespace Physbuzz {
 
-RenderPipeline::RenderPipeline(const Info &info)
+Shader::Shader(const Info &info)
     : m_Info(info) {}
 
-bool RenderPipeline::build() {
-    std::vector<vk::DescriptorSetLayout> layouts;
-    for (const auto &layout : m_Info.layouts.resources) {
-        layouts.emplace_back(layout->m_Layout);
+bool Shader::build(const std::span<const std::byte> &specializationData) {
+    if (!m_Data.stages.empty()) {
+        Logger::WARNING("[Shader] Trying to build a constructed shader.");
+        return true;
     }
 
-    m_Layout = PBZ_VK_CHECK(App::Device.createPipelineLayout({
-        .setLayoutCount = static_cast<std::uint32_t>(layouts.size()),
-        .pSetLayouts = layouts.data(),
-        .pushConstantRangeCount = static_cast<std::uint32_t>(m_Info.layouts.pushConstantRanges.size()),
-        .pPushConstantRanges = m_Info.layouts.pushConstantRanges.data(),
-    }));
+    if (!specializationData.empty()) {
+        m_SpecializationEntries.reserve(m_Info.specialization.offsets.size());
 
-    std::vector zero(m_Info.specialization.size, std::byte(0));
+        for (std::uint32_t i = 0; i < m_Info.specialization.offsets.size(); i++) {
+            std::uint32_t nextOffset = m_Info.specialization.size;
 
-    if (!specialize(std::as_bytes(std::span(zero)))) {
+            if (i + 1 < m_Info.specialization.offsets.size()) {
+                nextOffset = m_Info.specialization.offsets[i + 1];
+            }
+
+            m_SpecializationEntries.emplace_back<vk::SpecializationMapEntry>({
+                .constantID = i,
+                .offset = m_Info.specialization.offsets[i],
+                .size = nextOffset - m_Info.specialization.offsets[i],
+            });
+        }
+
+        m_Specialization = {
+            .mapEntryCount = static_cast<std::uint32_t>(m_SpecializationEntries.size()),
+            .pMapEntries = m_SpecializationEntries.data(),
+            .dataSize = specializationData.size(),
+            .pData = specializationData.data(),
+        };
+    }
+
+    std::vector<slang::CompilerOptionEntry> compilerOptions;
+
+#if !defined(NDEBUG)
+    compilerOptions.emplace_back<slang::CompilerOptionEntry>({
+        .name = slang::CompilerOptionName::DebugInformation,
+        .value = {slang::CompilerOptionValueKind::Int, SLANG_DEBUG_INFO_LEVEL_MAXIMAL},
+    });
+#endif
+
+    std::array targets = {slang::TargetDesc{
+        .format = SLANG_SPIRV,
+        .profile = App::SlangSession->findProfile("spirv_1_3"), // Driver bug: OpCopyLogical seems to cause a crash when RADV tries to compile to nir
+                                                                // SPIR-V 1.3 doesn't use OpCopyLogical, target this version.
+                                                                // TODO investigate further
+        .compilerOptionEntries = compilerOptions.data(),
+        .compilerOptionEntryCount = static_cast<std::uint32_t>(compilerOptions.size()),
+    }};
+
+    std::filesystem::path resourcePath = ResourceRegistry<GraphicsPipeline>::getResourceDirectory();
+    std::array searchPaths = {resourcePath.c_str()};
+
+    slang::SessionDesc sessionDesc = {
+        .targets = targets.data(),
+        .targetCount = targets.size(),
+        .searchPaths = searchPaths.data(),
+        .searchPathCount = searchPaths.size(),
+    };
+
+    Slang::ComPtr<slang::ISession> session = nullptr;
+    App::SlangSession->createSession(sessionDesc, session.writeRef());
+
+    Slang::ComPtr<slang::IBlob> diagnostics;
+    Slang::ComPtr<slang::IModule> module = Slang::ComPtr{session->loadModule(m_Info.module.c_str(), diagnostics.writeRef())};
+
+    if (diagnostics) {
+        Logger::ERROR("[RenderPipeline] Failed loading shader module '{}'", m_Info.module);
+        Logger::ERROR((const char *)diagnostics->getBufferPointer());
+        destroy();
+        return false;
+    }
+
+    std::vector<slang::IComponentType *> components;
+    components.push_back(module);
+
+    for (int i = 0; i < module->getDefinedEntryPointCount(); i++) {
+        Slang::ComPtr<slang::IEntryPoint> entrypoint;
+        module->getDefinedEntryPoint(i, entrypoint.writeRef());
+        components.push_back(entrypoint);
+    }
+
+    Slang::ComPtr<slang::IComponentType> program;
+    session->createCompositeComponentType(components.data(), components.size(), program.writeRef(), diagnostics.writeRef());
+
+    if (diagnostics) {
+        Logger::ERROR("[RenderPipeline] Failed composing shader module '{}'", m_Info.module);
+        Logger::ERROR((const char *)diagnostics->getBufferPointer());
+        destroy();
+        return false;
+    }
+
+    slang::ProgramLayout *layout = program->getLayout(0, diagnostics.writeRef());
+
+    if (diagnostics) {
+        Logger::ERROR("[RenderPipeline] Failed loading shader layout for module '{}'", m_Info.module);
+        Logger::ERROR((const char *)diagnostics->getBufferPointer());
+        destroy();
+        return false;
+    }
+
+    Slang::ComPtr<slang::IComponentType> linkedProgram;
+    program->link(linkedProgram.writeRef(), diagnostics.writeRef());
+
+    if (diagnostics) {
+        Logger::ERROR("[RenderPipeline] Failed linking shader module '{}'", m_Info.module);
+        Logger::ERROR((const char *)diagnostics->getBufferPointer());
+        destroy();
+        return false;
+    }
+
+    m_Data.stages.reserve(layout->getEntryPointCount());
+
+    for (std::size_t i = 0; i < layout->getEntryPointCount(); i++) {
+        Slang::ComPtr<slang::IBlob> kernel;
+        linkedProgram->getEntryPointCode(i, 0, kernel.writeRef(), diagnostics.writeRef());
+
+        if (diagnostics) {
+            Logger::ERROR("[RenderPipeline] Failed to get entrypoint '{}' code for module '{}'", i, m_Info.module);
+            Logger::ERROR((const char *)diagnostics->getBufferPointer());
+            destroy();
+            return false;
+        }
+
+        slang::EntryPointReflection *entrypointLayout = layout->getEntryPointByIndex(i);
+
+        vk::ShaderStageFlagBits stage;
+        switch (entrypointLayout->getStage()) {
+        case SLANG_STAGE_ANY_HIT:
+            stage = vk::ShaderStageFlagBits::eAnyHitKHR;
+            break;
+        case SLANG_STAGE_CALLABLE:
+            stage = vk::ShaderStageFlagBits::eCallableKHR;
+            break;
+        case SLANG_STAGE_CLOSEST_HIT:
+            stage = vk::ShaderStageFlagBits::eClosestHitKHR;
+            break;
+        case SLANG_STAGE_COMPUTE:
+            stage = vk::ShaderStageFlagBits::eCompute;
+            break;
+        case SLANG_STAGE_DOMAIN:
+            stage = vk::ShaderStageFlagBits::eTessellationControl;
+            break;
+        case SLANG_STAGE_FRAGMENT:
+            stage = vk::ShaderStageFlagBits::eFragment;
+            break;
+        case SLANG_STAGE_GEOMETRY:
+            stage = vk::ShaderStageFlagBits::eGeometry;
+            break;
+        case SLANG_STAGE_HULL:
+            stage = vk::ShaderStageFlagBits::eTessellationEvaluation;
+            break;
+        case SLANG_STAGE_INTERSECTION:
+            stage = vk::ShaderStageFlagBits::eIntersectionKHR;
+            break;
+        case SLANG_STAGE_MISS:
+            stage = vk::ShaderStageFlagBits::eMissKHR;
+            break;
+        case SLANG_STAGE_RAY_GENERATION:
+            stage = vk::ShaderStageFlagBits::eRaygenKHR;
+            break;
+        case SLANG_STAGE_VERTEX:
+            stage = vk::ShaderStageFlagBits::eVertex;
+            break;
+        case SLANG_STAGE_MESH:
+            stage = vk::ShaderStageFlagBits::eMeshEXT;
+            break;
+        case SLANG_STAGE_AMPLIFICATION:
+            stage = vk::ShaderStageFlagBits::eTaskEXT;
+            break;
+        default:
+            continue;
+        }
+
+        vk::ShaderModule module = PBZ_VK_CHECK(App::Device.createShaderModule({
+            .codeSize = kernel->getBufferSize(),
+            .pCode = reinterpret_cast<const std::uint32_t *>(kernel->getBufferPointer()),
+        }));
+
+        m_Data.stages.emplace_back<vk::PipelineShaderStageCreateInfo>({
+            .stage = stage,
+            .module = module,
+            .pName = "main",
+            .pSpecializationInfo = m_Specialization.dataSize > 0 ? &m_Specialization : nullptr,
+        });
+    }
+
+    m_Data.dependencyFilePaths.reserve(module->getDependencyFileCount());
+
+    for (int i = 0; i < module->getDependencyFileCount(); i++) {
+        m_Data.dependencyFilePaths.insert(module->getDependencyFilePath(i));
+    }
+
+    return true;
+}
+
+bool Shader::destroy() {
+    if (m_Data.stages.empty()) {
+        Logger::WARNING("[Shader] Trying to destroy a destructed shader.");
+        return true;
+    }
+
+    for (const auto &stage : m_Data.stages) {
+        App::Device.destroyShaderModule(stage.module);
+    }
+
+    m_Data = {};
+    m_Specialization = {};
+    m_SpecializationEntries = {};
+
+    return true;
+}
+
+const Shader::Info &Shader::getInfo() const {
+    return m_Info;
+}
+
+const Shader::Data &Shader::getData() const {
+    return m_Data;
+}
+
+template <PipelineType T>
+Pipeline<T>::Pipeline(const Shader::Info &shaderInfo)
+    : m_ShaderInfo(shaderInfo) {}
+
+template <PipelineType T>
+bool Pipeline<T>::build() {
+    if (!m_Pipelines.empty()) {
+        Logger::WARNING("[Pipeline] Trying to build a constructed pipeline.");
+        return true;
+    }
+
+    std::optional<vk::PipelineLayout> layout = static_cast<T *>(this)->createPipelineLayoutImpl();
+    if (!layout) {
+        destroy();
+        return false;
+    }
+
+    m_Layout = *layout;
+
+    // create a pipeline with default spec
+    std::span<const std::byte> zero;
+    if (!specialize(zero)) {
         destroy();
         return false;
     }
@@ -33,9 +259,10 @@ bool RenderPipeline::build() {
     return true;
 }
 
-bool RenderPipeline::destroy() {
+template <PipelineType T>
+bool Pipeline<T>::destroy() {
     if (m_Pipelines.empty()) {
-        Logger::WARNING("[ShaderPipeline] Trying to destroy a destructed pipeline.");
+        Logger::WARNING("[Pipeline] Trying to destroy a destructed pipeline.");
         return true;
     }
 
@@ -53,7 +280,8 @@ bool RenderPipeline::destroy() {
     return true;
 }
 
-bool RenderPipeline::reload(WatchAction action, const std::filesystem::path &path) {
+template <PipelineType T>
+bool Pipeline<T>::reload(WatchAction action, const std::filesystem::path &path) {
     if (action != WatchAction::Modified) {
         return false;
     }
@@ -62,15 +290,15 @@ bool RenderPipeline::reload(WatchAction action, const std::filesystem::path &pat
         return false;
     }
 
-    Logger::DEBUG("[RenderPipeline] Reloading module '{}'.", m_Info.module);
+    Logger::INFO("[GraphicsPipeline] Reloading resource '{}'.", m_ShaderInfo.module);
 
-    RenderPipeline pipeline = m_Info;
+    T pipeline = {m_ShaderInfo, static_cast<T *>(this)->getInfo()};
     if (!pipeline.build()) {
         return false;
     }
 
     {
-        std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
+        std::lock_guard<std::mutex> lock(ResourceRegistry<T>::ReloadMutex);
         App::Deletion.enqueue(std::move(*this));
 
         *this = std::move(pipeline);
@@ -79,14 +307,17 @@ bool RenderPipeline::reload(WatchAction action, const std::filesystem::path &pat
     return true;
 }
 
-bool RenderPipeline::specialize(const std::span<const std::byte> &specializationData) {
-    std::size_t specHash = std::hash<std::string_view>{}({
-        reinterpret_cast<const char *>(specializationData.data()),
-        specializationData.size(),
-    });
+template <PipelineType T>
+void Pipeline<T>::bind(const RenderContext &context) {
+    static_cast<T *>(this)->bindImpl(context, m_Pipelines[m_ActivePipeline]);
+}
+
+template <PipelineType T>
+bool Pipeline<T>::specialize(const std::span<const std::byte> &data) {
+    std::size_t specHash = calcSpecHash(data);
 
     if (!m_Specializations.contains(specHash)) {
-        std::optional<vk::Pipeline> pipeline = createSpecializedPipeline(specializationData);
+        std::optional<vk::Pipeline> pipeline = static_cast<T *>(this)->createPipelineImpl(m_ShaderInfo, data);
 
         if (!pipeline) {
             return false;
@@ -101,7 +332,8 @@ bool RenderPipeline::specialize(const std::span<const std::byte> &specialization
     return true;
 }
 
-void RenderPipeline::updatePushConstants(const RenderContext &context, const PushConstantsStage &stage, const std::span<const std::byte> &bytes, std::uint32_t offset) {
+template <PipelineType T>
+void Pipeline<T>::updatePushConstants(const RenderContext &context, const PushConstantsStage &stage, const std::span<const std::byte> &bytes, std::uint32_t offset) {
     vk::PushConstantsInfo info = {
         .layout = m_Layout,
         .stageFlags = stage,
@@ -113,17 +345,53 @@ void RenderPipeline::updatePushConstants(const RenderContext &context, const Pus
     context.command.pushConstants2(info);
 }
 
-void RenderPipeline::bind(const RenderContext &context) {
-    context.command.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipelines[m_ActivePipeline]);
+template <PipelineType T>
+vk::PipelineLayout Pipeline<T>::getPipelineLayout() const {
+    return m_Layout;
 }
 
-const RenderPipeline::Info &RenderPipeline::getInfo() const {
-    return m_Info;
+template <PipelineType T>
+std::size_t Pipeline<T>::calcSpecHash(const std::span<const std::byte> &data) const {
+    if (data.empty() || m_ShaderInfo.specialization.size != data.size()) {
+        std::vector zero(m_ShaderInfo.specialization.size, std::byte(0));
+
+        return std::hash<std::string_view>{}({
+            reinterpret_cast<const char *>(zero.data()),
+            zero.size(),
+        });
+    }
+
+    return std::hash<std::string_view>{}({
+        reinterpret_cast<const char *>(data.data()),
+        data.size(),
+    });
 }
 
-std::optional<vk::Pipeline> RenderPipeline::createSpecializedPipeline(const std::span<const std::byte> &data) {
-    if (data.size() < m_Info.specialization.size) {
-        Logger::ERROR("[RenderPipeline] Invalid specialization size, required {} found {}", m_Info.specialization.size, data.size());
+GraphicsPipeline::GraphicsPipeline(const Shader::Info &shaderInfo, const Info &info)
+    : m_Info(info), Pipeline<GraphicsPipeline>(shaderInfo) {}
+
+void GraphicsPipeline::bindImpl(const RenderContext &context, vk::Pipeline pipeline) {
+    context.command.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
+}
+
+std::optional<vk::PipelineLayout> GraphicsPipeline::createPipelineLayoutImpl() {
+    std::vector<vk::DescriptorSetLayout> layouts;
+    for (const auto &layout : m_Info.layouts.resources) {
+        layouts.emplace_back(layout->getData().layout);
+    }
+
+    return PBZ_VK_CHECK(App::Device.createPipelineLayout({
+        .setLayoutCount = static_cast<std::uint32_t>(layouts.size()),
+        .pSetLayouts = layouts.data(),
+        .pushConstantRangeCount = static_cast<std::uint32_t>(m_Info.layouts.pushConstantRanges.size()),
+        .pPushConstantRanges = m_Info.layouts.pushConstantRanges.data(),
+    }));
+}
+
+std::optional<vk::Pipeline> GraphicsPipeline::createPipelineImpl(const Shader::Info &shaderInfo, const std::span<const std::byte> &specializationData) {
+    Shader shader = shaderInfo;
+
+    if (!shader.build(specializationData)) {
         return std::nullopt;
     }
 
@@ -199,185 +467,6 @@ std::optional<vk::Pipeline> RenderPipeline::createSpecializedPipeline(const std:
         .stencilTestEnable = m_Info.depthStencil.stencilTestEnable,
     };
 
-    std::vector<vk::SpecializationMapEntry> specializationEntries;
-
-    for (std::uint32_t i = 0; i < m_Info.specialization.offsets.size(); i++) {
-        std::uint32_t nextOffset = m_Info.specialization.size;
-
-        if (i + 1 < m_Info.specialization.offsets.size()) {
-            nextOffset = m_Info.specialization.offsets[i + 1];
-        }
-
-        specializationEntries.emplace_back<vk::SpecializationMapEntry>({
-            .constantID = i,
-            .offset = m_Info.specialization.offsets[i],
-            .size = nextOffset - m_Info.specialization.offsets[i],
-        });
-    }
-
-    vk::SpecializationInfo specialization = {
-        .mapEntryCount = static_cast<std::uint32_t>(specializationEntries.size()),
-        .pMapEntries = specializationEntries.data(),
-        .dataSize = data.size(),
-        .pData = data.data(),
-    };
-
-    std::filesystem::path resourcePath = ResourceRegistry<RenderPipeline>::getResourceDirectory();
-
-    std::vector<slang::CompilerOptionEntry> compilerOptions;
-
-#if !defined(NDEBUG)
-    compilerOptions.emplace_back<slang::CompilerOptionEntry>({
-        .name = slang::CompilerOptionName::DebugInformation,
-        .value = {slang::CompilerOptionValueKind::Int, SLANG_DEBUG_INFO_LEVEL_MAXIMAL},
-    });
-#endif
-
-    std::array targets = {slang::TargetDesc{
-        .format = SLANG_SPIRV,
-        .profile = App::SlangSession->findProfile("spirv_1_3"), // Driver bug: OpCopyLogical seems to cause a crash when RADV tries to compile to nir
-                                                                // SPIR-V 1.3 doesn't use OpCopyLogical, target this version.
-                                                                // TODO investigate further
-        .compilerOptionEntries = compilerOptions.data(),
-        .compilerOptionEntryCount = static_cast<std::uint32_t>(compilerOptions.size()),
-    }};
-
-    std::array searchPaths = {resourcePath.c_str()};
-
-    slang::SessionDesc sessionDesc = {
-        .targets = targets.data(),
-        .targetCount = targets.size(),
-        .searchPaths = searchPaths.data(),
-        .searchPathCount = searchPaths.size(),
-    };
-
-    Slang::ComPtr<slang::ISession> session = nullptr;
-    App::SlangSession->createSession(sessionDesc, session.writeRef());
-
-    Slang::ComPtr<slang::IBlob> diagnostics;
-    Slang::ComPtr<slang::IModule> module = Slang::ComPtr{session->loadModule(m_Info.module.c_str(), diagnostics.writeRef())};
-
-    if (diagnostics) {
-        Logger::ERROR("[RenderPipeline] Failed loading shader module '{}'", m_Info.module);
-        Logger::ERROR((const char *)diagnostics->getBufferPointer());
-        return std::nullopt;
-    }
-
-    for (int i = 0; i < module->getDependencyFileCount(); i++) {
-        m_DependencyFilePaths.insert(module->getDependencyFilePath(i));
-    }
-
-    std::vector<slang::IComponentType *> components;
-    components.push_back(module);
-
-    for (int i = 0; i < module->getDefinedEntryPointCount(); i++) {
-        Slang::ComPtr<slang::IEntryPoint> entrypoint;
-        module->getDefinedEntryPoint(i, entrypoint.writeRef());
-        components.push_back(entrypoint);
-    }
-
-    Slang::ComPtr<slang::IComponentType> program;
-    session->createCompositeComponentType(components.data(), components.size(), program.writeRef(), diagnostics.writeRef());
-
-    if (diagnostics) {
-        Logger::ERROR("[RenderPipeline] Failed composing shader module '{}'", m_Info.module);
-        Logger::ERROR((const char *)diagnostics->getBufferPointer());
-        return std::nullopt;
-    }
-
-    slang::ProgramLayout *layout = program->getLayout(0, diagnostics.writeRef());
-
-    if (diagnostics) {
-        Logger::ERROR("[RenderPipeline] Failed loading shader layout for module '{}'", m_Info.module);
-        Logger::ERROR((const char *)diagnostics->getBufferPointer());
-        return std::nullopt;
-    }
-
-    Slang::ComPtr<slang::IComponentType> linkedProgram;
-    program->link(linkedProgram.writeRef(), diagnostics.writeRef());
-
-    if (diagnostics) {
-        Logger::ERROR("[RenderPipeline] Failed linking shader module '{}'", m_Info.module);
-        Logger::ERROR((const char *)diagnostics->getBufferPointer());
-        return std::nullopt;
-    }
-
-    std::vector<vk::ShaderModule> modules;
-    std::vector<vk::PipelineShaderStageCreateInfo> stages;
-
-    for (std::size_t i = 0; i < layout->getEntryPointCount(); i++) {
-        Slang::ComPtr<slang::IBlob> kernel;
-        linkedProgram->getEntryPointCode(i, 0, kernel.writeRef(), diagnostics.writeRef());
-
-        if (diagnostics) {
-            Logger::ERROR("[RenderPipeline] Failed to get entrypoint '{}' code for module '{}'", i, m_Info.module);
-            Logger::ERROR((const char *)diagnostics->getBufferPointer());
-            return std::nullopt;
-        }
-
-        slang::EntryPointReflection *entrypointLayout = layout->getEntryPointByIndex(i);
-
-        vk::ShaderStageFlagBits stage;
-        switch (entrypointLayout->getStage()) {
-        case SLANG_STAGE_ANY_HIT:
-            stage = vk::ShaderStageFlagBits::eAnyHitKHR;
-            break;
-        case SLANG_STAGE_CALLABLE:
-            stage = vk::ShaderStageFlagBits::eCallableKHR;
-            break;
-        case SLANG_STAGE_CLOSEST_HIT:
-            stage = vk::ShaderStageFlagBits::eClosestHitKHR;
-            break;
-        case SLANG_STAGE_COMPUTE:
-            stage = vk::ShaderStageFlagBits::eCompute;
-            break;
-        case SLANG_STAGE_DOMAIN:
-            stage = vk::ShaderStageFlagBits::eTessellationControl;
-            break;
-        case SLANG_STAGE_FRAGMENT:
-            stage = vk::ShaderStageFlagBits::eFragment;
-            break;
-        case SLANG_STAGE_GEOMETRY:
-            stage = vk::ShaderStageFlagBits::eGeometry;
-            break;
-        case SLANG_STAGE_HULL:
-            stage = vk::ShaderStageFlagBits::eTessellationEvaluation;
-            break;
-        case SLANG_STAGE_INTERSECTION:
-            stage = vk::ShaderStageFlagBits::eIntersectionKHR;
-            break;
-        case SLANG_STAGE_MISS:
-            stage = vk::ShaderStageFlagBits::eMissKHR;
-            break;
-        case SLANG_STAGE_RAY_GENERATION:
-            stage = vk::ShaderStageFlagBits::eRaygenKHR;
-            break;
-        case SLANG_STAGE_VERTEX:
-            stage = vk::ShaderStageFlagBits::eVertex;
-            break;
-        case SLANG_STAGE_MESH:
-            stage = vk::ShaderStageFlagBits::eMeshEXT;
-            break;
-        case SLANG_STAGE_AMPLIFICATION:
-            stage = vk::ShaderStageFlagBits::eTaskEXT;
-            break;
-        default:
-            continue;
-        }
-
-        vk::ShaderModule module = modules.emplace_back(PBZ_VK_CHECK(App::Device.createShaderModule({
-            .codeSize = kernel->getBufferSize(),
-            .pCode = reinterpret_cast<const std::uint32_t *>(kernel->getBufferPointer()),
-        })));
-
-        stages.emplace_back<vk::PipelineShaderStageCreateInfo>({
-            .stage = stage,
-            .module = module,
-            .pName = "main",
-            .pSpecializationInfo = specialization.dataSize > 0 ? &specialization : nullptr,
-        });
-    }
-
     vk::PipelineVertexInputStateCreateInfo vertexInputState = {
         .vertexBindingDescriptionCount = 0,
     };
@@ -385,16 +474,16 @@ std::optional<vk::Pipeline> RenderPipeline::createSpecializedPipeline(const std:
     if (m_Info.description != nullptr) {
         vertexInputState = {
             .vertexBindingDescriptionCount = 1,
-            .pVertexBindingDescriptions = &m_Info.description->m_Binding,
-            .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(m_Info.description->m_Attributes.size()),
-            .pVertexAttributeDescriptions = m_Info.description->m_Attributes.data(),
+            .pVertexBindingDescriptions = &m_Info.description->getData().binding,
+            .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(m_Info.description->getData().attributes.size()),
+            .pVertexAttributeDescriptions = m_Info.description->getData().attributes.data(),
         };
     }
 
     vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo, vk::RenderingInputAttachmentIndexInfo> chain = {
         {
-            .stageCount = static_cast<std::uint32_t>(stages.size()),
-            .pStages = stages.data(),
+            .stageCount = static_cast<std::uint32_t>(shader.getData().stages.size()),
+            .pStages = shader.getData().stages.data(),
             .pVertexInputState = &vertexInputState,
             .pInputAssemblyState = &inputAssembly,
             .pViewportState = &viewportState,
@@ -403,7 +492,7 @@ std::optional<vk::Pipeline> RenderPipeline::createSpecializedPipeline(const std:
             .pDepthStencilState = &depthStencil,
             .pColorBlendState = &colorBlending,
             .pDynamicState = &dynamicState,
-            .layout = m_Layout,
+            .layout = getPipelineLayout(),
             .renderPass = nullptr,
         },
         {
@@ -422,11 +511,16 @@ std::optional<vk::Pipeline> RenderPipeline::createSpecializedPipeline(const std:
 
     vk::Pipeline pipeline = PBZ_VK_CHECK(App::Device.createGraphicsPipeline(nullptr, chain.get()));
 
-    for (const auto &module : modules) {
-        App::Device.destroyShaderModule(module);
-    }
+    m_DependencyFilePaths = shader.getData().dependencyFilePaths;
+    shader.destroy();
 
     return pipeline;
 }
+
+const GraphicsPipeline::Info &GraphicsPipeline::getInfo() const {
+    return m_Info;
+}
+
+template class Pipeline<GraphicsPipeline>;
 
 } // namespace Physbuzz

@@ -5,7 +5,7 @@
 
 namespace Physbuzz {
 
-class PipelineLayout;
+class DescriptorLayout;
 class Texture;
 class Model;
 
@@ -22,7 +22,7 @@ struct MaterialBuffer {
     float specularity = 256.0f;
 };
 
-inline Resource<PipelineLayout> Resource = {"builtin/material"};
+inline Resource<DescriptorLayout> Resource = {"builtin/material"};
 
 bool build();
 
@@ -41,7 +41,7 @@ struct IsResource<Material> : std::true_type {};
 class MaterialAllocator {
   public:
     struct Info {
-        Resource<PipelineLayout> layout = Builtin::LayoutMaterial::Resource;
+        Resource<DescriptorLayout> layout = Builtin::LayoutMaterial::Resource;
     };
 
     MaterialAllocator(const Info &info);

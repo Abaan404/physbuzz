@@ -11,7 +11,7 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-namespace RenderPipelineDeferred {
+namespace PipelineDeferred {
 
 namespace Geometry {
 
@@ -19,9 +19,9 @@ struct PushConstants {
     std::uint64_t materialBaseAddress;
 };
 
-inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/deferred/geometry/frame"};
+inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/deferred/geometry/frame"};
 
-inline Resource<RenderPipeline> Resource = {"builtin/deferred/geometry"};
+inline Resource<GraphicsPipeline> Resource = {"builtin/deferred/geometry"};
 
 bool build();
 
@@ -39,9 +39,9 @@ struct Specialization {
     std::uint32_t enableShadows;
 };
 
-inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/deferred/lighting/frame"};
+inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/deferred/lighting/frame"};
 
-inline Resource<RenderPipeline> Resource = {"builtin/deferred/lighting"};
+inline Resource<GraphicsPipeline> Resource = {"builtin/deferred/lighting"};
 
 bool build();
 
@@ -55,7 +55,7 @@ inline std::array<Resource<Attachment>, 3> ResourceGBuffers = {
 
 bool build();
 
-} // namespace RenderPipelineDeferred
+} // namespace PipelineDeferred
 
 } // namespace Builtin
 
@@ -73,7 +73,7 @@ class DeferredRenderer : public System<RenderComponent> {
     bool build() override;
     bool destroy() override;
 
-    bool specialize(const Builtin::RenderPipelineDeferred::Lighting::Specialization &specialization);
+    bool specialize(const Builtin::PipelineDeferred::Lighting::Specialization &specialization);
 
     const RenderGraph &getGraph() const;
 

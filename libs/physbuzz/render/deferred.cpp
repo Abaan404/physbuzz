@@ -16,154 +16,162 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool RenderPipelineDeferred::Geometry::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
+bool PipelineDeferred::Geometry::build() {
+    if (ResourceRegistry<GraphicsPipeline>::contains(Resource)) {
         return true;
     }
 
     bool success = true;
 
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
+    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutFrame)) {
+        success &= ResourceRegistry<DescriptorLayout>::insert(
             ResourceLayoutFrame,
             {{
                 .bindings = {
                     {
                         // camera
-                        .type = PipelineLayout::Type::eUniformBuffer,
+                        .type = DescriptorLayout::Type::eUniformBuffer,
                         .range = sizeof(RenderNodeCamera::CameraBuffer),
                     },
                     {
                         // models
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                 },
             }});
     }
 
-    success &= ResourceRegistry<RenderPipeline>::insert(
+    success &= ResourceRegistry<GraphicsPipeline>::insert(
         Resource,
-        {{
-            .module = "builtin/render/deferred/geometry",
-            .description = &Model::Vertex::Description,
-            .blend = {
-                .attachments = {3, {{}}},
+        {
+            {
+                .module = "builtin/render/deferred/geometry",
             },
-            .formats = {
-                .color = {
-                    RenderPipeline::Format::eR16G16B16A16Sfloat,
-                    RenderPipeline::Format::eR8G8B8A8Snorm,
-                    RenderPipeline::Format::eR8G8B8A8Unorm,
+            {
+                .description = &Model::Vertex::Description,
+                .blend = {
+                    .attachments = {3, {{}}},
                 },
-            },
-            .layouts = {
-                .resources = {
-                    Builtin::LayoutMaterial::Resource,
-                    ResourceLayoutFrame,
-                },
-                .pushConstantRanges = {
-                    {
-                        .stageFlags = RenderPipeline::PushConstantsStageFlags::eAll,
-                        .size = sizeof(PushConstants),
+                .formats = {
+                    .color = {
+                        GraphicsPipeline::Format::eR16G16B16A16Sfloat,
+                        GraphicsPipeline::Format::eR8G8B8A8Snorm,
+                        GraphicsPipeline::Format::eR8G8B8A8Unorm,
                     },
                 },
+                .layouts = {
+                    .resources = {
+                        Builtin::LayoutMaterial::Resource,
+                        ResourceLayoutFrame,
+                    },
+                    .pushConstantRanges = {
+                        {
+                            .stageFlags = GraphicsPipeline::PushConstantsStageFlags::eAll,
+                            .size = sizeof(PushConstants),
+                        },
+                    },
+                },
+                .inputs = {
+                    .colors = {0, 1, 2},
+                },
             },
-            .inputs = {
-                .colors = {0, 1, 2},
-            },
-        }});
+        });
 
     return success;
 }
 
-bool RenderPipelineDeferred::Lighting::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
+bool PipelineDeferred::Lighting::build() {
+    if (ResourceRegistry<GraphicsPipeline>::contains(Resource)) {
         return true;
     }
 
     bool success = true;
 
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
+    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutFrame)) {
+        success &= ResourceRegistry<DescriptorLayout>::insert(
             ResourceLayoutFrame,
             {{
                 .bindings = {
                     {
                         // camera
-                        .type = PipelineLayout::Type::eUniformBuffer,
+                        .type = DescriptorLayout::Type::eUniformBuffer,
                         .range = sizeof(RenderNodeCamera::CameraBuffer),
                     },
                     {
                         // directionals
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
                         // points
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
                         // spots
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
                         // position
-                        .type = PipelineLayout::Type::eInputAttachment,
-                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
+                        .type = DescriptorLayout::Type::eInputAttachment,
+                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
                     },
                     {
                         // normal
-                        .type = PipelineLayout::Type::eInputAttachment,
-                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
+                        .type = DescriptorLayout::Type::eInputAttachment,
+                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
                     },
                     {
                         // albedospec
-                        .type = PipelineLayout::Type::eInputAttachment,
-                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
+                        .type = DescriptorLayout::Type::eInputAttachment,
+                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
                     },
                     {
                         // directional shadow depth map
-                        .type = PipelineLayout::Type::eCombinedImageSampler,
-                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
                     },
                     {
                         // point shadow depth map
-                        .type = PipelineLayout::Type::eCombinedImageSampler,
-                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
                     },
                 },
             }});
     }
 
-    success &= ResourceRegistry<RenderPipeline>::insert(
+    success &= ResourceRegistry<GraphicsPipeline>::insert(
         Resource,
-        {{
-            .module = "builtin/render/deferred/lighting",
-            .rasterization = {
-                .cullMode = RenderPipeline::CullModeFlags::eNone,
-            },
-            .layouts = {
-                .resources = {
-                    ResourceLayoutFrame,
+        {
+            {
+                .module = "builtin/render/deferred/lighting",
+                .specialization = {
+                    .offsets = {
+                        offsetof(Specialization, enableShadows),
+                    },
+                    .size = sizeof(Specialization),
                 },
-                .pushConstantRanges = {
-                    {
-                        .stageFlags = RenderPipeline::PushConstantsStageFlags::eAll,
-                        .size = sizeof(PushConstants),
+            },
+            {
+                .rasterization = {
+                    .cullMode = GraphicsPipeline::CullModeFlags::eNone,
+                },
+                .layouts = {
+                    .resources = {
+                        ResourceLayoutFrame,
+                    },
+                    .pushConstantRanges = {
+                        {
+                            .stageFlags = GraphicsPipeline::PushConstantsStageFlags::eAll,
+                            .size = sizeof(PushConstants),
+                        },
                     },
                 },
             },
-            .specialization = {
-                .offsets = {
-                    offsetof(Specialization, enableShadows),
-                },
-                .size = sizeof(Specialization),
-            },
-        }});
+        });
 
     return success;
 }
 
-bool RenderPipelineDeferred::build() {
+bool PipelineDeferred::build() {
     bool success = true;
 
     if (!ResourceRegistry<Attachment>::contains(ResourceGBuffers[0])) {
@@ -196,8 +204,8 @@ bool RenderPipelineDeferred::build() {
             glm::uvec2{1, 1});
     }
 
-    success &= Builtin::RenderPipelineDeferred::Geometry::build();
-    success &= Builtin::RenderPipelineDeferred::Lighting::build();
+    success &= Builtin::PipelineDeferred::Geometry::build();
+    success &= Builtin::PipelineDeferred::Lighting::build();
 
     return success;
 }
@@ -209,7 +217,7 @@ DeferredRenderer::DeferredRenderer(const Info &info)
 
 bool DeferredRenderer::build() {
     // build pipeline
-    if (!Builtin::RenderPipelineDeferred::build()) {
+    if (!Builtin::PipelineDeferred::build()) {
         Logger::ERROR("[DeferredRenderer] Could not build deferred pipeline.");
         return false;
     }
@@ -256,19 +264,19 @@ bool DeferredRenderer::build() {
                 .attachments = {
                     .output = {
                         {
-                            Builtin::RenderPipelineDeferred::ResourceGBuffers[0],
+                            Builtin::PipelineDeferred::ResourceGBuffers[0],
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            Builtin::RenderPipelineDeferred::ResourceGBuffers[1],
+                            Builtin::PipelineDeferred::ResourceGBuffers[1],
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            Builtin::RenderPipelineDeferred::ResourceGBuffers[2],
+                            Builtin::PipelineDeferred::ResourceGBuffers[2],
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
@@ -296,7 +304,7 @@ bool DeferredRenderer::build() {
                 ZoneScopedN("DeferredRenderer/GBuffer/Execute");
                 TracyVkZone(context.tracy, context.command, "DeferredRenderer/GBuffer");
 
-                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
                 std::array gBuffers = {
                     Resource<Attachment>("builtin/deferred/gBuffer0"),
@@ -325,13 +333,13 @@ bool DeferredRenderer::build() {
                 };
 
                 // record constants
-                Builtin::RenderPipelineDeferred::Geometry::PushConstants pushConstants = {
+                Builtin::PipelineDeferred::Geometry::PushConstants pushConstants = {
                     .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
                 };
 
-                Builtin::RenderPipelineDeferred::Geometry::Resource->updatePushConstants(
+                Builtin::PipelineDeferred::Geometry::Resource->updatePushConstants(
                     context,
-                    RenderPipeline::PushConstantsStageFlags::eAll,
+                    GraphicsPipeline::PushConstantsStageFlags::eAll,
                     std::as_bytes(std::span(&pushConstants, 1)),
                     0);
 
@@ -359,8 +367,8 @@ bool DeferredRenderer::build() {
                 });
 
                 // bind resources
-                Builtin::RenderPipelineDeferred::Geometry::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::RenderPipelineDeferred::Geometry::Resource);
+                Builtin::PipelineDeferred::Geometry::Resource->bind(context);
+                App::LayoutAllocator.bind(context, Builtin::PipelineDeferred::Geometry::Resource);
 
                 // draw
                 m_State.draw(context);
@@ -404,31 +412,31 @@ bool DeferredRenderer::build() {
                 .attachments = {
                     .input = {
                         {
-                            Builtin::RenderPipelineDeferred::ResourceGBuffers[0],
+                            Builtin::PipelineDeferred::ResourceGBuffers[0],
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            Builtin::RenderPipelineDeferred::ResourceGBuffers[1],
+                            Builtin::PipelineDeferred::ResourceGBuffers[1],
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            Builtin::RenderPipelineDeferred::ResourceGBuffers[2],
+                            Builtin::PipelineDeferred::ResourceGBuffers[2],
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            Builtin::RenderPipelineShadow::Directional::ResourceAttachment,
+                            Builtin::PipelineShadow::Directional::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            Builtin::RenderPipelineShadow::Point::ResourceAttachment,
+                            Builtin::PipelineShadow::Point::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
@@ -440,7 +448,7 @@ bool DeferredRenderer::build() {
                 ZoneScopedN("DeferredRenderer/Lighting/Execute");
                 TracyVkZone(context.tracy, context.command, "DeferredRenderer/Lighting");
 
-                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
                 const std::vector<DirectionalLightComponent> &directionals = scene->getComponentArray<DirectionalLightComponent>();
                 const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
@@ -469,19 +477,19 @@ bool DeferredRenderer::build() {
                 });
 
                 // bind resources
-                Builtin::RenderPipelineDeferred::Lighting::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::RenderPipelineDeferred::Lighting::Resource);
+                Builtin::PipelineDeferred::Lighting::Resource->bind(context);
+                App::LayoutAllocator.bind(context, Builtin::PipelineDeferred::Lighting::Resource);
 
                 // record constants
-                Builtin::RenderPipelineDeferred::Lighting::PushConstants pushConstants = {
+                Builtin::PipelineDeferred::Lighting::PushConstants pushConstants = {
                     .directionalCount = static_cast<std::uint32_t>(directionals.size()),
                     .spotCount = static_cast<std::uint32_t>(spots.size()),
                     .pointCount = static_cast<std::uint32_t>(points.size()),
                 };
 
-                Builtin::RenderPipelineDeferred::Lighting::Resource->updatePushConstants(
+                Builtin::PipelineDeferred::Lighting::Resource->updatePushConstants(
                     context,
-                    RenderPipeline::PushConstantsStageFlags::eAll,
+                    GraphicsPipeline::PushConstantsStageFlags::eAll,
                     std::as_bytes(std::span(&pushConstants, 1)),
                     0);
 
@@ -499,59 +507,59 @@ bool DeferredRenderer::build() {
     if (success) {
         // geometry
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Geometry::ResourceLayoutFrame,
+            Builtin::PipelineDeferred::Geometry::ResourceLayoutFrame,
             Builtin::RenderNodeCamera::ResourceBuffer,
             0);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Geometry::ResourceLayoutFrame,
+            Builtin::PipelineDeferred::Geometry::ResourceLayoutFrame,
             Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
             1);
 
         // lighting
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::RenderNodeCamera::ResourceBuffer,
             0);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferDirectional,
             1);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferPoint,
             2);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferSpot,
             3);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Resource<Attachment>("builtin/deferred/gBuffer0"),
             4);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Resource<Attachment>("builtin/deferred/gBuffer1"),
             5);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Resource<Attachment>("builtin/deferred/gBuffer2"),
             6);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
-            Builtin::RenderPipelineShadow::Directional::ResourceAttachment,
+            Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::PipelineShadow::Directional::ResourceAttachment,
             7);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineDeferred::Lighting::ResourceLayoutFrame,
-            Builtin::RenderPipelineShadow::Point::ResourceAttachment,
+            Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
+            Builtin::PipelineShadow::Point::ResourceAttachment,
             8);
     }
 
@@ -564,8 +572,8 @@ bool DeferredRenderer::destroy() {
     return true;
 }
 
-bool DeferredRenderer::specialize(const Builtin::RenderPipelineDeferred::Lighting::Specialization &specialization) {
-    return Builtin::RenderPipelineDeferred::Lighting::Resource->specialize(specialization);
+bool DeferredRenderer::specialize(const Builtin::PipelineDeferred::Lighting::Specialization &specialization) {
+    return Builtin::PipelineDeferred::Lighting::Resource->specialize(specialization);
 }
 
 const RenderGraph &DeferredRenderer::getGraph() const {

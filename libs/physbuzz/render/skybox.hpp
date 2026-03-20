@@ -1,30 +1,29 @@
 #pragma once
 
 #include "../ecs/system.hpp"
-#include "../graphics/mesh.hpp"
 #include "../graphics/rendergraph.hpp"
 #include "../resources/resource.hpp"
 #include "../window/window.hpp"
 
 namespace Physbuzz {
 
-class RenderPipeline;
-class PipelineLayout;
+class GraphicsPipeline;
+class DescriptorLayout;
 class Texture;
 class Mesh;
 
 namespace Builtin {
 
-namespace RenderPipelineSkybox {
+namespace PipelineSkybox {
 
-inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/skybox/frame"};
-inline Resource<PipelineLayout> ResourceLayoutTexture = {"builtin/skybox/texture"};
+inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/skybox/frame"};
+inline Resource<DescriptorLayout> ResourceLayoutTexture = {"builtin/skybox/texture"};
 
-inline Resource<RenderPipeline> Resource = {"builtin/skybox"};
+inline Resource<GraphicsPipeline> Resource = {"builtin/skybox"};
 
 bool build();
 
-} // namespace RenderPipelineSkybox
+} // namespace PipelineSkybox
 
 } // namespace Builtin
 
@@ -37,7 +36,6 @@ class SkyboxRenderer : public System<> {
         std::shared_ptr<Window> window;
 
         Resource<Texture> skybox;
-        Resource<RenderPipeline> pipeline = Builtin::RenderPipelineSkybox::Resource;
     };
 
     SkyboxRenderer(const Info &info);

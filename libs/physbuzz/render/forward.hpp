@@ -7,12 +7,12 @@
 
 namespace Physbuzz {
 
-class RenderPipeline;
-class PipelineLayout;
+class GraphicsPipeline;
+class DescriptorLayout;
 
 namespace Builtin {
 
-namespace RenderPipelineForward {
+namespace PipelineForward {
 
 struct PushConstants {
     std::uint32_t directionalCount;
@@ -26,13 +26,13 @@ struct Specialization {
     std::uint32_t enableShadows;
 };
 
-inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/forward/frame"};
+inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/forward/frame"};
 
-inline Resource<RenderPipeline> Resource = {"builtin/forward"};
+inline Resource<GraphicsPipeline> Resource = {"builtin/forward"};
 
 bool build();
 
-} // namespace RenderPipelineForward
+} // namespace PipelineForward
 
 } // namespace Builtin
 
@@ -50,7 +50,7 @@ class ForwardRenderer : public System<RenderComponent> {
     bool build() override;
     bool destroy() override;
 
-    bool specialize(const Builtin::RenderPipelineForward::Specialization &specialization);
+    bool specialize(const Builtin::PipelineForward::Specialization &specialization);
 
     const RenderGraph &getGraph() const;
 

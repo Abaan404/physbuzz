@@ -10,25 +10,25 @@ namespace Physbuzz {
 namespace Builtin {
 
 bool LayoutMaterial::build() {
-    if (ResourceRegistry<PipelineLayout>::contains(Resource)) {
+    if (ResourceRegistry<DescriptorLayout>::contains(Resource)) {
         return true;
     }
 
     bool success = true;
 
-    success &= ResourceRegistry<PipelineLayout>::insert(
+    success &= ResourceRegistry<DescriptorLayout>::insert(
         Resource,
         {{
             .bindings = {
                 {
                     // textures
-                    .type = PipelineLayout::Type::eCombinedImageSampler,
-                    .flags = PipelineLayout::BindingFlagBits::ePartiallyBound | PipelineLayout::BindingFlagBits::eUpdateAfterBind,
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .flags = DescriptorLayout::BindingFlagBits::ePartiallyBound | DescriptorLayout::BindingFlagBits::eUpdateAfterBind,
                     .count = 512,
                 },
             },
-            .flags = PipelineLayout::Flags::eUpdateAfterBindPool,
-            .lifetime = PipelineLayout::Lifetime::Global,
+            .flags = DescriptorLayout::Flags::eUpdateAfterBindPool,
+            .lifetime = DescriptorLayout::Lifetime::Global,
         }});
 
     return success;

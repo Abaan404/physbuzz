@@ -34,8 +34,8 @@
 void Game::build() {
     Physbuzz::App::init();
     Physbuzz::Context::set(this);
-    Physbuzz::ResourceRegistry<Physbuzz::RenderPipeline>::setResourceDirectory(std::filesystem::current_path() / "resources" / "shaders");
-    Physbuzz::ResourceRegistry<Physbuzz::RenderPipeline>::watch();
+    Physbuzz::ResourceRegistry<Physbuzz::GraphicsPipeline>::setResourceDirectory(std::filesystem::current_path() / "resources" / "shaders");
+    Physbuzz::ResourceRegistry<Physbuzz::GraphicsPipeline>::watch();
 
     std::shared_ptr<Physbuzz::Window> window = Physbuzz::App::createWindow("main", {}, {1280, 720});
 

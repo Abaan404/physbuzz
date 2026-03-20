@@ -10,9 +10,8 @@ class DynamicBuffer;
 class Texture;
 class Sampler;
 class Attachment;
-class RenderPipeline;
 
-class PipelineLayout {
+class DescriptorLayout {
   public:
     using Type = vk::DescriptorType;
     using Flags = vk::DescriptorSetLayoutCreateFlagBits;
@@ -42,27 +41,27 @@ class PipelineLayout {
         Lifetime lifetime = Lifetime::PerFrame;
     };
 
-    PipelineLayout(const Info &info);
+    struct Data {
+        vk::DescriptorSetLayout layout = nullptr;
+    };
+
+    DescriptorLayout(const Info &info);
 
     bool build();
     bool destroy();
 
     const Info &getInfo() const;
+    const Data &getData() const;
 
   private:
     Info m_Info;
-
-    std::uint32_t m_DynamicOffset = 0;
-    vk::DescriptorSetLayout m_Layout = nullptr;
-
-    friend class RenderPipeline;
-    friend class PipelineLayoutAllocator;
+    Data m_Data;
 };
 
 template <>
-struct IsResource<PipelineLayout> : std::true_type {};
+struct IsResource<DescriptorLayout> : std::true_type {};
 
-class PipelineLayoutAllocator {
+class DescriptorLayoutAllocator {
   public:
     using Type = vk::DescriptorType;
 
@@ -84,19 +83,19 @@ class PipelineLayoutAllocator {
         };
     };
 
-    PipelineLayoutAllocator(const Info &info);
+    DescriptorLayoutAllocator(const Info &info);
 
     bool build();
     bool destroy();
 
-    bool write(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t binding, std::uint32_t element = 0);
-    bool write(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
-    bool write(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t binding, std::uint32_t element = 0);
-    bool write(const Resource<PipelineLayout> &layout, const Resource<Sampler> &sampler, std::uint32_t binding, std::uint32_t element = 0);
+    bool write(const Resource<DescriptorLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t binding, std::uint32_t element = 0);
+    bool write(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
+    bool write(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t binding, std::uint32_t element = 0);
+    bool write(const Resource<DescriptorLayout> &layout, const Resource<Sampler> &sampler, std::uint32_t binding, std::uint32_t element = 0);
 
     void reset();
 
-    void bind(const RenderContext &context, const RenderPipeline &pipeline, std::uint32_t idx = 0);
+    void bind(const RenderContext &context, const GraphicsPipeline &pipeline, std::uint32_t idx = 0);
 
   private:
     struct Allocation {
@@ -111,15 +110,15 @@ class PipelineLayoutAllocator {
     };
 
     struct WriteEntry {
-        std::unordered_map<Resource<PipelineLayout>, WriteInfo> layouts;
+        std::unordered_map<Resource<DescriptorLayout>, WriteInfo> layouts;
     };
 
-    bool rewrite(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element = 0);
-    bool rewrite(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
-    bool rewrite(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element = 0);
+    bool rewrite(const Resource<DescriptorLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element = 0);
+    bool rewrite(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
+    bool rewrite(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element = 0);
 
-    bool allocate(const Resource<PipelineLayout> &layout);
-    bool deallocate(const Resource<PipelineLayout> &layout);
+    bool allocate(const Resource<DescriptorLayout> &layout);
+    bool deallocate(const Resource<DescriptorLayout> &layout);
 
     vk::DescriptorPool createPool();
 
@@ -129,7 +128,7 @@ class PipelineLayoutAllocator {
     std::unordered_map<Resource<Texture>, WriteEntry> m_WrittenTextures;
     std::unordered_map<Resource<Attachment>, WriteEntry> m_WrittenAttachments;
 
-    std::unordered_map<Resource<PipelineLayout>, Allocation> m_AllocatedLayouts;
+    std::unordered_map<Resource<DescriptorLayout>, Allocation> m_AllocatedLayouts;
 
     vk::DescriptorPool m_CurrentPool = nullptr;
     std::vector<vk::DescriptorPool> m_UsedPools;

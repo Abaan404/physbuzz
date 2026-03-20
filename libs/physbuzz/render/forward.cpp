@@ -17,81 +17,85 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool RenderPipelineForward::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
+bool PipelineForward::build() {
+    if (ResourceRegistry<GraphicsPipeline>::contains(Resource)) {
         return true;
     }
 
     bool success = true;
 
-    if (!ResourceRegistry<PipelineLayout>::contains(LayoutMaterial::Resource)) {
+    if (!ResourceRegistry<DescriptorLayout>::contains(LayoutMaterial::Resource)) {
         success &= LayoutMaterial::build();
     }
 
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
+    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutFrame)) {
+        success &= ResourceRegistry<DescriptorLayout>::insert(
             ResourceLayoutFrame,
             {{
                 .bindings = {
                     {
                         // camera
-                        .type = PipelineLayout::Type::eUniformBuffer,
+                        .type = DescriptorLayout::Type::eUniformBuffer,
                         .range = sizeof(Builtin::RenderNodeCamera::CameraBuffer),
                     },
                     {
                         // directionals
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
                         // points
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
                         // spots
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
                         // instance
-                        .type = PipelineLayout::Type::eStorageBuffer,
+                        .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
                         // directional shadow depth map
-                        .type = PipelineLayout::Type::eCombinedImageSampler,
-                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
                     },
                     {
                         // point shadow depth map
-                        .type = PipelineLayout::Type::eCombinedImageSampler,
-                        .stage = PipelineLayout::ShaderStageFlags::eFragment,
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
                     },
                 },
             }});
     }
 
-    success &= ResourceRegistry<RenderPipeline>::insert(
+    success &= ResourceRegistry<GraphicsPipeline>::insert(
         Resource,
-        {{
-            .module = "builtin/render/forward",
-            .description = &Model::Vertex::Description,
-            .layouts = {
-                .resources = {
-                    LayoutMaterial::Resource,
-                    ResourceLayoutFrame,
+        {
+            {
+                .module = "builtin/render/forward",
+                .specialization = {
+                    .offsets = {
+                        offsetof(Specialization, enableShadows),
+                    },
+                    .size = sizeof(Specialization),
                 },
-                .pushConstantRanges = {
-                    {
-                        .stageFlags = RenderPipeline::PushConstantsStageFlags::eAll,
-                        .size = sizeof(PushConstants),
+            },
+            {
+                .description = &Model::Vertex::Description,
+                .layouts = {
+                    .resources = {
+                        LayoutMaterial::Resource,
+                        ResourceLayoutFrame,
+                    },
+                    .pushConstantRanges = {
+                        {
+                            .stageFlags = GraphicsPipeline::PushConstantsStageFlags::eAll,
+                            .size = sizeof(PushConstants),
+                        },
                     },
                 },
             },
-            .specialization = {
-                .offsets = {
-                    offsetof(Specialization, enableShadows),
-                },
-                .size = sizeof(Specialization),
-            },
-        }});
+        });
 
     return success;
 }
@@ -103,7 +107,7 @@ ForwardRenderer::ForwardRenderer(const Info &info)
 
 bool ForwardRenderer::build() {
     // build pipeline
-    if (!Builtin::RenderPipelineForward::build()) {
+    if (!Builtin::PipelineForward::build()) {
         Logger::ERROR("[ForwardRenderer] Could not build forward pipeline.");
         return false;
     }
@@ -168,13 +172,13 @@ bool ForwardRenderer::build() {
                 .attachments = {
                     .input = {
                         {
-                            Builtin::RenderPipelineShadow::Directional::ResourceAttachment,
+                            Builtin::PipelineShadow::Directional::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            Builtin::RenderPipelineShadow::Point::ResourceAttachment,
+                            Builtin::PipelineShadow::Point::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
@@ -186,7 +190,7 @@ bool ForwardRenderer::build() {
                 ZoneScopedN("ForwardRenderer/Execute");
                 TracyVkZone(context.tracy, context.command, "ForwardRenderer");
 
-                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth->getRingData()[context.frameInFlight].view,
@@ -210,14 +214,14 @@ bool ForwardRenderer::build() {
                 const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
                 const std::vector<SpotLightComponent> &spots = scene->getComponentArray<SpotLightComponent>();
 
-                Builtin::RenderPipelineForward::PushConstants pushConstants = {
+                Builtin::PipelineForward::PushConstants pushConstants = {
                     .directionalCount = static_cast<std::uint32_t>(directionals.size()),
                     .spotCount = static_cast<std::uint32_t>(spots.size()),
                     .pointCount = static_cast<std::uint32_t>(points.size()),
                     .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
                 };
 
-                Builtin::RenderPipelineForward::Resource->updatePushConstants(context, RenderPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+                Builtin::PipelineForward::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
 
                 context.command.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(context.extent.width), static_cast<float>(context.extent.height), 0.0f, 1.0f});
                 context.command.setScissor(0, vk::Rect2D{{0, 0}, context.extent});
@@ -235,8 +239,8 @@ bool ForwardRenderer::build() {
                 });
 
                 // bind resources
-                Builtin::RenderPipelineForward::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::RenderPipelineForward::Resource);
+                Builtin::PipelineForward::Resource->bind(context);
+                App::LayoutAllocator.bind(context, Builtin::PipelineForward::Resource);
 
                 // draw
                 m_State.draw(context);
@@ -251,38 +255,38 @@ bool ForwardRenderer::build() {
 
     if (success) {
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::PipelineForward::ResourceLayoutFrame,
             Builtin::RenderNodeCamera::ResourceBuffer,
             0);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::PipelineForward::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferDirectional,
             1);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::PipelineForward::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferPoint,
             2);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::PipelineForward::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferSpot,
             3);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineForward::ResourceLayoutFrame,
+            Builtin::PipelineForward::ResourceLayoutFrame,
             Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
             4);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineForward::ResourceLayoutFrame,
-            Builtin::RenderPipelineShadow::Directional::ResourceAttachment,
+            Builtin::PipelineForward::ResourceLayoutFrame,
+            Builtin::PipelineShadow::Directional::ResourceAttachment,
             5);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineForward::ResourceLayoutFrame,
-            Builtin::RenderPipelineShadow::Point::ResourceAttachment,
+            Builtin::PipelineForward::ResourceLayoutFrame,
+            Builtin::PipelineShadow::Point::ResourceAttachment,
             6);
     }
 
@@ -297,8 +301,8 @@ bool ForwardRenderer::destroy() {
     return true;
 }
 
-bool ForwardRenderer::specialize(const Builtin::RenderPipelineForward::Specialization &specialization) {
-    return Builtin::RenderPipelineForward::Resource->specialize(specialization);
+bool ForwardRenderer::specialize(const Builtin::PipelineForward::Specialization &specialization) {
+    return Builtin::PipelineForward::Resource->specialize(specialization);
 }
 
 const RenderGraph &ForwardRenderer::getGraph() const {

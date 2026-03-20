@@ -9,15 +9,15 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-namespace RenderPipelineShadow {
+namespace PipelineShadow {
 
 namespace Directional {
 
 inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/directional"};
 
-inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/shadow/directional/frame"};
+inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/shadow/directional/frame"};
 
-inline Resource<RenderPipeline> Resource = {"builtin/shadow/directional"};
+inline Resource<GraphicsPipeline> Resource = {"builtin/shadow/directional"};
 
 bool build(const glm::uvec2 &resolution);
 
@@ -27,15 +27,15 @@ namespace Point {
 
 inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/point"};
 
-inline Resource<PipelineLayout> ResourceLayoutFrame = {"builtin/shadow/point/frame"};
+inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/shadow/point/frame"};
 
-inline Resource<RenderPipeline> Resource = {"builtin/shadow/point"};
+inline Resource<GraphicsPipeline> Resource = {"builtin/shadow/point"};
 
 bool build(const glm::uvec2 &resolution);
 
 } // namespace Point
 
-} // namespace RenderPipelineShadow
+} // namespace PipelineShadow
 
 } // namespace Builtin
 

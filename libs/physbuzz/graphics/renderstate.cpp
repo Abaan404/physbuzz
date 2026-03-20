@@ -152,7 +152,7 @@ bool RenderState::destroy() {
     bool success = true;
 
     success &= ResourceRegistry<DynamicBuffer>::erase(m_Instance);
-    success &= m_Indirect->destroy();
+    success &= ResourceRegistry<DynamicBuffer>::erase(m_Indirect);
 
     m_IndirectMeshes.clear();
 

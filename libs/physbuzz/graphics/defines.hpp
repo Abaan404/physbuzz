@@ -6,7 +6,8 @@
 
 namespace Physbuzz {
 
-class PipelineLayoutAllocator;
+class GraphicsPipeline;
+class DescriptorLayoutAllocator;
 class MaterialAllocator;
 class DeletionQueue;
 class Transfer;
@@ -34,5 +35,9 @@ struct RenderContext {
         vk::ImageView view;
     } color;
 };
+
+template <typename T>
+concept PipelineType =
+    std::same_as<T, GraphicsPipeline>;
 
 } // namespace Physbuzz

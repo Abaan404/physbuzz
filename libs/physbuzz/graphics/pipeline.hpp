@@ -1,17 +1,91 @@
 #pragma once
 
 #include "../resources/resource.hpp"
+#include "defines.hpp"
 #include <glm/glm.hpp>
 #include <string>
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {
 
-class PipelineLayout;
+class DescriptorLayout;
 class VertexDescription;
 struct RenderContext;
 
-class RenderPipeline {
+class Shader {
+  public:
+    struct Info {
+        std::string module;
+
+        struct {
+            std::vector<std::uint32_t> offsets;
+            std::size_t size;
+        } specialization;
+    };
+
+    struct Data {
+        std::vector<vk::PipelineShaderStageCreateInfo> stages;
+        std::unordered_set<std::filesystem::path> dependencyFilePaths;
+    };
+
+    Shader(const Info &info);
+
+    bool build(const std::span<const std::byte> &specializationData);
+    bool destroy();
+
+    const Info &getInfo() const;
+    const Data &getData() const;
+
+  private:
+    Info m_Info;
+    Data m_Data;
+
+    std::vector<vk::SpecializationMapEntry> m_SpecializationEntries;
+    vk::SpecializationInfo m_Specialization = {};
+};
+
+template <PipelineType T>
+class Pipeline {
+  public:
+    using PushConstantsStage = vk::ShaderStageFlags;
+    using PushConstantsStageFlags = vk::ShaderStageFlagBits;
+
+    Pipeline(const Shader::Info &shaderInfo);
+
+    bool build();
+    bool destroy();
+
+    bool reload(WatchAction action, const std::filesystem::path &path);
+
+    void bind(const RenderContext &context);
+    bool specialize(const std::span<const std::byte> &data);
+
+    template <typename D>
+    bool specialize(const D &data) {
+        std::span<const std::byte> bytes = std::as_bytes(std::span(&data, 1));
+        return specialize(bytes);
+    }
+
+    void updatePushConstants(const RenderContext &context, const PushConstantsStage &stage, const std::span<const std::byte> &bytes, std::uint32_t offset);
+
+    vk::PipelineLayout getPipelineLayout() const;
+
+  protected:
+    std::unordered_set<std::filesystem::path> m_DependencyFilePaths;
+
+  private:
+    std::size_t calcSpecHash(const std::span<const std::byte> &data) const;
+
+    Shader::Info m_ShaderInfo;
+
+    vk::PipelineLayout m_Layout = nullptr;
+    std::vector<vk::Pipeline> m_Pipelines;
+
+    std::size_t m_ActivePipeline = -1u;
+    std::unordered_map<std::size_t, std::size_t> m_Specializations;
+};
+
+class GraphicsPipeline : public Pipeline<GraphicsPipeline> {
   public:
     using DynamicState = vk::DynamicState;
 
@@ -60,7 +134,6 @@ class RenderPipeline {
     };
 
     struct Info {
-        std::string module;
         VertexDescription *description = nullptr;
 
         struct {
@@ -105,7 +178,7 @@ class RenderPipeline {
         } formats = {};
 
         struct {
-            std::vector<Resource<PipelineLayout>> resources = {};
+            std::vector<Resource<DescriptorLayout>> resources = {};
             std::vector<PushConstants> pushConstantRanges = {};
         } layouts = {};
 
@@ -115,51 +188,25 @@ class RenderPipeline {
             std::optional<std::uint32_t> stencil = std::nullopt;
         } inputs = {};
 
-        struct {
-            std::vector<std::uint32_t> offsets;
-            std::size_t size;
-        } specialization;
-
         std::vector<DynamicState> dynamicStates = {};
     };
 
-    RenderPipeline(const Info &info);
-
-    bool build();
-    bool destroy();
-
-    bool reload(WatchAction action, const std::filesystem::path &path);
-
-    template <typename T>
-    bool specialize(const T &data) {
-        std::span<const std::byte> bytes = std::as_bytes(std::span(&data, 1));
-        return specialize(bytes);
-    }
-
-    bool specialize(const std::span<const std::byte> &data);
-
-    void updatePushConstants(const RenderContext &context, const PushConstantsStage &stage, const std::span<const std::byte> &bytes, std::uint32_t offset);
-    void bind(const RenderContext &context);
+    GraphicsPipeline(const Shader::Info &shaderInfo, const Info &info);
 
     const Info &getInfo() const;
 
   private:
-    std::optional<vk::Pipeline> createSpecializedPipeline(const std::span<const std::byte> &specializationData);
-
     Info m_Info;
 
-    vk::PipelineLayout m_Layout = nullptr;
+    void bindImpl(const RenderContext &context, vk::Pipeline pipeline);
 
-    std::vector<vk::Pipeline> m_Pipelines;
-    std::unordered_map<std::size_t, std::size_t> m_Specializations;
-    std::size_t m_ActivePipeline = -1u;
+    std::optional<vk::PipelineLayout> createPipelineLayoutImpl();
+    std::optional<vk::Pipeline> createPipelineImpl(const Shader::Info &shaderInfo, const std::span<const std::byte> &specializationData);
 
-    std::unordered_set<std::filesystem::path> m_DependencyFilePaths;
-
-    friend class PipelineLayoutAllocator;
+    friend class Pipeline<GraphicsPipeline>;
 };
 
 template <>
-struct IsResource<RenderPipeline> : std::true_type {};
+struct IsResource<GraphicsPipeline> : std::true_type {};
 
 } // namespace Physbuzz

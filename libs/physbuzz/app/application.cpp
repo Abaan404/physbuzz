@@ -59,9 +59,9 @@ static VKAPI_ATTR vk::Bool32 VKAPI_CALL vulkanDebugCallback(vk::DebugUtilsMessag
 
 DeletionQueue App::Deletion = {};
 Scene App::GScene = {};
-PipelineLayoutAllocator App::LayoutAllocator = {{}};
+DescriptorLayoutAllocator App::LayoutAllocator = {{}};
 
-bool App::init(const PipelineLayoutAllocator::Info &layoutAllocatorInfo) {
+bool App::init(const DescriptorLayoutAllocator::Info &layoutAllocatorInfo) {
     // setup logging
     Logger::init();
 
@@ -359,8 +359,8 @@ bool App::quit() {
 #endif
 
     // cleanup vulkan resources
-    ResourceRegistry<RenderPipeline>::clear();
-    ResourceRegistry<PipelineLayout>::clear();
+    ResourceRegistry<GraphicsPipeline>::clear();
+    ResourceRegistry<DescriptorLayout>::clear();
     ResourceRegistry<StaticBuffer>::clear();
     ResourceRegistry<DynamicBuffer>::clear();
     ResourceRegistry<Texture>::clear();

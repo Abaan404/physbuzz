@@ -13,7 +13,7 @@ class DeletionQueue;
 
 class App {
   public:
-    static bool init(const PipelineLayoutAllocator::Info &layoutAllocatorInfo = {});
+    static bool init(const DescriptorLayoutAllocator::Info &layoutAllocatorInfo = {});
     static bool quit();
 
     // windowing
@@ -28,7 +28,7 @@ class App {
     static DeletionQueue Deletion;
 
     // global layout allocator
-    static PipelineLayoutAllocator LayoutAllocator;
+    static DescriptorLayoutAllocator LayoutAllocator;
 
   private:
     // Vulkan instances and extensions
@@ -74,9 +74,13 @@ class App {
 
     friend class DeletionQueue;
 
-    friend class PipelineLayoutAllocator;
-    friend class PipelineLayout;
-    friend class RenderPipeline;
+    friend class DescriptorLayoutAllocator;
+    friend class DescriptorLayout;
+
+    template <PipelineType>
+    friend class Pipeline;
+    friend class GraphicsPipeline;
+    friend class Shader;
 
     friend class Transfer;
     friend class Buffer;

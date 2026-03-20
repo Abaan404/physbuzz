@@ -12,12 +12,12 @@
 
 namespace Physbuzz {
 
-PipelineLayout::PipelineLayout(const Info &info)
+DescriptorLayout::DescriptorLayout(const Info &info)
     : m_Info(info) {}
 
-bool PipelineLayout::build() {
-    if (m_Layout != nullptr) {
-        Logger::WARNING("[PipelineLayout] Trying to build a constructed descriptor.");
+bool DescriptorLayout::build() {
+    if (m_Data.layout != nullptr) {
+        Logger::WARNING("[DescriptorLayout] Trying to build a constructed descriptor.");
         return true;
     }
 
@@ -50,33 +50,39 @@ bool PipelineLayout::build() {
         },
     };
 
-    m_Layout = PBZ_VK_CHECK(App::Device.createDescriptorSetLayout(chain.get()));
+    m_Data = {
+        .layout = PBZ_VK_CHECK(App::Device.createDescriptorSetLayout(chain.get())),
+    };
 
     return true;
 }
 
-bool PipelineLayout::destroy() {
-    if (m_Layout == nullptr) {
-        Logger::WARNING("[PipelineLayout] Trying to destroy a destructed descriptor.");
+bool DescriptorLayout::destroy() {
+    if (m_Data.layout == nullptr) {
+        Logger::WARNING("[DescriptorLayout] Trying to destroy a destructed descriptor.");
         return false;
     }
 
-    App::Device.destroyDescriptorSetLayout(m_Layout);
-    m_Layout = nullptr;
+    App::Device.destroyDescriptorSetLayout(m_Data.layout);
+    m_Data.layout = nullptr;
 
     return true;
 }
 
-const PipelineLayout::Info &PipelineLayout::getInfo() const {
+const DescriptorLayout::Info &DescriptorLayout::getInfo() const {
     return m_Info;
 }
 
-PipelineLayoutAllocator::PipelineLayoutAllocator(const Info &info)
+const DescriptorLayout::Data &DescriptorLayout::getData() const {
+    return m_Data;
+}
+
+DescriptorLayoutAllocator::DescriptorLayoutAllocator(const Info &info)
     : m_Info(info) {}
 
-bool PipelineLayoutAllocator::build() {
+bool DescriptorLayoutAllocator::build() {
     if (m_CurrentPool != nullptr) {
-        Logger::WARNING("[PipelineLayoutAllocator] Trying to build a constructed pool allocator.");
+        Logger::WARNING("[DescriptorLayoutAllocator] Trying to build a constructed pool allocator.");
         return false;
     }
 
@@ -84,9 +90,9 @@ bool PipelineLayoutAllocator::build() {
     return true;
 }
 
-bool PipelineLayoutAllocator::destroy() {
+bool DescriptorLayoutAllocator::destroy() {
     if (m_CurrentPool == nullptr) {
-        Logger::WARNING("[PipelineLayoutAllocator] Trying to destroy a destructed pool allocator.");
+        Logger::WARNING("[DescriptorLayoutAllocator] Trying to destroy a destructed pool allocator.");
         return false;
     }
 
@@ -108,7 +114,7 @@ bool PipelineLayoutAllocator::destroy() {
         }
     }
 
-    std::unordered_map<Resource<PipelineLayout>, Allocation> allocatedLayouts = m_AllocatedLayouts;
+    std::unordered_map<Resource<DescriptorLayout>, Allocation> allocatedLayouts = m_AllocatedLayouts;
 
     for (auto [layout, _] : allocatedLayouts) {
         deallocate(layout);
@@ -133,7 +139,7 @@ bool PipelineLayoutAllocator::destroy() {
     return true;
 }
 
-bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
 
     switch (buffer->getInfo().type) {
@@ -157,10 +163,10 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for dynamic buffer '{}'", binding, element, buffer));
+        std::format("[DescriptorLayoutAllocator] Invalid type at binding {} element {} for dynamic buffer '{}'", binding, element, buffer));
     PBZ_ASSERT(
-        layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
-        std::format("[PipelineLayoutAllocator] Incompatible lifetime for dynamic buffer '{}' and layout '{}'", buffer, layout));
+        layout->getInfo().lifetime == DescriptorLayout::Lifetime::PerFrame,
+        std::format("[DescriptorLayoutAllocator] Incompatible lifetime for dynamic buffer '{}' and layout '{}'", buffer, layout));
 
     // check if binding is cached
     auto &[_, entry] = *m_WrittenBuffers.insert({buffer, {}}).first;
@@ -211,7 +217,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     return true;
 }
 
-bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = {};
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
@@ -231,10 +237,10 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for texture '{}'", binding, element, texture));
+        std::format("[DescriptorLayoutAllocator] Invalid type at binding {} element {} for texture '{}'", binding, element, texture));
     PBZ_ASSERT(
-        layout->getInfo().lifetime == PipelineLayout::Lifetime::Global,
-        std::format("[PipelineLayoutAllocator] Incompatible lifetime for texture '{}' and layout '{}'", texture, layout));
+        layout->getInfo().lifetime == DescriptorLayout::Lifetime::Global,
+        std::format("[DescriptorLayoutAllocator] Incompatible lifetime for texture '{}' and layout '{}'", texture, layout));
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
@@ -279,7 +285,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     return true;
 }
 
-bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = {};
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
@@ -312,10 +318,10 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for attachment '{}'", binding, element, attachment));
+        std::format("[DescriptorLayoutAllocator] Invalid type at binding {} element {} for attachment '{}'", binding, element, attachment));
     PBZ_ASSERT(
-        layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
-        std::format("[PipelineLayoutAllocator] Incompatible lifetime for attachment '{}' and layout '{}'", attachment, layout));
+        layout->getInfo().lifetime == DescriptorLayout::Lifetime::PerFrame,
+        std::format("[DescriptorLayoutAllocator] Incompatible lifetime for attachment '{}' and layout '{}'", attachment, layout));
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
@@ -366,15 +372,15 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     return true;
 }
 
-bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, const Resource<Sampler> &sampler, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, const Resource<Sampler> &sampler, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = vk::DescriptorType::eSampler;
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for sampler '{}'", binding, element, layout));
+        std::format("[DescriptorLayoutAllocator] Invalid type at binding {} element {} for sampler '{}'", binding, element, layout));
     PBZ_ASSERT(
-        layout->getInfo().lifetime == PipelineLayout::Lifetime::Global,
-        std::format("[PipelineLayoutAllocator] Incompatible lifetime for sampler '{}' and layout '{}'", sampler, layout));
+        layout->getInfo().lifetime == DescriptorLayout::Lifetime::Global,
+        std::format("[DescriptorLayoutAllocator] Incompatible lifetime for sampler '{}' and layout '{}'", sampler, layout));
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
@@ -398,7 +404,7 @@ bool PipelineLayoutAllocator::write(const Resource<PipelineLayout> &layout, cons
     return true;
 }
 
-void PipelineLayoutAllocator::reset() {
+void DescriptorLayoutAllocator::reset() {
     // free all allocated sets, not necessary since we're resetting the pool, however since we're no longer tracking them we might aswell.
     for (const auto &[layout, alloc] : m_AllocatedLayouts) {
         PBZ_VK_CHECK_RESULT(App::Device.freeDescriptorSets(alloc.allocatorPool, alloc.sets));
@@ -417,12 +423,12 @@ void PipelineLayoutAllocator::reset() {
     m_AllocatedLayouts.clear();
 }
 
-void PipelineLayoutAllocator::bind(const RenderContext &context, const RenderPipeline &pipeline, std::uint32_t idx) {
-    ZoneScopedN("PipelineLayoutAllocator/Bind");
+void DescriptorLayoutAllocator::bind(const RenderContext &context, const GraphicsPipeline &pipeline, std::uint32_t idx) {
+    ZoneScopedN("DescriptorLayoutAllocator/Bind");
 
     for (std::size_t i = 0; i < pipeline.getInfo().layouts.resources.size(); i++) {
-        const Resource<PipelineLayout> &layout = pipeline.getInfo().layouts.resources[i];
-        PBZ_ASSERT(m_AllocatedLayouts.contains(layout), std::format("[PipelineLayoutAllocator] Unallocated layout '{}'", layout));
+        const Resource<DescriptorLayout> &layout = pipeline.getInfo().layouts.resources[i];
+        PBZ_ASSERT(m_AllocatedLayouts.contains(layout), std::format("[DescriptorLayoutAllocator] Unallocated layout '{}'", layout));
 
         std::vector<std::uint32_t> dynamicOffsets;
         dynamicOffsets.reserve(layout->getInfo().bindings.size()); // reserve extra even if it wont be all used
@@ -444,19 +450,19 @@ void PipelineLayoutAllocator::bind(const RenderContext &context, const RenderPip
 
         std::uint32_t index;
         switch (layout->getInfo().lifetime) {
-        case PipelineLayout::Lifetime::Global:
+        case DescriptorLayout::Lifetime::Global:
             index = 0;
             break;
-        case PipelineLayout::Lifetime::PerFrame:
+        case DescriptorLayout::Lifetime::PerFrame:
             index = context.frameInFlight;
             break;
         }
 
-        context.command.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.m_Layout, i, m_AllocatedLayouts[layout].sets[index], dynamicOffsets);
+        context.command.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.getPipelineLayout(), i, m_AllocatedLayouts[layout].sets[index], dynamicOffsets);
     }
 }
 
-bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
 
     switch (buffer->getInfo().type) {
@@ -480,10 +486,10 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for dynamic buffer '{}'", binding, element, buffer));
+        std::format("[DescriptorLayoutAllocator] Invalid type at binding {} element {} for dynamic buffer '{}'", binding, element, buffer));
     PBZ_ASSERT(
-        layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
-        std::format("[PipelineLayoutAllocator] Incompatible lifetime for dynamic buffer at binding '{}' and layout '{}'", binding, layout));
+        layout->getInfo().lifetime == DescriptorLayout::Lifetime::PerFrame,
+        std::format("[DescriptorLayoutAllocator] Incompatible lifetime for dynamic buffer at binding '{}' and layout '{}'", binding, layout));
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
@@ -511,7 +517,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     return true;
 }
 
-bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
@@ -531,10 +537,10 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for texture '{}'", binding, element, texture));
+        std::format("[DescriptorLayoutAllocator] Invalid type at binding {} element {} for texture '{}'", binding, element, texture));
     PBZ_ASSERT(
-        layout->getInfo().lifetime == PipelineLayout::Lifetime::Global,
-        std::format("[PipelineLayoutAllocator] Incompatible lifetime for texture at binding '{}' and layout '{}'", binding, layout));
+        layout->getInfo().lifetime == DescriptorLayout::Lifetime::Global,
+        std::format("[DescriptorLayoutAllocator] Incompatible lifetime for texture at binding '{}' and layout '{}'", binding, layout));
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
@@ -559,7 +565,7 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     return true;
 }
 
-bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = vk::DescriptorType::eInputAttachment;
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
@@ -588,10 +594,10 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
 
     PBZ_ASSERT(
         binding < layout->getInfo().bindings.size() && layout->getInfo().bindings[binding].type == type,
-        std::format("[PipelineLayoutAllocator] Invalid type at binding {} element {} for attachment '{}'", binding, element, attachment));
+        std::format("[DescriptorLayoutAllocator] Invalid type at binding {} element {} for attachment '{}'", binding, element, attachment));
     PBZ_ASSERT(
-        layout->getInfo().lifetime == PipelineLayout::Lifetime::PerFrame,
-        std::format("[PipelineLayoutAllocator] Incompatible lifetime for attachment at binding '{}' and layout '{}'", binding, layout));
+        layout->getInfo().lifetime == DescriptorLayout::Lifetime::PerFrame,
+        std::format("[DescriptorLayoutAllocator] Incompatible lifetime for attachment at binding '{}' and layout '{}'", binding, layout));
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
@@ -619,18 +625,18 @@ bool PipelineLayoutAllocator::rewrite(const Resource<PipelineLayout> &layout, co
     return true;
 }
 
-bool PipelineLayoutAllocator::allocate(const Resource<PipelineLayout> &layout) {
+bool DescriptorLayoutAllocator::allocate(const Resource<DescriptorLayout> &layout) {
     if (m_AllocatedLayouts.contains(layout)) {
-        Logger::WARNING("[PipelineLayoutAllocator] Trying to allocate an allocated layout.");
+        Logger::WARNING("[DescriptorLayoutAllocator] Trying to allocate an allocated layout.");
         return true;
     }
 
     std::uint32_t count;
     switch (layout->getInfo().lifetime) {
-    case PipelineLayout::Lifetime::Global:
+    case DescriptorLayout::Lifetime::Global:
         count = 1;
         break;
-    case PipelineLayout::Lifetime::PerFrame:
+    case DescriptorLayout::Lifetime::PerFrame:
         count = detail::MAX_FRAMES_IN_FLIGHT;
         break;
     }
@@ -639,7 +645,7 @@ bool PipelineLayoutAllocator::allocate(const Resource<PipelineLayout> &layout) {
     setLayouts.reserve(count);
 
     for (std::size_t i = 0; i < count; i++) {
-        setLayouts.emplace_back(layout->m_Layout);
+        setLayouts.emplace_back(layout->getData().layout);
     }
 
     vk::DescriptorSetAllocateInfo allocateInfo = {
@@ -670,7 +676,7 @@ bool PipelineLayoutAllocator::allocate(const Resource<PipelineLayout> &layout) {
         break;
 
     default:
-        Logger::ERROR("[PipelineLayoutAllocator] Failed to allocate PipelineLayout sets.");
+        Logger::ERROR("[DescriptorLayoutAllocator] Failed to allocate layout sets.");
         return false;
     }
 
@@ -682,7 +688,7 @@ bool PipelineLayoutAllocator::allocate(const Resource<PipelineLayout> &layout) {
     return true;
 }
 
-bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout) {
+bool DescriptorLayoutAllocator::deallocate(const Resource<DescriptorLayout> &layout) {
     if (!m_AllocatedLayouts.contains(layout)) {
         return false;
     }
@@ -718,7 +724,7 @@ bool PipelineLayoutAllocator::deallocate(const Resource<PipelineLayout> &layout)
     return true;
 }
 
-vk::DescriptorPool PipelineLayoutAllocator::createPool() {
+vk::DescriptorPool DescriptorLayoutAllocator::createPool() {
     std::vector<vk::DescriptorPoolSize> sizes;
     sizes.reserve(m_Info.poolSizes.size());
 

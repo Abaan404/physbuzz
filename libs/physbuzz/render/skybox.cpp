@@ -14,52 +14,56 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool RenderPipelineSkybox::build() {
-    if (ResourceRegistry<RenderPipeline>::contains(Resource)) {
+bool PipelineSkybox::build() {
+    if (ResourceRegistry<GraphicsPipeline>::contains(Resource)) {
         return true;
     }
 
     bool success = true;
 
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutFrame)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
+    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutFrame)) {
+        success &= ResourceRegistry<DescriptorLayout>::insert(
             ResourceLayoutFrame,
             {{
                 .bindings = {
                     {
                         // camera
-                        .type = PipelineLayout::Type::eUniformBuffer,
+                        .type = DescriptorLayout::Type::eUniformBuffer,
                         .range = sizeof(Builtin::RenderNodeCamera::CameraBuffer),
                     },
                 },
             }});
     }
 
-    if (!ResourceRegistry<PipelineLayout>::contains(ResourceLayoutTexture)) {
-        success &= ResourceRegistry<PipelineLayout>::insert(
+    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutTexture)) {
+        success &= ResourceRegistry<DescriptorLayout>::insert(
             ResourceLayoutTexture,
             {{
                 .bindings = {
                     {
                         // skybox
-                        .type = PipelineLayout::Type::eCombinedImageSampler,
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
                     },
                 },
-                .lifetime = PipelineLayout::Lifetime::Global,
+                .lifetime = DescriptorLayout::Lifetime::Global,
             }});
     }
 
-    success &= ResourceRegistry<RenderPipeline>::insert(
+    success &= ResourceRegistry<GraphicsPipeline>::insert(
         Resource,
-        {{
-            .module = "builtin/render/skybox",
-            .layouts = {
-                .resources = {
-                    ResourceLayoutTexture,
-                    ResourceLayoutFrame,
+        {
+            {
+                .module = "builtin/render/skybox",
+            },
+            {
+                .layouts = {
+                    .resources = {
+                        ResourceLayoutTexture,
+                        ResourceLayoutFrame,
+                    },
                 },
             },
-        }});
+        });
 
     return success;
 }
@@ -71,11 +75,9 @@ SkyboxRenderer::SkyboxRenderer(const Info &info)
 
 bool SkyboxRenderer::build() {
     // build pipeline
-    if (m_Info.pipeline == Builtin::RenderPipelineSkybox::Resource) {
-        if (!Builtin::RenderPipelineSkybox::build()) {
-            Logger::ERROR("[SkyboxRenderer] Could not build skybox shader pipeline.");
-            return false;
-        }
+    if (!Builtin::PipelineSkybox::build()) {
+        Logger::ERROR("[SkyboxRenderer] Could not build skybox pipeline.");
+        return false;
     }
 
     m_Events = {
@@ -106,7 +108,7 @@ bool SkyboxRenderer::build() {
                 ZoneScopedN("SkyboxRenderer/Execute");
                 TracyVkZone(context.tracy, context.command, "SkyboxRenderer");
 
-                std::lock_guard<std::mutex> lock(ResourceRegistry<RenderPipeline>::ReloadMutex);
+                std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
                 vk::RenderingAttachmentInfo depthAttachment = {
                     .imageView = context.depth->getRingData()[context.frameInFlight].view,
@@ -142,8 +144,8 @@ bool SkyboxRenderer::build() {
                 });
 
                 // bind resources
-                m_Info.pipeline->bind(context);
-                App::LayoutAllocator.bind(context, m_Info.pipeline);
+                Builtin::PipelineSkybox::Resource->bind(context);
+                App::LayoutAllocator.bind(context, Builtin::PipelineSkybox::Resource);
 
                 // cubemap embedded within shader
                 context.command.draw(36, 1, 0, 0);
@@ -158,12 +160,12 @@ bool SkyboxRenderer::build() {
 
     if (success) {
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineSkybox::ResourceLayoutTexture,
+            Builtin::PipelineSkybox::ResourceLayoutTexture,
             m_Info.skybox,
             0);
 
         success &= App::LayoutAllocator.write(
-            Builtin::RenderPipelineSkybox::ResourceLayoutFrame,
+            Builtin::PipelineSkybox::ResourceLayoutFrame,
             Builtin::RenderNodeCamera::ResourceBuffer,
             0);
     }
