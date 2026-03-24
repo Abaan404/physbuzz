@@ -96,6 +96,7 @@ class DescriptorLayoutAllocator {
     void reset();
 
     void bind(const RenderContext &context, const GraphicsPipeline &pipeline, std::uint32_t idx = 0);
+    void bind(const RenderContext &context, const ComputePipeline &pipeline, std::uint32_t idx = 0);
 
   private:
     struct Allocation {

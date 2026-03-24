@@ -60,8 +60,8 @@ class ForwardRenderer : public System<RenderComponent> {
     Info m_Info;
 
     RenderState m_State = {{
-        .instanceBufferId = "builtin/forward/instance",
-        .indirectBufferId = "builtin/forward/indirect",
+        .nodeIdPrefix = "builtin/forward/state/",
+        .resourceIdPrefix = "builtin/forward/state/",
     }};
 
     RenderGraph m_Graph = {{

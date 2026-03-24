@@ -2,19 +2,20 @@
 
 #include "../ecs/defines.hpp"
 #include "../resources/resource.hpp"
-#include "mesh.hpp"
 #include "rendergraph.hpp"
 
 namespace Physbuzz {
 
 class Scene;
 class DynamicBuffer;
+class DescriptorLayout;
+class Mesh;
 
 class RenderState {
   public:
     struct Info {
-        ResourceID instanceBufferId;
-        ResourceID indirectBufferId;
+        RenderNodeID nodeIdPrefix;
+        ResourceID resourceIdPrefix;
     };
 
     RenderState(const Info &info);
@@ -24,10 +25,21 @@ class RenderState {
 
     void draw(const RenderContext &context);
 
-    const RenderNode &getRenderNode() const;
+    const RenderGraph &getGraph() const;
     const Info &getInfo() const;
 
+    const Resource<DynamicBuffer> getInstanceBuffer() const;
+    const Resource<DynamicBuffer> getIndirectBuffer() const;
+
   private:
+    struct PushConstants {
+        std::uint32_t directionalCount;
+        std::uint32_t spotCount;
+        std::uint32_t pointCount;
+
+        std::uint64_t materialBaseAddress;
+    };
+
     struct InstanceData {
         alignas(16) glm::mat4 model;
         alignas(16) glm::mat4 normal;
@@ -36,7 +48,7 @@ class RenderState {
 
     Info m_Info;
 
-    RenderNode m_RenderNode;
+    RenderGraph m_RenderGraph;
 
     std::vector<vk::DrawIndexedIndirectCommand> m_IndirectBuffer;
     std::vector<InstanceData> m_InstanceBuffer;
@@ -45,6 +57,9 @@ class RenderState {
 
     Resource<DynamicBuffer> m_Instance;
     Resource<DynamicBuffer> m_Indirect;
+
+    Resource<ComputePipeline> m_Pipeline;
+    Resource<DescriptorLayout> m_Layout;
 };
 
 } // namespace Physbuzz

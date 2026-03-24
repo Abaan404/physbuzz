@@ -170,7 +170,7 @@ bool ShadowRenderer::build() {
     m_State.build(m_Objects);
 
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
-    m_Graph.add("builtin/shadow/models", m_State.getRenderNode());
+    m_Graph.merge(m_State.getGraph());
 
     m_Graph.add(
         Output2D,
@@ -179,13 +179,13 @@ bool ShadowRenderer::build() {
                 .buffers = {
                     .input = {
                         {
-                            m_State.getInfo().instanceBufferId,
+                            m_State.getInstanceBuffer(),
                             {
                                 .stage = RenderNode::Stage::Vertex,
                             },
                         },
                         {
-                            m_State.getInfo().indirectBufferId,
+                            m_State.getIndirectBuffer(),
                             {
                                 .stage = RenderNode::Stage::Indirect,
                             },
@@ -255,13 +255,13 @@ bool ShadowRenderer::build() {
                 .buffers = {
                     .input = {
                         {
-                            m_State.getInfo().instanceBufferId,
+                            m_State.getInstanceBuffer(),
                             {
                                 .stage = RenderNode::Stage::Vertex,
                             },
                         },
                         {
-                            m_State.getInfo().indirectBufferId,
+                            m_State.getIndirectBuffer(),
                             {
                                 .stage = RenderNode::Stage::Indirect,
                             },
@@ -332,7 +332,7 @@ bool ShadowRenderer::build() {
 
         App::LayoutAllocator.write(
             Builtin::PipelineShadow::Directional::ResourceLayoutFrame,
-            Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
+            m_State.getInstanceBuffer(),
             1);
 
         App::LayoutAllocator.write(
@@ -342,7 +342,7 @@ bool ShadowRenderer::build() {
 
         App::LayoutAllocator.write(
             Builtin::PipelineShadow::Point::ResourceLayoutFrame,
-            Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
+            m_State.getInstanceBuffer(),
             1);
     }
 

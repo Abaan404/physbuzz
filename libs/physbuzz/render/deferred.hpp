@@ -83,8 +83,8 @@ class DeferredRenderer : public System<RenderComponent> {
     Info m_Info;
 
     RenderState m_State = {{
-        .instanceBufferId = "builtin/deferred/instance",
-        .indirectBufferId = "builtin/deferred/indirect",
+        .nodeIdPrefix = "builtin/deferred/state/",
+        .resourceIdPrefix = "builtin/deferred/state/",
     }};
 
     RenderGraph m_Graph = {{

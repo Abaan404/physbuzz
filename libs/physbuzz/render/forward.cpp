@@ -123,7 +123,7 @@ bool ForwardRenderer::build() {
 
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
-    m_Graph.add("builtin/models", m_State.getRenderNode());
+    m_Graph.merge(m_State.getGraph());
 
     m_Graph.add(
         Output,
@@ -156,15 +156,9 @@ bool ForwardRenderer::build() {
                             },
                         },
                         {
-                            m_State.getInfo().instanceBufferId,
+                            m_State.getInstanceBuffer(),
                             {
                                 .stage = RenderNode::Stage::Vertex,
-                            },
-                        },
-                        {
-                            m_State.getInfo().indirectBufferId,
-                            {
-                                .stage = RenderNode::Stage::Indirect,
                             },
                         },
                     },
@@ -276,7 +270,7 @@ bool ForwardRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,
-            Resource<DynamicBuffer>{m_State.getInfo().instanceBufferId},
+            m_State.getInstanceBuffer(),
             4);
 
         success &= App::LayoutAllocator.write(

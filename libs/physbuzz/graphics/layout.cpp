@@ -462,6 +462,45 @@ void DescriptorLayoutAllocator::bind(const RenderContext &context, const Graphic
     }
 }
 
+void DescriptorLayoutAllocator::bind(const RenderContext &context, const ComputePipeline &pipeline, std::uint32_t idx) {
+    ZoneScopedN("DescriptorLayoutAllocator/Bind");
+
+    for (std::size_t i = 0; i < pipeline.getInfo().layouts.resources.size(); i++) {
+        const Resource<DescriptorLayout> &layout = pipeline.getInfo().layouts.resources[i];
+        PBZ_ASSERT(m_AllocatedLayouts.contains(layout), std::format("[DescriptorLayoutAllocator] Unallocated layout '{}'", layout));
+
+        std::vector<std::uint32_t> dynamicOffsets;
+        dynamicOffsets.reserve(layout->getInfo().bindings.size()); // reserve extra even if it wont be all used
+
+        for (const auto binding : layout->getInfo().bindings) {
+            std::uint32_t minDynamicOffset = 0;
+
+            if (binding.type == vk::DescriptorType::eStorageBufferDynamic) {
+                minDynamicOffset = App::PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
+            } else if (binding.type == vk::DescriptorType::eUniformBufferDynamic) {
+                minDynamicOffset = App::PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+            } else {
+                continue;
+            }
+
+            // offsets must be multiples of driver defined minimums
+            dynamicOffsets.emplace_back(((binding.range - 1) / minDynamicOffset + 1) * minDynamicOffset * idx);
+        }
+
+        std::uint32_t index;
+        switch (layout->getInfo().lifetime) {
+        case DescriptorLayout::Lifetime::Global:
+            index = 0;
+            break;
+        case DescriptorLayout::Lifetime::PerFrame:
+            index = context.frameInFlight;
+            break;
+        }
+
+        context.command.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline.getPipelineLayout(), i, m_AllocatedLayouts[layout].sets[index], dynamicOffsets);
+    }
+}
+
 bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
 

@@ -63,8 +63,8 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
     Info m_Info;
 
     RenderState m_State = {{
-        .instanceBufferId = "builtin/shadow/instance",
-        .indirectBufferId = "builtin/shadow/indirect",
+        .nodeIdPrefix = "builtin/shadow/state/",
+        .resourceIdPrefix = "builtin/shadow/state/",
     }};
 
     RenderGraph m_Graph = {{}};
