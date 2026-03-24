@@ -290,7 +290,7 @@ bool Pipeline<T>::reload(WatchAction action, const std::filesystem::path &path) 
         return false;
     }
 
-    Logger::INFO("[GraphicsPipeline] Reloading resource '{}'.", m_ShaderInfo.module);
+    Logger::INFO("[Pipeline] Reloading resource '{}'.", m_ShaderInfo.module);
 
     T pipeline = {m_ShaderInfo, static_cast<T *>(this)->getInfo()};
     if (!pipeline.build()) {

@@ -350,6 +350,8 @@ bool ShadowRenderer::build() {
 }
 
 bool ShadowRenderer::destroy() {
+    m_State.destroy();
+
     return true;
 }
 

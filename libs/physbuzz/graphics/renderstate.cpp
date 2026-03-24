@@ -241,6 +241,8 @@ bool RenderState::build(const std::unordered_set<ObjectID> &objects) {
                 ZoneScopedN("RenderState/Cull/Execute");
                 TracyVkZone(context.tracy, context.command, "Model");
 
+                std::lock_guard<std::mutex> lock(ResourceRegistry<ComputePipeline>::ReloadMutex);
+
                 m_Pipeline->bind(context);
                 App::LayoutAllocator.bind(context, m_Pipeline);
 
@@ -260,6 +262,8 @@ bool RenderState::destroy() {
     success &= ResourceRegistry<DynamicBuffer>::erase(m_Indirect);
 
     m_IndirectMeshes.clear();
+    m_InstanceBuffer.clear();
+    m_IndirectBuffer.clear();
 
     return success;
 }

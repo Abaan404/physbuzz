@@ -568,6 +568,7 @@ bool DeferredRenderer::build() {
 
 bool DeferredRenderer::destroy() {
     m_Info.window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
+    m_State.destroy();
 
     return true;
 }
