@@ -72,7 +72,7 @@ void DeletionQueue::flush() {
     m_Samplers.clear();
 
     for (auto &texId : std::views::reverse(m_ImTextureIds)) {
-        ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(texId));
+        ImGui_ImplVulkan_RemoveTexture(reinterpret_cast<VkDescriptorSet>(texId));
     }
 
     m_ImTextureIds.clear();

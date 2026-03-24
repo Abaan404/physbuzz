@@ -51,8 +51,6 @@ class ImGuiRenderer : public System<> {
     std::unordered_map<Resource<Texture>, std::tuple<ImTextureID, EventID>> m_Textures;
     std::unordered_map<Resource<Attachment>, std::tuple<std::array<ImTextureID, detail::MAX_FRAMES_IN_FLIGHT>, EventID>> m_Attachments;
 
-    vk::DescriptorPool m_Pool = nullptr;
-
     RenderGraph m_Graph = {{
         .output = Output,
     }};
