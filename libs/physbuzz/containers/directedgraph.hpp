@@ -1,6 +1,6 @@
 #pragma once
 
-#include "physbuzz/debug/macros.hpp"
+#include "../debug/macros.hpp"
 #include <deque>
 #include <unordered_map>
 #include <unordered_set>

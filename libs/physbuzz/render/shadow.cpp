@@ -170,7 +170,7 @@ bool ShadowRenderer::build() {
     m_State.build(m_Objects);
 
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
-    m_Graph.add("builtin/models", m_State.getRenderNode());
+    m_Graph.add("builtin/shadow/models", m_State.getRenderNode());
 
     m_Graph.add(
         Output2D,

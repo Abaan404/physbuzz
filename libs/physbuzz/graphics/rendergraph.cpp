@@ -7,10 +7,17 @@
 namespace Physbuzz {
 
 RenderGraph::RenderGraph(const Info &info)
-    : m_Info(info) {}
+    : m_Info(info) {
+    // constructing a new graph will have only one output, if the output is empty
+    // the graph is considered invalid
+    if (!info.output.empty()) {
+        m_OutputNodes = {info.output};
+    }
+}
 
 const RenderNode &RenderGraph::add(const RenderNodeID &id, const RenderNode &node) {
     m_Nodes[id] = node;
+    m_OrderedNodes.emplace_back(id);
     return m_Nodes.at(id);
 }
 
@@ -20,18 +27,20 @@ const RenderNode &RenderGraph::get(const RenderNodeID &id) const {
 }
 
 void RenderGraph::merge(const RenderGraph &graph) {
-    m_Graph.merge(graph.m_Graph);
-    m_Nodes.insert(graph.m_Nodes.begin(), graph.m_Nodes.end());
-
-    if (!m_Info.output.empty() && !graph.m_Info.output.empty()) {
-        m_Graph.insertEdge(m_Info.output, graph.getInfo().output);
+    for (const auto &nodeId : graph.m_OrderedNodes) {
+        if (!m_Nodes.contains(nodeId)) {
+            m_Nodes.emplace(nodeId, graph.m_Nodes.at(nodeId));
+            m_OrderedNodes.emplace_back(nodeId);
+        }
     }
 
     if (!graph.m_Info.output.empty()) {
-        m_Info.output = graph.getInfo().output;
+        m_Info.output = graph.m_Info.output;
+        m_OutputNodes.emplace_back(graph.m_Info.output);
     }
 
     // merging requires a recompile
+    m_Graph.clear();
     m_ExecutableNodes.clear();
     m_ExecutableNodeIds.clear();
     m_ExecutableNodeBarriers.clear();
@@ -42,50 +51,115 @@ void RenderGraph::merge(const RenderGraph &graph) {
 bool RenderGraph::compile() {
     PBZ_ASSERT(m_Nodes.contains(m_Info.output), std::format("[RenderGraph] Graph's outputId '{}' is not present.", m_Info.output));
 
+    m_Graph.clear();
     m_ExecutableNodes.clear();
     m_ExecutableNodeIds.clear();
     m_ExecutableNodeBarriers.clear();
     m_Resources.buffers.clear();
     m_Resources.attachments.clear();
 
-    std::unordered_map<ResourceID, std::unordered_set<RenderNodeID>> attachmentReaders;
-    std::unordered_map<ResourceID, std::unordered_set<RenderNodeID>> bufferReaders;
+    enum class UsageFlagBits : uint32_t {
+        Read = 1 << 0,
+        Write = 1 << 1,
+    };
 
-    for (auto &[inputId, node] : m_Nodes) {
+    // odd to depend on vulkan headers for this but vk::Flags<T> saves SO MUCH boilerplate
+    std::unordered_map<ResourceID, std::unordered_map<RenderNodeID, vk::Flags<UsageFlagBits>>> bufferUsage;
+    std::unordered_map<ResourceID, std::unordered_map<RenderNodeID, vk::Flags<UsageFlagBits>>> attachmentUsage;
+
+    std::unordered_map<ResourceID, std::vector<std::tuple<RenderNodeID, vk::Flags<UsageFlagBits>>>> bufferUsageOrdered;
+    std::unordered_map<ResourceID, std::vector<std::tuple<RenderNodeID, vk::Flags<UsageFlagBits>>>> attachmentUsageOrdered;
+
+    // invert the stored nodes to lookup by resource usage
+    for (const auto &[nodeId, node] : m_Nodes) {
         for (auto &[resource, desc] : node.description.buffers.input) {
-            bufferReaders.try_emplace(resource);
-            bufferReaders.at(resource).emplace(inputId);
+            bufferUsage[resource][nodeId] |= UsageFlagBits::Read;
+        }
+
+        for (auto &[resource, desc] : node.description.buffers.output) {
+            bufferUsage[resource][nodeId] |= UsageFlagBits::Write;
         }
 
         for (auto &[resource, desc] : node.description.attachments.input) {
-            attachmentReaders.try_emplace(resource);
-            attachmentReaders.at(resource).emplace(inputId);
+            attachmentUsage[resource][nodeId] |= UsageFlagBits::Read;
+        }
+
+        for (auto &[resource, desc] : node.description.attachments.output) {
+            attachmentUsage[resource][nodeId] |= UsageFlagBits::Write;
+        }
+    }
+
+    // reserve allocations
+    for (auto &[resource, nodeUsage] : bufferUsage) {
+        bufferUsageOrdered[resource].reserve(nodeUsage.size());
+    }
+
+    for (auto &[resource, nodeUsage] : attachmentUsage) {
+        attachmentUsageOrdered[resource].reserve(nodeUsage.size());
+    }
+
+    // since its an unordered map, turn it into a vector that can preserve
+    // the initial order that the graph will use to build the map
+    for (const auto &nodeId : m_OrderedNodes) {
+        for (auto &[resource, nodeUsage] : bufferUsage) {
+            if (nodeUsage.contains(nodeId)) {
+                bufferUsageOrdered[resource].emplace_back(nodeId, nodeUsage.at(nodeId));
+            }
+        }
+
+        for (auto &[resource, nodeUsage] : attachmentUsage) {
+            if (nodeUsage.contains(nodeId)) {
+                attachmentUsageOrdered[resource].emplace_back(nodeId, nodeUsage.at(nodeId));
+            }
         }
     }
 
     // build the graph
-    for (auto &[outputId, node] : m_Nodes) {
-        for (auto &[resource, _] : node.description.buffers.output) {
-            // unused resource
-            if (!bufferReaders.contains(resource)) {
-                continue;
+    for (const auto &[resource, nodeUsage] : bufferUsageOrdered) {
+        RenderNodeID lastWriterId;
+
+        for (const auto &[nodeId, usage] : nodeUsage) {
+            // track this node if future reads's current node doesnt write this resource
+            if (usage & UsageFlagBits::Read) {
+                // cannot build a relationship if the first node needs a read
+                if (lastWriterId.empty()) {
+                    Logger::WARNING("[RenderGraph] Node '{}' reads a buffer '{}' that has not been written yet.", nodeId, resource);
+                    continue;
+                }
+
+                m_Graph.insertEdge(lastWriterId, nodeId);
             }
 
-            for (const auto &inputId : bufferReaders.at(resource)) {
-                m_Graph.insertEdge(outputId, inputId);
+            if (usage & UsageFlagBits::Write) {
+                lastWriterId = nodeId;
             }
         }
+    }
 
-        for (auto &[resource, _] : node.description.attachments.output) {
-            // unused resource
-            if (!attachmentReaders.contains(resource)) {
-                continue;
+    for (const auto &[resource, nodeUsage] : attachmentUsageOrdered) {
+        RenderNodeID lastWriterId;
+
+        for (const auto &[nodeId, usage] : nodeUsage) {
+            // track this node if future reads's current node doesnt write this resource
+            if (usage & UsageFlagBits::Read) {
+                // cannot build a relationship if the first node needs a read
+                if (lastWriterId.empty()) {
+                    Logger::WARNING("[RenderGraph] Node '{}' reads an attachment '{}' that has not been written yet.", nodeId, resource);
+                    continue;
+                }
+
+                m_Graph.insertEdge(lastWriterId, nodeId);
             }
 
-            for (const auto &inputId : attachmentReaders.at(resource)) {
-                m_Graph.insertEdge(outputId, inputId);
+            if (usage & UsageFlagBits::Write) {
+                lastWriterId = nodeId;
             }
         }
+    }
+
+    // if there are any merged graphs, respect the output order and add edges
+    for (std::size_t i = 0; i < m_OutputNodes.size() - 1; i++) {
+        m_Graph.insertEdge(m_OutputNodes[i], m_OutputNodes[i + 1]);
     }
 
     // eliminate nodes that do not contribute to the executable graph
@@ -202,7 +276,6 @@ bool RenderGraph::compile() {
                 case RenderNode::Stage::Vertex:
                 case RenderNode::Stage::Fragment:
                 case RenderNode::Stage::Graphics:
-                case RenderNode::Stage::Compute:
                     switch (buffer->getInfo().type) {
                     case DynamicBuffer::Type::Indirect:
                         nextAccess |= vk::AccessFlagBits2::eIndirectCommandRead;
@@ -213,6 +286,20 @@ bool RenderGraph::compile() {
                         nextAccess |= vk::AccessFlagBits2::eUniformRead;
                         break;
 
+                    case DynamicBuffer::Type::Structured:
+                    case DynamicBuffer::Type::StructuredDynamic:
+                        nextAccess |= vk::AccessFlagBits2::eShaderStorageRead;
+                        break;
+                    }
+                    break;
+                case RenderNode::Stage::Compute:
+                    switch (buffer->getInfo().type) {
+                    case DynamicBuffer::Type::Constant:
+                    case DynamicBuffer::Type::ConstantDynamic:
+                        nextAccess |= vk::AccessFlagBits2::eUniformRead;
+                        break;
+
+                    case DynamicBuffer::Type::Indirect:
                     case DynamicBuffer::Type::Structured:
                     case DynamicBuffer::Type::StructuredDynamic:
                         nextAccess |= vk::AccessFlagBits2::eShaderStorageRead;

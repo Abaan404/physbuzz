@@ -30,14 +30,14 @@ struct RenderNode {
     };
 
     template <ResourceType T, typename D>
-    struct ResourceUsage {
+    struct Description {
         std::unordered_map<Resource<T>, D> input = {};
         std::unordered_map<Resource<T>, D> output = {};
     };
 
     struct {
-        ResourceUsage<DynamicBuffer, BufferDesc> buffers;
-        ResourceUsage<Attachment, AttachmentDesc> attachments;
+        Description<DynamicBuffer, BufferDesc> buffers;
+        Description<Attachment, AttachmentDesc> attachments;
     } description = {};
 
     std::function<void(Scene *, const RenderContext &)> prepare;
@@ -80,6 +80,9 @@ class RenderGraph {
     Info m_Info;
 
     std::unordered_map<RenderNodeID, RenderNode> m_Nodes;
+    std::vector<RenderNodeID> m_OrderedNodes;
+    std::vector<RenderNodeID> m_OutputNodes;
+
     DirectedGraph<RenderNodeID> m_Graph;
 
     std::vector<RenderNode> m_ExecutableNodes;
