@@ -69,6 +69,7 @@ class Model {
         std::uint32_t submeshIdx;
         std::uint32_t materialIdx;
 
+        AABB bounding;
         std::vector<Vertex> vertices;
         std::vector<Index> indices;
     };

@@ -27,13 +27,15 @@ class Transform {
 
     const Info &getInfo() const;
     const glm::mat4 &getModel() const;
+    const glm::mat4 &getNormal() const;
 
   private:
-    void updateModel();
+    void update();
 
     Info m_Info;
 
     glm::mat4 m_Model = glm::mat4(1.0f);
+    glm::mat4 m_Normal = glm::mat4(1.0f);
 };
 
 } // namespace Physbuzz

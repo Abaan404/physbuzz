@@ -2,7 +2,8 @@
 
 #include "../ecs/system.hpp"
 #include "../graphics/pipeline.hpp"
-#include "../graphics/renderstate.hpp"
+#include "batch.hpp"
+#include "compute/culling.hpp"
 #include "defines.hpp"
 
 namespace Physbuzz {
@@ -62,10 +63,8 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
   private:
     Info m_Info;
 
-    RenderState m_State = {{
-        .nodeIdPrefix = "builtin/shadow/state/",
-        .resourceIdPrefix = "builtin/shadow/state/",
-    }};
+    BatchGenerator m_Batch;
+    FrustumCulling m_Culling;
 
     RenderGraph m_Graph = {{}};
 };

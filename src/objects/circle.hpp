@@ -2,7 +2,7 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include <physbuzz/graphics/transform.hpp>
+#include <physbuzz/math/transform.hpp>
 #include <physbuzz/physics/dynamics.hpp>
 
 struct RadialComponent {

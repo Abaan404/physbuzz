@@ -42,7 +42,7 @@ class Renderer : public System<> {
     Info m_Info;
 
     RenderGraph m_Graph;
-    MaterialAllocator m_MaterialAllocator = {{}};
+    MaterialAllocator m_MaterialAllocator;
 
     std::uint32_t m_FrameInFlight = 0;
 

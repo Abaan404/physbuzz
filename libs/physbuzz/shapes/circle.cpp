@@ -22,6 +22,10 @@ bool ModelCircle::build(TransferBatch &batch) {
         .indexCount = (maxVertices - 2) * 3,
         .submeshes = {
             {
+                .bounding = {{
+                    .min = {-1.0f, -1.0f, -1e-3f},
+                    .max = {1.0f, 1.0f, 1e-3f},
+                }},
                 .indexCount = (maxVertices - 2) * 3,
                 .firstIndex = 0,
                 .vertexOffset = 0,

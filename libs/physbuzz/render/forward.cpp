@@ -103,7 +103,17 @@ bool PipelineForward::build() {
 } // namespace Builtin
 
 ForwardRenderer::ForwardRenderer(const Info &info)
-    : m_Info(info) {}
+    : m_Info(info),
+      m_Batch{{
+          .resourceIdPrefix = "builtin/shadow/draw/",
+      }},
+      m_Culling({
+          .camera = info.camera,
+          .sceneBuffer = m_Batch.getSceneBuffer(),
+          .indirectBuffer = m_Batch.getIndirectBuffer(),
+          .nodeIdPrefix = "builtin/shadow/culling/",
+          .resourceIdPrefix = "builtin/shadow/culling/",
+      }) {}
 
 bool ForwardRenderer::build() {
     // build pipeline
@@ -119,11 +129,15 @@ bool ForwardRenderer::build() {
         }),
     };
 
-    m_State.build(m_Objects);
+    bool success = true;
+
+    success &= m_Batch.build(m_Objects);
+    success &= m_Culling.build();
 
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
-    m_Graph.merge(m_State.getGraph());
+    m_Graph.add("builtin/shadow/draw", m_Batch.getRenderNode());
+    m_Graph.merge(m_Culling.getGraph());
 
     m_Graph.add(
         Output,
@@ -156,7 +170,7 @@ bool ForwardRenderer::build() {
                             },
                         },
                         {
-                            m_State.getInstanceBuffer(),
+                            m_Culling.getInstanceBuffer(),
                             {
                                 .stage = RenderNode::Stage::Vertex,
                             },
@@ -237,13 +251,11 @@ bool ForwardRenderer::build() {
                 App::LayoutAllocator.bind(context, Builtin::PipelineForward::Resource);
 
                 // draw
-                m_State.draw(context);
+                m_Batch.draw(context);
 
                 context.command.endRendering();
             },
         });
-
-    bool success = true;
 
     success &= m_Graph.compile();
 
@@ -270,7 +282,7 @@ bool ForwardRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,
-            m_State.getInstanceBuffer(),
+            m_Culling.getInstanceBuffer(),
             4);
 
         success &= App::LayoutAllocator.write(
@@ -289,7 +301,9 @@ bool ForwardRenderer::build() {
 
 bool ForwardRenderer::destroy() {
     m_Info.window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
-    m_State.destroy();
+
+    m_Batch.destroy();
+    m_Culling.destroy();
 
     return true;
 }

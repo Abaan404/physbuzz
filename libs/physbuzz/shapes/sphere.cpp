@@ -22,6 +22,10 @@ bool ModelSphere::build(TransferBatch &batch) {
         .indexCount = rings * sectors * 6,
         .submeshes = {
             {
+                .bounding = {{
+                    .min = {-1.0f, -1.0f, -1.0f},
+                    .max = {1.0f, 1.0f, 1.0f},
+                }},
                 .indexCount = rings * sectors * 6,
                 .firstIndex = 0,
                 .vertexOffset = 0,

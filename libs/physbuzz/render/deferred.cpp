@@ -213,7 +213,17 @@ bool PipelineDeferred::build() {
 } // namespace Builtin
 
 DeferredRenderer::DeferredRenderer(const Info &info)
-    : m_Info(info) {}
+    : m_Info(info),
+      m_Batch{{
+          .resourceIdPrefix = "builtin/deferred/state/",
+      }},
+      m_Culling({
+          .camera = info.camera,
+          .sceneBuffer = m_Batch.getSceneBuffer(),
+          .indirectBuffer = m_Batch.getIndirectBuffer(),
+          .nodeIdPrefix = "builtin/culling/state/",
+          .resourceIdPrefix = "builtin/culling/state/",
+      }) {}
 
 bool DeferredRenderer::build() {
     // build pipeline
@@ -229,11 +239,15 @@ bool DeferredRenderer::build() {
         }),
     };
 
-    m_State.build(m_Objects);
+    bool success = true;
+
+    success &= m_Batch.build(m_Objects);
+    success &= m_Culling.build();
 
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
-    m_Graph.merge(m_State.getGraph());
+    m_Graph.add("builtin/draw", m_Batch.getRenderNode());
+    m_Graph.merge(m_Culling.getGraph());
 
     m_Graph.add(
         "builtin/deferred/gbuffers",
@@ -248,13 +262,13 @@ bool DeferredRenderer::build() {
                             },
                         },
                         {
-                            m_State.getInstanceBuffer(),
+                            m_Culling.getInstanceBuffer(),
                             {
                                 .stage = RenderNode::Stage::Vertex,
                             },
                         },
                         {
-                            m_State.getIndirectBuffer(),
+                            m_Batch.getIndirectBuffer(),
                             {
                                 .stage = RenderNode::Stage::Indirect,
                             },
@@ -371,7 +385,7 @@ bool DeferredRenderer::build() {
                 App::LayoutAllocator.bind(context, Builtin::PipelineDeferred::Geometry::Resource);
 
                 // draw
-                m_State.draw(context);
+                m_Batch.draw(context);
 
                 context.command.endRendering();
             },
@@ -500,8 +514,6 @@ bool DeferredRenderer::build() {
             },
         });
 
-    bool success = true;
-
     success &= m_Graph.compile();
 
     if (success) {
@@ -513,7 +525,7 @@ bool DeferredRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineDeferred::Geometry::ResourceLayoutFrame,
-            m_State.getInstanceBuffer(),
+            m_Culling.getInstanceBuffer(),
             1);
 
         // lighting
@@ -568,7 +580,9 @@ bool DeferredRenderer::build() {
 
 bool DeferredRenderer::destroy() {
     m_Info.window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
-    m_State.destroy();
+
+    m_Batch.destroy();
+    m_Culling.destroy();
 
     return true;
 }

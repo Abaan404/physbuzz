@@ -2,9 +2,10 @@
 
 #include "../ecs/system.hpp"
 #include "../graphics/pipeline.hpp"
-#include "../graphics/renderstate.hpp"
 #include "../resources/resource.hpp"
 #include "../window/window.hpp"
+#include "batch.hpp"
+#include "compute/culling.hpp"
 #include "defines.hpp"
 
 namespace Physbuzz {
@@ -82,10 +83,8 @@ class DeferredRenderer : public System<RenderComponent> {
   private:
     Info m_Info;
 
-    RenderState m_State = {{
-        .nodeIdPrefix = "builtin/deferred/state/",
-        .resourceIdPrefix = "builtin/deferred/state/",
-    }};
+    BatchGenerator m_Batch;
+    FrustumCulling m_Culling;
 
     RenderGraph m_Graph = {{
         .output = Output,

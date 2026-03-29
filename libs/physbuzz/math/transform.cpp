@@ -17,27 +17,27 @@ const glm::vec3 Transform::toLocal(const glm::vec3 &world) const {
 
 void Transform::setPosition(const glm::vec3 position) {
     m_Info.position = position;
-    updateModel();
+    update();
 }
 
 void Transform::setScale(const glm::vec3 scale) {
     m_Info.scale = scale;
-    updateModel();
+    update();
 }
 
 void Transform::setOrientation(const glm::quat orientation) {
     m_Info.orientation = orientation;
-    updateModel();
+    update();
 }
 
 void Transform::setOrientation(float magnitude, const glm::vec3 &direction) {
     m_Info.orientation = glm::angleAxis(magnitude, direction);
-    updateModel();
+    update();
 }
 
 void Transform::update(const Info &info) {
     m_Info = info;
-    updateModel();
+    update();
 }
 
 const Transform::Info &Transform::getInfo() const {
@@ -47,12 +47,18 @@ const Transform::Info &Transform::getInfo() const {
 const glm::mat4 &Transform::getModel() const {
     return m_Model;
 }
-void Transform::updateModel() {
+
+const glm::mat4 &Transform::getNormal() const {
+    return m_Normal;
+}
+
+void Transform::update() {
     const glm::mat4 translation = glm::translate(glm::mat4(1.0f), m_Info.position);
     const glm::mat4 rotation = glm::mat4_cast(m_Info.orientation);
     const glm::mat4 stretch = glm::scale(glm::mat4(1.0f), m_Info.scale);
 
     m_Model = translation * rotation * stretch;
+    m_Normal = glm::transpose(glm::inverse(m_Model));
 }
 
 } // namespace Physbuzz

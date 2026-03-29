@@ -12,12 +12,19 @@ bool ModelCube::build(TransferBatch &batch) {
         return true;
     }
 
+    constexpr float min = -0.5f;
+    constexpr float max = 0.5f;
+
     Physbuzz::Mesh::Info info = {
         .description = &Model::Vertex::Description,
         .vertexCount = 24,
         .indexCount = 36,
         .submeshes = {
             {
+                .bounding = {{
+                    .min = {min, min, min},
+                    .max = {max, max, max},
+                }},
                 .indexCount = 36,
                 .firstIndex = 0,
                 .vertexOffset = 0,
@@ -28,9 +35,6 @@ bool ModelCube::build(TransferBatch &batch) {
     if (!Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(Resource, info)) {
         return false;
     }
-
-    constexpr float min = -0.5f;
-    constexpr float max = 0.5f;
 
     return Resource->write<Model::Vertex>(
         {

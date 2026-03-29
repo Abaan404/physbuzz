@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../math/plane.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -23,6 +24,15 @@ class CameraComponent {
     struct Perspective {
         float fovy = glm::radians(45.0f);
         float aspect = 1.0f;
+    };
+
+    struct Frustum {
+        Plane left;
+        Plane right;
+        Plane bottom;
+        Plane top;
+        Plane near;
+        Plane far;
     };
 
     struct Depth {
@@ -66,14 +76,18 @@ class CameraComponent {
 
     const glm::mat4 &getProjection() const;
     const glm::mat4 &getView() const;
+    const Frustum &getFrustum() const;
+
     const Info &getInfo() const;
 
   private:
     void updateProjection();
     void updateView();
+    void updateFrustum();
 
     Info m_Info;
 
+    Frustum m_Frustum;
     glm::mat4 m_Projection = {1.0f};
     glm::mat4 m_View = {1.0f};
 };

@@ -2,7 +2,7 @@
 
 #include "builder.hpp"
 #include "common.hpp"
-#include <physbuzz/graphics/transform.hpp>
+#include <physbuzz/math/transform.hpp>
 
 struct CuboidComponent {
     float width = 0.0f;

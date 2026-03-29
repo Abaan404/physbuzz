@@ -6,7 +6,15 @@
 namespace Physbuzz {
 
 CameraComponent::CameraComponent(const Info &info)
-    : m_Info(info) {
+    : m_Info(info),
+      m_Frustum({
+          .left = {{}},
+          .right = {{}},
+          .bottom = {{}},
+          .top = {{}},
+          .near = {{}},
+          .far = {{}},
+      }) {
     update(info);
 }
 
@@ -87,6 +95,10 @@ const glm::mat4 &CameraComponent::getView() const {
     return m_View;
 }
 
+const CameraComponent::Frustum &CameraComponent::getFrustum() const {
+    return m_Frustum;
+}
+
 const CameraComponent::Info &CameraComponent::getInfo() const {
     return m_Info;
 }
@@ -117,6 +129,8 @@ void CameraComponent::updateProjection() {
     }
 
     m_Projection[1][1] *= -1;
+
+    updateFrustum();
 }
 
 void CameraComponent::updateView() {
@@ -124,6 +138,29 @@ void CameraComponent::updateView() {
     const glm::mat4 translation = glm::translate(glm::mat4(1.0f), -m_Info.view.position);
 
     m_View = rotation * translation;
+
+    updateFrustum();
+}
+
+void CameraComponent::updateFrustum() {
+    // https://www.gamedevs.org/uploads/fast-extraction-viewing-frustum-planes-from-world-view-projection-matrix.pdf
+    const glm::mat4 viewProjection = glm::transpose(m_Projection * m_View);
+
+    glm::vec4 left = viewProjection[3] + viewProjection[0];
+    glm::vec4 right = viewProjection[3] - viewProjection[0];
+    glm::vec4 bottom = viewProjection[3] + viewProjection[1];
+    glm::vec4 top = viewProjection[3] - viewProjection[1];
+    glm::vec4 near = viewProjection[3] + viewProjection[2];
+    glm::vec4 far = viewProjection[3] - viewProjection[2];
+
+    m_Frustum = {
+        .left = {{glm::normalize(glm::vec3(left)), left.w / glm::length(glm::vec3(left))}},
+        .right = {{glm::normalize(glm::vec3(right)), right.w / glm::length(glm::vec3(right))}},
+        .bottom = {{glm::normalize(glm::vec3(bottom)), bottom.w / glm::length(glm::vec3(bottom))}},
+        .top = {{glm::normalize(glm::vec3(top)), top.w / glm::length(glm::vec3(top))}},
+        .near = {{glm::normalize(glm::vec3(near)), near.w / glm::length(glm::vec3(near))}},
+        .far = {{glm::normalize(glm::vec3(far)), far.w / glm::length(glm::vec3(far))}},
+    };
 }
 
 } // namespace Physbuzz

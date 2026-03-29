@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../math/bounding.hpp"
 #include "../resources/defines.hpp"
 #include "descriptors/static.hpp"
 
 namespace Physbuzz {
 
 class TransferBatch;
-struct RenderComponent;
 struct RenderContext;
 
 template <typename T>
@@ -53,6 +53,7 @@ class VertexDescription {
 class Mesh {
   public:
     struct SubMesh {
+        AABB bounding;
         std::uint32_t indexCount;
         std::uint32_t firstIndex;
         std::int32_t vertexOffset;
@@ -88,7 +89,6 @@ class Mesh {
     bool write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&indices, TransferBatch &batch);
 
     void bind(const RenderContext &context) const;
-    [[deprecated]] void draw(const RenderContext &context, std::uint32_t instanceCount, std::uint32_t meshOffset) const;
 
     const Info &getInfo() const;
 

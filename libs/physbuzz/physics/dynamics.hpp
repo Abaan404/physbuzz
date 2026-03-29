@@ -6,6 +6,8 @@
 
 namespace Physbuzz {
 
+class RenderComponent;
+
 struct RigidBodyComponent {
     struct Vertex {
         glm::vec3 position;

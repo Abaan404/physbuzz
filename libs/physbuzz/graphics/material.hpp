@@ -40,11 +40,7 @@ struct IsResource<Material> : std::true_type {};
 
 class MaterialAllocator {
   public:
-    struct Info {
-        Resource<DescriptorLayout> layout = Builtin::LayoutMaterial::Resource;
-    };
-
-    MaterialAllocator(const Info &info);
+    MaterialAllocator();
 
     bool build();
     bool destroy();
@@ -57,8 +53,6 @@ class MaterialAllocator {
     const StaticBuffer &getMaterialBuffer() const;
 
   private:
-    Info m_Info;
-
     ResourceTable<Material> m_Materials;
     ResourceTable<Texture> m_Textures;
 

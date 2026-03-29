@@ -36,15 +36,12 @@ bool LayoutMaterial::build() {
 
 } // namespace Builtin
 
-MaterialAllocator::MaterialAllocator(const Info &info)
-    : m_Info(info) {};
+MaterialAllocator::MaterialAllocator() {}
 
 bool MaterialAllocator::build() {
     bool success = true;
 
-    if (m_Info.layout == Builtin::LayoutMaterial::Resource) {
-        success &= Builtin::LayoutMaterial::build();
-    }
+    success &= Builtin::LayoutMaterial::build();
 
     m_MaterialBuffer.build(sizeof(Builtin::LayoutMaterial::MaterialBuffer));
 
@@ -54,7 +51,7 @@ bool MaterialAllocator::build() {
         for (const auto &[type, texture] : material->textures) {
             // new texture loaded into table, map to bindless descriptor
             if (m_Textures.add(texture)) {
-                App::LayoutAllocator.write(m_Info.layout, texture, 0, m_Textures.query(texture));
+                App::LayoutAllocator.write(Builtin::LayoutMaterial::Resource, texture, 0, m_Textures.query(texture));
             }
         }
 

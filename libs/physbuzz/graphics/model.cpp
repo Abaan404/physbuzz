@@ -206,9 +206,18 @@ Model::MeshResult Model::processMesh(const aiNode *root, const aiScene *aiscene)
         for (std::size_t i = 0; i < ainode->mNumMeshes; ++i) {
             aiMesh *aimesh = aiscene->mMeshes[ainode->mMeshes[i]];
             SubMeshResult &submesh = submeshes.emplace_back(processSubMesh(aimesh));
+
+            AABB::Info aabb = {};
+            for (const auto vertex : submesh.vertices) {
+                aabb.min = glm::min(vertex.position, aabb.min);
+                aabb.max = glm::max(vertex.position, aabb.max);
+            }
+
+            submesh.bounding = {aabb};
             submesh.submeshIdx = submeshes.size() - 1;
 
             result.info.submeshes.emplace_back<Mesh::SubMesh>({
+                .bounding = submesh.bounding,
                 .indexCount = static_cast<std::uint32_t>(submesh.indices.size()),
                 .firstIndex = result.info.indexCount,
                 .vertexOffset = static_cast<std::int32_t>(result.info.vertexCount),
@@ -243,6 +252,7 @@ Model::SubMeshResult Model::processSubMesh(const aiMesh *aimesh) {
     SubMeshResult result = {
         .submeshIdx = {},
         .materialIdx = aimesh->mMaterialIndex,
+        .bounding = {},
         .vertices = {},
         .indices = {},
     };

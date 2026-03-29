@@ -3,7 +3,7 @@
 #include "builder.hpp"
 #include "common.hpp"
 #include <physbuzz/graphics/model.hpp>
-#include <physbuzz/graphics/transform.hpp>
+#include <physbuzz/math/transform.hpp>
 
 struct ModelComponent {
     std::filesystem::path path;

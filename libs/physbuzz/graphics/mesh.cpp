@@ -79,30 +79,6 @@ void Mesh::bind(const RenderContext &context) const {
     context.command.bindIndexBuffer(m_Indices.getData().buffer.getData().buffer, 0, vk::IndexType::eUint32);
 }
 
-void Mesh::draw(const RenderContext &context, std::uint32_t instanceCount, std::uint32_t meshOffset) const {
-    ZoneScopedN("Mesh/Draw");
-
-    const StaticBuffer::Data &vertices = m_Vertices.getData();
-    const StaticBuffer::Data &indices = m_Indices.getData();
-
-    context.command.bindVertexBuffers(0, m_Vertices.getData().buffer.getData().buffer, {0});
-    context.command.bindIndexBuffer(m_Indices.getData().buffer.getData().buffer, 0, vk::IndexType::eUint32);
-
-    for (std::size_t submeshIdx = 0; submeshIdx < m_Info.submeshes.size(); submeshIdx++) {
-        const SubMesh &submesh = m_Info.submeshes[submeshIdx];
-
-        // each submesh is packed as SoA objects, calculate baseInstance accordingly
-        // final offset is calculated as:
-        //  objectIdx = instanceId + submeshIdx * instanceCount + meshOffset_(n-1)
-        context.command.drawIndexed(
-            submesh.indexCount,
-            instanceCount,
-            submesh.firstIndex,
-            submesh.vertexOffset,
-            submeshIdx * instanceCount + meshOffset);
-    }
-}
-
 const Mesh::Info &Mesh::getInfo() const {
     return m_Info;
 }
