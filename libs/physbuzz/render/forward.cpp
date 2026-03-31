@@ -55,6 +55,10 @@ bool PipelineForward::build() {
                         .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
+                        // culling
+                        .type = DescriptorLayout::Type::eStorageBuffer,
+                    },
+                    {
                         // directional shadow depth map
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
                         .stage = DescriptorLayout::ShaderStageFlags::eFragment,
@@ -105,14 +109,14 @@ bool PipelineForward::build() {
 ForwardRenderer::ForwardRenderer(const Info &info)
     : m_Info(info),
       m_Batch{{
-          .resourceIdPrefix = "builtin/shadow/draw/",
+          .resourceIdPrefix = "builtin/forward/batch/",
       }},
       m_Culling({
           .camera = info.camera,
-          .sceneBuffer = m_Batch.getSceneBuffer(),
-          .indirectBuffer = m_Batch.getIndirectBuffer(),
-          .nodeIdPrefix = "builtin/shadow/culling/",
-          .resourceIdPrefix = "builtin/shadow/culling/",
+          .instance = m_Batch.getInstanceBuffer(),
+          .indirect = m_Batch.getIndirectBuffer(),
+          .nodeIdPrefix = "builtin/forward/culling/",
+          .resourceIdPrefix = "builtin/forward/culling/",
       }) {}
 
 bool ForwardRenderer::build() {
@@ -136,8 +140,8 @@ bool ForwardRenderer::build() {
 
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
-    m_Graph.add("builtin/shadow/draw", m_Batch.getRenderNode());
-    m_Graph.merge(m_Culling.getGraph());
+    m_Graph.add("builtin/batch", m_Batch.getRenderNode());
+    m_Graph.add("builtin/frustum_culling", m_Culling.getRenderNode());
 
     m_Graph.add(
         Output,
@@ -145,6 +149,12 @@ bool ForwardRenderer::build() {
             .description = {
                 .buffers = {
                     .input = {
+                        {
+                            m_Batch.getIndirectBuffer(),
+                            {
+                                .stage = RenderNode::Stage::Indirect,
+                            },
+                        },
                         {
                             Builtin::RenderNodeCamera::ResourceBuffer,
                             {
@@ -170,7 +180,13 @@ bool ForwardRenderer::build() {
                             },
                         },
                         {
-                            m_Culling.getInstanceBuffer(),
+                            m_Batch.getInstanceBuffer(),
+                            {
+                                .stage = RenderNode::Stage::Vertex,
+                            },
+                        },
+                        {
+                            m_Culling.getBuffer(),
                             {
                                 .stage = RenderNode::Stage::Vertex,
                             },
@@ -282,18 +298,23 @@ bool ForwardRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,
-            m_Culling.getInstanceBuffer(),
+            m_Batch.getInstanceBuffer(),
             4);
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,
-            Builtin::PipelineShadow::Directional::ResourceAttachment,
+            m_Culling.getBuffer(),
             5);
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,
-            Builtin::PipelineShadow::Point::ResourceAttachment,
+            Builtin::PipelineShadow::Directional::ResourceAttachment,
             6);
+
+        success &= App::LayoutAllocator.write(
+            Builtin::PipelineForward::ResourceLayoutFrame,
+            Builtin::PipelineShadow::Point::ResourceAttachment,
+            7);
     }
 
     return success;

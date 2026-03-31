@@ -15,8 +15,8 @@ class FrustumCulling {
   public:
     struct Info {
         ObjectID camera;
-        Resource<DynamicBuffer> sceneBuffer;
-        Resource<DynamicBuffer> indirectBuffer;
+        Resource<DynamicBuffer> instance;
+        Resource<DynamicBuffer> indirect;
         RenderNodeID nodeIdPrefix;
         ResourceID resourceIdPrefix;
     };
@@ -26,20 +26,13 @@ class FrustumCulling {
     bool build();
     bool destroy();
 
-    const Resource<DynamicBuffer> getInstanceBuffer() const;
-    const Resource<DynamicBuffer> getIndirectBuffer() const;
+    const Resource<DynamicBuffer> getBuffer() const;
 
-    const RenderGraph &getGraph() const;
+    const RenderNode &getRenderNode() const;
     const Info &getInfo() const;
 
   private:
-    struct ObjectData {
-        glm::mat4 model;
-        glm::mat4 normal;
-        alignas(16) std::uint32_t materialIdx;
-    };
-
-    struct StateData {
+    struct BufferData {
         std::uint32_t instanceOffset;
     };
 
@@ -49,10 +42,9 @@ class FrustumCulling {
 
     Info m_Info;
 
-    RenderGraph m_RenderGraph;
+    RenderNode m_RenderNode;
 
-    Resource<DynamicBuffer> m_Instance;
-    Resource<DynamicBuffer> m_State;
+    Resource<DynamicBuffer> m_Buffer;
 
     Resource<ComputePipeline> m_Pipeline;
     Resource<DescriptorLayout> m_Layout;

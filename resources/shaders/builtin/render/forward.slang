@@ -1,32 +1,12 @@
 module forward;
 
+import "../defines";
 import "../lighting/brdf";
 import "../lighting/lights";
 import "../lighting/material";
 import "../lighting/geometry";
 
 namespace Physbuzz {
-
-struct Camera {
-    float3 position;
-    float4x4 view;
-    float4x4 projection;
-};
-
-struct Material {
-    uint diffuseTextureId;
-    uint specularTextureId;
-    uint heightTextureId;
-    float specularity;
-
-    static const uint STRIDE = 16;
-};
-
-struct ObjectData {
-    float4x4 model;
-    float4x4 normal;
-    uint materialIdx;
-};
 
 struct PushConstants {
     uint directionalCount;
@@ -58,12 +38,15 @@ StructuredBuffer<PointLight> points;
 StructuredBuffer<SpotLight> spots;
 
 [[vk::binding(4, 1)]]
-StructuredBuffer<ObjectData> objects;
+StructuredBuffer<InstanceData> objects;
 
 [[vk::binding(5, 1)]]
-Sampler2D<float> directionalDepth;
+StructuredBuffer<CullingData> culling;
 
 [[vk::binding(6, 1)]]
+Sampler2D<float> directionalDepth;
+
+[[vk::binding(7, 1)]]
 SamplerCube<float> pointDepth;
 
 struct VSInput {
@@ -90,9 +73,9 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation) {
     VSOutput output;
-    output.coarseVertex.objectId = instanceId + baseInstance;
+    output.coarseVertex.objectId = culling[instanceId + baseInstance].instanceId;
 
-    ObjectData object = objects[output.coarseVertex.objectId];
+    InstanceData object = objects[output.coarseVertex.objectId];
     output.sv_position = mul(mul(mul(float4(input.position, 1.0), object.model), camera.view), camera.projection);
 
     output.coarseVertex.position = mul(float4(input.position, 1.0), object.model).xyz;
@@ -106,7 +89,7 @@ VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstan
 
 [shader("fragment")]
 float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
-    ObjectData object = objects[coarseVertex.objectId];
+    InstanceData object = objects[coarseVertex.objectId];
 
     Geometry geometry = {
         coarseVertex.position,

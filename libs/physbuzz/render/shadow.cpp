@@ -156,15 +156,8 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
 ShadowRenderer::ShadowRenderer(const Info &info)
     : m_Info(info),
       m_Batch{{
-          .resourceIdPrefix = "builtin/shadow/state/",
-      }},
-      m_Culling({
-          // .camera = info.camera,
-          .sceneBuffer = m_Batch.getSceneBuffer(),
-          .indirectBuffer = m_Batch.getIndirectBuffer(),
-          .nodeIdPrefix = "builtin/shadow/state/",
-          .resourceIdPrefix = "builtin/shadow/state/",
-      }) {}
+          .resourceIdPrefix = "builtin/shadow/batch/",
+      }} {}
 
 bool ShadowRenderer::build() {
     bool success = true;
@@ -178,11 +171,9 @@ bool ShadowRenderer::build() {
     }
 
     success &= m_Batch.build(m_Objects);
-    success &= m_Culling.build();
 
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
     m_Graph.add("builtin/shadow/draw", m_Batch.getRenderNode());
-    m_Graph.merge(m_Culling.getGraph());
 
     m_Graph.add(
         Output2D,
@@ -191,15 +182,15 @@ bool ShadowRenderer::build() {
                 .buffers = {
                     .input = {
                         {
-                            m_Culling.getInstanceBuffer(),
-                            {
-                                .stage = RenderNode::Stage::Vertex,
-                            },
-                        },
-                        {
                             m_Batch.getIndirectBuffer(),
                             {
                                 .stage = RenderNode::Stage::Indirect,
+                            },
+                        },
+                        {
+                            m_Batch.getInstanceBuffer(),
+                            {
+                                .stage = RenderNode::Stage::Vertex,
                             },
                         },
                         {
@@ -267,15 +258,15 @@ bool ShadowRenderer::build() {
                 .buffers = {
                     .input = {
                         {
-                            m_Culling.getInstanceBuffer(),
-                            {
-                                .stage = RenderNode::Stage::Vertex,
-                            },
-                        },
-                        {
                             m_Batch.getIndirectBuffer(),
                             {
                                 .stage = RenderNode::Stage::Indirect,
+                            },
+                        },
+                        {
+                            m_Batch.getInstanceBuffer(),
+                            {
+                                .stage = RenderNode::Stage::Vertex,
                             },
                         },
                         {
@@ -344,7 +335,7 @@ bool ShadowRenderer::build() {
 
         App::LayoutAllocator.write(
             Builtin::PipelineShadow::Directional::ResourceLayoutFrame,
-            m_Culling.getInstanceBuffer(),
+            m_Batch.getInstanceBuffer(),
             1);
 
         App::LayoutAllocator.write(
@@ -354,7 +345,7 @@ bool ShadowRenderer::build() {
 
         App::LayoutAllocator.write(
             Builtin::PipelineShadow::Point::ResourceLayoutFrame,
-            m_Culling.getInstanceBuffer(),
+            m_Batch.getInstanceBuffer(),
             1);
     }
 
@@ -365,7 +356,6 @@ bool ShadowRenderer::destroy() {
     bool success = true;
 
     success &= m_Batch.destroy();
-    success &= m_Culling.destroy();
 
     return success;
 }

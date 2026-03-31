@@ -12,7 +12,7 @@ class Mesh;
 
 class BatchGenerator {
   public:
-    struct SceneDataBuffer {
+    struct InstanceData {
         struct Bounding {
             alignas(16) glm::vec3 min;
             alignas(16) glm::vec3 max;
@@ -22,7 +22,6 @@ class BatchGenerator {
         glm::mat4 normal;
         std::uint32_t materialIdx;
         Bounding bounding;
-        bool isCulled;
     };
 
     struct Info {
@@ -37,7 +36,7 @@ class BatchGenerator {
     void draw(const RenderContext &context);
 
     const Resource<DynamicBuffer> getIndirectBuffer() const;
-    const Resource<DynamicBuffer> getSceneBuffer() const;
+    const Resource<DynamicBuffer> getInstanceBuffer() const;
 
     const RenderNode &getRenderNode() const;
     const Info &getInfo() const;
@@ -47,11 +46,11 @@ class BatchGenerator {
 
     RenderNode m_RenderNode;
 
-    std::vector<SceneDataBuffer> m_SceneBuffer;
+    std::vector<InstanceData> m_InstanceBuffer;
     std::vector<vk::DrawIndexedIndirectCommand> m_IndirectBuffer;
     std::vector<std::tuple<Resource<Mesh>, std::size_t>> m_IndirectMeshes;
 
-    Resource<DynamicBuffer> m_Scene;
+    Resource<DynamicBuffer> m_Instance;
     Resource<DynamicBuffer> m_Indirect;
 };
 

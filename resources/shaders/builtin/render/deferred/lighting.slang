@@ -1,17 +1,12 @@
 module forward;
 
+import "../../defines";
 import "../../lighting/brdf";
 import "../../lighting/lights";
 import "../../lighting/material";
 import "../../lighting/geometry";
 
 namespace Physbuzz {
-
-struct Camera {
-    float3 position;
-    float4x4 view;
-    float4x4 projection;
-};
 
 struct PushConstants {
     uint directionalCount;

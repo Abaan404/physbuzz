@@ -1,5 +1,7 @@
 module skybox;
 
+import "../defines";
+
 namespace Physbuzz {
 
 static const float3 vertices[36] = {
@@ -50,12 +52,6 @@ static const float3 vertices[36] = {
     float3(-1, -1, -1),
     float3(1, -1, 1),
     float3(1, -1, -1)
-};
-
-struct Camera {
-    float3 position;
-    float4x4 view;
-    float4x4 projection;
 };
 
 [[vk::binding(0, 0)]]

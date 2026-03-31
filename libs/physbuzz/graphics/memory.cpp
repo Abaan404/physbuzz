@@ -92,6 +92,11 @@ bool Buffer::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span
         return false;
     }
 
+    // nothing to allocate
+    if (bytes.empty()) {
+        return true;
+    }
+
     VkMemoryPropertyFlags memProps = 0;
     vmaGetAllocationMemoryProperties(App::Allocator, m_Allocation, &memProps);
 

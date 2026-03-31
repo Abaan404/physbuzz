@@ -3,7 +3,6 @@
 #include "../ecs/system.hpp"
 #include "../graphics/pipeline.hpp"
 #include "batch.hpp"
-#include "compute/culling.hpp"
 #include "defines.hpp"
 
 namespace Physbuzz {
@@ -64,7 +63,6 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
     Info m_Info;
 
     BatchGenerator m_Batch;
-    FrustumCulling m_Culling;
 
     RenderGraph m_Graph = {{}};
 };

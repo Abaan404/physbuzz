@@ -13,31 +13,20 @@ namespace Physbuzz {
 
 FrustumCulling::FrustumCulling(const Info &info)
     : m_Info(info),
-      m_RenderGraph({}),
-      m_Instance(std::format("{}instance", info.resourceIdPrefix)),
-      m_State(std::format("{}state", info.resourceIdPrefix)),
+      m_Buffer(std::format("{}buffer", info.resourceIdPrefix)),
       m_Pipeline(std::format("{}pipeline", info.resourceIdPrefix)),
       m_Layout(std::format("{}layout", info.resourceIdPrefix)) {}
 
 bool FrustumCulling::build() {
     bool success = true;
 
-    if (!ResourceRegistry<DynamicBuffer>::contains(m_Instance)) {
+    if (!ResourceRegistry<DynamicBuffer>::contains(m_Buffer)) {
         success &= ResourceRegistry<DynamicBuffer>::insert(
-            m_Instance,
+            m_Buffer,
             {{
                 .type = DynamicBuffer::Type::Structured,
             }},
-            sizeof(ObjectData));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(m_State)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            m_State,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(StateData));
+            sizeof(BufferData));
     }
 
     if (!ResourceRegistry<DescriptorLayout>::contains(m_Layout)) {
@@ -46,7 +35,7 @@ bool FrustumCulling::build() {
             {{
                 .bindings = {
                     {
-                        // submesh
+                        // indirect
                         .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
@@ -54,11 +43,7 @@ bool FrustumCulling::build() {
                         .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                     {
-                        // indirect
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // state
+                        // culling
                         .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                 },
@@ -70,7 +55,7 @@ bool FrustumCulling::build() {
             m_Pipeline,
             {
                 {
-                    .module = "builtin/culling/frustum",
+                    .module = "builtin/compute/frustum_culling",
                 },
                 {
                     .layouts = {
@@ -87,119 +72,81 @@ bool FrustumCulling::build() {
                 },
             });
 
-        success &= App::LayoutAllocator.write(m_Layout, m_Info.sceneBuffer, 0);
-        success &= App::LayoutAllocator.write(m_Layout, m_Instance, 1);
-        success &= App::LayoutAllocator.write(m_Layout, m_Info.indirectBuffer, 2);
-        success &= App::LayoutAllocator.write(m_Layout, m_State, 3);
+        success &= App::LayoutAllocator.write(m_Layout, m_Info.indirect, 0);
+        success &= App::LayoutAllocator.write(m_Layout, m_Info.instance, 1);
+        success &= App::LayoutAllocator.write(m_Layout, m_Buffer, 2);
     }
 
-    m_RenderGraph.add(
-        std::format("{}setup", m_Info.nodeIdPrefix),
-        {
-            .description = {
-                .buffers = {
-                    .output = {
+    m_RenderNode = {
+        .description = {
+            .buffers = {
+                .input = {
+                    {
+                        m_Info.indirect,
                         {
-                            m_State,
-                            {
-                                .stage = RenderNode::Stage::Transfer,
-                            },
+                            .stage = RenderNode::Stage::Compute,
+                        },
+                    },
+                    {
+                        m_Info.instance,
+                        {
+                            .stage = RenderNode::Stage::Compute,
+                        },
+                    },
+                },
+                .output = {
+                    {
+                        m_Info.indirect,
+                        {
+                            .stage = RenderNode::Stage::Compute,
+                        },
+                    },
+                    {
+                        m_Buffer,
+                        {
+                            .stage = RenderNode::Stage::Compute,
                         },
                     },
                 },
             },
-            .execute = [this](Scene *scene, const RenderContext &context) {
-                ZoneScopedN("RenderNodeModels/Execute");
-                TracyVkZone(context.tracy, context.command, "Model");
+        },
+        .prepare = [this](Scene *scene, const RenderContext &context) {
+            ZoneScopedN("FrustumCulling/Node/Prepare");
 
-                // reset the atomic counter
-                StateData state = {
-                    .instanceOffset = 0,
-                };
+            std::size_t requiredBufferSize = m_Info.instance->getSize(context.frameInFlight);
+            if (m_Buffer->getSize(context.frameInFlight) < requiredBufferSize) {
+                m_Buffer->rebuild(context, requiredBufferSize);
+            }
+        },
+        .execute = [this](Scene *scene, const RenderContext &context) {
+            ZoneScopedN("FrustumCulling/Cull/Execute");
+            TracyVkZone(context.tracy, context.command, "FrustumCulling");
 
-                m_State->update(context, std::as_bytes(std::span(&state, 1)), 0);
-            },
-        });
+            std::lock_guard<std::mutex> lock(ResourceRegistry<ComputePipeline>::ReloadMutex);
 
-    m_RenderGraph.add(
-        std::format("{}output", m_Info.nodeIdPrefix),
-        {
-            .description = {
-                .buffers = {
-                    .input = {
-                        {
-                            m_Info.sceneBuffer,
-                            {
-                                .stage = RenderNode::Stage::Compute,
-                            },
-                        },
-                        {
-                            m_Info.indirectBuffer,
-                            {
-                                .stage = RenderNode::Stage::Compute,
-                            },
-                        },
-                        {
-                            m_State,
-                            {
-                                .stage = RenderNode::Stage::Compute,
-                            },
-                        },
-                    },
-                    .output = {
-                        {
-                            m_Info.indirectBuffer,
-                            {
-                                .stage = RenderNode::Stage::Compute,
-                            },
-                        },
-                        {
-                            m_Instance,
-                            {
-                                .stage = RenderNode::Stage::Compute,
-                            },
-                        },
-                    },
+            const auto [camera] = scene->getComponent<CameraComponent>(m_Info.camera);
+            const CameraComponent::Frustum &frustum = camera.getFrustum();
+
+            PushConstants pushConstants = {
+                .planes = {
+                    glm::vec4(frustum.left.getInfo().normal, frustum.left.getInfo().distance),
+                    glm::vec4(frustum.right.getInfo().normal, frustum.right.getInfo().distance),
+                    glm::vec4(frustum.bottom.getInfo().normal, frustum.bottom.getInfo().distance),
+                    glm::vec4(frustum.top.getInfo().normal, frustum.top.getInfo().distance),
+                    glm::vec4(frustum.near.getInfo().normal, frustum.near.getInfo().distance),
+                    glm::vec4(frustum.far.getInfo().normal, frustum.far.getInfo().distance),
                 },
-            },
-            .prepare = [this](Scene *scene, const RenderContext &context) {
-                ZoneScopedN("FrustumCulling/Node/Prepare");
+            };
 
-                // allocating an upper bound
-                std::size_t requiredInstanceSize = m_Info.sceneBuffer->getSize(context.frameInFlight);
-                if (m_Instance->getSize(context.frameInFlight) < requiredInstanceSize) {
-                    m_Instance->rebuild(context, requiredInstanceSize);
-                }
-            },
-            .execute = [this](Scene *scene, const RenderContext &context) {
-                ZoneScopedN("FrustumCulling/Cull/Execute");
-                TracyVkZone(context.tracy, context.command, "FrustumCulling");
+            m_Pipeline->updatePushConstants(context, ComputePipeline::PushConstantsStageFlags::eCompute, std::as_bytes(std::span(&pushConstants, 1)), 0);
+            m_Pipeline->bind(context);
+            App::LayoutAllocator.bind(context, m_Pipeline);
 
-                std::lock_guard<std::mutex> lock(ResourceRegistry<ComputePipeline>::ReloadMutex);
+            std::size_t indirectSize = m_Info.indirect->getSize(context.frameInFlight) / sizeof(vk::DrawIndexedIndirectCommand);
 
-                const auto [camera] = scene->getComponent<CameraComponent>(m_Info.camera);
-                const CameraComponent::Frustum &frustum = camera.getFrustum();
-
-                PushConstants pushConstants = {
-                    .planes = {
-                        glm::vec4(frustum.left.getInfo().normal, frustum.left.getInfo().distance),
-                        glm::vec4(frustum.right.getInfo().normal, frustum.right.getInfo().distance),
-                        glm::vec4(frustum.bottom.getInfo().normal, frustum.bottom.getInfo().distance),
-                        glm::vec4(frustum.top.getInfo().normal, frustum.top.getInfo().distance),
-                        glm::vec4(frustum.near.getInfo().normal, frustum.near.getInfo().distance),
-                        glm::vec4(frustum.far.getInfo().normal, frustum.far.getInfo().distance),
-                    },
-                };
-
-                m_Pipeline->updatePushConstants(context, ComputePipeline::PushConstantsStageFlags::eCompute, std::as_bytes(std::span(&pushConstants, 1)), 0);
-                m_Pipeline->bind(context);
-                App::LayoutAllocator.bind(context, m_Pipeline);
-
-                std::size_t indirectSize = m_Info.indirectBuffer->getSize(context.frameInFlight) / sizeof(vk::DrawIndexedIndirectCommand);
-
-                context.command.dispatch(indirectSize, 1, 1);
-            },
-        });
+            context.command.dispatch(indirectSize, 1, 1);
+        },
+    };
 
     return success;
 }
@@ -209,17 +156,17 @@ bool FrustumCulling::destroy() {
 
     success &= ResourceRegistry<ComputePipeline>::erase(m_Pipeline);
     success &= ResourceRegistry<DescriptorLayout>::erase(m_Layout);
-    success &= ResourceRegistry<DynamicBuffer>::erase(m_Instance);
+    success &= ResourceRegistry<DynamicBuffer>::erase(m_Buffer);
 
     return success;
 }
 
-const Resource<DynamicBuffer> FrustumCulling::getInstanceBuffer() const {
-    return m_Instance;
+const Resource<DynamicBuffer> FrustumCulling::getBuffer() const {
+    return m_Buffer;
 }
 
-const RenderGraph &FrustumCulling::getGraph() const {
-    return m_RenderGraph;
+const RenderNode &FrustumCulling::getRenderNode() const {
+    return m_RenderNode;
 }
 
 const FrustumCulling::Info &FrustumCulling::getInfo() const {
