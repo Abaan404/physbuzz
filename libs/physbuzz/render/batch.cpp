@@ -9,6 +9,7 @@
 #include "../graphics/pipeline.hpp"
 #include "defines.hpp"
 #include <format>
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
@@ -180,7 +181,6 @@ bool BatchGenerator::destroy() {
 
 void BatchGenerator::draw(const RenderContext &context) {
     ZoneScopedN("BatchGenerator/Draw");
-    TracyVkZone(context.tracy, context.command, "Model");
 
     for (const auto &[mesh, indirectOffset] : m_IndirectMeshes) {
         mesh->bind(context);

@@ -611,6 +611,11 @@ void Transfer::immediate(const std::function<void(vk::CommandBuffer)> &record) {
     immediate = nullptr;
 }
 
+
+const Transfer::Info Transfer::getInfo() const {
+    return m_Info;
+}
+
 template void Transfer::submit<TransferBatch::BufferWrite>(
     const std::vector<TransferBatch::BufferWrite> &,
     std::function<std::size_t(vk::CommandBuffer, DeletionQueue &, const TransferBatch::BufferWrite &)>);

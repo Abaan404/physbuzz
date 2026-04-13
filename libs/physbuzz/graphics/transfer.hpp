@@ -56,6 +56,8 @@ class Transfer : public System<> {
     void submit(const TransferBatch &batch);
     void immediate(const std::function<void(vk::CommandBuffer)> &record);
 
+    const Info getInfo() const;
+
   private:
     Info m_Info;
 

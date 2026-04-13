@@ -8,6 +8,7 @@
 #include "../../graphics/pipeline.hpp"
 #include "../components/camera.hpp"
 #include <format>
+#include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 

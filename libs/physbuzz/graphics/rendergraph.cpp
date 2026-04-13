@@ -178,7 +178,7 @@ bool RenderGraph::compile() {
 
         for (auto &[resource, data] : node.description.attachments.output) {
             if (!ResourceRegistry<Attachment>::contains(resource)) {
-                Logger::ERROR("[RenderGraph] DynamicBuffer '{}' does not exist required by node '{}'", resource, id);
+                Logger::ERROR("[RenderGraph] Attachment '{}' does not exist required by node '{}'", resource, id);
                 return false;
             }
 
@@ -187,7 +187,7 @@ bool RenderGraph::compile() {
 
         for (auto &[resource, data] : node.description.buffers.output) {
             if (!ResourceRegistry<DynamicBuffer>::contains(resource)) {
-                Logger::ERROR("[RenderGraph] Attachment '{}' does not exist required by node '{}'", resource, id);
+                Logger::ERROR("[RenderGraph] DynamicBuffer '{}' does not exist required by node '{}'", resource, id);
                 return false;
             }
 

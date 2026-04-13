@@ -43,6 +43,7 @@ target_include_directories(imgui PUBLIC ${IMGUI_PATH} ${IMGUI_PATH}/backends
 # Tracy
 set(TRACY_PATH "${CMAKE_SOURCE_DIR}/submodules/tracy")
 option(TRACY_ENABLE "" ${PHYSBUZZ_ENABLE_TRACY})
+option(TRACY_ON_DEMAND "" ${PHYSBUZZ_ENABLE_TRACY})
 add_subdirectory(${TRACY_PATH})
 
 # physbuzz

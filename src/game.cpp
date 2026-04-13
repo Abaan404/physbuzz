@@ -205,6 +205,8 @@ void Game::build() {
         },
         batch);
 
+    transfer->submit(batch);
+
     std::shared_ptr<Physbuzz::ShadowRenderer> shadow = Physbuzz::App::GScene.createSystem<Physbuzz::ShadowRenderer>(Physbuzz::ShadowRenderer::Info{
         .resolution = {2048, 2048},
     });
@@ -228,8 +230,6 @@ void Game::build() {
         .window = window,
         .skybox = {"skybox"},
     });
-
-    transfer->submit(batch);
 
     Physbuzz::RenderGraph graph = {{}};
 
