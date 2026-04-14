@@ -12,17 +12,24 @@ struct DrawIndexedIndirectCommand {
     uint firstInstance;
 }
 
-struct PushConstants {
+struct CameraData {
     float4 planes[6];
+}
+
+struct PushConstants {
+    uint objectCount;
 }
 
 [[vk::binding(0, 0)]]
 RWStructuredBuffer<DrawIndexedIndirectCommand> indirect;
 
 [[vk::binding(1, 0)]]
-StructuredBuffer<InstanceData> objects;
+StructuredBuffer<CameraData> cameras;
 
 [[vk::binding(2, 0)]]
+StructuredBuffer<InstanceData> objects;
+
+[[vk::binding(3, 0)]]
 RWStructuredBuffer<CullingData> culling;
 
 [[vk::push_constant]]
@@ -36,7 +43,10 @@ float signedDistance(float4 plane, float3 point) {
 [numthreads(1, 1, 1)]
 void main(uint3 tid: SV_DispatchThreadID) {
     uint drawId = tid.x;
+    uint cameraId = tid.y;
+
     DrawIndexedIndirectCommand draw = indirect[drawId];
+    CameraData camera = cameras[cameraId];
 
     uint instanceId = 0;
 
@@ -68,16 +78,17 @@ void main(uint3 tid: SV_DispatchThreadID) {
         float radius = length(aabb.max - aabb.min) / 2.0f;
 
         bool isCulled =
-            signedDistance(pc.planes[0], center) < -radius ||
-            signedDistance(pc.planes[1], center) < -radius ||
-            signedDistance(pc.planes[2], center) < -radius ||
-            signedDistance(pc.planes[3], center) < -radius ||
-            signedDistance(pc.planes[4], center) < -radius ||
-            signedDistance(pc.planes[5], center) < -radius;
+            signedDistance(camera.planes[0], center) < -radius ||
+            signedDistance(camera.planes[1], center) < -radius ||
+            signedDistance(camera.planes[2], center) < -radius ||
+            signedDistance(camera.planes[3], center) < -radius ||
+            signedDistance(camera.planes[4], center) < -radius ||
+            signedDistance(camera.planes[5], center) < -radius;
 
         if (!isCulled) {
             // a lookup table of indices to find instances when used with baseInstance + instanceId
-            culling[draw.firstInstance + instanceId] = {
+            // each camera will have its own culling buffer
+            culling[draw.firstInstance + instanceId + (pc.objectCount * cameraId)] = {
                 draw.firstInstance + j
             };
 
@@ -86,6 +97,7 @@ void main(uint3 tid: SV_DispatchThreadID) {
     }
 
     // this will also leave gaps in between submeshes, not ideal but this works for now
+    // FIXME RACE CONDITION multiple cameras will write to this instance count, multiply the indirect buffer aswell
     draw.instanceCount = instanceId;
 
     indirect[drawId] = draw;

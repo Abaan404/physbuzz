@@ -6,6 +6,31 @@
 
 namespace Physbuzz {
 
+class CameraComponent;
+
+class CameraFrustum {
+  public:
+    struct Info {
+        Plane left = {{}};
+        Plane right = {{}};
+        Plane bottom = {{}};
+        Plane top = {{}};
+        Plane near = {{}};
+        Plane far = {{}};
+    };
+
+    CameraFrustum(const Info &info);
+
+    void update(const Info &info);
+    void update(const CameraComponent &camera);
+    void update(const glm::mat4 &projectionView);
+
+    const Info &getInfo() const;
+
+  private:
+    Info m_Info;
+};
+
 class CameraComponent {
   public:
     enum class Projection {
@@ -24,15 +49,6 @@ class CameraComponent {
     struct Perspective {
         float fovy = glm::radians(45.0f);
         float aspect = 1.0f;
-    };
-
-    struct Frustum {
-        Plane left;
-        Plane right;
-        Plane bottom;
-        Plane top;
-        Plane near;
-        Plane far;
     };
 
     struct Depth {
@@ -76,7 +92,7 @@ class CameraComponent {
 
     const glm::mat4 &getProjection() const;
     const glm::mat4 &getView() const;
-    const Frustum &getFrustum() const;
+    const CameraFrustum &getFrustum() const;
 
     const Info &getInfo() const;
 
@@ -86,8 +102,8 @@ class CameraComponent {
     void updateFrustum();
 
     Info m_Info;
+    CameraFrustum m_Frustum = {{}};
 
-    Frustum m_Frustum;
     glm::mat4 m_Projection = {1.0f};
     glm::mat4 m_View = {1.0f};
 };

@@ -10,11 +10,11 @@ class Scene;
 class DynamicBuffer;
 class DescriptorLayout;
 class Mesh;
+class CameraFrustum;
 
 class FrustumCulling {
   public:
     struct Info {
-        ObjectID camera;
         Resource<DynamicBuffer> instance;
         Resource<DynamicBuffer> indirect;
         RenderNodeID nodeIdPrefix;
@@ -26,25 +26,35 @@ class FrustumCulling {
     bool build();
     bool destroy();
 
-    const Resource<DynamicBuffer> getBuffer() const;
+    void setCamera(const std::vector<ObjectID> &cameras, const std::vector<CameraFrustum> &frustums);
 
-    const RenderNode &getRenderNode() const;
+    const Resource<DynamicBuffer> &getCullingBuffer() const;
+
+    const RenderGraph &getGraph() const;
     const Info &getInfo() const;
 
   private:
-    struct BufferData {
+    struct CullingBufferData {
         std::uint32_t instanceOffset;
     };
 
-    struct PushConstants {
+    struct CameraBufferData {
         std::array<glm::vec4, 6> planes;
+    };
+
+    struct PushConstants {
+        std::uint32_t objectCount;
     };
 
     Info m_Info;
 
-    RenderNode m_RenderNode;
+    std::vector<ObjectID> m_Cameras;
+    std::vector<CameraFrustum> m_Frustums;
 
-    Resource<DynamicBuffer> m_Buffer;
+    RenderGraph m_Graph = {{}};
+
+    Resource<DynamicBuffer> m_CameraBuffer;
+    Resource<DynamicBuffer> m_CullingBuffer;
 
     Resource<ComputePipeline> m_Pipeline;
     Resource<DescriptorLayout> m_Layout;

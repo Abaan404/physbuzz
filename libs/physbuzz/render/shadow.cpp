@@ -3,6 +3,8 @@
 #include "../app/application.hpp"
 #include "../ecs/scene.hpp"
 #include "../graphics/layout.hpp"
+#include "components/camera.hpp"
+#include "components/lights.hpp"
 #include "nodes/lights.hpp"
 #include <tracy/Tracy.hpp>
 
@@ -42,6 +44,10 @@ bool PipelineShadow::Directional::build(const glm::uvec2 &resolution) {
                     },
                     {
                         // instance
+                        .type = DescriptorLayout::Type::eStorageBuffer,
+                    },
+                    {
+                        // culling
                         .type = DescriptorLayout::Type::eStorageBuffer,
                     },
                 },
@@ -114,6 +120,10 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
                         // instance
                         .type = DescriptorLayout::Type::eStorageBuffer,
                     },
+                    {
+                        // culling
+                        .type = DescriptorLayout::Type::eStorageBuffer,
+                    },
                 },
             }});
     }
@@ -141,6 +151,12 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
                     .resources = {
                         ResourceLayoutFrame,
                     },
+                    .pushConstantRanges = {
+                        {
+                            .stageFlags = GraphicsPipeline::PushConstantsStageFlags::eAll,
+                            .size = sizeof(PushConstants),
+                        },
+                    },
                 },
                 .inputs = {
                     .colors = {},
@@ -154,10 +170,7 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
 } // namespace Builtin
 
 ShadowRenderer::ShadowRenderer(const Info &info)
-    : m_Info(info),
-      m_Batch{{
-          .resourceIdPrefix = "builtin/shadow/batch/",
-      }} {}
+    : m_Info(info) {}
 
 bool ShadowRenderer::build() {
     bool success = true;
@@ -165,22 +178,33 @@ bool ShadowRenderer::build() {
     success &= Builtin::PipelineShadow::Directional::build(m_Info.resolution);
     success &= Builtin::PipelineShadow::Point::build(m_Info.resolution);
 
+    success &= m_Batch.build(m_Objects);
+    // TODO combine both cullings in one pass
+    success &= m_DirectionalCulling.build();
+    success &= m_PointCulling.build();
+
     if (!success) {
-        Logger::ERROR("[DeferredRenderer] Could not build shadow pipeline.");
+        Logger::ERROR("[ShadowRenderer] Could not build shadow pipeline.");
         return false;
     }
 
-    success &= m_Batch.build(m_Objects);
-
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
-    m_Graph.add("builtin/shadow/draw", m_Batch.getRenderNode());
+    m_Graph.add("builtin/shadow/batch", m_Batch.getRenderNode());
+    m_Graph.merge(m_DirectionalCulling.getGraph());
+    m_Graph.merge(m_PointCulling.getGraph());
 
     m_Graph.add(
-        Output2D,
+        OutputDirectional,
         {
             .description = {
                 .buffers = {
                     .input = {
+                        {
+                            Builtin::RenderNodeLights::ResourceBufferDirectional,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
                         {
                             m_Batch.getIndirectBuffer(),
                             {
@@ -194,9 +218,9 @@ bool ShadowRenderer::build() {
                             },
                         },
                         {
-                            Builtin::RenderNodeLights::ResourceBufferDirectional,
+                            m_DirectionalCulling.getCullingBuffer(),
                             {
-                                .stage = RenderNode::Stage::Fragment,
+                                .stage = RenderNode::Stage::Vertex,
                             },
                         },
                     },
@@ -215,6 +239,16 @@ bool ShadowRenderer::build() {
             .execute = [this](Scene *scene, const RenderContext &context) {
                 ZoneScopedN("ShadowRenderer/Directional/Execute");
                 TracyVkZone(context.tracy, context.command, "ShadowRenderer/Directional");
+
+                // FIXME this is only applied in the next tick
+                {
+                    const auto [_, directional] = m_Scene->getComponents<DirectionalLightComponent>().front();
+
+                    CameraFrustum frustum = {{}};
+                    frustum.update(directional.getProjectionView());
+
+                    m_DirectionalCulling.setCamera({}, {frustum});
+                }
 
                 std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
@@ -252,11 +286,17 @@ bool ShadowRenderer::build() {
         });
 
     m_Graph.add(
-        OutputCube,
+        OutputPoint,
         {
             .description = {
                 .buffers = {
                     .input = {
+                        {
+                            Builtin::RenderNodeLights::ResourceBufferPoint,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                            },
+                        },
                         {
                             m_Batch.getIndirectBuffer(),
                             {
@@ -270,9 +310,9 @@ bool ShadowRenderer::build() {
                             },
                         },
                         {
-                            Builtin::RenderNodeLights::ResourceBufferPoint,
+                            m_PointCulling.getCullingBuffer(),
                             {
-                                .stage = RenderNode::Stage::Fragment,
+                                .stage = RenderNode::Stage::Vertex,
                             },
                         },
                     },
@@ -292,6 +332,22 @@ bool ShadowRenderer::build() {
                 ZoneScopedN("ShadowRenderer/Point/Execute");
                 TracyVkZone(context.tracy, context.command, "ShadowRenderer/Point");
 
+                // FIXME this is only applied in the next tick
+                {
+                    const auto [_, point] = m_Scene->getComponents<PointLightComponent>().front();
+
+                    std::vector<CameraFrustum> frustums;
+                    frustums.reserve(6);
+
+                    for (const auto &projectionView : point.getProjectionView()) {
+                        CameraFrustum frustum = {{}};
+                        frustum.update(projectionView);
+                        frustums.emplace_back(frustum);
+                    }
+
+                    m_PointCulling.setCamera({}, frustums);
+                }
+
                 std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
                 vk::RenderingAttachmentInfo depthAttachment = {
@@ -301,6 +357,13 @@ bool ShadowRenderer::build() {
                     .storeOp = vk::AttachmentStoreOp::eStore,
                     .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
                 };
+
+                std::size_t objectCount = m_Batch.getInstanceBuffer()->getSize(context.frameInFlight) / sizeof(BatchGenerator::InstanceData);
+                Builtin::PipelineShadow::Point::PushConstants pushConstants = {
+                    .objectCount = static_cast<std::uint32_t>(objectCount),
+                };
+
+                Builtin::PipelineShadow::Point::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
 
                 context.command.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(m_Info.resolution.x), static_cast<float>(m_Info.resolution.y), 0.0f, 1.0f});
                 context.command.setScissor(0, vk::Rect2D{{0, 0}, {m_Info.resolution.x, m_Info.resolution.y}});
@@ -339,6 +402,11 @@ bool ShadowRenderer::build() {
             1);
 
         App::LayoutAllocator.write(
+            Builtin::PipelineShadow::Directional::ResourceLayoutFrame,
+            m_DirectionalCulling.getCullingBuffer(),
+            2);
+
+        App::LayoutAllocator.write(
             Builtin::PipelineShadow::Point::ResourceLayoutFrame,
             Builtin::RenderNodeLights::ResourceBufferPoint,
             0);
@@ -347,6 +415,11 @@ bool ShadowRenderer::build() {
             Builtin::PipelineShadow::Point::ResourceLayoutFrame,
             m_Batch.getInstanceBuffer(),
             1);
+
+        App::LayoutAllocator.write(
+            Builtin::PipelineShadow::Point::ResourceLayoutFrame,
+            m_PointCulling.getCullingBuffer(),
+            2);
     }
 
     return success;
@@ -356,6 +429,8 @@ bool ShadowRenderer::destroy() {
     bool success = true;
 
     success &= m_Batch.destroy();
+    success &= m_DirectionalCulling.destroy();
+    success &= m_PointCulling.destroy();
 
     return success;
 }

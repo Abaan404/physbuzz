@@ -60,8 +60,16 @@ class ForwardRenderer : public System<RenderComponent> {
   private:
     Info m_Info;
 
-    BatchGenerator m_Batch;
-    FrustumCulling m_Culling;
+    BatchGenerator m_Batch = {{
+        .resourceIdPrefix = std::format("{}/batch/", Output),
+    }};
+
+    FrustumCulling m_Culling = {{
+        .instance = m_Batch.getInstanceBuffer(),
+        .indirect = m_Batch.getIndirectBuffer(),
+        .nodeIdPrefix = std::format("{}/culling/", Output),
+        .resourceIdPrefix = std::format("{}/culling/", Output),
+    }};
 
     RenderGraph m_Graph = {{
         .output = Output,

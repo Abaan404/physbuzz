@@ -5,16 +5,44 @@
 
 namespace Physbuzz {
 
+CameraFrustum::CameraFrustum(const Info &info)
+    : m_Info(info) {}
+
+void CameraFrustum::update(const Info &info) {
+    m_Info = info;
+}
+
+void CameraFrustum::update(const CameraComponent &camera) {
+    update(camera.getProjection() * camera.getView());
+}
+
+void CameraFrustum::update(const glm::mat4 &projectionView) {
+    // https://www.gamedevs.org/uploads/fast-extraction-viewing-frustum-planes-from-world-view-projection-matrix.pdf
+    const glm::mat4 viewProjection = glm::transpose(projectionView);
+
+    glm::vec4 left = viewProjection[3] + viewProjection[0];
+    glm::vec4 right = viewProjection[3] - viewProjection[0];
+    glm::vec4 bottom = viewProjection[3] + viewProjection[1];
+    glm::vec4 top = viewProjection[3] - viewProjection[1];
+    glm::vec4 near = viewProjection[3] + viewProjection[2];
+    glm::vec4 far = viewProjection[3] - viewProjection[2];
+
+    m_Info = {
+        .left = {{glm::normalize(glm::vec3(left)), left.w / glm::length(glm::vec3(left))}},
+        .right = {{glm::normalize(glm::vec3(right)), right.w / glm::length(glm::vec3(right))}},
+        .bottom = {{glm::normalize(glm::vec3(bottom)), bottom.w / glm::length(glm::vec3(bottom))}},
+        .top = {{glm::normalize(glm::vec3(top)), top.w / glm::length(glm::vec3(top))}},
+        .near = {{glm::normalize(glm::vec3(near)), near.w / glm::length(glm::vec3(near))}},
+        .far = {{glm::normalize(glm::vec3(far)), far.w / glm::length(glm::vec3(far))}},
+    };
+}
+
+const CameraFrustum::Info &CameraFrustum::getInfo() const {
+    return m_Info;
+}
+
 CameraComponent::CameraComponent(const Info &info)
-    : m_Info(info),
-      m_Frustum({
-          .left = {{}},
-          .right = {{}},
-          .bottom = {{}},
-          .top = {{}},
-          .near = {{}},
-          .far = {{}},
-      }) {
+    : m_Info(info) {
     update(info);
 }
 
@@ -95,7 +123,7 @@ const glm::mat4 &CameraComponent::getView() const {
     return m_View;
 }
 
-const CameraComponent::Frustum &CameraComponent::getFrustum() const {
+const CameraFrustum &CameraComponent::getFrustum() const {
     return m_Frustum;
 }
 
@@ -143,24 +171,7 @@ void CameraComponent::updateView() {
 }
 
 void CameraComponent::updateFrustum() {
-    // https://www.gamedevs.org/uploads/fast-extraction-viewing-frustum-planes-from-world-view-projection-matrix.pdf
-    const glm::mat4 viewProjection = glm::transpose(m_Projection * m_View);
-
-    glm::vec4 left = viewProjection[3] + viewProjection[0];
-    glm::vec4 right = viewProjection[3] - viewProjection[0];
-    glm::vec4 bottom = viewProjection[3] + viewProjection[1];
-    glm::vec4 top = viewProjection[3] - viewProjection[1];
-    glm::vec4 near = viewProjection[3] + viewProjection[2];
-    glm::vec4 far = viewProjection[3] - viewProjection[2];
-
-    m_Frustum = {
-        .left = {{glm::normalize(glm::vec3(left)), left.w / glm::length(glm::vec3(left))}},
-        .right = {{glm::normalize(glm::vec3(right)), right.w / glm::length(glm::vec3(right))}},
-        .bottom = {{glm::normalize(glm::vec3(bottom)), bottom.w / glm::length(glm::vec3(bottom))}},
-        .top = {{glm::normalize(glm::vec3(top)), top.w / glm::length(glm::vec3(top))}},
-        .near = {{glm::normalize(glm::vec3(near)), near.w / glm::length(glm::vec3(near))}},
-        .far = {{glm::normalize(glm::vec3(far)), far.w / glm::length(glm::vec3(far))}},
-    };
+    m_Frustum.update(*this);
 }
 
 } // namespace Physbuzz

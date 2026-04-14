@@ -217,17 +217,7 @@ bool PipelineDeferred::build() {
 } // namespace Builtin
 
 DeferredRenderer::DeferredRenderer(const Info &info)
-    : m_Info(info),
-      m_Batch{{
-          .resourceIdPrefix = "builtin/deferred/batch/",
-      }},
-      m_Culling({
-          .camera = info.camera,
-          .instance = m_Batch.getInstanceBuffer(),
-          .indirect = m_Batch.getIndirectBuffer(),
-          .nodeIdPrefix = "builtin/culling/state/",
-          .resourceIdPrefix = "builtin/culling/state/",
-      }) {}
+    : m_Info(info) {}
 
 bool DeferredRenderer::build() {
     // build pipeline
@@ -248,10 +238,12 @@ bool DeferredRenderer::build() {
     success &= m_Batch.build(m_Objects);
     success &= m_Culling.build();
 
+    m_Culling.setCamera({m_Info.camera}, {});
+
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
     m_Graph.add("builtin/batch", m_Batch.getRenderNode());
-    m_Graph.add("builtin/frustum_culling", m_Culling.getRenderNode());
+    m_Graph.merge(m_Culling.getGraph());
 
     m_Graph.add(
         "builtin/deferred/gbuffers",
@@ -278,7 +270,7 @@ bool DeferredRenderer::build() {
                             },
                         },
                         {
-                            m_Culling.getBuffer(),
+                            m_Culling.getCullingBuffer(),
                             {
                                 .stage = RenderNode::Stage::Vertex,
                             },
@@ -540,7 +532,7 @@ bool DeferredRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineDeferred::Geometry::ResourceLayoutFrame,
-            m_Culling.getBuffer(),
+            m_Culling.getCullingBuffer(),
             2);
 
         // lighting

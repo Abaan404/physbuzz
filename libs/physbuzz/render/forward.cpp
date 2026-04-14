@@ -107,17 +107,7 @@ bool PipelineForward::build() {
 } // namespace Builtin
 
 ForwardRenderer::ForwardRenderer(const Info &info)
-    : m_Info(info),
-      m_Batch{{
-          .resourceIdPrefix = "builtin/forward/batch/",
-      }},
-      m_Culling({
-          .camera = info.camera,
-          .instance = m_Batch.getInstanceBuffer(),
-          .indirect = m_Batch.getIndirectBuffer(),
-          .nodeIdPrefix = "builtin/forward/culling/",
-          .resourceIdPrefix = "builtin/forward/culling/",
-      }) {}
+    : m_Info(info) {}
 
 bool ForwardRenderer::build() {
     // build pipeline
@@ -138,10 +128,12 @@ bool ForwardRenderer::build() {
     success &= m_Batch.build(m_Objects);
     success &= m_Culling.build();
 
+    m_Culling.setCamera({m_Info.camera}, {});
+
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
     m_Graph.add("builtin/batch", m_Batch.getRenderNode());
-    m_Graph.add("builtin/frustum_culling", m_Culling.getRenderNode());
+    m_Graph.merge(m_Culling.getGraph());
 
     m_Graph.add(
         Output,
@@ -186,7 +178,7 @@ bool ForwardRenderer::build() {
                             },
                         },
                         {
-                            m_Culling.getBuffer(),
+                            m_Culling.getCullingBuffer(),
                             {
                                 .stage = RenderNode::Stage::Vertex,
                             },
@@ -303,7 +295,7 @@ bool ForwardRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,
-            m_Culling.getBuffer(),
+            m_Culling.getCullingBuffer(),
             5);
 
         success &= App::LayoutAllocator.write(

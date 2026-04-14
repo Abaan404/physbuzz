@@ -3,6 +3,7 @@
 #include "../ecs/system.hpp"
 #include "../graphics/pipeline.hpp"
 #include "batch.hpp"
+#include "compute/culling.hpp"
 #include "defines.hpp"
 
 namespace Physbuzz {
@@ -25,6 +26,10 @@ bool build(const glm::uvec2 &resolution);
 
 namespace Point {
 
+struct PushConstants {
+    std::uint32_t objectCount;
+};
+
 inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/point"};
 
 inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/shadow/point/frame"};
@@ -43,8 +48,8 @@ struct ShadowComponent {};
 
 class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
   public:
-    constexpr static RenderNodeID Output2D = "builtin/shadow/2D";
-    constexpr static RenderNodeID OutputCube = "builtin/shadow/cube";
+    inline static RenderNodeID OutputDirectional = "builtin/shadow/directional";
+    constexpr static RenderNodeID OutputPoint = "builtin/shadow/point";
 
     struct Info {
         glm::uvec2 resolution = {1024, 1024};
@@ -62,7 +67,23 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
   private:
     Info m_Info;
 
-    BatchGenerator m_Batch;
+    BatchGenerator m_Batch = {{
+        .resourceIdPrefix = "builtin/shadow/",
+    }};
+
+    FrustumCulling m_DirectionalCulling = {{
+        .instance = m_Batch.getInstanceBuffer(),
+        .indirect = m_Batch.getIndirectBuffer(),
+        .nodeIdPrefix = std::format("{}/culling/", OutputDirectional),
+        .resourceIdPrefix = std::format("{}/culling/", OutputDirectional),
+    }};
+
+    FrustumCulling m_PointCulling = {{
+        .instance = m_Batch.getInstanceBuffer(),
+        .indirect = m_Batch.getIndirectBuffer(),
+        .nodeIdPrefix = std::format("{}/culling/", OutputPoint),
+        .resourceIdPrefix = std::format("{}/culling/", OutputPoint),
+    }};
 
     RenderGraph m_Graph = {{}};
 };
