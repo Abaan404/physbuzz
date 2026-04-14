@@ -345,7 +345,12 @@ bool RenderGraph::compile() {
             nextBufferBarrier = {nextStage, nextAccess};
 
             // skip read-on-read hazards
-            if (prevBufferBarrier.at(buffer) == nextBufferBarrier) {
+            auto [_, prevAccess] = prevBufferBarrier.at(buffer);
+
+            bool prevIsRead = !static_cast<bool>(prevAccess & vk::AccessFlagBits2::eShaderStorageWrite | vk::AccessFlagBits2::eTransferWrite);
+            bool nextIsRead = !static_cast<bool>(nextAccess & vk::AccessFlagBits2::eShaderStorageWrite | vk::AccessFlagBits2::eTransferWrite);
+
+            if (prevIsRead && nextIsRead) {
                 continue;
             }
 
@@ -485,17 +490,17 @@ bool RenderGraph::compile() {
 
                     case Attachment::Usage::Depth:
                         nextLayout = vk::ImageLayout::eDepthAttachmentOptimal;
-                        nextStage |= vk::PipelineStageFlagBits2::eEarlyFragmentTests;
+                        nextStage |= vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
                         break;
 
                     case Attachment::Usage::Stencil:
                         nextLayout = vk::ImageLayout::eStencilAttachmentOptimal;
-                        nextStage |= vk::PipelineStageFlagBits2::eEarlyFragmentTests;
+                        nextStage |= vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
                         break;
 
                     case Attachment::Usage::DepthStencil:
                         nextLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-                        nextStage |= vk::PipelineStageFlagBits2::eEarlyFragmentTests;
+                        nextStage |= vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
                         break;
                     }
 
