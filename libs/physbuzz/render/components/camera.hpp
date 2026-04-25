@@ -8,21 +8,21 @@ namespace Physbuzz {
 
 class CameraComponent;
 
-class CameraFrustum {
+class Frustum {
   public:
     struct Info {
-        Plane left = {{}};
-        Plane right = {{}};
-        Plane bottom = {{}};
-        Plane top = {{}};
-        Plane near = {{}};
-        Plane far = {{}};
+        Plane left;
+        Plane right;
+        Plane bottom;
+        Plane top;
+        Plane near;
+        Plane far;
     };
 
-    CameraFrustum(const Info &info);
+    Frustum();
+    Frustum(const Info &info);
 
     void update(const Info &info);
-    void update(const CameraComponent &camera);
     void update(const glm::mat4 &projectionView);
 
     const Info &getInfo() const;
@@ -92,7 +92,7 @@ class CameraComponent {
 
     const glm::mat4 &getProjection() const;
     const glm::mat4 &getView() const;
-    const CameraFrustum &getFrustum() const;
+    const Frustum &getFrustum() const;
 
     const Info &getInfo() const;
 
@@ -102,7 +102,7 @@ class CameraComponent {
     void updateFrustum();
 
     Info m_Info;
-    CameraFrustum m_Frustum = {{}};
+    Frustum m_Frustum;
 
     glm::mat4 m_Projection = {1.0f};
     glm::mat4 m_View = {1.0f};

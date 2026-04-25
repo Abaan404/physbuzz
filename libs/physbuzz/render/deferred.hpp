@@ -88,8 +88,10 @@ class DeferredRenderer : public System<RenderComponent> {
     }};
 
     FrustumCulling m_Culling = {{
-        .instance = m_Batch.getInstanceBuffer(),
-        .indirect = m_Batch.getIndirectBuffer(),
+        .batch = m_Batch,
+        .objects = {
+            .cameras = {m_Info.camera},
+        },
         .nodeIdPrefix = std::format("{}/culling/", Output),
         .resourceIdPrefix = std::format("{}/culling/", Output),
     }};

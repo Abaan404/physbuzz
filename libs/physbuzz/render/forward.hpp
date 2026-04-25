@@ -65,8 +65,7 @@ class ForwardRenderer : public System<RenderComponent> {
     }};
 
     FrustumCulling m_Culling = {{
-        .instance = m_Batch.getInstanceBuffer(),
-        .indirect = m_Batch.getIndirectBuffer(),
+        .batch = m_Batch,
         .nodeIdPrefix = std::format("{}/culling/", Output),
         .resourceIdPrefix = std::format("{}/culling/", Output),
     }};

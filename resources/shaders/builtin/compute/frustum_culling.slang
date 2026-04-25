@@ -18,19 +18,23 @@ struct CameraData {
 
 struct PushConstants {
     uint objectCount;
+    uint drawCount;
 }
 
 [[vk::binding(0, 0)]]
-RWStructuredBuffer<DrawIndexedIndirectCommand> indirect;
+StructuredBuffer<DrawIndexedIndirectCommand> draws;
 
 [[vk::binding(1, 0)]]
-StructuredBuffer<CameraData> cameras;
-
-[[vk::binding(2, 0)]]
 StructuredBuffer<InstanceData> objects;
 
+[[vk::binding(2, 0)]]
+StructuredBuffer<CameraData> cameras;
+
 [[vk::binding(3, 0)]]
-RWStructuredBuffer<CullingData> culling;
+RWStructuredBuffer<VisibilityData> visibleInstances;
+
+[[vk::binding(4, 0)]]
+RWStructuredBuffer<DrawIndexedIndirectCommand> outputDraws;
 
 [[vk::push_constant]]
 PushConstants pc;
@@ -45,7 +49,7 @@ void main(uint3 tid: SV_DispatchThreadID) {
     uint drawId = tid.x;
     uint cameraId = tid.y;
 
-    DrawIndexedIndirectCommand draw = indirect[drawId];
+    DrawIndexedIndirectCommand draw = draws[drawId];
     CameraData camera = cameras[cameraId];
 
     uint instanceId = 0;
@@ -87,8 +91,8 @@ void main(uint3 tid: SV_DispatchThreadID) {
 
         if (!isCulled) {
             // a lookup table of indices to find instances when used with baseInstance + instanceId
-            // each camera will have its own culling buffer
-            culling[draw.firstInstance + instanceId + (pc.objectCount * cameraId)] = {
+            // each camera will have its own visible buffer
+            visibleInstances[draw.firstInstance + instanceId + (pc.objectCount * cameraId)] = {
                 draw.firstInstance + j
             };
 
@@ -97,10 +101,10 @@ void main(uint3 tid: SV_DispatchThreadID) {
     }
 
     // this will also leave gaps in between submeshes, not ideal but this works for now
-    // FIXME RACE CONDITION multiple cameras will write to this instance count, multiply the indirect buffer aswell
     draw.instanceCount = instanceId;
 
-    indirect[drawId] = draw;
+    // each camera will have its own culled draw buffer
+    outputDraws[drawId + (pc.drawCount * cameraId)] = draw;
 }
 
 }

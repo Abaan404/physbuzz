@@ -5,18 +5,17 @@
 
 namespace Physbuzz {
 
-CameraFrustum::CameraFrustum(const Info &info)
-    : m_Info(info) {}
+Frustum::Frustum() {}
 
-void CameraFrustum::update(const Info &info) {
+Frustum::Frustum(const Info &info) {
+    update(info);
+}
+
+void Frustum::update(const Info &info) {
     m_Info = info;
 }
 
-void CameraFrustum::update(const CameraComponent &camera) {
-    update(camera.getProjection() * camera.getView());
-}
-
-void CameraFrustum::update(const glm::mat4 &projectionView) {
+void Frustum::update(const glm::mat4 &projectionView) {
     // https://www.gamedevs.org/uploads/fast-extraction-viewing-frustum-planes-from-world-view-projection-matrix.pdf
     const glm::mat4 viewProjection = glm::transpose(projectionView);
 
@@ -37,7 +36,7 @@ void CameraFrustum::update(const glm::mat4 &projectionView) {
     };
 }
 
-const CameraFrustum::Info &CameraFrustum::getInfo() const {
+const Frustum::Info &Frustum::getInfo() const {
     return m_Info;
 }
 
@@ -123,7 +122,7 @@ const glm::mat4 &CameraComponent::getView() const {
     return m_View;
 }
 
-const CameraFrustum &CameraComponent::getFrustum() const {
+const Frustum &CameraComponent::getFrustum() const {
     return m_Frustum;
 }
 
@@ -171,7 +170,7 @@ void CameraComponent::updateView() {
 }
 
 void CameraComponent::updateFrustum() {
-    m_Frustum.update(*this);
+    m_Frustum.update(m_Projection * m_View);
 }
 
 } // namespace Physbuzz

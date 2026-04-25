@@ -128,8 +128,6 @@ bool ForwardRenderer::build() {
     success &= m_Batch.build(m_Objects);
     success &= m_Culling.build();
 
-    m_Culling.setCamera({m_Info.camera}, {});
-
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
     m_Graph.add("builtin/batch", m_Batch.getRenderNode());
@@ -142,7 +140,7 @@ bool ForwardRenderer::build() {
                 .buffers = {
                     .input = {
                         {
-                            m_Batch.getIndirectBuffer(),
+                            m_Culling.getIndirectBuffer(),
                             {
                                 .stage = RenderNode::Stage::Indirect,
                             },
@@ -178,7 +176,7 @@ bool ForwardRenderer::build() {
                             },
                         },
                         {
-                            m_Culling.getCullingBuffer(),
+                            m_Culling.getVisibleInstanceBuffer(),
                             {
                                 .stage = RenderNode::Stage::Vertex,
                             },
@@ -230,15 +228,6 @@ bool ForwardRenderer::build() {
                 const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
                 const std::vector<SpotLightComponent> &spots = scene->getComponentArray<SpotLightComponent>();
 
-                Builtin::PipelineForward::PushConstants pushConstants = {
-                    .directionalCount = static_cast<std::uint32_t>(directionals.size()),
-                    .spotCount = static_cast<std::uint32_t>(spots.size()),
-                    .pointCount = static_cast<std::uint32_t>(points.size()),
-                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
-                };
-
-                Builtin::PipelineForward::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
-
                 context.command.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(context.extent.width), static_cast<float>(context.extent.height), 0.0f, 1.0f});
                 context.command.setScissor(0, vk::Rect2D{{0, 0}, context.extent});
 
@@ -254,12 +243,20 @@ bool ForwardRenderer::build() {
                     .pStencilAttachment = {},
                 });
 
+                Builtin::PipelineForward::PushConstants pushConstants = {
+                    .directionalCount = static_cast<std::uint32_t>(directionals.size()),
+                    .spotCount = static_cast<std::uint32_t>(spots.size()),
+                    .pointCount = static_cast<std::uint32_t>(points.size()),
+                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
+                };
+
                 // bind resources
+                Builtin::PipelineForward::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
                 Builtin::PipelineForward::Resource->bind(context);
                 App::LayoutAllocator.bind(context, Builtin::PipelineForward::Resource);
 
                 // draw
-                m_Batch.draw(context);
+                m_Batch.draw(context, m_Culling.getIndirectBuffer());
 
                 context.command.endRendering();
             },
@@ -295,7 +292,7 @@ bool ForwardRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,
-            m_Culling.getCullingBuffer(),
+            m_Culling.getVisibleInstanceBuffer(),
             5);
 
         success &= App::LayoutAllocator.write(

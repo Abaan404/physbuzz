@@ -5,6 +5,13 @@ import "../../lighting/lights";
 
 namespace Physbuzz {
 
+struct PushConstants {
+    uint32_t frustumOffset;
+};
+
+[[vk::push_constant]]
+PushConstants pc;
+
 [[vk::binding(0, 0)]]
 StructuredBuffer<DirectionalLight> directionals;
 
@@ -12,7 +19,7 @@ StructuredBuffer<DirectionalLight> directionals;
 StructuredBuffer<InstanceData> objects;
 
 [[vk::binding(2, 0)]]
-StructuredBuffer<CullingData> culling;
+StructuredBuffer<VisibilityData> visibleInstances;
 
 struct VSInput {
     float3 position : POSITION;
@@ -25,7 +32,7 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation) {
     VSOutput output;
-    uint objectId = culling[instanceId + baseInstance].instanceId;
+    uint objectId = visibleInstances[instanceId + baseInstance + pc.frustumOffset].instanceId;
 
     InstanceData object = objects[objectId];
     output.sv_position = mul(mul(float4(input.position, 1.0), object.model), directionals[0].projectionView);

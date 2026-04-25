@@ -1,5 +1,6 @@
 #pragma once
 
+#include "camera.hpp"
 #include <glm/glm.hpp>
 
 namespace Physbuzz {
@@ -14,20 +15,24 @@ class DirectionalLightComponent {
         float depth = 10.0f;
     };
 
+    DirectionalLightComponent();
     DirectionalLightComponent(const Info &info);
+
+    void update(const Info &info);
 
     void setDirection(const glm::vec3 &direction);
     void setIntensity(const glm::vec3 &intensity);
 
-    void update(const Info &info);
-
     const Info &getInfo() const;
     const glm::mat4 &getProjectionView() const;
+    const Frustum &getFrustum() const;
 
   private:
     void updateProjectionView();
+    void updateFrustum();
 
     Info m_Info;
+    Frustum m_Frustum;
 
     glm::mat4 m_ProjectionView = {1.0f};
 };
@@ -41,20 +46,24 @@ struct PointLightComponent {
         float depth = 10.0f;
     };
 
+    PointLightComponent();
     PointLightComponent(const Info &info);
+
+    void update(const Info &info);
 
     void setPosition(const glm::vec3 &position);
     void setIntensity(const glm::vec3 &intensity);
 
-    void update(const Info &info);
-
     const Info &getInfo() const;
-    const std::array<glm::mat4, 6> &getProjectionView() const;
+    const std::array<glm::mat4, 6> &getProjectionViews() const;
+    const std::array<Frustum, 6> &getFrustums() const;
 
   private:
-    void updateProjectionView();
+    void updateProjectionViews();
+    void updateFrustums();
 
     Info m_Info;
+    std::array<Frustum, 6> m_Frustums;
 
     std::array<glm::mat4, 6> m_ProjectionView = {1.0f};
 };
@@ -68,8 +77,11 @@ struct SpotLightComponent {
 
         float cutOff = glm::cos(glm::radians(12.5f));
         float outerCutOff = glm::cos(glm::radians(17.5f));
+
+        float depth = 10.0f;
     };
 
+    SpotLightComponent();
     SpotLightComponent(const Info &info);
 
     void setPosition(const glm::vec3 &position);
@@ -80,9 +92,16 @@ struct SpotLightComponent {
     void update(const Info &info);
 
     const Info &getInfo() const;
+    const glm::mat4 &getProjectionView() const;
+    const Frustum &getFrustum() const;
 
   private:
+    void updateProjectionView();
+    void updateFrustum();
+
     Info m_Info;
+
+    Frustum m_Frustum;
 
     glm::mat4 m_ProjectionView = {1.0f};
 };

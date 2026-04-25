@@ -193,11 +193,25 @@ void BatchGenerator::draw(const RenderContext &context) {
     }
 }
 
-const Resource<DynamicBuffer> BatchGenerator::getInstanceBuffer() const {
+void BatchGenerator::draw(const RenderContext &context, const Resource<DynamicBuffer> &indirect, std::uint64_t offset) {
+    ZoneScopedN("BatchGenerator/Draw");
+
+    for (const auto &[mesh, indirectOffset] : m_IndirectMeshes) {
+        mesh->bind(context);
+
+        context.command.drawIndexedIndirect(
+            indirect->getRingData()[context.frameInFlight].buffer.getData().buffer,
+            indirectOffset * sizeof(vk::DrawIndexedIndirectCommand) + offset,
+            mesh->getInfo().submeshes.size(),
+            sizeof(vk::DrawIndexedIndirectCommand));
+    }
+}
+
+const Resource<DynamicBuffer> &BatchGenerator::getInstanceBuffer() const {
     return m_Instance;
 }
 
-const Resource<DynamicBuffer> BatchGenerator::getIndirectBuffer() const {
+const Resource<DynamicBuffer> &BatchGenerator::getIndirectBuffer() const {
     return m_Indirect;
 }
 
@@ -207,6 +221,14 @@ const RenderNode &BatchGenerator::getRenderNode() const {
 
 const BatchGenerator::Info &BatchGenerator::getInfo() const {
     return m_Info;
+}
+
+std::size_t BatchGenerator::getObjectCount(std::uint32_t frameInFlight) const {
+    return m_Instance->getSize(frameInFlight) / sizeof(BatchGenerator::InstanceData);
+}
+
+std::size_t BatchGenerator::getDrawCount(std::uint32_t frameInFlight) const {
+    return m_Indirect->getSize(frameInFlight) / sizeof(vk::DrawIndexedIndirectCommand);
 }
 
 } // namespace Physbuzz

@@ -10,13 +10,21 @@ class Scene;
 class DynamicBuffer;
 class DescriptorLayout;
 class Mesh;
-class CameraFrustum;
+class Frustum;
+class BatchGenerator;
 
 class FrustumCulling {
   public:
+    struct Objects {
+        std::unordered_set<ObjectID> cameras;
+        std::unordered_set<ObjectID> directionalLights;
+        std::unordered_set<ObjectID> pointLights;
+        std::unordered_set<ObjectID> spotLights;
+    };
+
     struct Info {
-        Resource<DynamicBuffer> instance;
-        Resource<DynamicBuffer> indirect;
+        const BatchGenerator &batch;
+        Objects objects;
         RenderNodeID nodeIdPrefix;
         ResourceID resourceIdPrefix;
     };
@@ -26,9 +34,12 @@ class FrustumCulling {
     bool build();
     bool destroy();
 
-    void setCamera(const std::vector<ObjectID> &cameras, const std::vector<CameraFrustum> &frustums);
+    void setObjects(const Objects &objects);
 
-    const Resource<DynamicBuffer> &getCullingBuffer() const;
+    const Resource<DynamicBuffer> &getVisibleInstanceBuffer() const;
+    const Resource<DynamicBuffer> &getIndirectBuffer() const;
+
+    std::uint64_t getFrustumOffset(ObjectID object) const;
 
     const RenderGraph &getGraph() const;
     const Info &getInfo() const;
@@ -38,23 +49,25 @@ class FrustumCulling {
         std::uint32_t instanceOffset;
     };
 
-    struct CameraBufferData {
+    struct FrustumBufferData {
         std::array<glm::vec4, 6> planes;
     };
 
     struct PushConstants {
         std::uint32_t objectCount;
+        std::uint32_t drawCount;
     };
 
     Info m_Info;
 
-    std::vector<ObjectID> m_Cameras;
-    std::vector<CameraFrustum> m_Frustums;
-
     RenderGraph m_Graph = {{}};
 
-    Resource<DynamicBuffer> m_CameraBuffer;
-    Resource<DynamicBuffer> m_CullingBuffer;
+    std::vector<FrustumBufferData> m_FrustumBuffer;
+    std::unordered_map<ObjectID, std::uint64_t> m_FrustumBufferOffset;
+
+    Resource<DynamicBuffer> m_Frustum;
+    Resource<DynamicBuffer> m_VisibleInstance;
+    Resource<DynamicBuffer> m_Indirect;
 
     Resource<ComputePipeline> m_Pipeline;
     Resource<DescriptorLayout> m_Layout;

@@ -34,9 +34,13 @@ class BatchGenerator {
     bool destroy();
 
     void draw(const RenderContext &context);
+    void draw(const RenderContext &context, const Resource<DynamicBuffer> &indirect, std::uint64_t offset = 0);
 
-    const Resource<DynamicBuffer> getIndirectBuffer() const;
-    const Resource<DynamicBuffer> getInstanceBuffer() const;
+    const Resource<DynamicBuffer> &getIndirectBuffer() const;
+    const Resource<DynamicBuffer> &getInstanceBuffer() const;
+
+    std::size_t getObjectCount(std::uint32_t frameInFlight) const;
+    std::size_t getDrawCount(std::uint32_t frameInFlight) const;
 
     const RenderNode &getRenderNode() const;
     const Info &getInfo() const;

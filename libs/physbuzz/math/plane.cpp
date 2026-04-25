@@ -2,6 +2,8 @@
 
 namespace Physbuzz {
 
+Plane::Plane() {}
+
 Plane::Plane(const Info &info)
     : m_Info(info) {}
 

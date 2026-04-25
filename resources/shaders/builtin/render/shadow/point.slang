@@ -6,7 +6,8 @@ import "../../lighting/lights";
 namespace Physbuzz {
 
 struct PushConstants {
-    uint objectBufferOffset;
+    uint frustumOffset;
+    uint frustumId;
 }
 
 [[vk::push_constant]]
@@ -19,7 +20,7 @@ StructuredBuffer<PointLight> points;
 StructuredBuffer<InstanceData> objects;
 
 [[vk::binding(2, 0)]]
-StructuredBuffer<CullingData> culling;
+StructuredBuffer<VisibilityData> visibleInstances;
 
 struct VSInput {
     float3 position : POSITION;
@@ -30,12 +31,12 @@ struct VSOutput {
 }
 
 [shader("vertex")]
-VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation, uint viewId: SV_ViewID) {
+VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation) {
     VSOutput output;
-    uint objectId = culling[instanceId + baseInstance + (pc.objectBufferOffset * viewId)].instanceId;
+    uint objectId = visibleInstances[instanceId + baseInstance + (pc.frustumOffset + pc.frustumId)].instanceId;
 
     InstanceData object = objects[objectId];
-    output.sv_position = mul(mul(float4(input.position, 1.0), object.model), points[0].projectionView[viewId]);
+    output.sv_position = mul(mul(float4(input.position, 1.0), object.model), points[0].projectionView[pc.frustumId]);
 
     return output;
 }

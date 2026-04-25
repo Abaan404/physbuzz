@@ -41,7 +41,7 @@ StructuredBuffer<SpotLight> spots;
 StructuredBuffer<InstanceData> objects;
 
 [[vk::binding(5, 1)]]
-StructuredBuffer<CullingData> culling;
+StructuredBuffer<VisibilityData> visibleInstances;
 
 [[vk::binding(6, 1)]]
 Sampler2D<float> directionalDepth;
@@ -73,7 +73,7 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation) {
     VSOutput output;
-    output.coarseVertex.objectId = culling[instanceId + baseInstance].instanceId;
+    output.coarseVertex.objectId = visibleInstances[instanceId + baseInstance].instanceId;
 
     InstanceData object = objects[output.coarseVertex.objectId];
     output.sv_position = mul(mul(mul(float4(input.position, 1.0), object.model), camera.view), camera.projection);

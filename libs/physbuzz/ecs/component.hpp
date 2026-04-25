@@ -101,6 +101,14 @@ class ComponentManager {
         return result;
     }
 
+    template <ComponentArrayType... T>
+    std::unordered_set<ObjectID> getObjects() {
+        std::unordered_set<ObjectID> ids;
+        (ids.insert(getComponents<T>()->getKeys().begin(), getComponents<T>()->getKeys().end()), ...);
+
+        return ids;
+    }
+
     template <ComponentArrayType T>
     const std::vector<T> &getComponentArray() {
         return getComponents<T>()->getArray();

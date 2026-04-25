@@ -238,8 +238,6 @@ bool DeferredRenderer::build() {
     success &= m_Batch.build(m_Objects);
     success &= m_Culling.build();
 
-    m_Culling.setCamera({m_Info.camera}, {});
-
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
     m_Graph.add("builtin/batch", m_Batch.getRenderNode());
@@ -252,7 +250,7 @@ bool DeferredRenderer::build() {
                 .buffers = {
                     .input = {
                         {
-                            m_Batch.getIndirectBuffer(),
+                            m_Culling.getIndirectBuffer(),
                             {
                                 .stage = RenderNode::Stage::Indirect,
                             },
@@ -270,7 +268,7 @@ bool DeferredRenderer::build() {
                             },
                         },
                         {
-                            m_Culling.getCullingBuffer(),
+                            m_Culling.getVisibleInstanceBuffer(),
                             {
                                 .stage = RenderNode::Stage::Vertex,
                             },
@@ -348,17 +346,6 @@ bool DeferredRenderer::build() {
                     .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
                 };
 
-                // record constants
-                Builtin::PipelineDeferred::Geometry::PushConstants pushConstants = {
-                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
-                };
-
-                Builtin::PipelineDeferred::Geometry::Resource->updatePushConstants(
-                    context,
-                    GraphicsPipeline::PushConstantsStageFlags::eAll,
-                    std::as_bytes(std::span(&pushConstants, 1)),
-                    0);
-
                 context.command.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(context.extent.width), static_cast<float>(context.extent.height), 0.0f, 1.0f});
                 context.command.setScissor(0, vk::Rect2D{{0, 0}, context.extent});
 
@@ -382,12 +369,17 @@ bool DeferredRenderer::build() {
                     .pColorAttachmentInputIndices = inputIndices.data(),
                 });
 
+                Builtin::PipelineDeferred::Geometry::PushConstants pushConstants = {
+                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
+                };
+
                 // bind resources
+                Builtin::PipelineDeferred::Geometry::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
                 Builtin::PipelineDeferred::Geometry::Resource->bind(context);
                 App::LayoutAllocator.bind(context, Builtin::PipelineDeferred::Geometry::Resource);
 
                 // draw
-                m_Batch.draw(context);
+                m_Batch.draw(context, m_Culling.getIndirectBuffer());
 
                 context.command.endRendering();
             },
@@ -492,22 +484,16 @@ bool DeferredRenderer::build() {
                     .pStencilAttachment = {},
                 });
 
-                // bind resources
-                Builtin::PipelineDeferred::Lighting::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::PipelineDeferred::Lighting::Resource);
-
-                // record constants
                 Builtin::PipelineDeferred::Lighting::PushConstants pushConstants = {
                     .directionalCount = static_cast<std::uint32_t>(directionals.size()),
                     .spotCount = static_cast<std::uint32_t>(spots.size()),
                     .pointCount = static_cast<std::uint32_t>(points.size()),
                 };
 
-                Builtin::PipelineDeferred::Lighting::Resource->updatePushConstants(
-                    context,
-                    GraphicsPipeline::PushConstantsStageFlags::eAll,
-                    std::as_bytes(std::span(&pushConstants, 1)),
-                    0);
+                // bind resources
+                Builtin::PipelineDeferred::Lighting::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+                Builtin::PipelineDeferred::Lighting::Resource->bind(context);
+                App::LayoutAllocator.bind(context, Builtin::PipelineDeferred::Lighting::Resource);
 
                 // draw one triangle
                 context.command.draw(3, 1, 0, 0);
@@ -532,7 +518,7 @@ bool DeferredRenderer::build() {
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineDeferred::Geometry::ResourceLayoutFrame,
-            m_Culling.getCullingBuffer(),
+            m_Culling.getVisibleInstanceBuffer(),
             2);
 
         // lighting

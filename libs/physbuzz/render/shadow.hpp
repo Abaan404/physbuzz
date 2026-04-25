@@ -14,6 +14,10 @@ namespace PipelineShadow {
 
 namespace Directional {
 
+struct PushConstants {
+    std::uint32_t frustumOffset;
+};
+
 inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/directional"};
 
 inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/shadow/directional/frame"};
@@ -27,7 +31,8 @@ bool build(const glm::uvec2 &resolution);
 namespace Point {
 
 struct PushConstants {
-    std::uint32_t objectCount;
+    std::uint32_t frustumOffset;
+    std::uint32_t frustumId;
 };
 
 inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/point"};
@@ -71,21 +76,30 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
         .resourceIdPrefix = "builtin/shadow/",
     }};
 
-    FrustumCulling m_DirectionalCulling = {{
-        .instance = m_Batch.getInstanceBuffer(),
-        .indirect = m_Batch.getIndirectBuffer(),
-        .nodeIdPrefix = std::format("{}/culling/", OutputDirectional),
-        .resourceIdPrefix = std::format("{}/culling/", OutputDirectional),
-    }};
-
-    FrustumCulling m_PointCulling = {{
-        .instance = m_Batch.getInstanceBuffer(),
-        .indirect = m_Batch.getIndirectBuffer(),
-        .nodeIdPrefix = std::format("{}/culling/", OutputPoint),
-        .resourceIdPrefix = std::format("{}/culling/", OutputPoint),
+    FrustumCulling m_Culling = {{
+        .batch = m_Batch,
+        .nodeIdPrefix = "builtin/shadow/culling/",
+        .resourceIdPrefix = "builtin/shadow/culling/",
     }};
 
     RenderGraph m_Graph = {{}};
+
+    struct {
+        struct {
+            EventID add = -1;
+            EventID remove = -1;
+        } directional;
+
+        struct {
+            EventID add = -1;
+            EventID remove = -1;
+        } point;
+
+        struct {
+            EventID add = -1;
+            EventID remove = -1;
+        } spot;
+    } m_Events;
 };
 
 } // namespace Physbuzz

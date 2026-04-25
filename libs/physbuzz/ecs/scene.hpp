@@ -60,6 +60,11 @@ class Scene : public EventSubject {
         return m_ComponentManager.getArray<T...>();
     }
 
+    template <typename... T>
+    std::unordered_set<ObjectID> getObjects() {
+        return m_ComponentManager.getObjects<T...>();
+    }
+
     template <typename T>
     const std::vector<T> &getComponentArray() {
         return m_ComponentManager.getComponentArray<T>();

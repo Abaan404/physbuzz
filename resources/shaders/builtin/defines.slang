@@ -29,7 +29,7 @@ public struct InstanceData {
     public Bounding bounding;
 };
 
-public struct CullingData {
+public struct VisibilityData {
     public uint instanceId;
 }
 
