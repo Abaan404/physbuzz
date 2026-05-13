@@ -66,6 +66,9 @@ class ForwardRenderer : public System<RenderComponent> {
 
     FrustumCulling m_Culling = {{
         .batch = m_Batch,
+        .objects = {
+            .cameras = {m_Info.camera},
+        },
         .nodeIdPrefix = std::format("{}/culling/", Output),
         .resourceIdPrefix = std::format("{}/culling/", Output),
     }};
