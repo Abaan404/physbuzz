@@ -2,6 +2,7 @@
 
 #include "../resources/resource.hpp"
 #include "defines.hpp"
+#include "memory.hpp"
 
 namespace Physbuzz {
 
@@ -18,12 +19,12 @@ class DescriptorLayout {
 
     using ShaderStage = vk::ShaderStageFlags;
     using ShaderStageFlags = vk::ShaderStageFlagBits;
-    using BindingFlags = vk::DescriptorBindingFlags;
-    using BindingFlagBits = vk::DescriptorBindingFlagBits;
+    using DescriptorBinding = vk::DescriptorBindingFlags;
+    using DescriptorBindingFlags = vk::DescriptorBindingFlagBits;
 
     struct Binding {
         Type type;
-        BindingFlags flags = {};
+        DescriptorBinding flags = {};
         ShaderStage stage = ShaderStageFlags::eAll;
         std::uint32_t count = 1;
         std::uint64_t offset = 0;
@@ -89,8 +90,8 @@ class DescriptorLayoutAllocator {
     bool destroy();
 
     bool write(const Resource<DescriptorLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t binding, std::uint32_t element = 0);
-    bool write(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
-    bool write(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t binding, std::uint32_t element = 0);
+    bool write(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, const Image::ViewInfo &viewInfo, std::uint32_t binding, std::uint32_t element = 0);
+    bool write(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, const Image::ViewInfo &viewInfo, std::uint32_t binding, std::uint32_t element = 0);
     bool write(const Resource<DescriptorLayout> &layout, const Resource<Sampler> &sampler, std::uint32_t binding, std::uint32_t element = 0);
 
     void reset();
@@ -115,8 +116,8 @@ class DescriptorLayoutAllocator {
     };
 
     bool rewrite(const Resource<DescriptorLayout> &layout, const Resource<DynamicBuffer> &buffer, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element = 0);
-    bool rewrite(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element = 0);
-    bool rewrite(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element = 0);
+    bool rewrite(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, const Image::ViewInfo &viewInfo, std::uint32_t binding, std::uint32_t element = 0);
+    bool rewrite(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, const Image::ViewInfo &viewInfo, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element = 0);
 
     bool allocate(const Resource<DescriptorLayout> &layout);
     bool deallocate(const Resource<DescriptorLayout> &layout);

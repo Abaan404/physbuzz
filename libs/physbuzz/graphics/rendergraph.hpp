@@ -27,6 +27,7 @@ struct RenderNode {
 
     struct AttachmentDesc {
         Stage stage;
+        std::vector<Image::SubresourceRange> subresourceRanges;
     };
 
     template <ResourceType T, typename D>

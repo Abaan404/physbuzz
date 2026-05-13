@@ -19,21 +19,21 @@ bool Attachment::build(const glm::uvec2 &resolution) {
     std::vector<Data> ringData;
     ringData.reserve(detail::MAX_FRAMES_IN_FLIGHT);
 
-    Image::UsageFlags usage;
+    Image::Usage usage;
     switch (m_Info.usage) {
     case Usage::Color:
-        usage = Image::UsageFlagBits::eInputAttachment | Image::UsageFlagBits::eColorAttachment;
+        usage = Image::UsageFlags::eInputAttachment | Image::UsageFlags::eColorAttachment;
         break;
 
     case Usage::Depth:
     case Usage::Stencil:
     case Usage::DepthStencil:
-        usage = Image::UsageFlagBits::eInputAttachment | Image::UsageFlagBits::eDepthStencilAttachment;
+        usage = Image::UsageFlags::eInputAttachment | Image::UsageFlags::eDepthStencilAttachment;
         break;
     }
 
     if (!m_Info.sampler.build()) {
-        Logger::ERROR("[Texture] Failed to build a sampler.");
+        Logger::ERROR("[Attachment] Failed to build a sampler.");
         return false;
     }
 
@@ -43,19 +43,21 @@ bool Attachment::build(const glm::uvec2 &resolution) {
         switch (m_Info.type) {
         case Type::Dim2D:
             image = {{
-                .usage = usage | Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
+                .usage = usage | Image::UsageFlags::eSampled | Image::UsageFlags::eTransferSrc | Image::UsageFlags::eTransferDst,
                 .type = Image::Type::e2D,
                 .format = m_Info.format,
+                .views = m_Info.views,
             }};
             break;
 
         case Type::Cube:
             image = {{
-                .usage = usage | Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
+                .usage = usage | Image::UsageFlags::eSampled | Image::UsageFlags::eTransferSrc | Image::UsageFlags::eTransferDst,
                 .type = Image::Type::e2D,
                 .arrayLayers = 6,
                 .flags = Image::FlagBits::eCubeCompatible,
                 .format = m_Info.format,
+                .views = m_Info.views,
             }};
             break;
         }
@@ -63,17 +65,13 @@ bool Attachment::build(const glm::uvec2 &resolution) {
         if (!image.build({resolution, 1})) {
             for (auto &data : ringData) {
                 data.image.destroy();
-                App::Device.destroyImageView(data.view);
             }
 
             return false;
         }
 
-        const auto &[view, subresourceRange] = createImageView(image);
         Data &data = ringData.emplace_back<Data>({
             .image = image,
-            .view = view,
-            .subresourceRange = subresourceRange,
         });
     }
 
@@ -94,7 +92,7 @@ bool Attachment::destroy() {
     }
 
     if (!m_Info.sampler.destroy()) {
-        Logger::WARNING("[Texture] Failed to destroy sampler.");
+        Logger::WARNING("[Attachment] Failed to destroy sampler.");
         return false;
     }
 
@@ -103,7 +101,6 @@ bool Attachment::destroy() {
     bool success = true;
     for (auto &data : ringData) {
         success &= data.image.destroy();
-        App::Device.destroyImageView(data.view);
     }
 
     if (success) {
@@ -126,14 +123,9 @@ bool Attachment::rebuild(const RenderContext &context, const glm::uvec2 &size) {
 
     // mark old image for deferred deletion and update
     context.deletionQueue->enqueue(std::move(data.image));
-    context.deletionQueue->enqueue(data.view);
-
-    const auto &[view, subresourceRange] = createImageView(image);
 
     data = {
         .image = image,
-        .view = view,
-        .subresourceRange = subresourceRange,
     };
 
     notifyCallbacks<OnAttachmentRebuild>({
@@ -149,78 +141,18 @@ const Attachment::Info &Attachment::getInfo() const {
 }
 
 const std::array<Attachment::Data, detail::MAX_FRAMES_IN_FLIGHT> &Attachment::getRingData() const {
-    PBZ_ASSERT(!std::holds_alternative<std::monostate>(m_RingData), "[DynamicBuffer] Buffer has not been allocated.");
+    PBZ_ASSERT(!std::holds_alternative<std::monostate>(m_RingData), "[Attachment] Image has not been allocated.");
     return std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
 }
 
 glm::uvec2 Attachment::getSize(std::uint32_t frameInFlight) const {
-    PBZ_ASSERT(frameInFlight < detail::MAX_FRAMES_IN_FLIGHT, "[DynamicBuffer] Invalid frame in flight");
+    PBZ_ASSERT(frameInFlight < detail::MAX_FRAMES_IN_FLIGHT, "[Attachment] Invalid frame in flight");
     const Data &data = getRingData()[frameInFlight];
 
     return {
         data.image.getData().imageInfo.extent.width,
         data.image.getData().imageInfo.extent.height,
     };
-}
-
-std::tuple<vk::ImageView, vk::ImageSubresourceRange> Attachment::createImageView(const Image &image) const {
-    vk::ImageAspectFlags aspect;
-
-    switch (m_Info.usage) {
-    case Usage::Color:
-        aspect = vk::ImageAspectFlagBits::eColor;
-        break;
-
-    case Usage::Depth:
-        aspect = vk::ImageAspectFlagBits::eDepth;
-        break;
-
-    case Usage::Stencil:
-        aspect = vk::ImageAspectFlagBits::eStencil;
-        break;
-
-    case Usage::DepthStencil:
-        aspect = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
-        break;
-    }
-
-    vk::ImageSubresourceRange subresourceRange = {};
-    vk::ImageViewType type = {};
-
-    switch (m_Info.type) {
-    case Type::Dim2D:
-        type = vk::ImageViewType::e2D;
-        subresourceRange = {
-            .aspectMask = aspect,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-        };
-        break;
-
-    case Type::Cube:
-        type = vk::ImageViewType::eCube;
-        subresourceRange = {
-            .aspectMask = aspect,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 6,
-        };
-        break;
-    }
-
-    vk::ImageView view = PBZ_VK_CHECK(App::Device.createImageView({
-        .flags = {},
-        .image = image.getData().image,
-        .viewType = type,
-        .format = image.getInfo().format,
-        .components = {},
-        .subresourceRange = subresourceRange,
-    }));
-
-    return std::make_tuple(view, subresourceRange);
 }
 
 } // namespace Physbuzz

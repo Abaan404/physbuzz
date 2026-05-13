@@ -10,7 +10,7 @@ Texture::Texture(const Info &info)
     : m_Info(info) {}
 
 bool Texture::build(const glm::uvec3 &resolution) {
-    if (m_Data.view != nullptr) {
+    if (m_Data.image.getData().image != nullptr) {
         Logger::WARNING("[Texture] Trying to construct a built texture.");
         return true;
     }
@@ -23,24 +23,46 @@ bool Texture::build(const glm::uvec3 &resolution) {
 
     std::uint32_t mipLevels = std::floor(std::log2(std::max(resolution.x, resolution.y))) + 1;
 
+    std::vector<Image::ViewInfo> views = m_Info.additionalViews;
+
     switch (m_Info.type) {
     case Type::Dim2D:
+        views.emplace_back<Image::ViewInfo>({
+            .type = Physbuzz::Image::ViewType::e2D,
+            .subresourceRange = {
+                .aspectMask = Physbuzz::Image::AspectFlags::eColor,
+                .levelCount = Physbuzz::Image::RemainingMipLevels,
+                .layerCount = 1,
+            },
+        });
+
         image = {{
-            .usage = Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
+            .usage = Image::UsageFlags::eSampled | Image::UsageFlags::eTransferSrc | Image::UsageFlags::eTransferDst,
             .type = Image::Type::e2D,
             .mipLevels = mipLevels,
             .format = m_Info.format,
+            .views = views,
         }};
         break;
 
     case Type::Cube:
+        views.emplace_back<Image::ViewInfo>({
+            .type = Physbuzz::Image::ViewType::eCube,
+            .subresourceRange = {
+                .aspectMask = Physbuzz::Image::AspectFlags::eColor,
+                .levelCount = Physbuzz::Image::RemainingMipLevels,
+                .layerCount = 6,
+            },
+        });
+
         image = {{
-            .usage = Image::UsageFlagBits::eSampled | Image::UsageFlagBits::eTransferSrc | Image::UsageFlagBits::eTransferDst,
+            .usage = Image::UsageFlags::eSampled | Image::UsageFlags::eTransferSrc | Image::UsageFlags::eTransferDst,
             .type = Image::Type::e2D,
             .mipLevels = mipLevels,
             .arrayLayers = 6,
             .flags = Image::FlagBits::eCubeCompatible,
             .format = m_Info.format,
+            .views = views,
         }};
         break;
     }
@@ -50,25 +72,18 @@ bool Texture::build(const glm::uvec3 &resolution) {
         return false;
     }
 
-    const auto &[view, subresourceRange] = createImageView(image);
-
     m_Data = {
         .image = image,
-        .view = view,
-        .subresourceRange = subresourceRange,
     };
 
     return true;
 }
 
 bool Texture::destroy() {
-    if (!m_Data.view) {
+    if (m_Data.image.getData().image == nullptr) {
         Logger::WARNING("[Texture] Trying to destroy a destructed texture.");
         return true;
     }
-
-    App::Device.destroyImageView(m_Data.view);
-    m_Data.view = nullptr;
 
     if (!m_Info.sampler.destroy()) {
         Logger::WARNING("[Texture] Failed to destroy sampler.");
@@ -83,14 +98,6 @@ bool Texture::destroy() {
     return true;
 }
 
-bool Texture::write(const ImageFile::Info &imageFile, TransferBatch &batch) {
-    return batch.add(m_Data.image, imageFile);
-}
-
-bool Texture::write(std::vector<std::byte> &&bytes, TransferBatch &batch) {
-    return batch.add(m_Data.image, std::move(bytes));
-}
-
 bool Texture::rebuild(const RenderContext &context, const glm::uvec3 &size) {
     Image image = m_Data.image.getInfo();
 
@@ -102,16 +109,11 @@ bool Texture::rebuild(const RenderContext &context, const glm::uvec3 &size) {
 
     // mark old image for deferred deletion and update
     context.deletionQueue->enqueue(std::move(m_Data.image));
-    context.deletionQueue->enqueue(m_Data.view);
     // sampler is erased on app exit
     // context.deletionQueue->enqueue(m_Data.sampler.getData().sampler);
 
-    const auto &[view, subresourceRange] = createImageView(image);
-
     m_Data = {
         .image = image,
-        .view = view,
-        .subresourceRange = subresourceRange,
     };
 
     notifyCallbacks<OnTextureRebuild>({
@@ -120,6 +122,14 @@ bool Texture::rebuild(const RenderContext &context, const glm::uvec3 &size) {
     });
 
     return true;
+}
+
+bool Texture::write(const ImageFile::Info &imageFile, TransferBatch &batch) {
+    return batch.add(m_Data.image, imageFile);
+}
+
+bool Texture::write(std::vector<std::byte> &&bytes, TransferBatch &batch) {
+    return batch.add(m_Data.image, std::move(bytes));
 }
 
 const Texture::Info &Texture::getInfo() const {
@@ -132,46 +142,6 @@ const Texture::Data &Texture::getData() const {
 
 glm::uvec3 Texture::getSize() const {
     return glm::uvec3(m_Data.image.getData().imageInfo.extent.width, m_Data.image.getData().imageInfo.extent.height, m_Data.image.getData().imageInfo.extent.depth);
-}
-
-std::tuple<vk::ImageView, vk::ImageSubresourceRange> Texture::createImageView(const Image &image) const {
-    vk::ImageSubresourceRange subresourceRange = {};
-    vk::ImageViewType type = {};
-
-    switch (m_Info.type) {
-    case Type::Dim2D:
-        type = vk::ImageViewType::e2D;
-        subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .baseMipLevel = 0,
-            .levelCount = image.getInfo().mipLevels,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-        };
-        break;
-
-    case Type::Cube:
-        type = vk::ImageViewType::eCube;
-        subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .baseMipLevel = 0,
-            .levelCount = image.getInfo().mipLevels,
-            .baseArrayLayer = 0,
-            .layerCount = 6,
-        };
-        break;
-    }
-
-    vk::ImageView view = PBZ_VK_CHECK(App::Device.createImageView({
-        .flags = {},
-        .image = image.getData().image,
-        .viewType = type,
-        .format = image.getInfo().format,
-        .components = {},
-        .subresourceRange = subresourceRange,
-    }));
-
-    return std::make_tuple(view, subresourceRange);
 }
 
 } // namespace Physbuzz

@@ -23,15 +23,14 @@ class Texture : public EventSubject {
 
     struct Info {
         Type type;
-        Sampler sampler = {{Sampler::Type::None}};
         Format format = Format::eR8G8B8A8Unorm;
+
+        Sampler sampler = {{Sampler::Type::None}};
+        std::vector<Image::ViewInfo> additionalViews = {};
     };
 
     struct Data {
         Image image = {{}};
-
-        vk::ImageView view = nullptr;
-        vk::ImageSubresourceRange subresourceRange = {};
     };
 
     Texture(const Info &info);
@@ -39,10 +38,10 @@ class Texture : public EventSubject {
     bool build(const glm::uvec3 &resolution);
     bool destroy();
 
+    bool rebuild(const RenderContext &context, const glm::uvec3 &size);
+
     bool write(const ImageFile::Info &imageFile, TransferBatch &batch);
     bool write(std::vector<std::byte> &&bytes, TransferBatch &batch);
-
-    bool rebuild(const RenderContext &context, const glm::uvec3 &size);
 
     const Info &getInfo() const;
     const Data &getData() const;
@@ -50,8 +49,6 @@ class Texture : public EventSubject {
     glm::uvec3 getSize() const;
 
   private:
-    std::tuple<vk::ImageView, vk::ImageSubresourceRange> createImageView(const Image &image) const;
-
     Info m_Info;
     Data m_Data;
 };

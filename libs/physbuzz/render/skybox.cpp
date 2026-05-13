@@ -110,8 +110,17 @@ bool SkyboxRenderer::build() {
 
                 std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
+                const Image::Data &data = context.depth->getRingData()[context.frameInFlight].image.getData();
+
                 vk::RenderingAttachmentInfo depthAttachment = {
-                    .imageView = context.depth->getRingData()[context.frameInFlight].view,
+                    .imageView = data.views.at({
+                        .type = Image::ViewType::e2D,
+                        .subresourceRange = {
+                            .aspectMask = Image::AspectFlags::eDepth | Image::AspectFlags::eStencil,
+                            .levelCount = 1,
+                            .layerCount = 1,
+                        },
+                    }),
                     .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
                     .loadOp = vk::AttachmentLoadOp::eLoad,
                     .storeOp = vk::AttachmentStoreOp::eDontCare,
@@ -162,6 +171,14 @@ bool SkyboxRenderer::build() {
         success &= App::LayoutAllocator.write(
             Builtin::PipelineSkybox::ResourceLayoutTexture,
             m_Info.skybox,
+            {
+                .type = Image::ViewType::eCube,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eColor,
+                    .levelCount = Image::RemainingMipLevels,
+                    .layerCount = 6,
+                },
+            },
             0);
 
         success &= App::LayoutAllocator.write(

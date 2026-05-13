@@ -23,11 +23,21 @@ bool PipelineShadow::Directional::build(const glm::uvec2 &resolution) {
             ResourceAttachment,
             {{
                 .type = Attachment::Type::Dim2D,
+                .usage = Attachment::Usage::Depth,
+                .format = Attachment::Format::eD32Sfloat,
                 .sampler = {{
                     .type = Sampler::Type::Linear,
                 }},
-                .usage = Attachment::Usage::Depth,
-                .format = Attachment::Format::eD32Sfloat,
+                .views = {
+                    {
+                        .type = Image::ViewType::e2D,
+                        .subresourceRange = {
+                            .aspectMask = Image::AspectFlags::eDepth,
+                            .levelCount = 1,
+                            .layerCount = 1,
+                        },
+                    },
+                },
             }},
             resolution);
     }
@@ -99,15 +109,42 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
     bool success = true;
 
     if (!ResourceRegistry<Attachment>::contains(ResourceAttachment)) {
+        std::vector<Image::ViewInfo> views;
+        views.reserve(8);
+
+        // create a view for each face to be rendered seperately
+        for (std::uint32_t i = 0; i < 6; i++) {
+            views.emplace_back<Image::ViewInfo>({
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eDepth,
+                    .levelCount = 1,
+                    .baseArrayLayer = i,
+                    .layerCount = 1,
+                },
+            });
+        }
+
+        // the readable cube view
+        views.emplace_back<Image::ViewInfo>({
+            .type = Image::ViewType::eCube,
+            .subresourceRange = {
+                .aspectMask = Image::AspectFlags::eDepth,
+                .levelCount = 1,
+                .layerCount = 6,
+            },
+        });
+
         success &= ResourceRegistry<Attachment>::insert(
             ResourceAttachment,
             {{
                 .type = Attachment::Type::Cube,
+                .usage = Attachment::Usage::Depth,
+                .format = Attachment::Format::eD32Sfloat,
                 .sampler = {{
                     .type = Sampler::Type::Linear,
                 }},
-                .usage = Attachment::Usage::Depth,
-                .format = Attachment::Format::eD32Sfloat,
+                .views = views,
             }},
             resolution);
     }
@@ -249,6 +286,11 @@ bool ShadowRenderer::build() {
                             Builtin::PipelineShadow::Directional::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eDepth,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
                             },
                         },
                     },
@@ -260,8 +302,17 @@ bool ShadowRenderer::build() {
 
                 std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
+                const Image::Data &data = Builtin::PipelineShadow::Directional::ResourceAttachment->getRingData()[context.frameInFlight].image.getData();
+
                 vk::RenderingAttachmentInfo depthAttachment = {
-                    .imageView = Builtin::PipelineShadow::Directional::ResourceAttachment->getRingData()[context.frameInFlight].view,
+                    .imageView = data.views.at({
+                        .type = Image::ViewType::e2D,
+                        .subresourceRange = {
+                            .aspectMask = Image::AspectFlags::eDepth,
+                            .levelCount = 1,
+                            .layerCount = 1,
+                        },
+                    }),
                     .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
                     .loadOp = vk::AttachmentLoadOp::eClear,
                     .storeOp = vk::AttachmentStoreOp::eStore,
@@ -339,6 +390,14 @@ bool ShadowRenderer::build() {
                             Builtin::PipelineShadow::Point::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {
+                                    {.aspectMask = Image::AspectFlags::eDepth, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1},
+                                    {.aspectMask = Image::AspectFlags::eDepth, .levelCount = 1, .baseArrayLayer = 1, .layerCount = 1},
+                                    {.aspectMask = Image::AspectFlags::eDepth, .levelCount = 1, .baseArrayLayer = 2, .layerCount = 1},
+                                    {.aspectMask = Image::AspectFlags::eDepth, .levelCount = 1, .baseArrayLayer = 3, .layerCount = 1},
+                                    {.aspectMask = Image::AspectFlags::eDepth, .levelCount = 1, .baseArrayLayer = 4, .layerCount = 1},
+                                    {.aspectMask = Image::AspectFlags::eDepth, .levelCount = 1, .baseArrayLayer = 5, .layerCount = 1},
+                                },
                             },
                         },
                     },
@@ -348,55 +407,62 @@ bool ShadowRenderer::build() {
                 ZoneScopedN("ShadowRenderer/Point/Execute");
                 TracyVkZone(context.tracy, context.command, "ShadowRenderer/Point");
 
-                std::size_t drawCount = m_Batch.getDrawCount(context.frameInFlight);
-
                 std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
-
-                vk::RenderingAttachmentInfo depthAttachment = {
-                    .imageView = Builtin::PipelineShadow::Point::ResourceAttachment->getRingData()[context.frameInFlight].view,
-                    .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-                    .loadOp = vk::AttachmentLoadOp::eClear,
-                    .storeOp = vk::AttachmentStoreOp::eStore,
-                    .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
-                };
 
                 context.command.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(m_Info.resolution.x), static_cast<float>(m_Info.resolution.y), 0.0f, 1.0f});
                 context.command.setScissor(0, vk::Rect2D{{0, 0}, {m_Info.resolution.x, m_Info.resolution.y}});
-
-                // issue draw calls
-                context.command.beginRendering({
-                    .renderArea = {
-                        .offset = {0, 0},
-                        .extent = {m_Info.resolution.x, m_Info.resolution.y},
-                    },
-                    .layerCount = 1,
-                    .pDepthAttachment = &depthAttachment,
-                    .pStencilAttachment = {},
-                });
-
-                // bind resources
-                Builtin::PipelineShadow::Point::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::PipelineShadow::Point::Resource);
 
                 // TODO multiple objects
                 ObjectID object = *m_Scene->getObjects<PointLightComponent>().begin();
 
                 std::uint64_t frustumOffset = m_Culling.getFrustumOffset(object);
 
-                // TODO generate views from a vk::Image
-                // for (std::uint32_t cameraId = 0; cameraId < 6; cameraId++) {
-                //     Builtin::PipelineShadow::Point::PushConstants pushConstants = {
-                //         .frustumOffset = static_cast<std::uint32_t>(frustumOffset),
-                //         .frustumId = cameraId,
-                //     };
-                //
-                //     Builtin::PipelineShadow::Point::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eVertex, std::as_bytes(std::span(&pushConstants, 1)), 0);
-                //
-                //     // draw
-                //     m_Batch.draw(context, m_Culling.getIndirectBuffer(), (frustumOffset + cameraId) * sizeof(vk::DrawIndexedIndirectCommand));
-                // }
+                const Image::Data &data = Builtin::PipelineShadow::Point::ResourceAttachment->getRingData()[context.frameInFlight].image.getData();
 
-                context.command.endRendering();
+                for (std::uint32_t cameraId = 0; cameraId < 6; cameraId++) {
+                    vk::RenderingAttachmentInfo depthAttachment = {
+                        .imageView = data.views.at({
+                            .type = Image::ViewType::e2D,
+                            .subresourceRange = {
+                                .aspectMask = Image::AspectFlags::eDepth,
+                                .levelCount = 1,
+                                .baseArrayLayer = cameraId,
+                                .layerCount = 1,
+                            },
+                        }),
+                        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+                        .loadOp = vk::AttachmentLoadOp::eClear,
+                        .storeOp = vk::AttachmentStoreOp::eStore,
+                        .clearValue = vk::ClearDepthStencilValue{1.0f, 0},
+                    };
+
+                    // issue draw calls
+                    context.command.beginRendering({
+                        .renderArea = {
+                            .offset = {0, 0},
+                            .extent = {m_Info.resolution.x, m_Info.resolution.y},
+                        },
+                        .layerCount = 1,
+                        .pDepthAttachment = &depthAttachment,
+                        .pStencilAttachment = {},
+                    });
+
+                    // bind resources
+                    Builtin::PipelineShadow::Point::Resource->bind(context);
+                    App::LayoutAllocator.bind(context, Builtin::PipelineShadow::Point::Resource);
+
+                    Builtin::PipelineShadow::Point::PushConstants pushConstants = {
+                        .frustumOffset = static_cast<std::uint32_t>(frustumOffset),
+                        .frustumId = cameraId,
+                    };
+
+                    Builtin::PipelineShadow::Point::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eVertex, std::as_bytes(std::span(&pushConstants, 1)), 0);
+
+                    // draw
+                    m_Batch.draw(context, m_Culling.getIndirectBuffer(), (frustumOffset + cameraId) * sizeof(vk::DrawIndexedIndirectCommand));
+
+                    context.command.endRendering();
+                }
             },
         });
 

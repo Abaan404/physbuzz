@@ -150,6 +150,8 @@ const RenderGraph &ImGuiRenderer::getGraph() const {
     return m_Graph;
 }
 
+// TODO fixme
+
 ImTextureID ImGuiRenderer::getTexture(const Resource<Texture> &texture) {
     if (!m_Textures.contains(texture)) {
         vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
@@ -168,10 +170,10 @@ ImTextureID ImGuiRenderer::getTexture(const Resource<Texture> &texture) {
             sampler = texture->getInfo().sampler.getData().sampler;
         }
 
-        ImTextureID textureId = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
-            static_cast<VkSampler>(sampler),
-            static_cast<VkImageView>(texture->getData().view),
-            static_cast<VkImageLayout>(imageLayout)));
+        // ImTextureID textureId = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
+        //     static_cast<VkSampler>(sampler),
+        //     static_cast<VkImageView>(texture->getData().view),
+        //     static_cast<VkImageLayout>(imageLayout)));
 
         EventID reallocId = texture->addCallback<OnTextureRebuild>([this, texture](const OnTextureRebuild &event) {
             vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
@@ -191,13 +193,13 @@ ImTextureID ImGuiRenderer::getTexture(const Resource<Texture> &texture) {
                 sampler = event.texture->getInfo().sampler.getData().sampler;
             }
 
-            textureId = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
-                static_cast<VkSampler>(sampler),
-                static_cast<VkImageView>(event.texture->getData().view),
-                static_cast<VkImageLayout>(vk::ImageLayout::eShaderReadOnlyOptimal)));
+            // textureId = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
+            //     static_cast<VkSampler>(sampler),
+            //     static_cast<VkImageView>(event.texture->getData().view),
+            //     static_cast<VkImageLayout>(vk::ImageLayout::eShaderReadOnlyOptimal)));
         });
 
-        m_Textures[texture] = {textureId, reallocId};
+        // m_Textures[texture] = {textureId, reallocId};
     }
 
     return std::get<0>(m_Textures.at(texture));
@@ -235,10 +237,10 @@ ImTextureID ImGuiRenderer::getTexture(const Resource<Attachment> &attachment, st
         std::array<ImTextureID, detail::MAX_FRAMES_IN_FLIGHT> textureIds;
 
         for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
-            textureIds[i] = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
-                static_cast<VkSampler>(Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler),
-                static_cast<VkImageView>(attachmentData[i].view),
-                static_cast<VkImageLayout>(imageLayout)));
+            // textureIds[i] = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
+            //     static_cast<VkSampler>(Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler),
+            //     static_cast<VkImageView>(attachmentData[i].view),
+            //     static_cast<VkImageLayout>(imageLayout)));
         }
 
         EventID event = attachment->addCallback<OnAttachmentRebuild>([this, attachment](const OnAttachmentRebuild &event) {
@@ -270,10 +272,10 @@ ImTextureID ImGuiRenderer::getTexture(const Resource<Attachment> &attachment, st
             event.context.deletionQueue->enqueue(textureId);
 
             const Physbuzz::Attachment::Data &attachmentData = event.attachment->getRingData()[event.context.frameInFlight];
-            textureId = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
-                static_cast<VkSampler>(Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler),
-                static_cast<VkImageView>(attachmentData.view),
-                static_cast<VkImageLayout>(imageLayout)));
+            // textureId = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
+            //     static_cast<VkSampler>(Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler),
+            //     static_cast<VkImageView>(attachmentData.view),
+            //     static_cast<VkImageLayout>(imageLayout)));
         });
 
         m_Attachments[attachment] = {textureIds, event};

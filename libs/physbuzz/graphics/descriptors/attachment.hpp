@@ -26,16 +26,15 @@ class Attachment : public EventSubject {
 
     struct Info {
         Type type = Type::Dim2D;
-        Sampler sampler = {{Sampler::Type::None}};
         Usage usage = Usage::Color;
         Format format = Format::eR8G8B8A8Unorm;
+
+        Sampler sampler = {{Sampler::Type::None}};
+        std::vector<Image::ViewInfo> views = {};
     };
 
     struct Data {
         Image image;
-
-        vk::ImageView view = nullptr;
-        vk::ImageSubresourceRange subresourceRange = {};
     };
 
     Attachment(const Info &info);
@@ -51,9 +50,6 @@ class Attachment : public EventSubject {
     glm::uvec2 getSize(std::uint32_t frameInFlight) const;
 
   private:
-    std::tuple<vk::ImageView, vk::ImageSubresourceRange> createImageView(const Image &image) const;
-    vk::ImageSubresourceRange createSubresourceRange(const Image &image) const;
-
     Info m_Info;
 
     std::variant<std::monostate, std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>> m_RingData;

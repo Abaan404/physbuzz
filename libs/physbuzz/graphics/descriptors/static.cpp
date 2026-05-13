@@ -12,26 +12,26 @@ StaticBuffer::StaticBuffer(const Info &info)
     : m_Info(info) {}
 
 bool StaticBuffer::build(std::uint64_t size) {
-    if (m_Data.address != 0) {
+    if (m_Data.buffer.getData().address != 0) {
         Logger::WARNING("[StaticBuffer] Trying to build a constructed static buffer.");
         return true;
     }
 
-    Buffer::UsageFlagBits usage = {};
+    Buffer::UsageFlags usage = {};
 
     switch (m_Info.type) {
     case Type::Vertex:
-        usage = Buffer::UsageFlagBits::eVertexBuffer;
+        usage = Buffer::UsageFlags::eVertexBuffer;
         break;
     case Type::Index:
-        usage = Buffer::UsageFlagBits::eIndexBuffer;
+        usage = Buffer::UsageFlags::eIndexBuffer;
         break;
     case Type::None:
         break;
     }
 
     Buffer buffer = {{
-        .usage = usage | Buffer::UsageFlagBits::eTransferSrc | Buffer::UsageFlagBits::eTransferDst | Buffer::UsageFlagBits::eShaderDeviceAddress,
+        .usage = usage | Buffer::UsageFlags::eTransferSrc | Buffer::UsageFlags::eTransferDst | Buffer::UsageFlags::eShaderDeviceAddress,
         .memoryUsage = Buffer::MemoryUsage::GPUOnly,
     }};
 
@@ -42,16 +42,13 @@ bool StaticBuffer::build(std::uint64_t size) {
 
     m_Data = {
         .buffer = buffer,
-        .address = App::Device.getBufferAddress({
-            .buffer = buffer.getData().buffer,
-        }),
     };
 
     return true;
 }
 
 bool StaticBuffer::destroy() {
-    if (m_Data.address == 0) {
+    if (m_Data.buffer.getData().address == 0) {
         Logger::WARNING("[StaticBuffer] Trying to destroy a destructed static buffer.");
         return true;
     }
@@ -62,7 +59,6 @@ bool StaticBuffer::destroy() {
 
     m_Data = {
         .buffer = {{}},
-        .address = 0,
     };
 
     return true;
@@ -82,9 +78,6 @@ bool StaticBuffer::rebuild(const RenderContext &context, std::uint64_t size) {
 
     m_Data = {
         .buffer = buffer,
-        .address = App::Device.getBufferAddress({
-            .buffer = buffer.getData().buffer,
-        }),
     };
 
     notifyCallbacks<OnStaticBufferRebuild>({
@@ -100,7 +93,7 @@ bool StaticBuffer::update(const RenderContext &context, const std::span<const st
 
     std::uint64_t requiredSize = offset + bytes.size();
 
-    PBZ_ASSERT(m_Data.address != 0, "[StaticBuffer] Buffer has not been allocated.");
+    PBZ_ASSERT(m_Data.buffer.getData().address != 0, "[StaticBuffer] Buffer has not been allocated.");
 
     PBZ_ASSERT(
         requiredSize <= getSize(),

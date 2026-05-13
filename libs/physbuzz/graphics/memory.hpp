@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <unordered_map>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
@@ -10,8 +11,8 @@ class DeletionQueue;
 
 class Buffer {
   public:
-    using UsageFlagBits = vk::BufferUsageFlagBits;
-    using UsageFlags = vk::BufferUsageFlags;
+    using Usage = vk::BufferUsageFlags;
+    using UsageFlags = vk::BufferUsageFlagBits;
     using SharingMode = vk::SharingMode;
 
     using FlagBits = vk::BufferCreateFlagBits;
@@ -26,8 +27,8 @@ class Buffer {
     };
 
     struct Info {
-        UsageFlags usage;
-        Flags flags = {};
+        Usage usage;
+        Flags flags;
         MemoryUsage memoryUsage = MemoryUsage::Auto;
         SharingMode sharingMode = SharingMode::eExclusive;
     };
@@ -35,6 +36,7 @@ class Buffer {
     struct Data {
         vk::Buffer buffer = nullptr;
         vk::BufferCreateInfo bufferInfo = {};
+        vk::DeviceAddress address = 0;
     };
 
     Buffer(const Info &info);
@@ -58,15 +60,24 @@ class Buffer {
 
 class Image {
   public:
-    using UsageFlagBits = vk::ImageUsageFlagBits;
-    using UsageFlags = vk::ImageUsageFlags;
+    using Usage = vk::ImageUsageFlags;
+    using UsageFlags = vk::ImageUsageFlagBits;
     using SharingMode = vk::SharingMode;
+
+    using AspectFlags = vk::ImageAspectFlagBits;
+    using Aspect = vk::ImageAspectFlags;
 
     using Type = vk::ImageType;
     using Format = vk::Format;
 
     using FlagBits = vk::ImageCreateFlagBits;
     using Flags = vk::ImageCreateFlags;
+
+    using ViewType = vk::ImageViewType;
+    using SubresourceRange = vk::ImageSubresourceRange;
+
+    static constexpr std::uint32_t RemainingMipLevels = vk::RemainingMipLevels;
+    static constexpr std::uint32_t RemainingArrayLayers = vk::RemainingArrayLayers;
 
     enum class MemoryUsage {
         Auto,
@@ -76,8 +87,21 @@ class Image {
         GPUToCPU
     };
 
+    struct ViewInfo {
+        ViewType type = ViewType::e2D;
+        SubresourceRange subresourceRange = {
+            .aspectMask = {},
+            .baseMipLevel = 0,
+            .levelCount = 0,
+            .baseArrayLayer = 0,
+            .layerCount = 0,
+        };
+
+        bool operator==(const ViewInfo &other) const;
+    };
+
     struct Info {
-        UsageFlags usage;
+        Usage usage;
         Type type;
         std::uint32_t mipLevels = 1;
         std::uint32_t arrayLayers = 1;
@@ -85,11 +109,17 @@ class Image {
         Format format = Format::eR8G8B8A8Unorm;
         MemoryUsage memoryUsage = MemoryUsage::Auto;
         SharingMode sharingMode = SharingMode::eExclusive;
+        std::vector<ViewInfo> views;
+    };
+
+    struct ViewInfoHash {
+        std::size_t operator()(const ViewInfo &info) const;
     };
 
     struct Data {
         vk::Image image = nullptr;
         vk::ImageCreateInfo imageInfo = {};
+        std::unordered_map<ViewInfo, vk::ImageView, ViewInfoHash> views = {};
     };
 
     Image(const Info &info);
@@ -98,6 +128,9 @@ class Image {
     bool destroy();
 
     bool map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<const std::byte> &bytes) const;
+
+    bool buildView(const ViewInfo &info);
+    bool destroyView(const ViewInfo &info);
 
     const Info &getInfo() const;
     const Data &getData() const;

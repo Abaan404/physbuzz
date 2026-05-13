@@ -183,7 +183,13 @@ void Renderer::tick() {
                 .oldLayout = vk::ImageLayout::eUndefined,
                 .newLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
                 .image = m_Depth.getRingData()[m_FrameInFlight].image.getData().image,
-                .subresourceRange = m_Depth.getRingData()[m_FrameInFlight].subresourceRange,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eDepth | Image::AspectFlags::eStencil,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
             },
         };
 

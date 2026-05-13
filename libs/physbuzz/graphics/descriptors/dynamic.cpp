@@ -18,26 +18,26 @@ bool DynamicBuffer::build(std::uint64_t size) {
     std::vector<Data> ringData;
     ringData.reserve(detail::MAX_FRAMES_IN_FLIGHT);
 
-    Buffer::UsageFlags usage;
+    Buffer::Usage usage;
     switch (m_Info.type) {
     case Type::ConstantDynamic:
     case Type::Constant:
-        usage = Buffer::UsageFlagBits::eUniformBuffer;
+        usage = Buffer::UsageFlags::eUniformBuffer;
         break;
 
     case Type::StructuredDynamic:
     case Type::Structured:
-        usage = Buffer::UsageFlagBits::eStorageBuffer;
+        usage = Buffer::UsageFlags::eStorageBuffer;
         break;
 
     case Type::Indirect:
-        usage = Buffer::UsageFlagBits::eIndirectBuffer | Buffer::UsageFlagBits::eStorageBuffer;
+        usage = Buffer::UsageFlags::eIndirectBuffer | Buffer::UsageFlags::eStorageBuffer;
         break;
     }
 
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         Buffer buffer = {{
-            .usage = usage | Buffer::UsageFlagBits::eTransferSrc | Buffer::UsageFlagBits::eTransferDst,
+            .usage = usage | Buffer::UsageFlags::eTransferSrc | Buffer::UsageFlags::eTransferDst,
             .memoryUsage = Buffer::MemoryUsage::GPUOnly,
         }};
 

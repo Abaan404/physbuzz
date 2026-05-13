@@ -51,6 +51,16 @@ class Renderer : public System<> {
     Attachment m_Depth = {{
         .usage = Attachment::Usage::DepthStencil,
         .format = Attachment::Format::eD32SfloatS8Uint,
+        .views = {
+            {
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eDepth | Image::AspectFlags::eStencil,
+                    .levelCount = 1,
+                    .layerCount = 1,
+                },
+            },
+        },
     }};
 
     struct {

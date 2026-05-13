@@ -87,10 +87,7 @@ class App {
     friend class Buffer;
     friend class Image;
 
-    friend class StaticBuffer;
-    friend class Texture;
     friend class Sampler;
-    friend class Attachment;
 
     friend class Window;
     friend class Renderer;

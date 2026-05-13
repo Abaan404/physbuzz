@@ -23,7 +23,7 @@ bool LayoutMaterial::build() {
                 {
                     // textures
                     .type = DescriptorLayout::Type::eCombinedImageSampler,
-                    .flags = DescriptorLayout::BindingFlagBits::ePartiallyBound | DescriptorLayout::BindingFlagBits::eUpdateAfterBind,
+                    .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound | DescriptorLayout::DescriptorBindingFlags::eUpdateAfterBind,
                     .count = 512,
                 },
             },
@@ -50,9 +50,26 @@ bool MaterialAllocator::build() {
 
         for (const auto &[type, texture] : material->textures) {
             // new texture loaded into table, map to bindless descriptor
-            if (m_Textures.add(texture)) {
-                App::LayoutAllocator.write(Builtin::LayoutMaterial::Resource, texture, 0, m_Textures.query(texture));
+            Image::ViewInfo viewInfo = {
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eColor,
+                    .levelCount = Image::RemainingMipLevels,
+                    .layerCount = 1,
+                },
+            };
+
+            if (!texture->getData().image.getData().views.contains(viewInfo)) {
+                Logger::ERROR("[MaterialAllocator] Required view not found in texture.");
+                continue;
             }
+
+            // texture already loaded
+            if (!m_Textures.add(texture)) {
+                continue;
+            }
+
+            App::LayoutAllocator.write(Builtin::LayoutMaterial::Resource, texture, viewInfo, 0, m_Textures.query(texture));
         }
 
         if (m_Materials.add(material)) {

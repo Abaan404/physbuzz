@@ -184,6 +184,16 @@ bool PipelineDeferred::build() {
             {{
                 .usage = Attachment::Usage::Color,
                 .format = Attachment::Format::eR16G16B16A16Sfloat,
+                .views = {
+                    {
+                        .type = Image::ViewType::e2D,
+                        .subresourceRange = {
+                            .aspectMask = Image::AspectFlags::eColor,
+                            .levelCount = 1,
+                            .layerCount = 1,
+                        },
+                    },
+                },
             }},
             glm::uvec2{1, 1});
     }
@@ -194,6 +204,16 @@ bool PipelineDeferred::build() {
             {{
                 .usage = Attachment::Usage::Color,
                 .format = Attachment::Format::eR8G8B8A8Snorm,
+                .views = {
+                    {
+                        .type = Image::ViewType::e2D,
+                        .subresourceRange = {
+                            .aspectMask = Image::AspectFlags::eColor,
+                            .levelCount = 1,
+                            .layerCount = 1,
+                        },
+                    },
+                },
             }},
             glm::uvec2{1, 1});
     }
@@ -204,6 +224,16 @@ bool PipelineDeferred::build() {
             {{
                 .usage = Attachment::Usage::Color,
                 .format = Attachment::Format::eR8G8B8A8Unorm,
+                .views = {
+                    {
+                        .type = Image::ViewType::e2D,
+                        .subresourceRange = {
+                            .aspectMask = Image::AspectFlags::eColor,
+                            .levelCount = 1,
+                            .layerCount = 1,
+                        },
+                    },
+                },
             }},
             glm::uvec2{1, 1});
     }
@@ -281,18 +311,33 @@ bool DeferredRenderer::build() {
                             Builtin::PipelineDeferred::ResourceGBuffers[0],
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eColor,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
                             },
                         },
                         {
                             Builtin::PipelineDeferred::ResourceGBuffers[1],
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eColor,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
                             },
                         },
                         {
                             Builtin::PipelineDeferred::ResourceGBuffers[2],
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eColor,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
                             },
                         },
                     },
@@ -329,8 +374,17 @@ bool DeferredRenderer::build() {
                 std::array<vk::RenderingAttachmentInfo, gBuffers.size()> colorAttachments;
 
                 for (std::size_t i = 0; i < gBuffers.size(); i++) {
+                    const Image::Data &data = gBuffers[i]->getRingData()[context.frameInFlight].image.getData();
+
                     colorAttachments[i] = {
-                        .imageView = gBuffers[i]->getRingData()[context.frameInFlight].view,
+                        .imageView = data.views.at({
+                            .type = Image::ViewType::e2D,
+                            .subresourceRange = {
+                                .aspectMask = Image::AspectFlags::eColor,
+                                .levelCount = 1,
+                                .layerCount = 1,
+                            },
+                        }),
                         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
                         .loadOp = vk::AttachmentLoadOp::eClear,
                         .storeOp = vk::AttachmentStoreOp::eStore,
@@ -338,8 +392,17 @@ bool DeferredRenderer::build() {
                     };
                 }
 
+                const Image::Data &data = context.depth->getRingData()[context.frameInFlight].image.getData();
+
                 vk::RenderingAttachmentInfo depthAttachment = {
-                    .imageView = context.depth->getRingData()[context.frameInFlight].view,
+                    .imageView = data.views.at({
+                        .type = Image::ViewType::e2D,
+                        .subresourceRange = {
+                            .aspectMask = Image::AspectFlags::eDepth | Image::AspectFlags::eStencil,
+                            .levelCount = 1,
+                            .layerCount = 1,
+                        },
+                    }),
                     .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
                     .loadOp = vk::AttachmentLoadOp::eClear,
                     .storeOp = vk::AttachmentStoreOp::eStore,
@@ -370,7 +433,7 @@ bool DeferredRenderer::build() {
                 });
 
                 Builtin::PipelineDeferred::Geometry::PushConstants pushConstants = {
-                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
+                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().buffer.getData().address,
                 };
 
                 // bind resources
@@ -423,30 +486,55 @@ bool DeferredRenderer::build() {
                             Builtin::PipelineDeferred::ResourceGBuffers[0],
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eColor,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
                             },
                         },
                         {
                             Builtin::PipelineDeferred::ResourceGBuffers[1],
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eColor,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
                             },
                         },
                         {
                             Builtin::PipelineDeferred::ResourceGBuffers[2],
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eColor,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
                             },
                         },
                         {
                             Builtin::PipelineShadow::Directional::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eDepth,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
                             },
                         },
                         {
                             Builtin::PipelineShadow::Point::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eDepth,
+                                    .levelCount = 1,
+                                    .layerCount = 6,
+                                }},
                             },
                         },
                     },
@@ -545,26 +633,66 @@ bool DeferredRenderer::build() {
         success &= App::LayoutAllocator.write(
             Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Resource<Attachment>("builtin/deferred/gBuffer0"),
+            {
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eColor,
+                    .levelCount = 1,
+                    .layerCount = 1,
+                },
+            },
             4);
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Resource<Attachment>("builtin/deferred/gBuffer1"),
+            Image::ViewInfo{
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eColor,
+                    .levelCount = 1,
+                    .layerCount = 1,
+                },
+            },
             5);
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Resource<Attachment>("builtin/deferred/gBuffer2"),
+            Image::ViewInfo{
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eColor,
+                    .levelCount = 1,
+                    .layerCount = 1,
+                },
+            },
             6);
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::PipelineShadow::Directional::ResourceAttachment,
+            Image::ViewInfo{
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eDepth,
+                    .levelCount = 1,
+                    .layerCount = 1,
+                },
+            },
             7);
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineDeferred::Lighting::ResourceLayoutFrame,
             Builtin::PipelineShadow::Point::ResourceAttachment,
+            Image::ViewInfo{
+                .type = Image::ViewType::eCube,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eDepth,
+                    .levelCount = 1,
+                    .layerCount = 6,
+                },
+            },
             8);
     }
 

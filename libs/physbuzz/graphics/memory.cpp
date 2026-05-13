@@ -2,6 +2,7 @@
 
 #include "../app/application.hpp"
 #include "../app/deletion.hpp"
+#include "../misc/hash.hpp"
 
 namespace Physbuzz {
 
@@ -50,10 +51,12 @@ bool Buffer::build(std::uint64_t size) {
         break;
     }
 
+    UsageFlags usage = Buffer::UsageFlags::eShaderDeviceAddress;
+
     m_Data.bufferInfo = {
         .flags = m_Info.flags,
         .size = size,
-        .usage = m_Info.usage,
+        .usage = m_Info.usage | usage,
         .sharingMode = m_Info.sharingMode,
     };
 
@@ -61,6 +64,9 @@ bool Buffer::build(std::uint64_t size) {
     VkBuffer buffer = static_cast<VkBuffer>(m_Data.buffer);
     PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCreateBuffer(App::Allocator, &bufferInfo, &allocInfo, &buffer, &m_Allocation, nullptr)));
     m_Data.buffer = buffer;
+    m_Data.address = App::Device.getBufferAddress({
+        .buffer = buffer,
+    });
 
     return true;
 }
@@ -108,7 +114,7 @@ bool Buffer::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span
 
     // otherwise stage the buffer and copy from host to vram
     Buffer stagingBuffer = {{
-        .usage = Buffer::UsageFlagBits::eTransferSrc,
+        .usage = Buffer::UsageFlags::eTransferSrc,
         .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
     }};
 
@@ -149,10 +155,34 @@ bool Buffer::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span
     return true;
 }
 
+bool Image::ViewInfo::operator==(const ViewInfo &other) const {
+    return (this->type == other.type) &&
+           (this->subresourceRange == other.subresourceRange);
+}
+
+std::size_t Image::ViewInfoHash::operator()(const Image::ViewInfo &info) const {
+    std::size_t seed = 0;
+
+    seed = hashCombine(seed, static_cast<std::underlying_type<ViewType>::type>(info.type));
+
+    seed = hashCombine(seed, static_cast<std::underlying_type<AspectFlags>::type>(info.subresourceRange.aspectMask));
+    seed = hashCombine(seed, info.subresourceRange.baseMipLevel);
+    seed = hashCombine(seed, info.subresourceRange.levelCount);
+    seed = hashCombine(seed, info.subresourceRange.baseArrayLayer);
+    seed = hashCombine(seed, info.subresourceRange.layerCount);
+
+    return seed;
+}
+
 Image::Image(const Info &info)
     : m_Info(info) {}
 
 bool Image::build(const glm::uvec3 &extent) {
+    if (m_Data.image != nullptr) {
+        Logger::WARNING("[Image] Trying to build a constructed image.");
+        return true;
+    }
+
     m_Data.imageInfo = {
         .flags = m_Info.flags,
         .imageType = m_Info.type,
@@ -176,6 +206,10 @@ bool Image::build(const glm::uvec3 &extent) {
     PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCreateImage(App::Allocator, &imageInfo, &allocCreateInfo, &image, &m_Allocation, nullptr)));
     m_Data.image = image;
 
+    for (const auto &viewInfo : m_Info.views) {
+        buildView(viewInfo);
+    }
+
     return true;
 }
 
@@ -185,8 +219,15 @@ bool Image::destroy() {
         return true;
     }
 
+    for (const auto &[_, view] : m_Data.views) {
+        App::Device.destroyImageView(view);
+    }
+
+    m_Data.views.clear();
+
     vmaDestroyImage(App::Allocator, static_cast<VkImage>(m_Data.image), m_Allocation);
     m_Data.image = nullptr;
+
     m_Allocation = nullptr;
 
     return true;
@@ -200,7 +241,7 @@ bool Image::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<
 
     // create a staging buffer in host memory
     Buffer stagingBuffer = {{
-        .usage = Buffer::UsageFlagBits::eTransferSrc,
+        .usage = Buffer::UsageFlags::eTransferSrc,
         .memoryUsage = Buffer::MemoryUsage::CPUToGPU,
     }};
 
@@ -248,6 +289,37 @@ bool Image::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<
 
     // release the staging buffer
     deletion->enqueue(std::move(stagingBuffer));
+
+    return true;
+}
+
+bool Image::buildView(const ViewInfo &info) {
+    if (m_Data.views.contains(info)) {
+        return false;
+    }
+
+    vk::ImageView view = PBZ_VK_CHECK(App::Device.createImageView({
+        .flags = {},
+        .image = m_Data.image,
+        .viewType = info.type,
+        .format = m_Data.imageInfo.format,
+        .components = {},
+        .subresourceRange = info.subresourceRange,
+    }));
+
+    m_Data.views.emplace(info, view);
+    m_Info.views.emplace_back(info); // used to restore empirical views for rebuilding
+
+    return true;
+}
+
+bool Image::destroyView(const ViewInfo &info) {
+    if (!m_Data.views.contains(info)) {
+        return false;
+    }
+
+    App::Device.destroyImageView(m_Data.views.at(info));
+    m_Data.views.erase(info);
 
     return true;
 }

@@ -217,7 +217,7 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
     return true;
 }
 
-bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, const Image::ViewInfo &viewInfo, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = {};
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
@@ -256,9 +256,9 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
     entry.layouts.insert({
         layout,
         {
-            .rebuild = texture->addCallback<OnTextureRebuild>([this, layout, texture](const OnTextureRebuild &event) {
+            .rebuild = texture->addCallback<OnTextureRebuild>([this, layout, texture, viewInfo](const OnTextureRebuild &event) {
                 WriteInfo &writeInfo = m_WrittenTextures.at(texture).layouts.at(layout);
-                rewrite(layout, texture, writeInfo.binding, writeInfo.element);
+                rewrite(layout, texture, viewInfo, writeInfo.binding, writeInfo.element);
             }),
             .binding = binding,
             .element = element,
@@ -267,7 +267,7 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
 
     vk::DescriptorImageInfo imageInfo = {
         .sampler = texture->getInfo().sampler.getData().sampler,
-        .imageView = texture->getData().view,
+        .imageView = texture->getData().image.getData().views.at(viewInfo),
         .imageLayout = imageLayout,
     };
 
@@ -285,7 +285,7 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
     return true;
 }
 
-bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, const Image::ViewInfo &viewInfo, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = {};
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
@@ -337,9 +337,9 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
     entry.layouts.insert({
         layout,
         {
-            .rebuild = attachment->addCallback<OnAttachmentRebuild>([this, layout, attachment](const OnAttachmentRebuild &event) {
+            .rebuild = attachment->addCallback<OnAttachmentRebuild>([this, layout, viewInfo, attachment](const OnAttachmentRebuild &event) {
                 WriteInfo &writeInfo = m_WrittenAttachments.at(attachment).layouts.at(layout);
-                rewrite(layout, attachment, event.context.frameInFlight, writeInfo.binding, writeInfo.element);
+                rewrite(layout, attachment, viewInfo, event.context.frameInFlight, writeInfo.binding, writeInfo.element);
             }),
             .binding = binding,
             .element = element,
@@ -353,7 +353,7 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
     for (std::uint32_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         imageInfos[i] = vk::DescriptorImageInfo{
             .sampler = attachment->getInfo().sampler.getData().sampler,
-            .imageView = ringData[i].view,
+            .imageView = ringData[i].image.getData().views.at(viewInfo),
             .imageLayout = imageLayout,
         };
 
@@ -556,7 +556,7 @@ bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout
     return true;
 }
 
-bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, const Image::ViewInfo &viewInfo, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type;
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
@@ -587,7 +587,7 @@ bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout
 
     vk::DescriptorImageInfo imageInfo = {
         .sampler = texture->getInfo().sampler.getData().sampler,
-        .imageView = texture->getData().view,
+        .imageView = texture->getData().image.getData().views.at(viewInfo),
         .imageLayout = imageLayout,
     };
 
@@ -604,7 +604,7 @@ bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout
     return true;
 }
 
-bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element) {
+bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout, const Resource<Attachment> &attachment, const Image::ViewInfo &viewInfo, std::uint32_t frameInFlight, std::uint32_t binding, std::uint32_t element) {
     vk::DescriptorType type = vk::DescriptorType::eInputAttachment;
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
@@ -646,7 +646,7 @@ bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout
 
     vk::DescriptorImageInfo imageInfo = {
         .sampler = attachment->getInfo().sampler.getData().sampler,
-        .imageView = ringData[frameInFlight].view,
+        .imageView = ringData[frameInFlight].image.getData().views.at(viewInfo),
         .imageLayout = imageLayout,
     };
 

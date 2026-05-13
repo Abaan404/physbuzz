@@ -520,17 +520,20 @@ bool RenderGraph::compile() {
                 continue;
             }
 
-            // store barrier
-            barriers.m_AttachmentBarriers.emplace_back(std::make_tuple(
-                vk::ImageMemoryBarrier2{
-                    .srcStageMask = std::get<0>(prevAttachmentBarrier.at(attachment)),
-                    .srcAccessMask = std::get<1>(prevAttachmentBarrier.at(attachment)),
-                    .dstStageMask = std::get<0>(nextAttachmentBarrier),
-                    .dstAccessMask = std::get<1>(nextAttachmentBarrier),
-                    .oldLayout = prevAttachmentLayout[attachment],
-                    .newLayout = nextLayout,
-                },
-                attachment));
+            for (const auto &subresourceRange : desc.subresourceRanges) {
+                // store barrier
+                barriers.m_AttachmentBarriers.emplace_back(std::make_tuple(
+                    vk::ImageMemoryBarrier2{
+                        .srcStageMask = std::get<0>(prevAttachmentBarrier.at(attachment)),
+                        .srcAccessMask = std::get<1>(prevAttachmentBarrier.at(attachment)),
+                        .dstStageMask = std::get<0>(nextAttachmentBarrier),
+                        .dstAccessMask = std::get<1>(nextAttachmentBarrier),
+                        .oldLayout = prevAttachmentLayout[attachment],
+                        .newLayout = nextLayout,
+                        .subresourceRange = subresourceRange,
+                    },
+                    attachment));
+            }
 
             prevAttachmentBarrier[attachment] = nextAttachmentBarrier;
             prevAttachmentLayout[attachment] = nextLayout;
@@ -588,7 +591,6 @@ void RenderGraph::Barriers::apply(const RenderContext &context) const {
         vk::ImageMemoryBarrier2 &elem = attachmentBarriers.emplace_back(barrier);
 
         elem.image = attachment->getRingData()[context.frameInFlight].image.getData().image;
-        elem.subresourceRange = attachment->getRingData()[context.frameInFlight].subresourceRange;
     }
 
     context.command.pipelineBarrier2({

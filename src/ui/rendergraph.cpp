@@ -153,13 +153,14 @@ void RenderGraph::draw() {
 
     std::shared_ptr<Physbuzz::ImGuiRenderer> imguiImpl = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
 
-    if (showWindow && Physbuzz::ResourceRegistry<Physbuzz::Attachment>::contains(selectedAttachment)) {
-        drawImageWindow(
-            "Attachment",
-            &showWindow,
-            imguiImpl->getTexture(selectedAttachment, renderer->getFrameInFlight()),
-            {selectedAttachment->getSize(renderer->getFrameInFlight()).x, selectedAttachment->getSize(renderer->getFrameInFlight()).y});
-    }
+    // TODO fix imgui views for these images
+    // if (showWindow && Physbuzz::ResourceRegistry<Physbuzz::Attachment>::contains(selectedAttachment)) {
+    //     drawImageWindow(
+    //         "Attachment",
+    //         &showWindow,
+    //         imguiImpl->getTexture(selectedAttachment, renderer->getFrameInFlight()),
+    //         {selectedAttachment->getSize(renderer->getFrameInFlight()).x, selectedAttachment->getSize(renderer->getFrameInFlight()).y});
+    // }
 
     if (updateGraph) {
         Physbuzz::RenderGraph graph = {{}};

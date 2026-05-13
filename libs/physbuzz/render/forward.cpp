@@ -189,12 +189,22 @@ bool ForwardRenderer::build() {
                             Builtin::PipelineShadow::Directional::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eDepth,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
                             },
                         },
                         {
                             Builtin::PipelineShadow::Point::ResourceAttachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eDepth,
+                                    .levelCount = 1,
+                                    .layerCount = 6,
+                                }},
                             },
                         },
                     },
@@ -206,8 +216,17 @@ bool ForwardRenderer::build() {
 
                 std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
+                const Image::Data &data = context.depth->getRingData()[context.frameInFlight].image.getData();
+
                 vk::RenderingAttachmentInfo depthAttachment = {
-                    .imageView = context.depth->getRingData()[context.frameInFlight].view,
+                    .imageView = data.views.at({
+                        .type = Image::ViewType::e2D,
+                        .subresourceRange = {
+                            .aspectMask = Image::AspectFlags::eDepth | Image::AspectFlags::eStencil,
+                            .levelCount = 1,
+                            .layerCount = 1,
+                        },
+                    }),
                     .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
                     .loadOp = vk::AttachmentLoadOp::eClear,
                     .storeOp = vk::AttachmentStoreOp::eStore,
@@ -247,7 +266,7 @@ bool ForwardRenderer::build() {
                     .directionalCount = static_cast<std::uint32_t>(directionals.size()),
                     .spotCount = static_cast<std::uint32_t>(spots.size()),
                     .pointCount = static_cast<std::uint32_t>(points.size()),
-                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
+                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().buffer.getData().address,
                 };
 
                 // bind resources
@@ -298,11 +317,27 @@ bool ForwardRenderer::build() {
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,
             Builtin::PipelineShadow::Directional::ResourceAttachment,
+            Image::ViewInfo{
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eDepth,
+                    .levelCount = 1,
+                    .layerCount = 1,
+                },
+            },
             6);
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,
             Builtin::PipelineShadow::Point::ResourceAttachment,
+            Image::ViewInfo{
+                .type = Image::ViewType::eCube,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eDepth,
+                    .levelCount = 1,
+                    .layerCount = 6,
+                },
+            },
             7);
     }
 
