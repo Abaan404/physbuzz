@@ -10,3 +10,7 @@ imgui.ini
 
 # cmake tools
 *cmake-tools*
+
+# direnv
+.direnv
+.envrc
