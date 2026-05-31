@@ -34,7 +34,6 @@ class Renderer : public System<> {
 
     const RenderGraph &getGraph() const;
     const Info &getInfo() const;
-    std::uint32_t getFrameInFlight() const;
 
   private:
     void resize(const glm::ivec2 &resolution);

@@ -26,6 +26,10 @@ const RenderNode &RenderGraph::get(const RenderNodeID &id) const {
     return m_Nodes.at(id);
 }
 
+bool RenderGraph::contains(const RenderNodeID &id) const {
+    return m_Nodes.contains(id);
+}
+
 void RenderGraph::merge(const RenderGraph &graph) {
     for (const auto &nodeId : graph.m_OrderedNodes) {
         if (!m_Nodes.contains(nodeId)) {

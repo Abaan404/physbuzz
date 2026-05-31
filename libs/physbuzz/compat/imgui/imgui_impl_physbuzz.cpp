@@ -1,8 +1,7 @@
 #include "imgui_impl_physbuzz.hpp"
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 
 #include "../../app/application.hpp"
 #include "../../app/deletion.hpp"
@@ -11,6 +10,7 @@
 #include "../../events/descriptor.hpp"
 #include "../../graphics/descriptors/sampler.hpp"
 #include "../../graphics/descriptors/texture.hpp"
+#include "../../graphics/renderer.hpp"
 
 namespace Physbuzz {
 
@@ -83,6 +83,10 @@ bool ImGuiRenderer::build() {
     m_Graph.add(
         Output,
         {
+            .prepare = [](Scene *scene, const RenderContext &context) {
+                // this is necessary for capturing current attachment in the ring buffer.
+                scene->getSystem<ImGuiRenderer>()->m_FrameInFlight = context.frameInFlight;
+            },
             .execute = [](Scene *, const RenderContext &context) {
                 std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
                     {
@@ -115,23 +119,22 @@ bool ImGuiRenderer::build() {
 }
 
 bool ImGuiRenderer::destroy() {
-    // FIXME
-    for (const auto &[resource, tuple] : m_Attachments) {
-        const auto &[attachments, event] = tuple;
-
-        for (const auto attachment : attachments) {
-            ImGui_ImplVulkan_RemoveTexture(reinterpret_cast<VkDescriptorSet>(attachment));
+    for (const auto &[resource, stored] : m_Attachments) {
+        for (const auto &[viewInfo, array] : stored.textureIds) {
+            for (const auto attachment : array) {
+                ImGui_ImplVulkan_RemoveTexture(reinterpret_cast<VkDescriptorSet>(attachment));
+            }
         }
 
-        resource->eraseCallback<OnAttachmentRebuild>(event);
+        resource->eraseCallback<OnAttachmentRebuild>(stored.rebuildId);
     }
 
-    // FIXME
-    for (const auto &[resource, tuple] : m_Textures) {
-        const auto &[texture, event] = tuple;
+    for (const auto &[resource, stored] : m_Textures) {
+        for (const auto &[viewInfo, texture] : stored.textureIds) {
+            ImGui_ImplVulkan_RemoveTexture(reinterpret_cast<VkDescriptorSet>(texture));
+        }
 
-        ImGui_ImplVulkan_RemoveTexture(reinterpret_cast<VkDescriptorSet>(texture));
-        resource->eraseCallback<OnAttachmentRebuild>(event);
+        resource->eraseCallback<OnAttachmentRebuild>(stored.rebuildId);
     }
 
     ImGui_ImplVulkan_Shutdown();
@@ -150,140 +153,129 @@ const RenderGraph &ImGuiRenderer::getGraph() const {
     return m_Graph;
 }
 
-// TODO fixme
-
-ImTextureID ImGuiRenderer::getTexture(const Resource<Texture> &texture) {
-    if (!m_Textures.contains(texture)) {
-        vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
-
-        switch (texture->getInfo().type) {
-        case Texture::Type::Dim2D:
-        case Texture::Type::Cube:
-            imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-            break;
-        }
-
-        const Physbuzz::Texture::Data &textureData = texture->getData();
-
-        vk::Sampler sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
-        if (texture->getInfo().sampler.getInfo().type != Sampler::Type::None) {
-            sampler = texture->getInfo().sampler.getData().sampler;
-        }
-
-        // ImTextureID textureId = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
-        //     static_cast<VkSampler>(sampler),
-        //     static_cast<VkImageView>(texture->getData().view),
-        //     static_cast<VkImageLayout>(imageLayout)));
-
-        EventID reallocId = texture->addCallback<OnTextureRebuild>([this, texture](const OnTextureRebuild &event) {
-            vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
-
-            switch (texture->getInfo().type) {
-            case Texture::Type::Dim2D:
-            case Texture::Type::Cube:
-                imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-                break;
-            }
-
-            ImTextureID &textureId = std::get<0>(m_Textures.at(texture));
-            event.context.deletionQueue->enqueue(textureId);
-
-            vk::Sampler sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
-            if (event.texture->getInfo().sampler.getInfo().type != Sampler::Type::None) {
-                sampler = event.texture->getInfo().sampler.getData().sampler;
-            }
-
-            // textureId = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
-            //     static_cast<VkSampler>(sampler),
-            //     static_cast<VkImageView>(event.texture->getData().view),
-            //     static_cast<VkImageLayout>(vk::ImageLayout::eShaderReadOnlyOptimal)));
-        });
-
-        // m_Textures[texture] = {textureId, reallocId};
-    }
-
-    return std::get<0>(m_Textures.at(texture));
+std::uint32_t ImGuiRenderer::getFrameInFlight() const {
+    return m_FrameInFlight;
 }
 
-ImTextureID ImGuiRenderer::getTexture(const Resource<Attachment> &attachment, std::uint32_t frameInFlight) {
-    PBZ_ASSERT(frameInFlight < detail::MAX_FRAMES_IN_FLIGHT, "[ImGuiRenderer] Invalid frame in flight");
+std::optional<ImTextureID> ImGuiRenderer::getTexture(const Resource<Texture> &texture, const Image::ViewInfo &viewInfo) {
+    StoredTextureID &stored = m_Textures[texture];
 
-    if (!m_Attachments.contains(attachment)) {
-        vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
+    if (stored.rebuildId == -1) {
+        stored.rebuildId = texture->addCallback<OnTextureRebuild>([this, texture](const OnTextureRebuild &event) {
+            StoredTextureID &stored = m_Textures[texture];
 
-        switch (attachment->getInfo().usage) {
-        case Attachment::Usage::Color:
-            imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-            break;
+            for (auto &[viewInfo, textureId] : stored.textureIds) {
+                event.context.deletionQueue->enqueue(textureId);
 
-        case Attachment::Usage::Depth:
-            imageLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
-            break;
+                const Image::Data &data = texture->getData().image.getData();
+                if (!data.views.contains(viewInfo)) {
+                    continue;
+                }
 
-        case Attachment::Usage::Stencil:
-            imageLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
-            break;
-
-        case Attachment::Usage::DepthStencil:
-            imageLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
-            break;
-        }
-
-        if (attachment->getInfo().sampler.getInfo().type != Sampler::Type::None) {
-            imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-        }
-
-        const std::array<Physbuzz::Attachment::Data, detail::MAX_FRAMES_IN_FLIGHT> &attachmentData = attachment->getRingData();
-        std::array<ImTextureID, detail::MAX_FRAMES_IN_FLIGHT> textureIds;
-
-        for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
-            // textureIds[i] = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
-            //     static_cast<VkSampler>(Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler),
-            //     static_cast<VkImageView>(attachmentData[i].view),
-            //     static_cast<VkImageLayout>(imageLayout)));
-        }
-
-        EventID event = attachment->addCallback<OnAttachmentRebuild>([this, attachment](const OnAttachmentRebuild &event) {
-            vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
-
-            switch (attachment->getInfo().usage) {
-            case Attachment::Usage::Color:
-                imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-                break;
-
-            case Attachment::Usage::Depth:
-                imageLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
-                break;
-
-            case Attachment::Usage::Stencil:
-                imageLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
-                break;
-
-            case Attachment::Usage::DepthStencil:
-                imageLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
-                break;
+                textureId = createTexture(texture, data.views.at(viewInfo));
             }
-
-            if (attachment->getInfo().sampler.getInfo().type != Sampler::Type::None) {
-                imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-            }
-
-            ImTextureID &textureId = std::get<0>(m_Attachments.at(attachment))[event.context.frameInFlight];
-            event.context.deletionQueue->enqueue(textureId);
-
-            const Physbuzz::Attachment::Data &attachmentData = event.attachment->getRingData()[event.context.frameInFlight];
-            // textureId = reinterpret_cast<ImTextureID>(ImGui_ImplVulkan_AddTexture(
-            //     static_cast<VkSampler>(Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler),
-            //     static_cast<VkImageView>(attachmentData.view),
-            //     static_cast<VkImageLayout>(imageLayout)));
         });
-
-        m_Attachments[attachment] = {textureIds, event};
-
-        return textureIds[frameInFlight];
     }
 
-    return std::get<0>(m_Attachments.at(attachment))[frameInFlight];
+    if (!stored.textureIds.contains(viewInfo)) {
+        const Image::Data &data = texture->getData().image.getData();
+        if (!data.views.contains(viewInfo)) {
+            return std::nullopt;
+        }
+
+        stored.textureIds[viewInfo] = createTexture(texture, data.views.at(viewInfo));
+    }
+
+    return stored.textureIds.at(viewInfo);
+}
+
+std::optional<ImTextureID> ImGuiRenderer::getTexture(const Resource<Attachment> &attachment, const Image::ViewInfo &viewInfo) {
+    StoredAttachmentID &stored = m_Attachments[attachment];
+
+    if (stored.rebuildId == -1) {
+        stored.rebuildId = attachment->addCallback<OnAttachmentRebuild>([this, attachment](const OnAttachmentRebuild &event) {
+            StoredAttachmentID &stored = m_Attachments[attachment];
+
+            for (auto &[viewInfo, textureIds] : stored.textureIds) {
+                event.context.deletionQueue->enqueue(textureIds[event.context.frameInFlight]);
+
+                const Image::Data &data = attachment->getRingData()[event.context.frameInFlight].image.getData();
+                if (!data.views.contains(viewInfo)) {
+                    continue;
+                }
+
+                textureIds[event.context.frameInFlight] = createTexture(attachment, data.views.at(viewInfo));
+            }
+        });
+    }
+
+    if (!stored.textureIds.contains(viewInfo)) {
+        for (std::size_t frameInFlight = 0; frameInFlight < detail::MAX_FRAMES_IN_FLIGHT; frameInFlight++) {
+            const Image::Data &data = attachment->getRingData()[frameInFlight].image.getData();
+
+            if (!data.views.contains(viewInfo)) {
+                if (frameInFlight > 0) {
+                    Logger::WARNING("[ImGuiRenderer] Incomplete attachement views, won't generate ImTextureID");
+                }
+
+                return std::nullopt;
+            }
+
+            stored.textureIds[viewInfo][frameInFlight] = createTexture(attachment, data.views.at(viewInfo));
+        }
+    }
+
+    std::shared_ptr<Renderer> renderer = m_Scene->getSystem<Renderer>();
+    return stored.textureIds.at(viewInfo)[m_FrameInFlight];
+}
+
+ImTextureID ImGuiRenderer::createTexture(const Resource<Texture> &texture, const vk::ImageView &view) {
+    vk::Sampler sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
+    vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
+
+    switch (texture->getInfo().type) {
+    case Texture::Type::Dim2D:
+    case Texture::Type::Cube:
+        imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        break;
+    }
+
+    VkDescriptorSet descriptorSet = ImGui_ImplVulkan_AddTexture(
+        static_cast<VkSampler>(sampler),
+        static_cast<VkImageView>(view),
+        static_cast<VkImageLayout>(imageLayout));
+
+    return reinterpret_cast<ImTextureID>(descriptorSet);
+}
+
+ImTextureID ImGuiRenderer::createTexture(const Resource<Attachment> &attachment, const vk::ImageView &view) {
+    vk::Sampler sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
+    vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
+
+    switch (attachment->getInfo().usage) {
+    case Attachment::Usage::Color:
+        imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        break;
+
+    case Attachment::Usage::Depth:
+        imageLayout = vk::ImageLayout::eDepthReadOnlyOptimal;
+        break;
+
+    case Attachment::Usage::Stencil:
+        imageLayout = vk::ImageLayout::eStencilReadOnlyOptimal;
+        break;
+
+    case Attachment::Usage::DepthStencil:
+        imageLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
+        break;
+    }
+
+    VkDescriptorSet descriptorSet = ImGui_ImplVulkan_AddTexture(
+        static_cast<VkSampler>(sampler),
+        static_cast<VkImageView>(view),
+        static_cast<VkImageLayout>(imageLayout));
+
+    return reinterpret_cast<ImTextureID>(descriptorSet);
 }
 
 } // namespace Physbuzz

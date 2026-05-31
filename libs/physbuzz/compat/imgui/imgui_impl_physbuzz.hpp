@@ -41,15 +41,31 @@ class ImGuiRenderer : public System<> {
     void newFrame();
 
     const RenderGraph &getGraph() const;
+    std::uint32_t getFrameInFlight() const;
 
-    ImTextureID getTexture(const Resource<Texture> &texture);
-    ImTextureID getTexture(const Resource<Attachment> &attachment, std::uint32_t frameInFlight);
+    std::optional<ImTextureID> getTexture(const Resource<Texture> &texture, const Image::ViewInfo &viewInfo);
+    std::optional<ImTextureID> getTexture(const Resource<Attachment> &attachment, const Image::ViewInfo &viewInfo);
 
   private:
+    ImTextureID createTexture(const Resource<Texture> &texture, const vk::ImageView &view);
+    ImTextureID createTexture(const Resource<Attachment> &attachment, const vk::ImageView &view);
+
+    struct StoredTextureID {
+        std::unordered_map<Image::ViewInfo, ImTextureID, Image::ViewInfoHash> textureIds;
+        EventID rebuildId = -1;
+    };
+
+    struct StoredAttachmentID {
+        std::unordered_map<Image::ViewInfo, std::array<ImTextureID, detail::MAX_FRAMES_IN_FLIGHT>, Image::ViewInfoHash> textureIds;
+        EventID rebuildId = -1;
+    };
+
     Info m_Info;
 
-    std::unordered_map<Resource<Texture>, std::tuple<ImTextureID, EventID>> m_Textures;
-    std::unordered_map<Resource<Attachment>, std::tuple<std::array<ImTextureID, detail::MAX_FRAMES_IN_FLIGHT>, EventID>> m_Attachments;
+    std::uint32_t m_FrameInFlight = -1;
+
+    std::unordered_map<Resource<Texture>, StoredTextureID> m_Textures;
+    std::unordered_map<Resource<Attachment>, StoredAttachmentID> m_Attachments;
 
     RenderGraph m_Graph = {{
         .output = Output,

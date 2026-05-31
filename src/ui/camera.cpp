@@ -26,41 +26,55 @@ void Camera::draw() {
 
     Physbuzz::CameraComponent::Info info = camera.getInfo();
 
-    const char *projections[] = {"Prespective", "Orthographic", "Unknown"};
-    static int currentProjection = static_cast<int>(info.projection);
+    const std::array projections = {"Prespective", "Orthographic", "Unknown"};
+    std::int32_t currentProjectionIdx = static_cast<int>(info.projection);
 
-    if (ImGui::Combo("projection", &currentProjection, projections, IM_ARRAYSIZE(projections))) {
-        glm::vec2 resolution = info.resolution;
-        switch (currentProjection) {
-        case 0: // Perspective
-            info.projection = Physbuzz::CameraComponent::Projection::Perspective;
-            info.perspective = {
-                .fovy = glm::radians(45.0f),
-                .aspect = resolution.x / resolution.y,
-            };
-            break;
+    m_SelectedProjection = projections[currentProjectionIdx];
 
-        case 1: // Orthographic
-            info.projection = Physbuzz::CameraComponent::Projection::Orthographic;
-            info.orthographic = {
-                .left = 0.0f,
-                .right = resolution.x,
-                .bottom = resolution.y,
-                .top = 0.0f,
-            };
-            break;
+    if (ImGui::BeginCombo("Type", m_SelectedProjection.c_str())) {
+        for (std::size_t i = 0; i < projections.size(); i++) {
+            std::string projection = projections[i];
+            bool isSelected = i == currentProjectionIdx;
 
-        default:
-            break;
+            if (ImGui::Selectable(projection.c_str(), isSelected)) {
+                info.projection = static_cast<Physbuzz::CameraComponent::Projection>(i);
+                glm::vec2 resolution = info.resolution;
+
+                switch (info.projection) {
+                case Physbuzz::CameraComponent::Projection::Perspective:
+                    info.perspective = {
+                        .fovy = glm::radians(45.0f),
+                        .aspect = resolution.x / resolution.y,
+                    };
+                    break;
+
+                case Physbuzz::CameraComponent::Projection::Orthographic:
+                    info.orthographic = {
+                        .left = 0.0f,
+                        .right = resolution.x,
+                        .bottom = resolution.y,
+                        .top = 0.0f,
+                    };
+                    break;
+
+                case Physbuzz::CameraComponent::Projection::Unknown:
+                    break;
+                }
+
+                camera.update(info);
+                camera.reset();
+            }
+
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
         }
 
-        camera.update(info);
-        camera.reset();
+        ImGui::EndCombo();
     }
 
-    switch (currentProjection) {
-    // Prespective
-    case 0: {
+    switch (info.projection) {
+    case Physbuzz::CameraComponent::Projection::Perspective: {
         if (ImGui::DragFloat("fov", &info.perspective.fovy, 0.01f, 0.0f, 2.0f * glm::pi<float>())) {
             camera.update(info);
         }
@@ -78,8 +92,7 @@ void Camera::draw() {
         }
     } break;
 
-    // Orthographic
-    case 1: {
+    case Physbuzz::CameraComponent::Projection::Orthographic: {
         Physbuzz::CameraComponent::Orthographic orthographic = info.orthographic;
 
         if (ImGui::DragFloat("top", &orthographic.top, 1.0f, MIN_VALUE, MAX_VALUE)) {

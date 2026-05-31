@@ -329,9 +329,4 @@ const Renderer::Info &Renderer::getInfo() const {
     return m_Info;
 }
 
-// create a custom ImGui_Physbuzz_Impl so this shouldnt be exposed anymore
-std::uint32_t Renderer::getFrameInFlight() const {
-    return m_FrameInFlight;
-}
-
 } // namespace Physbuzz

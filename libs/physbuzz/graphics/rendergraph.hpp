@@ -60,6 +60,7 @@ class RenderGraph {
 
     const RenderNode &add(const RenderNodeID &id, const RenderNode &node);
     const RenderNode &get(const RenderNodeID &id) const;
+    bool contains(const RenderNodeID &id) const;
 
     void merge(const RenderGraph &graph);
 

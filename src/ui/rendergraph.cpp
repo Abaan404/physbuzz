@@ -8,46 +8,6 @@
 #include <physbuzz/render/shadow.hpp>
 #include <physbuzz/render/skybox.hpp>
 
-static void drawImageWindow(std::string label, bool *show, ImTextureID id, const glm::uvec2 &resolution) {
-    float aspect_ratio = static_cast<float>(resolution.x) / static_cast<float>(resolution.y);
-
-    ImGui::SetNextWindowSizeConstraints(
-        ImVec2(427, 240),
-        ImVec2(resolution.x, resolution.y),
-        [](ImGuiSizeCallbackData *data) {
-            // https://github.com/ocornut/imgui/pull/8028
-            float aspect_ratio = *(float *)data->UserData;
-            data->DesiredSize.y = data->DesiredSize.x / aspect_ratio;
-
-            switch (ImGui::GetMouseCursor()) {
-            case ImGuiMouseCursor_ResizeNWSE:
-            case ImGuiMouseCursor_ResizeNESW:
-                if (aspect_ratio > data->DesiredSize.x / data->DesiredSize.y) {
-                    data->DesiredSize.x = aspect_ratio * data->DesiredSize.y;
-                } else {
-                    data->DesiredSize.y = data->DesiredSize.x / aspect_ratio;
-                }
-                break;
-
-            case ImGuiMouseCursor_ResizeNS:
-                data->DesiredSize.x = aspect_ratio * data->DesiredSize.y;
-                break;
-            case ImGuiMouseCursor_ResizeEW:
-                data->DesiredSize.y = data->DesiredSize.x / aspect_ratio;
-                break;
-            }
-        },
-        (void *)&aspect_ratio);
-
-    if (!ImGui::Begin(label.c_str(), show)) {
-        ImGui::End();
-        return;
-    }
-
-    ImGui::Image(id, ImGui::GetContentRegionAvail());
-    ImGui::End();
-}
-
 RenderGraph::RenderGraph(Physbuzz::Scene *scene)
     : IUserInterface(scene) {}
 
@@ -64,27 +24,37 @@ void RenderGraph::draw() {
 
     bool updateGraph = false;
 
-    static bool enableShadows = false;
-    updateGraph |= ImGui::Checkbox("Shadows", &enableShadows);
+    updateGraph |= ImGui::Checkbox("Shadows", &m_EnableShadows);
 
-    const char *types[] = {"Deferred", "Forward", "Unknown"};
-    static int currentType = 2;
+    const std::array nodes = {
+        Physbuzz::DeferredRenderer::Output,
+        Physbuzz::ForwardRenderer::Output,
+    };
 
-    for (const auto &node : graph.getExecutableNodes()) {
-        if (node == Physbuzz::DeferredRenderer::Output) {
-            currentType = 0;
+    for (const auto &renderer : nodes) {
+        if (graph.contains(renderer)) {
+            m_SelectedRenderer = renderer;
             break;
         }
-
-        if (node == Physbuzz::ForwardRenderer::Output) {
-            currentType = 1;
-            break;
-        }
-
-        currentType = 2;
     }
 
-    updateGraph |= ImGui::Combo("Type", &currentType, types, IM_ARRAYSIZE(types));
+    if (ImGui::BeginCombo("Type", m_SelectedRenderer.c_str())) {
+        for (const auto &node : nodes) {
+            bool isSelected = graph.contains(node);
+
+            if (ImGui::Selectable(node.c_str(), isSelected)) {
+                updateGraph |= true;
+                m_SelectedRenderer = node;
+                break;
+            }
+
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+
+        ImGui::EndCombo();
+    }
 
     ImGui::SeparatorText("Nodes");
 
@@ -122,9 +92,6 @@ void RenderGraph::draw() {
 
     ImGui::SeparatorText("Resources");
 
-    static bool showWindow = false;
-    static Physbuzz::Resource<Physbuzz::Attachment> selectedAttachment = {""};
-
     const Physbuzz::RenderGraph::Resources &resources = graph.getResources();
     if (ImGui::TreeNode("buffers")) {
         for (const auto &resource : resources.buffers) {
@@ -141,8 +108,7 @@ void RenderGraph::draw() {
             ImGui::Text("%s", resource.getIdentifier().c_str());
 
             if (ImGui::Button("Show")) {
-                selectedAttachment = resource;
-                showWindow = true;
+                m_AttachmentWindows.insert({resource.getIdentifier(), Image{resource, m_Scene}});
             }
 
             ImGui::PopID();
@@ -151,16 +117,19 @@ void RenderGraph::draw() {
         ImGui::TreePop();
     }
 
-    std::shared_ptr<Physbuzz::ImGuiRenderer> imguiImpl = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
+    std::vector<Physbuzz::ResourceID> pendingRemoval;
 
-    // TODO fix imgui views for these images
-    // if (showWindow && Physbuzz::ResourceRegistry<Physbuzz::Attachment>::contains(selectedAttachment)) {
-    //     drawImageWindow(
-    //         "Attachment",
-    //         &showWindow,
-    //         imguiImpl->getTexture(selectedAttachment, renderer->getFrameInFlight()),
-    //         {selectedAttachment->getSize(renderer->getFrameInFlight()).x, selectedAttachment->getSize(renderer->getFrameInFlight()).y});
-    // }
+    for (auto &[resource, image] : m_AttachmentWindows) {
+        if (image.show) {
+            image.draw();
+        } else {
+            pendingRemoval.emplace_back(resource);
+        }
+    }
+
+    for (const auto &resource : pendingRemoval) {
+        m_AttachmentWindows.erase(resource);
+    }
 
     if (updateGraph) {
         Physbuzz::RenderGraph graph = {{}};
@@ -171,31 +140,27 @@ void RenderGraph::draw() {
         std::shared_ptr<Physbuzz::ImGuiRenderer> imgui = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
         std::shared_ptr<Physbuzz::SkyboxRenderer> skybox = m_Scene->getSystem<Physbuzz::SkyboxRenderer>();
 
-        if (enableShadows) {
+        if (m_EnableShadows) {
             graph.merge(shadow->getGraph());
         }
 
-        switch (currentType) {
-        case 0: // Deferred
+        if (m_SelectedRenderer == Physbuzz::DeferredRenderer::Output) {
             deferred->specialize({
-                .enableShadows = enableShadows,
+                .enableShadows = m_EnableShadows,
             });
 
             graph.merge(deferred->getGraph());
             graph.merge(skybox->getGraph());
             graph.merge(imgui->getGraph());
-            break;
 
-        case 1: // Forward
-        default:
+        } else if (m_SelectedRenderer == Physbuzz::ForwardRenderer::Output) {
             forward->specialize({
-                .enableShadows = enableShadows,
+                .enableShadows = m_EnableShadows,
             });
 
             graph.merge(forward->getGraph());
             graph.merge(skybox->getGraph());
             graph.merge(imgui->getGraph());
-            break;
         }
 
         if (graph.compile()) {

@@ -7,5 +7,8 @@ class Camera : public IUserInterface {
     Camera(Physbuzz::Scene *scene);
 
     void draw() override;
+
+  private:
+    std::string m_SelectedProjection;
 };
 
