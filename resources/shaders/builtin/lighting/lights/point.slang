@@ -45,9 +45,6 @@ public struct PointLight : ILight {
     private float shadowProj(Geometry geometry, float3 offset, SamplerCube<float> shadowMap) {
         float3 direction = geometry.position - this.position + offset;
 
-        // fix shadow acne with bias
-        float bias = max(0.0005f * (1.0f - dot(geometry.normal, -direction)), 0.0005f);
-
         // find facing depth
         float z = max(max(abs(direction.x), abs(direction.y)), abs(direction.z));
 
@@ -57,7 +54,7 @@ public struct PointLight : ILight {
 
         float closestDepth = shadowMap.Sample(direction).r;
 
-        float shadow = step(closestDepth, depth - bias);
+        float shadow = step(closestDepth, depth);
 
         return lerp(1.0f, AMBIENT_SHADOW, shadow);
     }

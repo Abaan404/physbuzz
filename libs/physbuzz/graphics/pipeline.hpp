@@ -145,8 +145,10 @@ class GraphicsPipeline : public Pipeline<GraphicsPipeline> {
             bool depthClampEnable = false;
             bool rasterizerDiscardEnable = false;
             bool depthBiasEnable = false;
-            float depthBiasSlopeFactor = 1.0f;
-            float lineWidth = 1.0f;
+            float depthBiasConstantFactor = 0.0f;
+            float depthBiasClamp = 0.0f;
+            float depthBiasSlopeFactor = 0.0f;
+            float lineWidth = 0.0f;
             PolygonMode polygonMode = PolygonMode::eFill;
             CullMode cullMode = CullModeFlags::eBack;
             FrontFace frontFace = FrontFace::eCounterClockwise;

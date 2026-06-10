@@ -429,6 +429,8 @@ std::optional<vk::Pipeline> GraphicsPipeline::createPipelineImpl(const Shader::I
         .cullMode = m_Info.rasterization.cullMode,
         .frontFace = m_Info.rasterization.frontFace,
         .depthBiasEnable = m_Info.rasterization.depthBiasEnable ? vk::True : vk::False,
+        .depthBiasConstantFactor = m_Info.rasterization.depthBiasConstantFactor,
+        .depthBiasClamp = m_Info.rasterization.depthBiasClamp,
         .depthBiasSlopeFactor = m_Info.rasterization.depthBiasSlopeFactor,
         .lineWidth = m_Info.rasterization.lineWidth,
     };

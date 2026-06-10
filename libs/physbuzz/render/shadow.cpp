@@ -72,6 +72,10 @@ bool PipelineShadow::Directional::build(const glm::uvec2 &resolution) {
             {
                 .description = &Model::Vertex::Description,
                 .rasterization = {
+                    .depthBiasEnable = true,
+                    .depthBiasConstantFactor = 6.0f,
+                    .depthBiasClamp = 0.0f,
+                    .depthBiasSlopeFactor = 1.5f,
                     .cullMode = vk::CullModeFlagBits::eFront,
                 },
                 .blend = {
@@ -179,6 +183,10 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
             {
                 .description = &Model::Vertex::Description,
                 .rasterization = {
+                    .depthBiasEnable = true,
+                    .depthBiasConstantFactor = 6.0f,
+                    .depthBiasClamp = 0.0f,
+                    .depthBiasSlopeFactor = 1.5f,
                     .cullMode = vk::CullModeFlagBits::eFront,
                 },
                 .blend = {

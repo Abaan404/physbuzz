@@ -42,16 +42,13 @@ public struct DirectionalLight : ILight {
         float4 shadowClip = mul(float4(geometry.position, 1.0), this.projectionView);
         shadowClip.xyz /= shadowClip.w;
 
-        // fix shadow acne with bias
-        float bias = 0.002f * (1.0f - dot(geometry.normal, -this.direction)) + 0.002f;
-        float depth = shadowClip.z;
-
         // get texcoords
         shadowClip.xy = shadowClip.xy * 0.5 + 0.5;
         float closestDepth = shadowMap.Sample(shadowClip.xy + offset).r;
 
-        float outside = step(1.0f, depth - bias);
-        float shadowed = step(closestDepth, depth - bias);
+        float depth = shadowClip.z;
+        float outside = step(1.0f, depth);
+        float shadowed = step(closestDepth, depth);
         shadowed *= (1.0f - outside);
 
         return lerp(1.0f, AMBIENT_SHADOW, shadowed);
