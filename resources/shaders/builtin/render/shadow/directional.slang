@@ -6,7 +6,8 @@ import "../../lighting/lights";
 namespace Physbuzz {
 
 struct PushConstants {
-    uint32_t frustumOffset;
+    uint objectCount;
+    uint cameraId;
 };
 
 [[vk::push_constant]]
@@ -32,7 +33,7 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation) {
     VSOutput output;
-    uint objectId = visibleInstances[instanceId + baseInstance + pc.frustumOffset].instanceId;
+    uint objectId = visibleInstances[instanceId + baseInstance + (pc.objectCount * pc.cameraId)].instanceId;
 
     InstanceData object = objects[objectId];
     output.sv_position = mul(mul(float4(input.position, 1.0), object.model), directionals[0].projectionView);

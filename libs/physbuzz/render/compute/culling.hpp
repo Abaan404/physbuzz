@@ -39,7 +39,8 @@ class FrustumCulling {
     const Resource<DynamicBuffer> &getVisibleInstanceBuffer() const;
     const Resource<DynamicBuffer> &getIndirectBuffer() const;
 
-    std::uint64_t getFrustumOffset(ObjectID object) const;
+    std::uint32_t getFrustumId(ObjectID object) const;
+    std::uint64_t getIndirectOffset(std::uint32_t frustumId, std::uint32_t frameInFlight) const;
 
     const RenderGraph &getGraph() const;
     const Info &getInfo() const;
@@ -63,7 +64,7 @@ class FrustumCulling {
     RenderGraph m_Graph = {{}};
 
     std::vector<FrustumBufferData> m_FrustumBuffer;
-    std::unordered_map<ObjectID, std::uint64_t> m_FrustumBufferOffset;
+    std::unordered_map<ObjectID, std::uint64_t> m_FrustumBufferIds;
 
     Resource<DynamicBuffer> m_Frustum;
     Resource<DynamicBuffer> m_VisibleInstance;

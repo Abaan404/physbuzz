@@ -133,11 +133,11 @@ bool FrustumCulling::build() {
                                            m_Info.objects.pointLights.size() * 6 + // each point light has 6 cameras/faces for a omni/cubic view
                                            m_Info.objects.spotLights.size();
 
-                m_FrustumBufferOffset.clear();
+                m_FrustumBufferIds.clear();
                 m_FrustumBuffer.clear();
                 m_FrustumBuffer.reserve(frustumCount);
 
-                std::uint64_t frustumOffset = 0;
+                std::uint32_t frustumIdx = 0;
 
                 for (const auto &object : m_Info.objects.cameras) {
                     const auto [camera] = scene->getComponent<CameraComponent>(object);
@@ -154,8 +154,8 @@ bool FrustumCulling::build() {
                         },
                     });
 
-                    m_FrustumBufferOffset[object] = frustumOffset;
-                    frustumOffset++;
+                    m_FrustumBufferIds[object] = frustumIdx;
+                    frustumIdx++;
                 }
 
                 for (const auto &object : m_Info.objects.directionalLights) {
@@ -173,8 +173,8 @@ bool FrustumCulling::build() {
                         },
                     });
 
-                    m_FrustumBufferOffset[object] = frustumOffset;
-                    frustumOffset++;
+                    m_FrustumBufferIds[object] = frustumIdx;
+                    frustumIdx++;
                 }
 
                 for (const auto &object : m_Info.objects.pointLights) {
@@ -194,8 +194,8 @@ bool FrustumCulling::build() {
                         });
                     }
 
-                    m_FrustumBufferOffset[object] = frustumOffset;
-                    frustumOffset += point.getFrustums().size();
+                    m_FrustumBufferIds[object] = frustumIdx;
+                    frustumIdx += point.getFrustums().size();
                 }
 
                 for (const auto &object : m_Info.objects.spotLights) {
@@ -213,8 +213,8 @@ bool FrustumCulling::build() {
                         },
                     });
 
-                    m_FrustumBufferOffset[object] = frustumOffset;
-                    frustumOffset++;
+                    m_FrustumBufferIds[object] = frustumIdx;
+                    frustumIdx++;
                 }
 
                 std::size_t requiredFrustumSize = frustumCount * sizeof(FrustumBufferData);
@@ -248,7 +248,7 @@ bool FrustumCulling::build() {
                         {
                             m_Frustum,
                             {
-                                .stage = RenderNode::Stage::Transfer,
+                                .stage = RenderNode::Stage::Compute,
                             },
                         },
                     },
@@ -315,7 +315,7 @@ bool FrustumCulling::build() {
 bool FrustumCulling::destroy() {
     bool success = true;
 
-    m_FrustumBufferOffset.clear();
+    m_FrustumBufferIds.clear();
     m_FrustumBuffer.clear();
 
     success &= ResourceRegistry<ComputePipeline>::erase(m_Pipeline);
@@ -339,8 +339,12 @@ const Resource<DynamicBuffer> &FrustumCulling::getIndirectBuffer() const {
     return m_Indirect;
 }
 
-std::uint64_t FrustumCulling::getFrustumOffset(ObjectID object) const {
-    return m_FrustumBufferOffset.at(object);
+std::uint32_t FrustumCulling::getFrustumId(ObjectID object) const {
+    return m_FrustumBufferIds.at(object);
+}
+
+std::uint64_t FrustumCulling::getIndirectOffset(std::uint32_t frustumId, std::uint32_t frameInFlight) const {
+    return frustumId * m_Info.batch.getDrawCount(frameInFlight) * sizeof(vk::DrawIndexedIndirectCommand);
 }
 
 const RenderGraph &FrustumCulling::getGraph() const {

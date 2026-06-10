@@ -345,8 +345,11 @@ bool ShadowRenderer::build() {
                 ObjectID object = *m_Scene->getObjects<DirectionalLightComponent>().begin();
 
                 // bind resources
+                std::uint32_t frustumId = m_Culling.getFrustumId(object);
+
                 Builtin::PipelineShadow::Directional::PushConstants pushConstants = {
-                    .frustumOffset = static_cast<std::uint32_t>(m_Culling.getFrustumOffset(object)),
+                    .objectCount = static_cast<std::uint32_t>(m_Batch.getObjectCount(context.frameInFlight)),
+                    .cameraId = frustumId,
                 };
 
                 Builtin::PipelineShadow::Directional::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eVertex, std::as_bytes(std::span(&pushConstants, 1)), 0);
@@ -354,7 +357,7 @@ bool ShadowRenderer::build() {
                 App::LayoutAllocator.bind(context, Builtin::PipelineShadow::Directional::Resource);
 
                 // draw
-                m_Batch.draw(context, m_Culling.getIndirectBuffer(), m_Culling.getFrustumOffset(object) * sizeof(vk::DrawIndexedIndirectCommand));
+                m_Batch.draw(context, m_Culling.getIndirectBuffer(), m_Culling.getIndirectOffset(frustumId, context.frameInFlight));
 
                 context.command.endRendering();
             },
@@ -423,18 +426,18 @@ bool ShadowRenderer::build() {
                 // TODO multiple objects
                 ObjectID object = *m_Scene->getObjects<PointLightComponent>().begin();
 
-                std::uint64_t frustumOffset = m_Culling.getFrustumOffset(object);
+                std::uint32_t frustumId = m_Culling.getFrustumId(object);
 
                 const Image::Data &data = Builtin::PipelineShadow::Point::ResourceAttachment->getRingData()[context.frameInFlight].image.getData();
 
-                for (std::uint32_t cameraId = 0; cameraId < 6; cameraId++) {
+                for (std::uint32_t faceId = 0; faceId < 6; faceId++) {
                     vk::RenderingAttachmentInfo depthAttachment = {
                         .imageView = data.views.at({
                             .type = Image::ViewType::e2D,
                             .subresourceRange = {
                                 .aspectMask = Image::AspectFlags::eDepth,
                                 .levelCount = 1,
-                                .baseArrayLayer = cameraId,
+                                .baseArrayLayer = faceId,
                                 .layerCount = 1,
                             },
                         }),
@@ -460,14 +463,15 @@ bool ShadowRenderer::build() {
                     App::LayoutAllocator.bind(context, Builtin::PipelineShadow::Point::Resource);
 
                     Builtin::PipelineShadow::Point::PushConstants pushConstants = {
-                        .frustumOffset = static_cast<std::uint32_t>(frustumOffset),
-                        .frustumId = cameraId,
+                        .objectCount = static_cast<std::uint32_t>(m_Batch.getObjectCount(context.frameInFlight)),
+                        .cameraId = frustumId + faceId,
+                        .faceId = faceId,
                     };
 
                     Builtin::PipelineShadow::Point::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eVertex, std::as_bytes(std::span(&pushConstants, 1)), 0);
 
                     // draw
-                    m_Batch.draw(context, m_Culling.getIndirectBuffer(), (frustumOffset + cameraId) * sizeof(vk::DrawIndexedIndirectCommand));
+                    m_Batch.draw(context, m_Culling.getIndirectBuffer(), m_Culling.getIndirectOffset(frustumId + faceId, context.frameInFlight));
 
                     context.command.endRendering();
                 }

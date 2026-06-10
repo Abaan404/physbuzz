@@ -15,7 +15,8 @@ namespace PipelineShadow {
 namespace Directional {
 
 struct PushConstants {
-    std::uint32_t frustumOffset;
+    std::uint32_t objectCount;
+    std::uint32_t cameraId;
 };
 
 inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/directional"};
@@ -31,8 +32,9 @@ bool build(const glm::uvec2 &resolution);
 namespace Point {
 
 struct PushConstants {
-    std::uint32_t frustumOffset;
-    std::uint32_t frustumId;
+    std::uint32_t objectCount;
+    std::uint32_t cameraId;
+    std::uint32_t faceId;
 };
 
 inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/point"};
