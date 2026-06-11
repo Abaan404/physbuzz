@@ -39,7 +39,7 @@ VertexDescription Model::Vertex::Description = {{
 Model::Model(const Info &info)
     : m_Info(info) {}
 
-bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer) {
+bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer, bool flipTexturesVertically) {
     ZoneScopedN("Model/Load");
     ZoneText(path.string().c_str(), path.string().size());
 
@@ -76,23 +76,28 @@ bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transf
             ResourceID resourceId = std::format("model@{}", texturePath.string());
 
             // a material can reference the same texture again
-            if (ResourceRegistry<Texture>::contains(resourceId)) {
-                continue;
-            }
+            if (!ResourceRegistry<Texture>::contains(resourceId)) {
+                ImageFile imageFile = {{
+                    .files = {{
+                        .path = texturePath,
+                    }},
+                    .flipVertically = flipTexturesVertically,
+                }};
 
-            ImageFile imageFile = {{.files = {{.path = texturePath}}}};
-            imageFile.readMeta();
+                imageFile.readMeta();
 
-            if (!ResourceRegistry<Texture>::insert(resourceId, texture.info, glm::uvec3{imageFile.getData().meta.resolution, 1})) {
-                Logger::ERROR("[Model] Failed to build texture resource {}.", resourceId);
-                return false;
+                if (!ResourceRegistry<Texture>::insert(resourceId, texture.info, glm::uvec3{imageFile.getData().meta.resolution, 1})) {
+                    Logger::ERROR("[Model] Failed to build texture resource {}.", resourceId);
+                    return false;
+                }
+
+                if (!Resource<Texture>{resourceId}->write(imageFile.getInfo(), batch)) {
+                    Logger::ERROR("[Model] Failed to write texture resource {}.", resourceId);
+                    return false;
+                }
             }
 
             material.textures.insert({type, resourceId});
-            if (!Resource<Texture>{resourceId}->write({.files = {{.path = texturePath}}}, batch)) {
-                Logger::ERROR("[Model] Failed to write texture resource {}.", resourceId);
-                return false;
-            }
         }
 
         if (!ResourceRegistry<Material>::contains(resourceId)) {

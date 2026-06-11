@@ -59,7 +59,7 @@ class Model {
 
     Model(const Info &info);
 
-    bool load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer);
+    bool load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer, bool flipTexturesVertically = false);
 
     static std::string getTextureTypeName(TextureType texture);
     const Info &getInfo() const;

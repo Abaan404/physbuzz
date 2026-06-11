@@ -7,6 +7,7 @@
 
 struct ModelComponent {
     std::filesystem::path path;
+    bool flipTextureVertically = false;
 };
 
 struct Model {
