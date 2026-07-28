@@ -1,10 +1,6 @@
 module forward;
 
 import "../../defines";
-import "../../lighting/brdf";
-import "../../lighting/lights";
-import "../../lighting/material";
-import "../../lighting/geometry";
 
 namespace Physbuzz {
 
@@ -77,35 +73,45 @@ FSOutput fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
 
     InstanceData object = objects[coarseVertex.objectId];
 
+    float3 normal = coarseVertex.normal;
+
     Material *boundMaterial = (Material *)(pc.materialBaseAddress + object.materialIdx * Material.STRIDE);
 
-    float3 albedo = float3(0.0f);
-    float3 normal = coarseVertex.normal;
-    float specular = 0.0f;
+    float metallic = 1.0f;
+    float roughness = 1.0f;
+    float3 albedo = float3(1.0f);
 
-    if (boundMaterial.diffuseTextureId != -1) {
-        albedo = textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).rgb;
+    if (boundMaterial.albedoTextureId != -1) {
+        albedo *= textures[boundMaterial.albedoTextureId].Sample(coarseVertex.texCoord0).rgb;
     }
 
-    if (boundMaterial.specularTextureId != -1) {
-        specular = textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).r;
+    if (boundMaterial.roughnessTextureId != -1) {
+        roughness *= textures[boundMaterial.roughnessTextureId].Sample(coarseVertex.texCoord0).g;
     }
 
-    if (boundMaterial.heightTextureId != -1) {
+    if (boundMaterial.metallicTextureId != -1) {
+        metallic *= textures[boundMaterial.metallicTextureId].Sample(coarseVertex.texCoord0).b;
+    }
+
+    if (boundMaterial.normalTextureId != -1) {
         float3x3 TBN = {
             coarseVertex.tangent,
             coarseVertex.bitangent,
             coarseVertex.normal,
         };
 
-        normal = textures[boundMaterial.heightTextureId].Sample(coarseVertex.texCoord0).rgb;
+        normal = textures[boundMaterial.normalTextureId].Sample(coarseVertex.texCoord0).rgb;
         normal = normal * 2.0 - 1.0;
         normal = normalize(mul(normal, TBN));
     }
 
+    metallic *= boundMaterial.metallicFactor;
+    roughness *= boundMaterial.roughnessFactor;
+    albedo *= boundMaterial.albedoFactor;
+
     output.position = { coarseVertex.position, 1.0f };
-    output.normal = { normal, 1.0f };
-    output.albedo = { albedo, specular };
+    output.normal = { normal, roughness };
+    output.albedo = { albedo, metallic };
 
     return output;
 }

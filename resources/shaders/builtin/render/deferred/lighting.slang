@@ -77,7 +77,7 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
     SimpleMaterial material = {
         gBuffer2.SubpassLoad().rgb,
         gBuffer2.SubpassLoad().a,
-        125.0f,
+        gBuffer1.SubpassLoad().a,
     };
 
     let brdf = material.prepare(geometry);
@@ -86,27 +86,26 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
 
     float3 color = {};
 
-    static if (enableShadows) {
-        for (int i = 0; i < pc.directionalCount; i++) {
-            color += directionals[i].shadow(geometry, directionalDepth) * directionals[i].illuminate(geometry, brdf, viewDirection);
-        }
-
-        for (int i = 0; i < pc.pointCount; i++) {
-            color += points[i].shadow(geometry, pointDepth) * points[i].illuminate(geometry, brdf, viewDirection);
-        }
+    for (int i = 0; i < pc.directionalCount; i++) {
+        color += directionals[i].illuminate(geometry, brdf, viewDirection);
     }
-    else {
-        for (int i = 0; i < pc.directionalCount; i++) {
-            color += directionals[i].illuminate(geometry, brdf, viewDirection);
-        }
 
-        for (int i = 0; i < pc.pointCount; i++) {
-            color += points[i].illuminate(geometry, brdf, viewDirection);
-        }
+    for (int i = 0; i < pc.pointCount; i++) {
+        color += points[i].illuminate(geometry, brdf, viewDirection);
     }
 
     for (int i = 0; i < pc.spotCount; i++) {
         color += spots[i].illuminate(geometry, brdf, viewDirection);
+    }
+
+    static if (enableShadows) {
+        for (int i = 0; i < pc.directionalCount; i++) {
+            color *= directionals[i].shadow(geometry, directionalDepth);
+        }
+
+        for (int i = 0; i < pc.pointCount; i++) {
+            color *= points[i].shadow(geometry, pointDepth);
+        }
     }
 
     return float4(color, 1.0f);

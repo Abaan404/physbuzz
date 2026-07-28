@@ -9,12 +9,18 @@ public struct Camera {
 };
 
 public struct Material {
-    public uint diffuseTextureId;
-    public uint specularTextureId;
-    public uint heightTextureId;
-    public float specularity;
+    public uint albedoTextureId = -1;
+    public uint normalTextureId = -1;
+    public uint metallicTextureId = -1;
+    public uint roughnessTextureId = -1;
+    public uint emissionTextureId = -1;
+    public uint ambientOcclusionTextureId = -1;
 
-    public static const uint STRIDE = 16;
+    public float metallicFactor = 0.0f;
+    public float roughnessFactor = 0.0f;
+    public float3 albedoFactor = float3(1.0);
+
+    public static const uint STRIDE = 44;
 };
 
 public struct InstanceData {
@@ -32,5 +38,7 @@ public struct InstanceData {
 public struct VisibilityData {
     public uint instanceId;
 }
+
+public static const float PI = 3.14159265f;
 
 }

@@ -124,24 +124,23 @@ void Game::build() {
     Physbuzz::Builtin::ModelSphere::build(batch);
 
     {
-        ResourceLoader::loadTexture("default/diffuse", {.files = {{.path = "resources/textures/default/diffuse.png"}}}, batch);
-        ResourceLoader::loadTexture("default/specular", {.files = {{.path = "resources/textures/default/specular.png"}}}, batch);
+        ResourceLoader::loadTexture("default/albedo", {.files = {{.path = "resources/textures/default/albedo.png"}}}, batch);
+        ResourceLoader::loadTexture("default/metallic", {.files = {{.path = "resources/textures/default/metallic.png"}}}, batch);
 
         Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
             "default",
             {
-                .shininess = 256.0f,
                 .textures = {
                     {
-                        Physbuzz::TextureType::Diffuse,
+                        Physbuzz::TextureType::Albedo,
                         {
-                            {"default/diffuse"},
+                            {"default/albedo"},
                         },
                     },
                     {
-                        Physbuzz::TextureType::Specular,
+                        Physbuzz::TextureType::Metallic,
                         {
-                            {"default/specular"},
+                            {"default/metallic"},
                         },
                     },
                 },
@@ -149,24 +148,23 @@ void Game::build() {
     }
 
     {
-        ResourceLoader::loadTexture("crate/diffuse", {.files = {{.path = "resources/textures/crate/diffuse.png"}}}, batch);
-        ResourceLoader::loadTexture("crate/specular", {.files = {{.path = "resources/textures/crate/specular.png"}}}, batch);
+        ResourceLoader::loadTexture("crate/albedo", {.files = {{.path = "resources/textures/crate/albedo.png"}}}, batch);
+        ResourceLoader::loadTexture("crate/metallic", {.files = {{.path = "resources/textures/crate/metallic.png"}}}, batch);
 
         Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
             "crate",
             {
-                .shininess = 256.0f,
                 .textures = {
                     {
-                        Physbuzz::TextureType::Diffuse,
+                        Physbuzz::TextureType::Albedo,
                         {
-                            {"crate/diffuse"},
+                            {"crate/albedo"},
                         },
                     },
                     {
-                        Physbuzz::TextureType::Specular,
+                        Physbuzz::TextureType::Metallic,
                         {
-                            {"crate/specular"},
+                            {"crate/metallic"},
                         },
                     },
                 },
@@ -179,10 +177,9 @@ void Game::build() {
         Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
             "floor",
             {
-                .shininess = 256.0f,
                 .textures = {
                     {
-                        Physbuzz::TextureType::Diffuse,
+                        Physbuzz::TextureType::Albedo,
                         {
                             {"floor"},
                         },
@@ -238,7 +235,7 @@ void Game::build() {
 
     Physbuzz::RenderGraph graph = {{}};
 
-    graph.merge(deferred->getGraph());
+    graph.merge(forward->getGraph());
     graph.merge(skybox->getGraph());
     graph.merge(imgui->getGraph());
 

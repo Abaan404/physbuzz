@@ -7,6 +7,7 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
+#include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/render/components/lights.hpp>
 #include <physbuzz/render/defines.hpp>
 #include <unordered_set>
@@ -85,6 +86,22 @@ void ObjectList::draw() {
                 if (ImGui::DragFloat("rotMag", &angle, glm::pi<float>() / 50.0f, 0.0f, 2 * glm::pi<float>())) {
                     info.orientation = glm::angleAxis(angle, glm::normalize(axis));
                     render.transform.update(info);
+                }
+
+                for (auto &material : render.model.getInfo().materials) {
+                    const std::shared_ptr<Physbuzz::Renderer> renderer = m_Scene->getSystem<Physbuzz::Renderer>();
+
+                    if (ImGui::DragFloat3("albedoFactor", glm::value_ptr(material->albedoFactor), 0.001f, 0.0f, 1.0f)) {
+                        renderer->updateMaterial(material);
+                    }
+
+                    if (ImGui::DragFloat("metallicFactor", &material->metallicFactor, 0.001f, 0.0f, 1.0f)) {
+                        renderer->updateMaterial(material);
+                    }
+
+                    if (ImGui::DragFloat("roughnessFactor", &material->roughnessFactor, 0.001f, 0.0f, 1.0f)) {
+                        renderer->updateMaterial(material);
+                    }
                 }
             }
 

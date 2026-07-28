@@ -65,10 +65,7 @@ bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transf
 
         MaterialResult materialResult = processMaterial(aiscene->mMaterials[i]);
 
-        Material material = {
-            .shininess = materialResult.shininess,
-            .textures = {},
-        };
+        Material material;
 
         for (const auto &[type, texture] : materialResult.textures) {
             std::filesystem::path texturePath = path.parent_path() / texture.path;
@@ -140,17 +137,10 @@ const Model::Info &Model::getInfo() const {
     return m_Info;
 }
 
-std::string Model::getTextureTypeName(TextureType texture) {
-    return aiTextureTypeToString(static_cast<aiTextureType>(texture));
-}
-
 Model::MaterialResult Model::processMaterial(const aiMaterial *aimaterial) {
     ZoneScopedN("Model/ProcessMaterial");
 
-    MaterialResult result = {
-        .textures = {},
-        .shininess = 32.0f,
-    };
+    MaterialResult result;
 
     for (std::size_t i = 0; i < AI_TEXTURE_TYPE_MAX; i++) {
         aiTextureType type = static_cast<aiTextureType>(i);
@@ -161,7 +151,44 @@ Model::MaterialResult Model::processMaterial(const aiMaterial *aimaterial) {
             aiReturn successPath = aimaterial->GetTexture(type, 0, &aiPath);
             PBZ_ASSERT(successPath == aiReturn_SUCCESS, "[Model] Failed to load material texture.");
 
-            result.textures[static_cast<TextureType>(type)] = {
+            TextureType typePbz = TextureType::Unknown;
+
+            switch (type) {
+            case aiTextureType_BASE_COLOR:
+            case aiTextureType_DIFFUSE:
+                typePbz = TextureType::Albedo;
+                break;
+
+            case aiTextureType_HEIGHT:
+            case aiTextureType_NORMALS:
+                typePbz = TextureType::Normal;
+                break;
+
+            case aiTextureType_METALNESS:
+            case aiTextureType_SPECULAR:
+            case aiTextureType_SHININESS:
+                typePbz = TextureType::Metallic;
+                break;
+
+            case aiTextureType_DIFFUSE_ROUGHNESS:
+                typePbz = TextureType::Roughness;
+                break;
+
+            case aiTextureType_EMISSIVE:
+            case aiTextureType_EMISSION_COLOR:
+                typePbz = TextureType::Emission;
+                break;
+
+            case aiTextureType_AMBIENT_OCCLUSION:
+                typePbz = TextureType::AmbientOcclusion;
+                break;
+
+            default:
+                Logger::WARNING("[MaterialAllocator] Unhandled texture type {}", aiTextureTypeToString(type));
+                continue;
+            }
+
+            result.textures[typePbz] = {
                 .info = {
                     .type = Texture::Type::Dim2D,
                     .sampler = {{Physbuzz::Sampler::Type::Linear}},
@@ -171,13 +198,9 @@ Model::MaterialResult Model::processMaterial(const aiMaterial *aimaterial) {
         }
     }
 
-    float shininiess;
-    aiReturn successShininess = aimaterial->Get(AI_MATKEY_SHININESS, shininiess);
-    PBZ_ASSERT(successShininess == aiReturn_SUCCESS, "[Model] Failed to material properties.");
-
-    if (shininiess != 0.0f) {
-        result.shininess = shininiess;
-    }
+    aimaterial->Get(AI_MATKEY_BASE_COLOR, result.albedoFactor);
+    aimaterial->Get(AI_MATKEY_METALLIC_FACTOR, result.metallicFactor);
+    aimaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, result.roughnessFactor);
 
     return result;
 }

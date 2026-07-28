@@ -1,7 +1,6 @@
 module forward;
 
 import "../defines";
-import "../lighting/brdf";
 import "../lighting/lights";
 import "../lighting/material";
 import "../lighting/geometry";
@@ -98,33 +97,42 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
 
     Material *boundMaterial = (Material *)(pc.materialBaseAddress + object.materialIdx * Material.STRIDE);
 
-    float3 albedo = float3(0.0f);
-    float specular = 0.0f;
+    float metallic = 1.0f;
+    float roughness = 1.0f;
+    float3 albedo = float3(1.0f);
 
-    if (boundMaterial.diffuseTextureId != -1) {
-        albedo = textures[boundMaterial.diffuseTextureId].Sample(coarseVertex.texCoord0).rgb;
+    if (boundMaterial.albedoTextureId != -1) {
+        albedo *= textures[boundMaterial.albedoTextureId].Sample(coarseVertex.texCoord0).rgb;
     }
 
-    if (boundMaterial.specularTextureId != -1) {
-        specular = textures[boundMaterial.specularTextureId].Sample(coarseVertex.texCoord0).r;
+    if (boundMaterial.roughnessTextureId != -1) {
+        roughness *= textures[boundMaterial.roughnessTextureId].Sample(coarseVertex.texCoord0).g;
     }
 
-    if (boundMaterial.heightTextureId != -1) {
+    if (boundMaterial.metallicTextureId != -1) {
+        metallic *= textures[boundMaterial.metallicTextureId].Sample(coarseVertex.texCoord0).b;
+    }
+
+    if (boundMaterial.normalTextureId != -1) {
         float3x3 TBN = {
             coarseVertex.tangent,
             coarseVertex.bitangent,
             coarseVertex.normal,
         };
 
-        geometry.normal = textures[boundMaterial.heightTextureId].Sample(coarseVertex.texCoord0).rgb;
+        geometry.normal = textures[boundMaterial.normalTextureId].Sample(coarseVertex.texCoord0).rgb;
         geometry.normal = geometry.normal * 2.0 - 1.0;
         geometry.normal = normalize(mul(geometry.normal, TBN));
     }
 
+    metallic *= boundMaterial.metallicFactor;
+    roughness *= boundMaterial.roughnessFactor;
+    albedo *= boundMaterial.albedoFactor;
+
     SimpleMaterial material = {
         albedo,
-        specular,
-        125.0f,
+        metallic,
+        roughness,
     };
 
     let brdf = material.prepare(geometry);
@@ -133,27 +141,26 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
 
     float3 color = {};
 
-    static if (enableShadows) {
-        for (int i = 0; i < pc.directionalCount; i++) {
-            color += directionals[i].shadow(geometry, directionalDepth) * directionals[i].illuminate(geometry, brdf, viewDirection);
-        }
-
-        for (int i = 0; i < pc.pointCount; i++) {
-            color += points[i].shadow(geometry, pointDepth) * points[i].illuminate(geometry, brdf, viewDirection);
-        }
+    for (int i = 0; i < pc.directionalCount; i++) {
+        color += directionals[i].illuminate(geometry, brdf, viewDirection);
     }
-    else {
-        for (int i = 0; i < pc.directionalCount; i++) {
-            color += directionals[i].illuminate(geometry, brdf, viewDirection);
-        }
 
-        for (int i = 0; i < pc.pointCount; i++) {
-            color += points[i].illuminate(geometry, brdf, viewDirection);
-        }
+    for (int i = 0; i < pc.pointCount; i++) {
+        color += points[i].illuminate(geometry, brdf, viewDirection);
     }
 
     for (int i = 0; i < pc.spotCount; i++) {
         color += spots[i].illuminate(geometry, brdf, viewDirection);
+    }
+
+    static if (enableShadows) {
+        for (int i = 0; i < pc.directionalCount; i++) {
+            color *= directionals[i].shadow(geometry, directionalDepth);
+        }
+
+        for (int i = 0; i < pc.pointCount; i++) {
+            color *= points[i].shadow(geometry, pointDepth);
+        }
     }
 
     return float4(color, 1.0);

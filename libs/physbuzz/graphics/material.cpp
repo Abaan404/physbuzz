@@ -73,43 +73,7 @@ bool MaterialAllocator::build() {
         }
 
         if (m_Materials.add(material)) {
-            // create a new material buffer
-            Builtin::LayoutMaterial::MaterialBuffer buffer;
-
-            for (const auto &[type, texture] : material->textures) {
-                switch (type) {
-                case TextureType::BaseColor:
-                case TextureType::Diffuse:
-                    buffer.diffuseTextureId = m_Textures.query(texture);
-                    break;
-
-                case TextureType::Metalness:
-                case TextureType::Specular:
-                case TextureType::Shininess:
-                    buffer.specularTextureId = m_Textures.query(texture);
-                    break;
-
-                case TextureType::Height:
-                case TextureType::Normals:
-                    buffer.heightTextureId = m_Textures.query(texture);
-                    break;
-
-                default:
-                    Logger::WARNING("[MaterialAllocator] Unhandled texture type {}", Model::getTextureTypeName(type));
-                    break;
-                }
-            }
-
-            buffer.specularity = material->shininess;
-
-            std::uint32_t idx = m_Materials.query(material);
-
-            if (m_Buffer.size() <= idx) {
-                m_Buffer.resize(idx + 1);
-            }
-
-            m_Buffer[idx] = buffer;
-            m_BufferIsDirty = true;
+            update(material);
         }
     });
 
@@ -151,6 +115,55 @@ bool MaterialAllocator::destroy() {
     ResourceRegistry<Material>::Events.eraseCallback<OnResourceDestroy>(m_Events.destroy);
 
     return true;
+}
+
+void MaterialAllocator::update(Resource<Material> material) {
+    // create a new material buffer
+    Builtin::LayoutMaterial::MaterialBuffer buffer;
+
+    for (const auto &[type, texture] : material->textures) {
+        switch (type) {
+        case TextureType::Albedo:
+            buffer.albedoTextureId = m_Textures.query(texture);
+            break;
+
+        case TextureType::Normal:
+            buffer.normalTextureId = m_Textures.query(texture);
+            break;
+
+        case TextureType::Metallic:
+            buffer.metallicTextureId = m_Textures.query(texture);
+            break;
+
+        case TextureType::Roughness:
+            buffer.roughnessTextureId = m_Textures.query(texture);
+            break;
+
+        case TextureType::Emission:
+            buffer.emissionTextureId = m_Textures.query(texture);
+            break;
+
+        case TextureType::AmbientOcclusion:
+            buffer.ambientOcclusionTextureId = m_Textures.query(texture);
+            break;
+
+        case TextureType::Unknown:
+            continue;
+        }
+    }
+
+    buffer.albedoFactor = material->albedoFactor;
+    buffer.metallicFactor = material->metallicFactor;
+    buffer.roughnessFactor = material->roughnessFactor;
+
+    std::uint32_t idx = m_Materials.query(material);
+
+    if (m_Buffer.size() <= idx) {
+        m_Buffer.resize(idx + 1);
+    }
+
+    m_Buffer[idx] = buffer;
+    m_BufferIsDirty = true;
 }
 
 void MaterialAllocator::refresh(const RenderContext &context) {

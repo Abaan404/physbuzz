@@ -1,6 +1,8 @@
 module brdf;
 
 __include "brdf/blinnphong";
+__include "brdf/cooktorrence";
+__include "brdf/lambertian";
 
 namespace Physbuzz {
 

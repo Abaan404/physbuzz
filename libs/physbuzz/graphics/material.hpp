@@ -16,10 +16,16 @@ namespace Builtin {
 namespace LayoutMaterial {
 
 struct MaterialBuffer {
-    std::uint32_t diffuseTextureId = -1;
-    std::uint32_t specularTextureId = -1;
-    std::uint32_t heightTextureId = -1;
-    float specularity = 256.0f;
+    std::uint32_t albedoTextureId = -1;
+    std::uint32_t normalTextureId = -1;
+    std::uint32_t metallicTextureId = -1;
+    std::uint32_t roughnessTextureId = -1;
+    std::uint32_t emissionTextureId = -1;
+    std::uint32_t ambientOcclusionTextureId = -1;
+
+    float metallicFactor = 1.0f;
+    float roughnessFactor = 1.0f;
+    glm::vec3 albedoFactor = glm::vec3(1.0f);
 };
 
 inline Resource<DescriptorLayout> Resource = {"builtin/material"};
@@ -31,8 +37,11 @@ bool build();
 } // namespace Builtin
 
 struct Material {
-    float shininess = 32.0f;
     std::unordered_map<TextureType, Resource<Texture>> textures;
+
+    float metallicFactor = 1.0f;
+    float roughnessFactor = 1.0f;
+    glm::vec3 albedoFactor = glm::vec3(1.0f);
 };
 
 template <>
@@ -46,6 +55,7 @@ class MaterialAllocator {
     bool destroy();
 
     void refresh(const RenderContext &context);
+    void update(Resource<Material> material);
 
     std::uint32_t query(const Resource<Material> &material) const;
     std::uint32_t query(const Resource<Texture> &texture) const;

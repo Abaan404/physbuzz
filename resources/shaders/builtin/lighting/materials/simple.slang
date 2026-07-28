@@ -3,15 +3,15 @@ implementing "../material";
 namespace Physbuzz {
 
 public struct SimpleMaterial : IMaterial {
-    public const float3 diffuse;
-    public const float specular;
-    public const float specularity;
+    public const float3 albedo;
+    public const float metallic;
+    public const float roughness;
 
-    public BlinnPhong prepare(Geometry geometry) {
+    public CookTorrence prepare(Geometry geometry) {
         return {
-            diffuse,
-            specular,
-            specularity
+            albedo,
+            metallic,
+            roughness
         };
     }
 };

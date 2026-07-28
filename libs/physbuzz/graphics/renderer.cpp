@@ -321,6 +321,10 @@ void Renderer::setGraph(const RenderGraph &graph) {
     m_Graph = graph;
 }
 
+void Renderer::updateMaterial(const Resource<Material> &material) {
+    m_MaterialAllocator.update(material);
+}
+
 const RenderGraph &Renderer::getGraph() const {
     return m_Graph;
 }

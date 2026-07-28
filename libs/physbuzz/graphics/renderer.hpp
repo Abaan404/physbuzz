@@ -28,6 +28,7 @@ class Renderer : public System<> {
     void immediate(const std::function<void(vk::CommandBuffer)> &record);
 
     void setGraph(const RenderGraph &graph);
+    void updateMaterial(const Resource<Material> &material);
 
     bool map(const Buffer &buffer, const std::span<const std::byte> &bytes, std::uint64_t offset);
     bool map(const Image &image, const std::span<const std::byte> &bytes);

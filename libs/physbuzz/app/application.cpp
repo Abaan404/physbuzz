@@ -244,6 +244,7 @@ bool App::init(const DescriptorLayoutAllocator::Info &layoutAllocatorInfo) {
                 .descriptorBindingStorageImageUpdateAfterBind = true,
                 .descriptorBindingPartiallyBound = true,
                 .runtimeDescriptorArray = true,
+                .scalarBlockLayout = true,
 #ifdef PHYSBUZZ_ENABLE_TRACY
                 .hostQueryReset = true,
 #endif
@@ -287,7 +288,7 @@ bool App::init(const DescriptorLayoutAllocator::Info &layoutAllocatorInfo) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-designated-field-initializers" // ignore deprecated properties
     vk::DeviceCreateInfo deviceCreateInfo = {
-        .pNext = &deviceFeatureChain.get<vk::PhysicalDeviceFeatures2>(),
+        .pNext = &deviceFeatureChain.get(),
         .queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size()),
         .pQueueCreateInfos = queueCreateInfos.data(),
         .enabledExtensionCount = static_cast<std::uint32_t>(deviceExtensions.size()),
