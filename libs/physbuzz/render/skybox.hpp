@@ -16,8 +16,12 @@ namespace Builtin {
 
 namespace PipelineSkybox {
 
-inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/skybox/frame"};
+struct PushConstants {
+    std::uint32_t isCubemap;
+};
+
 inline Resource<DescriptorLayout> ResourceLayoutTexture = {"builtin/skybox/texture"};
+inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/skybox/frame"};
 
 inline Resource<GraphicsPipeline> Resource = {"builtin/skybox"};
 

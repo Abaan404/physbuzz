@@ -188,6 +188,8 @@ void Game::build() {
             });
     }
 
+    ResourceLoader::loadTexture("hdr_skybox", {.files = {{.path = "resources/textures/hdr_skybox/newport_loft.hdr"}}}, batch);
+
     ResourceLoader::loadCubemap(
         "skybox",
         {
@@ -230,7 +232,7 @@ void Game::build() {
         Physbuzz::SkyboxRenderer::Info{
             .camera = playerId,
             .window = window,
-            .skybox = {"skybox"},
+            .skybox = {"hdr_skybox"},
         });
 
     Physbuzz::RenderGraph graph = {{}};

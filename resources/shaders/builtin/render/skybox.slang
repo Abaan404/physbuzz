@@ -54,8 +54,18 @@ static const float3 vertices[36] = {
     float3(1, -1, -1)
 };
 
+struct PushConstants {
+    uint isCubemap;
+};
+
+[[vk::push_constant]]
+PushConstants pc;
+
 [[vk::binding(0, 0)]]
-SamplerCube<float4> skybox;
+SamplerCube<float4> skybox_cube;
+
+[[vk::binding(1, 0)]]
+Sampler2D<float4> skybox_equirectangular;
 
 [[vk::binding(0, 1)]]
 ConstantBuffer<Camera> camera;
@@ -88,7 +98,21 @@ VSOutput vertMain(uint vertexIdx: SV_VertexID) {
 
 [shader("fragment")]
 float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
-    return skybox.Sample(coarseVertex.texCoord);
+    if (pc.isCubemap == 1) {
+        return skybox_cube.Sample(coarseVertex.texCoord);
+    }
+
+    float2 uv = {
+        atan(coarseVertex.texCoord.z / coarseVertex.texCoord.x),
+        asin(coarseVertex.texCoord.y)
+    };
+
+    const float2 invAtan = float2(0.1591, 0.3183);
+
+    uv *= invAtan;
+    uv += 0.5;
+
+    return skybox_equirectangular.Sample(uv);
 }
 
 }

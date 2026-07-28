@@ -3,6 +3,7 @@
 #include "../app/application.hpp"
 #include "../ecs/scene.hpp"
 #include "../events/window.hpp"
+#include "../graphics/descriptors/texture.hpp"
 #include "../graphics/layout.hpp"
 #include "../graphics/mesh.hpp"
 #include "../graphics/pipeline.hpp"
@@ -41,7 +42,11 @@ bool PipelineSkybox::build() {
             {{
                 .bindings = {
                     {
-                        // skybox
+                        // skybox (cubemap)
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    },
+                    {
+                        // skybox (equirectangular)
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
                     },
                 },
@@ -61,6 +66,12 @@ bool PipelineSkybox::build() {
                         ResourceLayoutTexture,
                         ResourceLayoutFrame,
                     },
+                    .pushConstantRanges = {
+                        {
+                            .stageFlags = GraphicsPipeline::PushConstantsStageFlags::eAll,
+                            .size = sizeof(PushConstants),
+                        },
+                    },
                 },
             },
         });
@@ -79,6 +90,8 @@ bool SkyboxRenderer::build() {
         Logger::ERROR("[SkyboxRenderer] Could not build skybox pipeline.");
         return false;
     }
+
+    bool isCubemap = m_Info.skybox->getInfo().type == Texture::Type::Cube;
 
     m_Events = {
         .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const WindowSwapchainResizeEvent &event) {
@@ -104,7 +117,7 @@ bool SkyboxRenderer::build() {
                     },
                 },
             },
-            .execute = [this](Scene *, const RenderContext &context) {
+            .execute = [this, isCubemap](Scene *, const RenderContext &context) {
                 ZoneScopedN("SkyboxRenderer/Execute");
                 TracyVkZone(context.tracy, context.command, "SkyboxRenderer");
 
@@ -152,6 +165,12 @@ bool SkyboxRenderer::build() {
                     .pStencilAttachment = {},
                 });
 
+                Builtin::PipelineSkybox::PushConstants pushConstants = {
+                    .isCubemap = isCubemap,
+                };
+
+                Builtin::PipelineSkybox::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+
                 // bind resources
                 Builtin::PipelineSkybox::Resource->bind(context);
                 App::LayoutAllocator.bind(context, Builtin::PipelineSkybox::Resource);
@@ -168,18 +187,33 @@ bool SkyboxRenderer::build() {
     success &= m_Graph.compile();
 
     if (success) {
-        success &= App::LayoutAllocator.write(
-            Builtin::PipelineSkybox::ResourceLayoutTexture,
-            m_Info.skybox,
-            {
-                .type = Image::ViewType::eCube,
-                .subresourceRange = {
-                    .aspectMask = Image::AspectFlags::eColor,
-                    .levelCount = Image::RemainingMipLevels,
-                    .layerCount = 6,
+        if (isCubemap) {
+            success &= App::LayoutAllocator.write(
+                Builtin::PipelineSkybox::ResourceLayoutTexture,
+                m_Info.skybox,
+                {
+                    .type = Image::ViewType::eCube,
+                    .subresourceRange = {
+                        .aspectMask = Image::AspectFlags::eColor,
+                        .levelCount = Image::RemainingMipLevels,
+                        .layerCount = 6,
+                    },
                 },
-            },
-            0);
+                0);
+        } else {
+            success &= App::LayoutAllocator.write(
+                Builtin::PipelineSkybox::ResourceLayoutTexture,
+                m_Info.skybox,
+                {
+                    .type = Image::ViewType::e2D,
+                    .subresourceRange = {
+                        .aspectMask = Image::AspectFlags::eColor,
+                        .levelCount = Image::RemainingMipLevels,
+                        .layerCount = 1,
+                    },
+                },
+                1);
+        }
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineSkybox::ResourceLayoutFrame,
