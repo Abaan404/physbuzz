@@ -6,8 +6,10 @@ namespace Physbuzz {
 
 public struct CookTorrence : IBRDF {
     public float3 albedo;
+    public float3 irradiance;
     public float metallic;
     public float roughness;
+    public float ambientOcclusion;
 
     public float3 evaluate(float3 incident, float3 exitant, float3 normal) {
         float3 halfway = normalize(incident + exitant);
@@ -23,10 +25,22 @@ public struct CookTorrence : IBRDF {
 
         // Energy conservation
         float3 ks = F;
-        float3 kd = float3(1.0, 1.0, 1.0) - ks;
+        float3 kd = float3(1.0) - ks;
         kd *= 1.0 - metallic;
 
-        return (kd * albedo / PI + specular);
+        float3 diffuse = kd * albedo / PI;
+
+        return (diffuse + specular);
+    }
+
+    public float3 evaluateIndirect(float3 exitant, float3 normal) {
+        float3 ks = fresnel(normal, exitant);
+        float3 kd = 1.0 - ks;
+        kd *= 1.0 - metallic;
+
+        float3 diffuse = kd * irradiance * albedo;
+
+        return diffuse * ambientOcclusion;
     }
 
     // Schlick 94 approximation
@@ -37,7 +51,8 @@ public struct CookTorrence : IBRDF {
 
         float cosTheta = max(dot(microNormal, incident), 0.0f);
 
-        return F0 + (1.0f - F0) * pow(clamp(1.0f - cosTheta, 0.0f, 1.0f), 5);
+        // injecting a roughness term https://seblagarde.wordpress.com/2011/08/17/hello-world/
+        return F0 + (max(float3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
     }
 
     // GGX/Trowbridge-Reitz Distribution

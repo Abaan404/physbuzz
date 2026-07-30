@@ -1,6 +1,7 @@
 module skybox;
 
 import "../defines";
+import "../spherical";
 
 namespace Physbuzz {
 
@@ -102,15 +103,8 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
         return skybox_cube.Sample(coarseVertex.texCoord);
     }
 
-    float2 uv = {
-        atan(coarseVertex.texCoord.z / coarseVertex.texCoord.x),
-        asin(coarseVertex.texCoord.y)
-    };
-
-    const float2 invAtan = float2(0.1591, 0.3183);
-
-    uv *= invAtan;
-    uv += 0.5;
+    coarseVertex.texCoord.y *= -1; // flip upside down because flipVertically doesnt seem to flip correctly (FIXME)
+    float2 uv = directionToUV(normalize(coarseVertex.texCoord));
 
     return skybox_equirectangular.Sample(uv);
 }

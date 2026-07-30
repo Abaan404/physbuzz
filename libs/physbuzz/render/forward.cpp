@@ -28,6 +28,21 @@ bool PipelineForward::build() {
         success &= LayoutMaterial::build();
     }
 
+    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutGlobal)) {
+        success &= ResourceRegistry<DescriptorLayout>::insert(
+            ResourceLayoutGlobal,
+            {{
+                .bindings = {
+                    {
+                        // precomputed irradiance map
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
+                    },
+                },
+                .lifetime = DescriptorLayout::Lifetime::Global,
+            }});
+    }
+
     if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutFrame)) {
         success &= ResourceRegistry<DescriptorLayout>::insert(
             ResourceLayoutFrame,
@@ -89,6 +104,7 @@ bool PipelineForward::build() {
                 .layouts = {
                     .resources = {
                         LayoutMaterial::Resource,
+                        ResourceLayoutGlobal,
                         ResourceLayoutFrame,
                     },
                     .pushConstantRanges = {
@@ -284,6 +300,19 @@ bool ForwardRenderer::build() {
     success &= m_Graph.compile();
 
     if (success) {
+        success &= App::LayoutAllocator.write(
+            Builtin::PipelineForward::ResourceLayoutGlobal,
+            m_Info.resources.irradianceMap,
+            Image::ViewInfo{
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eColor,
+                    .levelCount = Image::RemainingMipLevels,
+                    .layerCount = 1,
+                },
+            },
+            0);
+
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,
             Builtin::RenderNodeCamera::ResourceBuffer,

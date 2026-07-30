@@ -188,7 +188,8 @@ void Game::build() {
             });
     }
 
-    ResourceLoader::loadTexture("hdr_skybox", {.files = {{.path = "resources/textures/hdr_skybox/newport_loft.hdr"}}}, batch);
+    ResourceLoader::loadTexture("hdr_skybox", {.files = {{.path = "resources/textures/hdr_skybox/newport_loft.hdr"}}, .flipVertically = true}, batch);
+    ResourceLoader::loadTexture("hdr_skybox_irradiance", {.files = {{.path = "resources/textures/hdr_skybox/newport_loft_irradiance.png"}}, .flipVertically = true}, batch);
 
     ResourceLoader::loadCubemap(
         "skybox",
@@ -215,6 +216,9 @@ void Game::build() {
         Physbuzz::ForwardRenderer::Info{
             .camera = playerId,
             .window = window,
+            .resources = {
+                .irradianceMap = {"hdr_skybox_irradiance"},
+            },
         });
 
     std::shared_ptr<Physbuzz::DeferredRenderer> deferred = Physbuzz::App::GScene.createSystem<Physbuzz::DeferredRenderer>(

@@ -27,6 +27,7 @@ struct Specialization {
     std::uint32_t enableShadows;
 };
 
+inline Resource<DescriptorLayout> ResourceLayoutGlobal = {"builtin/forward/global"};
 inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/forward/frame"};
 
 inline Resource<GraphicsPipeline> Resource = {"builtin/forward"};
@@ -44,6 +45,10 @@ class ForwardRenderer : public System<RenderComponent> {
     struct Info {
         ObjectID camera;
         std::shared_ptr<Window> window;
+
+        struct {
+            Resource<Texture> irradianceMap = {""};
+        } resources;
     };
 
     ForwardRenderer(const Info &info);

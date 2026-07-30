@@ -18,6 +18,10 @@ public struct BlinnPhong : IBRDF {
 
         return diffuse + specular;
     }
+
+    public float3 evaluateIndirect(float3 exitant, float3 normal) {
+        return float3(0.0f);
+    }
 };
 
 }

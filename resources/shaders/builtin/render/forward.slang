@@ -1,6 +1,7 @@
 module forward;
 
 import "../defines";
+import "../spherical";
 import "../lighting/lights";
 import "../lighting/material";
 import "../lighting/geometry";
@@ -25,27 +26,30 @@ PushConstants pc;
 Sampler2D<float3> textures[];
 
 [[vk::binding(0, 1)]]
+Sampler2D<float4> irradianceMap;
+
+[[vk::binding(0, 2)]]
 ConstantBuffer<Camera> camera;
 
-[[vk::binding(1, 1)]]
+[[vk::binding(1, 2)]]
 StructuredBuffer<DirectionalLight> directionals;
 
-[[vk::binding(2, 1)]]
+[[vk::binding(2, 2)]]
 StructuredBuffer<PointLight> points;
 
-[[vk::binding(3, 1)]]
+[[vk::binding(3, 2)]]
 StructuredBuffer<SpotLight> spots;
 
-[[vk::binding(4, 1)]]
+[[vk::binding(4, 2)]]
 StructuredBuffer<InstanceData> objects;
 
-[[vk::binding(5, 1)]]
+[[vk::binding(5, 2)]]
 StructuredBuffer<VisibilityData> visibleInstances;
 
-[[vk::binding(6, 1)]]
+[[vk::binding(6, 2)]]
 Sampler2D<float> directionalDepth;
 
-[[vk::binding(7, 1)]]
+[[vk::binding(7, 2)]]
 SamplerCube<float> pointDepth;
 
 struct VSInput {
@@ -99,6 +103,8 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
 
     float metallic = 1.0f;
     float roughness = 1.0f;
+    float ambientOcclusion = 1.0f;
+    float3 irradiance = 1.0f;
     float3 albedo = float3(1.0f);
 
     if (boundMaterial.albedoTextureId != -1) {
@@ -125,14 +131,17 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
         geometry.normal = normalize(mul(geometry.normal, TBN));
     }
 
+    irradiance *= irradianceMap.Sample(directionToUV(normalize(coarseVertex.normal))).rgb;
     metallic *= boundMaterial.metallicFactor;
     roughness *= boundMaterial.roughnessFactor;
     albedo *= boundMaterial.albedoFactor;
 
     SimpleMaterial material = {
         albedo,
+        irradiance,
         metallic,
         roughness,
+        ambientOcclusion,
     };
 
     let brdf = material.prepare(geometry);
@@ -152,6 +161,8 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     for (int i = 0; i < pc.spotCount; i++) {
         color += spots[i].illuminate(geometry, brdf, viewDirection);
     }
+
+    color += brdf.evaluateIndirect(viewDirection, geometry.normal);
 
     static if (enableShadows) {
         for (int i = 0; i < pc.directionalCount; i++) {

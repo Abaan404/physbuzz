@@ -8,6 +8,7 @@ namespace Physbuzz {
 
 public interface IBRDF {
     public float3 evaluate(float3 incident, float3 exitant, float3 normal);
+    public float3 evaluateIndirect(float3 exitant, float3 normal);
 };
 
 }
