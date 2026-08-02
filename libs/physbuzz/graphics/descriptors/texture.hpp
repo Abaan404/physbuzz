@@ -21,8 +21,14 @@ class Texture : public EventSubject {
         Dim2D,
     };
 
+    enum class Usage {
+        Sampled,
+        Storage,
+    };
+
     struct Info {
         Type type;
+        Usage usage = Usage::Sampled;
         Format format = Format::eR8G8B8A8Unorm;
 
         Sampler sampler = {{Sampler::Type::None}};

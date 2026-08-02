@@ -221,15 +221,37 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
     vk::DescriptorType type = {};
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
-    switch (texture->getInfo().type) {
-    case Texture::Type::Dim2D:
-    case Texture::Type::Cube:
+    switch (texture->getInfo().usage) {
+    case Texture::Usage::Sampled:
         imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
         if (texture->getInfo().sampler.getInfo().type == Sampler::Type::None) {
             type = vk::DescriptorType::eSampledImage;
         } else {
             type = vk::DescriptorType::eCombinedImageSampler;
+        }
+        break;
+
+    case Texture::Usage::Storage:
+        switch (layout->getInfo().bindings[binding].type) {
+        case vk::DescriptorType::eCombinedImageSampler:
+        case vk::DescriptorType::eSampledImage:
+            imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+
+            if (texture->getInfo().sampler.getInfo().type == Sampler::Type::None) {
+                type = vk::DescriptorType::eSampledImage;
+            } else {
+                type = vk::DescriptorType::eCombinedImageSampler;
+            }
+            break;
+
+        case vk::DescriptorType::eStorageImage:
+            imageLayout = vk::ImageLayout::eGeneral;
+            type = vk::DescriptorType::eStorageImage;
+            break;
+
+        default:
+            break;
         }
 
         break;
@@ -557,18 +579,40 @@ bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout
 }
 
 bool DescriptorLayoutAllocator::rewrite(const Resource<DescriptorLayout> &layout, const Resource<Texture> &texture, const Image::ViewInfo &viewInfo, std::uint32_t binding, std::uint32_t element) {
-    vk::DescriptorType type;
+    vk::DescriptorType type = {};
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
-    switch (texture->getInfo().type) {
-    case Texture::Type::Dim2D:
-    case Texture::Type::Cube:
+    switch (texture->getInfo().usage) {
+    case Texture::Usage::Sampled:
         imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
         if (texture->getInfo().sampler.getInfo().type == Sampler::Type::None) {
             type = vk::DescriptorType::eSampledImage;
         } else {
             type = vk::DescriptorType::eCombinedImageSampler;
+        }
+        break;
+
+    case Texture::Usage::Storage:
+        switch (layout->getInfo().bindings[binding].type) {
+        case vk::DescriptorType::eCombinedImageSampler:
+        case vk::DescriptorType::eSampledImage:
+            imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+
+            if (texture->getInfo().sampler.getInfo().type == Sampler::Type::None) {
+                type = vk::DescriptorType::eSampledImage;
+            } else {
+                type = vk::DescriptorType::eCombinedImageSampler;
+            }
+            break;
+
+        case vk::DescriptorType::eStorageImage:
+            imageLayout = vk::ImageLayout::eGeneral;
+            type = vk::DescriptorType::eStorageImage;
+            break;
+
+        default:
+            break;
         }
 
         break;

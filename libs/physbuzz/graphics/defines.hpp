@@ -21,16 +21,15 @@ static constexpr std::uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 }
 
 struct RenderContext {
-    DeletionQueue *deletionQueue;
     MaterialAllocator *materialAllocator;
-
-    const Attachment *depth;
     TracyVkCtx tracy;
 
+    DeletionQueue *deletionQueue;
     vk::CommandBuffer command;
-    vk::Extent2D extent;
     std::uint32_t frameInFlight;
 
+    vk::Extent2D extent;
+    const Attachment *depth;
     struct {
         vk::Image image;
         vk::ImageView view;

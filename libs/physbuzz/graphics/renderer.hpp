@@ -26,6 +26,7 @@ class Renderer : public System<> {
 
     void tick();
     void immediate(const std::function<void(vk::CommandBuffer)> &record);
+    void immediate(const RenderGraph &graph);
 
     void setGraph(const RenderGraph &graph);
     void updateMaterial(const Resource<Material> &material);

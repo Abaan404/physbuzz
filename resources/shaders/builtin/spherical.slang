@@ -1,5 +1,7 @@
 module spherical;
 
+import "defines";
+
 namespace Physbuzz {
 
 public float2 directionToUV(float3 direction) {
@@ -13,6 +15,13 @@ public float2 directionToUV(float3 direction) {
     };
 
     return uv * invAtan + 0.5;
+}
+
+public float3 uvToDirection(float2 uv) {
+    float phi = (uv.x - 0.5) * 2.0 * PI;
+    float theta = (uv.y - 0.5) * PI;
+
+    return normalize(float3(cos(theta) * cos(phi), sin(theta), cos(theta) * sin(phi)));
 }
 
 }

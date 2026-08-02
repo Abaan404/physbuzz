@@ -39,6 +39,6 @@ public struct VisibilityData {
     public uint instanceId;
 }
 
-public static const float PI = 3.14159265f;
+public static const float PI = 3.14159265359f;
 
 }

@@ -22,6 +22,19 @@ bool Texture::build(const glm::uvec3 &resolution) {
     }
 
     std::uint32_t mipLevels = std::floor(std::log2(std::max(resolution.x, resolution.y))) + 1;
+    vk::ImageUsageFlags usage = Image::UsageFlags::eTransferSrc | Image::UsageFlags::eTransferDst;
+
+    switch (m_Info.usage) {
+    case Usage::Sampled:
+        usage |= Image::UsageFlags::eSampled;
+        break;
+
+    case Usage::Storage:
+        // most likely this texture would be sampled anyways
+        usage |= Image::UsageFlags::eSampled | Image::UsageFlags::eStorage;
+        mipLevels = 1;
+        break;
+    }
 
     std::vector<Image::ViewInfo> views = m_Info.additionalViews;
 
@@ -37,7 +50,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
         });
 
         image = {{
-            .usage = Image::UsageFlags::eSampled | Image::UsageFlags::eTransferSrc | Image::UsageFlags::eTransferDst,
+            .usage = usage,
             .type = Image::Type::e2D,
             .mipLevels = mipLevels,
             .format = m_Info.format,
@@ -56,7 +69,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
         });
 
         image = {{
-            .usage = Image::UsageFlags::eSampled | Image::UsageFlags::eTransferSrc | Image::UsageFlags::eTransferDst,
+            .usage = usage,
             .type = Image::Type::e2D,
             .mipLevels = mipLevels,
             .arrayLayers = 6,

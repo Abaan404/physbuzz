@@ -139,13 +139,13 @@ void Renderer::tick() {
     vk::Extent2D extent = {static_cast<std::uint32_t>(m_Info.window->m_SwapChainExtent.x), static_cast<std::uint32_t>(m_Info.window->m_SwapChainExtent.y)};
 
     RenderContext context = {
-        .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
         .materialAllocator = &m_MaterialAllocator,
-        .depth = &m_Depth,
         .tracy = App::Tracy,
+        .deletionQueue = &m_DeletionQueues[m_FrameInFlight],
         .command = m_Command.buffers[m_FrameInFlight],
-        .extent = extent,
         .frameInFlight = m_FrameInFlight,
+        .extent = extent,
+        .depth = &m_Depth,
         .color = {
             .image = m_Info.window->m_SwapChainImages[imageIndex],
             .view = m_Info.window->m_SwapChainImageViews[imageIndex],
@@ -283,7 +283,9 @@ void Renderer::tick() {
     FrameMark;
 }
 
-void Renderer::immediate(const std::function<void(vk::CommandBuffer)> &record) {
+void Renderer::immediate(const RenderGraph &graph) {
+    ZoneScopedN("Renderer/ImmediateGraph");
+
     // prepare the command buffer
     vk::CommandBuffer immediate = nullptr;
 
@@ -301,7 +303,68 @@ void Renderer::immediate(const std::function<void(vk::CommandBuffer)> &record) {
         .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
     }));
 
-    record(immediate);
+    TracyVkCollect(App::Tracy, immediate);
+
+    DeletionQueue deletionQueue;
+
+    RenderContext context = {
+        .materialAllocator = &m_MaterialAllocator,
+        .tracy = App::Tracy,
+        .deletionQueue = &deletionQueue,
+        .command = immediate,
+        .frameInFlight = ~0u, // frame in flight should not be used for this execution
+    };
+
+    // refresh the material state
+    m_MaterialAllocator.refresh(context);
+
+    {
+        TracyVkZone(App::Tracy, immediate, "RenderGraph/ImmediateGraph");
+
+        // execute the graph
+        graph.execute(m_Scene, context);
+    }
+
+    PBZ_VK_CHECK_RESULT(immediate.end());
+
+    vk::SubmitInfo submitInfo = {
+        .commandBufferCount = 1,
+        .pCommandBuffers = &immediate,
+    };
+
+    PBZ_VK_CHECK_RESULT(App::Queues.graphics.submit(submitInfo, m_Fences.immediate));
+    PBZ_VK_CHECK_RESULT(App::Device.waitForFences(m_Fences.immediate, vk::True, std::numeric_limits<std::uint64_t>::max()));
+
+    deletionQueue.flush();
+
+    App::Device.freeCommandBuffers(m_Command.pool, 1, &immediate);
+    immediate = nullptr;
+}
+
+void Renderer::immediate(const std::function<void(vk::CommandBuffer)> &record) {
+    ZoneScopedN("Renderer/Immediate");
+
+    // prepare the command buffer
+    vk::CommandBuffer immediate = nullptr;
+
+    // create immediate buffers
+    vk::CommandBufferAllocateInfo allocateInfo = {
+        .commandPool = m_Command.pool,
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1,
+    };
+
+    PBZ_VK_CHECK_RESULT(App::Device.allocateCommandBuffers(&allocateInfo, &immediate));
+    PBZ_VK_CHECK_RESULT(App::Device.resetFences(m_Fences.immediate));
+
+    PBZ_VK_CHECK_RESULT(immediate.begin({
+        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+    }));
+
+    {
+        TracyVkZone(App::Tracy, immediate, "RenderGraph/Immediate");
+        record(immediate);
+    }
 
     PBZ_VK_CHECK_RESULT(immediate.end());
 
