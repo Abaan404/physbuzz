@@ -23,7 +23,12 @@ bool PipelinePrefilter::build() {
             {{
                 .bindings = {
                     {
-                        // environment map
+                        // environment map (cubemap)
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .stage = DescriptorLayout::ShaderStageFlags::eCompute,
+                    },
+                    {
+                        // environment map (equirectangular)
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
                         .stage = DescriptorLayout::ShaderStageFlags::eCompute,
                     },
@@ -44,6 +49,12 @@ bool PipelinePrefilter::build() {
         {
             {
                 .module = "builtin/compute/prefilter",
+                .specialization = {
+                    .offsets = {
+                        offsetof(Specialization, isCubemap),
+                    },
+                    .size = sizeof(Specialization),
+                },
             },
             {
                 .layouts = {
@@ -76,6 +87,12 @@ bool PrefilterCompute::build() {
     }
 
     bool success = true;
+
+    Builtin::PipelinePrefilter::Specialization specialization = {
+        .isCubemap = m_Info.environmentMap->getInfo().type == Texture::Type::Cube,
+    };
+
+    success &= Builtin::PipelinePrefilter::Resource->specialize(specialization);
 
     std::vector<Image::SubresourceRange> subresourceRanges;
     std::vector<Image::ViewInfo> additionalViews;
@@ -166,18 +183,33 @@ bool PrefilterCompute::build() {
     success &= m_Graph.compile();
 
     if (success) {
-        success &= App::LayoutAllocator.write(
-            Builtin::PipelinePrefilter::ResourceLayout,
-            m_Info.environmentMap,
-            Image::ViewInfo{
-                .type = Image::ViewType::e2D,
-                .subresourceRange = {
-                    .aspectMask = Image::AspectFlags::eColor,
-                    .levelCount = Image::RemainingMipLevels,
-                    .layerCount = 1,
+        if (specialization.isCubemap) {
+            success &= App::LayoutAllocator.write(
+                Builtin::PipelinePrefilter::ResourceLayout,
+                m_Info.environmentMap,
+                {
+                    .type = Image::ViewType::eCube,
+                    .subresourceRange = {
+                        .aspectMask = Image::AspectFlags::eColor,
+                        .levelCount = Image::RemainingMipLevels,
+                        .layerCount = 6,
+                    },
                 },
-            },
-            0);
+                0);
+        } else {
+            success &= App::LayoutAllocator.write(
+                Builtin::PipelinePrefilter::ResourceLayout,
+                m_Info.environmentMap,
+                {
+                    .type = Image::ViewType::e2D,
+                    .subresourceRange = {
+                        .aspectMask = Image::AspectFlags::eColor,
+                        .levelCount = Image::RemainingMipLevels,
+                        .layerCount = 1,
+                    },
+                },
+                1);
+        }
 
         // write each mip level view into the descriptor array
         for (std::uint32_t mipLevel = 0; mipLevel < mipLevels; mipLevel++) {
@@ -193,7 +225,7 @@ bool PrefilterCompute::build() {
                         .layerCount = 1,
                     },
                 },
-                1, mipLevel);
+                2, mipLevel);
         }
     }
 

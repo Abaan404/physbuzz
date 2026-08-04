@@ -9,6 +9,10 @@ namespace Builtin {
 
 namespace PipelineIrradiance {
 
+struct Specialization {
+    std::uint32_t isCubemap;
+};
+
 inline Resource<DescriptorLayout> ResourceLayout = {"builtin/irradiance"};
 
 inline Resource<ComputePipeline> Resource = {"builtin/irradiance"};

@@ -5,10 +5,16 @@ import "../spherical";
 
 namespace Physbuzz {
 
+[[vk::constant_id(0)]]
+const bool isCubemap;
+
 [[vk::binding(0, 0)]]
-Sampler2D<float4> input;
+SamplerCube<float4> input_cube;
 
 [[vk::binding(1, 0)]]
+Sampler2D<float4> input_equirectangular;
+
+[[vk::binding(2, 0)]]
 RWTexture2D<float4> output;
 
 static const float sampleDelta = 0.025;
@@ -36,9 +42,17 @@ void main(uint3 tid: SV_DispatchThreadID) {
             float3 tangentSample = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
 
             // tangent space to world
-            float2 uvSample = directionToUV(tangentSample.x * right + tangentSample.y * up + tangentSample.z * N);
+            float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
 
-            irradiance += input.Sample(uvSample).rgb * cos(theta) * sin(theta);
+            static if (isCubemap) {
+                irradiance += input_cube.Sample(sampleVec).rgb * cos(theta) * sin(theta);
+            }
+
+            else {
+                float2 uvSample = directionToUV(sampleVec);
+                irradiance += input_equirectangular.Sample(uvSample).rgb * cos(theta) * sin(theta);
+            }
+
             sampleCount++;
         }
     }

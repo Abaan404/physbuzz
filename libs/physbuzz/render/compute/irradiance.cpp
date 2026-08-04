@@ -23,7 +23,12 @@ bool PipelineIrradiance::build() {
             {{
                 .bindings = {
                     {
-                        // environment map
+                        // environment map (cubemap)
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .stage = DescriptorLayout::ShaderStageFlags::eCompute,
+                    },
+                    {
+                        // environment map (equirectangular)
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
                         .stage = DescriptorLayout::ShaderStageFlags::eCompute,
                     },
@@ -42,6 +47,12 @@ bool PipelineIrradiance::build() {
         {
             {
                 .module = "builtin/compute/irradiance",
+                .specialization = {
+                    .offsets = {
+                        offsetof(Specialization, isCubemap),
+                    },
+                    .size = sizeof(Specialization),
+                },
             },
             {
                 .layouts = {
@@ -68,6 +79,12 @@ bool IrradianceCompute::build() {
     }
 
     bool success = true;
+
+    Builtin::PipelineIrradiance::Specialization specialization = {
+        .isCubemap = m_Info.environmentMap->getInfo().type == Texture::Type::Cube,
+    };
+
+    success &= Builtin::PipelineIrradiance::Resource->specialize(specialization);
 
     constexpr glm::vec3 resolution = {128, 64, 1};
 
@@ -132,18 +149,33 @@ bool IrradianceCompute::build() {
     success &= m_Graph.compile();
 
     if (success) {
-        success &= App::LayoutAllocator.write(
-            Builtin::PipelineIrradiance::ResourceLayout,
-            m_Info.environmentMap,
-            Image::ViewInfo{
-                .type = Image::ViewType::e2D,
-                .subresourceRange = {
-                    .aspectMask = Image::AspectFlags::eColor,
-                    .levelCount = Image::RemainingMipLevels,
-                    .layerCount = 1,
+        if (specialization.isCubemap) {
+            success &= App::LayoutAllocator.write(
+                Builtin::PipelineIrradiance::ResourceLayout,
+                m_Info.environmentMap,
+                {
+                    .type = Image::ViewType::eCube,
+                    .subresourceRange = {
+                        .aspectMask = Image::AspectFlags::eColor,
+                        .levelCount = Image::RemainingMipLevels,
+                        .layerCount = 6,
+                    },
                 },
-            },
-            0);
+                0);
+        } else {
+            success &= App::LayoutAllocator.write(
+                Builtin::PipelineIrradiance::ResourceLayout,
+                m_Info.environmentMap,
+                {
+                    .type = Image::ViewType::e2D,
+                    .subresourceRange = {
+                        .aspectMask = Image::AspectFlags::eColor,
+                        .levelCount = Image::RemainingMipLevels,
+                        .layerCount = 1,
+                    },
+                },
+                1);
+        }
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineIrradiance::ResourceLayout,
@@ -156,7 +188,7 @@ bool IrradianceCompute::build() {
                     .layerCount = 1,
                 },
             },
-            1);
+            2);
     }
 
     return success;

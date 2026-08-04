@@ -55,12 +55,8 @@ static const float3 vertices[36] = {
     float3(1, -1, -1)
 };
 
-struct PushConstants {
-    uint isCubemap;
-};
-
-[[vk::push_constant]]
-PushConstants pc;
+[[vk::constant_id(0)]]
+const bool isCubemap;
 
 [[vk::binding(0, 0)]]
 SamplerCube<float4> skybox_cube;
@@ -99,7 +95,7 @@ VSOutput vertMain(uint vertexIdx: SV_VertexID) {
 
 [shader("fragment")]
 float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
-    if (pc.isCubemap == 1) {
+    static if (isCubemap) {
         return skybox_cube.Sample(coarseVertex.texCoord);
     }
 

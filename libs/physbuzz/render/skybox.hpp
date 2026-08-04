@@ -16,7 +16,7 @@ namespace Builtin {
 
 namespace PipelineSkybox {
 
-struct PushConstants {
+struct Specialization {
     std::uint32_t isCubemap;
 };
 

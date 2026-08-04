@@ -14,6 +14,10 @@ struct PushConstants {
     float roughness;
 };
 
+struct Specialization {
+    std::uint32_t isCubemap;
+};
+
 inline Resource<DescriptorLayout> ResourceLayout = {"builtin/prefilter"};
 
 inline Resource<ComputePipeline> Resource = {"builtin/prefilter"};

@@ -14,10 +14,16 @@ struct PushConstants {
 [[vk::push_constant]]
 PushConstants pc;
 
+[[vk::constant_id(0)]]
+const bool isCubemap;
+
 [[vk::binding(0, 0)]]
-Sampler2D<float4> input;
+SamplerCube<float4> input_cube;
 
 [[vk::binding(1, 0)]]
+Sampler2D<float4> input_equirectangular;
+
+[[vk::binding(2, 0)]]
 RWTexture2D<float4> output[];
 
 static const float sampleDelta = 0.025;
@@ -50,7 +56,15 @@ void main(uint3 tid: SV_DispatchThreadID) {
         if (NdotL > 0.0) {
             float2 uvSample = directionToUV(L);
 
-            prefilteredColor += input.Sample(uvSample).rgb * NdotL;
+            static if (isCubemap) {
+                prefilteredColor += input_cube.Sample(L).rgb * NdotL;
+            }
+
+            else {
+                float2 uvSample = directionToUV(L);
+                prefilteredColor += input_equirectangular.Sample(uvSample).rgb * NdotL;
+            }
+
             totalWeight += NdotL;
         }
     }

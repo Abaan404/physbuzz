@@ -59,18 +59,18 @@ bool PipelineSkybox::build() {
         {
             {
                 .module = "builtin/render/skybox",
+                .specialization = {
+                    .offsets = {
+                        offsetof(Specialization, isCubemap),
+                    },
+                    .size = sizeof(Specialization),
+                },
             },
             {
                 .layouts = {
                     .resources = {
                         ResourceLayoutTexture,
                         ResourceLayoutFrame,
-                    },
-                    .pushConstantRanges = {
-                        {
-                            .stageFlags = GraphicsPipeline::PushConstantsStageFlags::eAll,
-                            .size = sizeof(PushConstants),
-                        },
                     },
                 },
             },
@@ -91,7 +91,13 @@ bool SkyboxRenderer::build() {
         return false;
     }
 
-    bool isCubemap = m_Info.skybox->getInfo().type == Texture::Type::Cube;
+    bool success = true;
+
+    Builtin::PipelineSkybox::Specialization specialization = {
+        .isCubemap = m_Info.skybox->getInfo().type == Texture::Type::Cube,
+    };
+
+    success &= Builtin::PipelineSkybox::Resource->specialize(specialization);
 
     m_Events = {
         .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const WindowSwapchainResizeEvent &event) {
@@ -117,7 +123,7 @@ bool SkyboxRenderer::build() {
                     },
                 },
             },
-            .execute = [this, isCubemap](Scene *, const RenderContext &context) {
+            .execute = [this](Scene *, const RenderContext &context) {
                 ZoneScopedN("SkyboxRenderer/Execute");
                 TracyVkZone(context.tracy, context.command, "SkyboxRenderer");
 
@@ -165,12 +171,6 @@ bool SkyboxRenderer::build() {
                     .pStencilAttachment = {},
                 });
 
-                Builtin::PipelineSkybox::PushConstants pushConstants = {
-                    .isCubemap = isCubemap,
-                };
-
-                Builtin::PipelineSkybox::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
-
                 // bind resources
                 Builtin::PipelineSkybox::Resource->bind(context);
                 App::LayoutAllocator.bind(context, Builtin::PipelineSkybox::Resource);
@@ -182,12 +182,10 @@ bool SkyboxRenderer::build() {
             },
         });
 
-    bool success = true;
-
     success &= m_Graph.compile();
 
     if (success) {
-        if (isCubemap) {
+        if (specialization.isCubemap) {
             success &= App::LayoutAllocator.write(
                 Builtin::PipelineSkybox::ResourceLayoutTexture,
                 m_Info.skybox,
