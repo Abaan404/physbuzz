@@ -18,7 +18,7 @@ ImageFile::~ImageFile() {}
 bool ImageFile::read() {
     m_Data.image.clear();
 
-    stbi_set_flip_vertically_on_load(m_Info.flipVertically);
+    stbi_set_flip_vertically_on_load_thread(m_Info.flipVertically);
 
     if (!readMeta()) {
         return false;

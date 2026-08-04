@@ -103,7 +103,6 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
         return skybox_cube.Sample(coarseVertex.texCoord);
     }
 
-    coarseVertex.texCoord.y *= -1; // flip upside down because flipVertically doesnt seem to flip correctly (FIXME)
     float2 uv = directionToUV(normalize(coarseVertex.texCoord));
 
     return skybox_equirectangular.Sample(uv);

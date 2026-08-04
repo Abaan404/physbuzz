@@ -34,8 +34,6 @@ void main(uint3 tid: SV_DispatchThreadID) {
     }
 
     float2 uv = (float2(tid.xy) + 0.5f) / float2(width, height);
-    uv.y *= -1; // flip upside down because flipVertically doesnt seem to flip correctly (FIXME)
-
     float3 N = uvToDirection(uv);
     float3 R = N;
     float3 V = R;

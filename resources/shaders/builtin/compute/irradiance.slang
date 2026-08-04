@@ -20,8 +20,6 @@ void main(uint3 tid: SV_DispatchThreadID) {
     output.GetDimensions(width, height);
 
     float2 uv = (float2(tid.xy) + 0.5f) / float2(width, height);
-    uv.y *= -1; // flip upside down because flipVertically doesnt seem to flip correctly (FIXME)
-
     float3 N = uvToDirection(uv);
 
     // figure out the orientation of the normal
