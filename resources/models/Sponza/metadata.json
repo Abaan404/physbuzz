@@ -1,24 +1,3 @@
-{
-    "version": 2,
-    "legal": [
-        {
-            "license": "LicenseRef-CRYENGINE-Agreement",
-            "licenseUrl": "https://www.cryengine.com/ce-terms",
-            "artist": "Crytek",
-            "year": "2016",
-            "owner": "Crytek",
-            "what": "Everything",
-            "text": "Cryengine Limited License Agreement",
-            "spdx": "LicenseRef-CRYENGINE-Agreement",
-            "icon": ""
-        }
-    ],
-    "tags": [
-        "core"
-    ],
-    "screenshot": "screenshot/screenshot.jpg",
-    "name": "Sponza",
-    "path": "./Models/Sponza",
-    "summary": "Building interior, often used to test lighting.",
-    "createReadme": true
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:5b8e91098c730d49df04b87300372136376a59c7c6f0c8ed782c930f0a9d3be9
+size 673
