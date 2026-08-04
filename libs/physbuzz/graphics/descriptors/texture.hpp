@@ -29,6 +29,7 @@ class Texture : public EventSubject {
     struct Info {
         Type type;
         Usage usage = Usage::Sampled;
+        std::uint32_t mipLevels = 1;
         Format format = Format::eR8G8B8A8Unorm;
 
         Sampler sampler = {{Sampler::Type::None}};

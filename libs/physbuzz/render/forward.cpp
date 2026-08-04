@@ -6,6 +6,7 @@
 #include "../graphics/layout.hpp"
 #include "../graphics/material.hpp"
 #include "../graphics/pipeline.hpp"
+#include "../graphics/renderer.hpp"
 #include "components/camera.hpp"
 #include "components/lights.hpp"
 #include "nodes/camera.hpp"
@@ -34,7 +35,17 @@ bool PipelineForward::build() {
             {{
                 .bindings = {
                     {
-                        // precomputed irradiance map
+                        // irradiance map
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
+                    },
+                    {
+                        // prefilter map
+                        .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
+                    },
+                    {
+                        // brdf lut
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
                         .stage = DescriptorLayout::ShaderStageFlags::eFragment,
                     },
@@ -143,6 +154,15 @@ bool ForwardRenderer::build() {
 
     success &= m_Batch.build(m_Objects);
     success &= m_Culling.build();
+    success &= m_Irradiance.build();
+    success &= m_Prefilter.build();
+    success &= m_BrdfLut.build();
+
+    // bake environment textures
+    std::shared_ptr<Renderer> renderer = m_Scene->getSystem<Renderer>();
+    renderer->immediate(m_Irradiance.getGraph());
+    renderer->immediate(m_Prefilter.getGraph());
+    renderer->immediate(m_BrdfLut.getGraph());
 
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
     m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
@@ -302,7 +322,7 @@ bool ForwardRenderer::build() {
     if (success) {
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutGlobal,
-            m_Info.resources.irradianceMap,
+            m_Irradiance.getIrradianceMap(),
             Image::ViewInfo{
                 .type = Image::ViewType::e2D,
                 .subresourceRange = {
@@ -312,6 +332,32 @@ bool ForwardRenderer::build() {
                 },
             },
             0);
+
+        success &= App::LayoutAllocator.write(
+            Builtin::PipelineForward::ResourceLayoutGlobal,
+            m_Prefilter.getPrefilterMap(),
+            Image::ViewInfo{
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eColor,
+                    .levelCount = Image::RemainingMipLevels,
+                    .layerCount = 1,
+                },
+            },
+            1);
+
+        success &= App::LayoutAllocator.write(
+            Builtin::PipelineForward::ResourceLayoutGlobal,
+            Builtin::PipelineBrdfLut::ResourceLut,
+            Image::ViewInfo{
+                .type = Image::ViewType::e2D,
+                .subresourceRange = {
+                    .aspectMask = Image::AspectFlags::eColor,
+                    .levelCount = Image::RemainingMipLevels,
+                    .layerCount = 1,
+                },
+            },
+            2);
 
         success &= App::LayoutAllocator.write(
             Builtin::PipelineForward::ResourceLayoutFrame,

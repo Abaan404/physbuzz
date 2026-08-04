@@ -20,7 +20,6 @@
 #include <physbuzz/misc/clock.hpp>
 #include <physbuzz/misc/context.hpp>
 #include <physbuzz/physics/dynamics.hpp>
-#include <physbuzz/render/compute/irradiance.hpp>
 #include <physbuzz/render/deferred.hpp>
 #include <physbuzz/render/forward.hpp>
 #include <physbuzz/render/shadow.hpp>
@@ -207,21 +206,6 @@ void Game::build() {
 
     transfer->submit(batch);
 
-    std::shared_ptr<Physbuzz::IrradianceCompute> irradiance = Physbuzz::App::GScene.createSystem<Physbuzz::IrradianceCompute>(
-        Physbuzz::IrradianceCompute::Info{
-            .environmentMap = {"hdr_skybox"},
-        });
-
-    Physbuzz::RenderGraph precomputeGraph = {{}};
-    precomputeGraph.merge(irradiance->getGraph());
-
-    if (!precomputeGraph.compile()) {
-        Physbuzz::Logger::CRITICAL("[Game] Failed to merge render graphs.");
-    }
-
-    // prepare a irradiance map
-    renderer->immediate(precomputeGraph);
-
     std::shared_ptr<Physbuzz::ShadowRenderer> shadow = Physbuzz::App::GScene.createSystem<Physbuzz::ShadowRenderer>(
         Physbuzz::ShadowRenderer::Info{
             .resolution = {2048, 2048},
@@ -231,9 +215,7 @@ void Game::build() {
         Physbuzz::ForwardRenderer::Info{
             .camera = playerId,
             .window = window,
-            .resources = {
-                .irradianceMap = irradiance->getIrradianceMap(),
-            },
+            .environmentMap = {"hdr_skybox"},
         });
 
     std::shared_ptr<Physbuzz::DeferredRenderer> deferred = Physbuzz::App::GScene.createSystem<Physbuzz::DeferredRenderer>(

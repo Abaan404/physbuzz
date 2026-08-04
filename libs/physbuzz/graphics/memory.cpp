@@ -295,7 +295,7 @@ bool Image::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<
 
 bool Image::buildView(const ViewInfo &info) {
     if (m_Data.views.contains(info)) {
-        return false;
+        return true;
     }
 
     vk::ImageView view = PBZ_VK_CHECK(App::Device.createImageView({
@@ -315,7 +315,7 @@ bool Image::buildView(const ViewInfo &info) {
 
 bool Image::destroyView(const ViewInfo &info) {
     if (!m_Data.views.contains(info)) {
-        return false;
+        return true;
     }
 
     App::Device.destroyImageView(m_Data.views.at(info));

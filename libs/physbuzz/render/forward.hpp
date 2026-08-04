@@ -3,7 +3,10 @@
 #include "../ecs/system.hpp"
 #include "../window/window.hpp"
 #include "batch.hpp"
+#include "compute/brdflut.hpp"
 #include "compute/culling.hpp"
+#include "compute/irradiance.hpp"
+#include "compute/prefilter.hpp"
 #include "defines.hpp"
 
 namespace Physbuzz {
@@ -46,9 +49,7 @@ class ForwardRenderer : public System<RenderComponent> {
         ObjectID camera;
         std::shared_ptr<Window> window;
 
-        struct {
-            Resource<Texture> irradianceMap = {""};
-        } resources;
+        Resource<Texture> environmentMap = {""};
     };
 
     ForwardRenderer(const Info &info);
@@ -77,6 +78,16 @@ class ForwardRenderer : public System<RenderComponent> {
         .nodeIdPrefix = std::format("{}/culling/", Output),
         .resourceIdPrefix = std::format("{}/culling/", Output),
     }};
+
+    IrradianceCompute m_Irradiance = {{
+        .environmentMap = m_Info.environmentMap,
+    }};
+
+    PrefilterCompute m_Prefilter = {{
+        .environmentMap = m_Info.environmentMap,
+    }};
+
+    BrdfLutCompute m_BrdfLut;
 
     RenderGraph m_Graph = {{
         .output = Output,

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../../ecs/system.hpp"
 #include "../../graphics/layout.hpp"
 #include "../../graphics/rendergraph.hpp"
 
@@ -20,7 +19,7 @@ bool build();
 
 } // namespace Builtin
 
-class IrradianceCompute : public System<> {
+class IrradianceCompute {
   public:
     constexpr static RenderNodeID Output = "builtin/irradiance";
 
@@ -30,8 +29,8 @@ class IrradianceCompute : public System<> {
 
     IrradianceCompute(const Info &info);
 
-    bool build() override;
-    bool destroy() override;
+    bool build();
+    bool destroy();
 
     const RenderGraph &getGraph() const;
     const Resource<Texture> &getIrradianceMap() const;

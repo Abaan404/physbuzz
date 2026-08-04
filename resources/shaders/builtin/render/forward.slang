@@ -28,6 +28,12 @@ Sampler2D<float3> textures[];
 [[vk::binding(0, 1)]]
 Sampler2D<float4> irradianceMap;
 
+[[vk::binding(1, 1)]]
+Sampler2D<float4> prefilterMap;
+
+[[vk::binding(2, 1)]]
+Sampler2D<float4> brdfLut;
+
 [[vk::binding(0, 2)]]
 ConstantBuffer<Camera> camera;
 

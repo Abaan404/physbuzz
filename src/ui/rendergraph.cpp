@@ -108,7 +108,7 @@ void RenderGraph::draw() {
             ImGui::Text("%s", resource.getIdentifier().c_str());
 
             if (ImGui::Button("Show")) {
-                m_AttachmentWindows.insert({resource.getIdentifier(), Image{resource, m_Scene}});
+                m_AttachmentWindows.insert({resource, Image{resource, m_Scene}});
             }
 
             ImGui::PopID();

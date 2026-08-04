@@ -28,6 +28,7 @@ void ResourceLoader::loadTexture(const Physbuzz::ResourceID &resourceId, const P
         resourceId,
         {{
             .type = Physbuzz::Texture::Type::Dim2D,
+            .mipLevels = Physbuzz::Image::RemainingMipLevels,
             .sampler = {{Physbuzz::Sampler::Type::Linear}},
         }},
         glm::uvec3{imageFile.getData().meta.resolution, 1});

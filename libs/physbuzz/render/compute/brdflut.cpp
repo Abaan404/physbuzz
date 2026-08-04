@@ -1,4 +1,4 @@
-#include "irradiance.hpp"
+#include "brdflut.hpp"
 
 #include "../../app/application.hpp"
 #include "../../graphics/layout.hpp"
@@ -10,7 +10,7 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool PipelineIrradiance::build() {
+bool PipelineBrdfLut::build() {
     if (ResourceRegistry<ComputePipeline>::contains(Resource)) {
         return true;
     }
@@ -23,12 +23,7 @@ bool PipelineIrradiance::build() {
             {{
                 .bindings = {
                     {
-                        // environment map
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .stage = DescriptorLayout::ShaderStageFlags::eCompute,
-                    },
-                    {
-                        // irradiance map
+                        // lut map
                         .type = DescriptorLayout::Type::eStorageImage,
                         .stage = DescriptorLayout::ShaderStageFlags::eCompute,
                     },
@@ -41,7 +36,7 @@ bool PipelineIrradiance::build() {
         Resource,
         {
             {
-                .module = "builtin/compute/irradiance",
+                .module = "builtin/compute/brdf_lut",
             },
             {
                 .layouts = {
@@ -57,22 +52,21 @@ bool PipelineIrradiance::build() {
 
 } // namespace Builtin
 
-IrradianceCompute::IrradianceCompute(const Info &info)
-    : m_Info(info) {}
+BrdfLutCompute::BrdfLutCompute() {}
 
-bool IrradianceCompute::build() {
+bool BrdfLutCompute::build() {
     // build pipeline
-    if (!Builtin::PipelineIrradiance::build()) {
-        Logger::ERROR("[IrradianceCompute] Could not build irradiance pipeline.");
+    if (!Builtin::PipelineBrdfLut::build()) {
+        Logger::ERROR("[BrdfLutCompute] Could not build brdf lut pipeline.");
         return false;
     }
 
     bool success = true;
 
-    constexpr glm::vec3 resolution = {128, 64, 1};
+    constexpr glm::vec3 resolution = {512, 512, 1};
 
     success &= ResourceRegistry<Texture>::insert(
-        m_Resource,
+        Builtin::PipelineBrdfLut::ResourceLut,
         {{
             .type = Texture::Type::Dim2D,
             .usage = Texture::Usage::Storage,
@@ -85,24 +79,13 @@ bool IrradianceCompute::build() {
         {
             .description = {
                 .textures = {
-                    .input = {{
-                        m_Info.environmentMap,
-                        {
-                            .stage = RenderNode::Stage::Compute,
-                            .subresourceRanges = {{
-                                .aspectMask = Image::AspectFlags::eColor,
-                                .levelCount = Image::RemainingMipLevels,
-                                .layerCount = 1,
-                            }},
-                        },
-                    }},
                     .output = {{
-                        m_Resource,
+                        Builtin::PipelineBrdfLut::ResourceLut,
                         {
                             .stage = RenderNode::Stage::Compute,
                             .subresourceRanges = {{
                                 .aspectMask = Image::AspectFlags::eColor,
-                                .levelCount = Image::RemainingMipLevels,
+                                .levelCount = 1,
                                 .layerCount = 1,
                             }},
                         },
@@ -110,17 +93,16 @@ bool IrradianceCompute::build() {
                 },
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
-                ZoneScopedN("IrradianceCompute/Execute");
-                TracyVkZone(context.tracy, context.command, "IrradianceCompute");
+                ZoneScopedN("BrdfLutCompute/Execute");
+                TracyVkZone(context.tracy, context.command, "BrdfLutCompute");
 
                 std::lock_guard<std::mutex> lock(ResourceRegistry<ComputePipeline>::ReloadMutex);
 
-                Builtin::PipelineIrradiance::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::PipelineIrradiance::Resource);
+                Builtin::PipelineBrdfLut::Resource->bind(context);
+                App::LayoutAllocator.bind(context, Builtin::PipelineBrdfLut::Resource);
 
-                // to constexpr the ceil (TODO cpp23 makes ceil constexpr)
-                constexpr std::uint32_t groupSize = 8;
-                constexpr glm::uvec2 groupCount = {
+                std::uint32_t groupSize = 8;
+                glm::uvec2 groupCount = {
                     (resolution.x + groupSize - 1) / groupSize,
                     (resolution.y + groupSize - 1) / groupSize,
                 };
@@ -133,8 +115,8 @@ bool IrradianceCompute::build() {
 
     if (success) {
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineIrradiance::ResourceLayout,
-            m_Info.environmentMap,
+            Builtin::PipelineBrdfLut::ResourceLayout,
+            Builtin::PipelineBrdfLut::ResourceLut,
             Image::ViewInfo{
                 .type = Image::ViewType::e2D,
                 .subresourceRange = {
@@ -144,40 +126,17 @@ bool IrradianceCompute::build() {
                 },
             },
             0);
-
-        success &= App::LayoutAllocator.write(
-            Builtin::PipelineIrradiance::ResourceLayout,
-            m_Resource,
-            Image::ViewInfo{
-                .type = Image::ViewType::e2D,
-                .subresourceRange = {
-                    .aspectMask = Image::AspectFlags::eColor,
-                    .levelCount = Image::RemainingMipLevels,
-                    .layerCount = 1,
-                },
-            },
-            1);
     }
 
     return success;
 }
 
-bool IrradianceCompute::destroy() {
-    m_Resource->destroy();
-
+bool BrdfLutCompute::destroy() {
     return true;
 }
 
-const RenderGraph &IrradianceCompute::getGraph() const {
+const RenderGraph &BrdfLutCompute::getGraph() const {
     return m_Graph;
-}
-
-const Resource<Texture> &IrradianceCompute::getIrradianceMap() const {
-    return m_Resource;
-}
-
-const IrradianceCompute::Info &IrradianceCompute::getInfo() const {
-    return m_Info;
 }
 
 } // namespace Physbuzz
