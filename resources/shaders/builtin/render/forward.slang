@@ -96,6 +96,8 @@ VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstan
     return output;
 }
 
+static const float MAX_REFLECTION_LOD = 4.0;
+
 [shader("fragment")]
 float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     InstanceData object = objects[coarseVertex.objectId];
@@ -142,17 +144,23 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     roughness *= boundMaterial.roughnessFactor;
     albedo *= boundMaterial.albedoFactor;
 
+    float3 viewDirection = normalize(camera.position - geometry.position);
+    float3 R = reflect(-viewDirection, geometry.normal);
+
+    float3 prefilteredColor = prefilterMap.SampleLevel(directionToUV(R), roughness * MAX_REFLECTION_LOD).rgb;
+    float2 envBRDF = brdfLut.Sample(float2(max(dot(viewDirection, geometry.normal), 0.0), roughness)).rg;
+
     SimpleMaterial material = {
         albedo,
         irradiance,
+        prefilteredColor,
+        envBRDF,
         metallic,
         roughness,
         ambientOcclusion,
     };
 
     let brdf = material.prepare(geometry);
-
-    float3 viewDirection = normalize(camera.position - geometry.position);
 
     float3 color = {};
 

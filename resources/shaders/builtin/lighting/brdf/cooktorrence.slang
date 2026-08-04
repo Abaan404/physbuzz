@@ -7,6 +7,8 @@ namespace Physbuzz {
 public struct CookTorrence : IBRDF {
     public float3 albedo;
     public float3 irradiance;
+    public float3 prefilteredColor;
+    public float2 envBRDF;
     public float metallic;
     public float roughness;
     public float ambientOcclusion;
@@ -34,13 +36,17 @@ public struct CookTorrence : IBRDF {
     }
 
     public float3 evaluateIndirect(float3 exitant, float3 normal) {
-        float3 ks = fresnel(normal, exitant);
+        float3 F = fresnel(exitant, normal);
+
+        float3 ks = F;
         float3 kd = 1.0 - ks;
         kd *= 1.0 - metallic;
 
         float3 diffuse = kd * irradiance * albedo;
 
-        return diffuse * ambientOcclusion;
+        float3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
+
+        return (diffuse + specular) * ambientOcclusion;
     }
 
     // Schlick 94 approximation
