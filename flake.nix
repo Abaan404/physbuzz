@@ -25,12 +25,11 @@
           pkgs.shaderc
 
           # debugging
-          pkgs.valgrind
-          pkgs.renderdoc
           pkgs.tracy
           pkgs.vscode-extensions.vadimcn.vscode-lldb.adapter
 
           # libraries
+          pkgs.openexr
           pkgs.assimp
           pkgs.glfw
           pkgs.spdlog

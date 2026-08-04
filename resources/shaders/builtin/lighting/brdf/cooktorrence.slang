@@ -36,7 +36,7 @@ public struct CookTorrence : IBRDF {
     }
 
     public float3 evaluateIndirect(float3 exitant, float3 normal) {
-        float3 F = fresnel(exitant, normal);
+        float3 F = fresnelRoughness(exitant, normal);
 
         float3 ks = F;
         float3 kd = 1.0 - ks;
@@ -51,6 +51,17 @@ public struct CookTorrence : IBRDF {
 
     // Schlick 94 approximation
     private float3 fresnel(float3 incident, float3 microNormal) {
+        float3 F0 = float3(0.04);
+
+        F0 = lerp(F0, albedo, metallic);
+
+        float cosTheta = max(dot(microNormal, incident), 0.0f);
+
+        return F0 + (1.0f - F0) * pow(clamp(1.0f - cosTheta, 0.0f, 1.0f), 5);
+    }
+
+    // Schlick 94 approximation with injected roughness
+    private float3 fresnelRoughness(float3 incident, float3 microNormal) {
         float3 F0 = float3(0.04);
 
         F0 = lerp(F0, albedo, metallic);

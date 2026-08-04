@@ -30,7 +30,7 @@ class Texture : public EventSubject {
         Type type;
         Usage usage = Usage::Sampled;
         std::uint32_t mipLevels = 1;
-        Format format = Format::eR8G8B8A8Unorm;
+        Format format = Format::eR16G16B16A16Sfloat;
 
         Sampler sampler = {{Sampler::Type::None}};
         std::vector<Image::ViewInfo> additionalViews = {};

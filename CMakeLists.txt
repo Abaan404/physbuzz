@@ -20,6 +20,7 @@ find_package(spdlog REQUIRED)
 find_package(Catch2 3 REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(slang REQUIRED)
+find_package(OpenEXR REQUIRED)
 
 # efsw
 set(EFSW_PATH "${CMAKE_SOURCE_DIR}/submodules/efsw")
@@ -73,7 +74,8 @@ target_link_libraries(
          glm
          imgui
          slang
-         Tracy::TracyClient)
+         Tracy::TracyClient
+         OpenEXR::OpenEXR)
 
 if(PHYSBUZZ_ENABLE_TRACY)
   target_compile_definitions(physbuzz PUBLIC PHYSBUZZ_ENABLE_TRACY)

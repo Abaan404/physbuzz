@@ -106,7 +106,7 @@ class Image {
         std::uint32_t mipLevels = 1;
         std::uint32_t arrayLayers = 1;
         Flags flags = {};
-        Format format = Format::eR8G8B8A8Unorm;
+        Format format = Format::eR16G16B16A16Sfloat;
         MemoryUsage memoryUsage = MemoryUsage::Auto;
         SharingMode sharingMode = SharingMode::eExclusive;
         std::vector<ViewInfo> views;

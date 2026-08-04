@@ -18,7 +18,7 @@ class Window : public EventSubject {
         std::string title = "Physbuzz Game";
 
         struct {
-            Format format = vk::Format::eR8G8B8A8Srgb;
+            Format format = Format::eR8G8B8A8Srgb;
             ColorSpace colorSpace = ColorSpace::eSrgbNonlinear;
             PresentMode presentMode = PresentMode::eMailbox;
         } swapChain = {};

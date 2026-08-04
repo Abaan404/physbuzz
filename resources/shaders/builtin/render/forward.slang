@@ -96,7 +96,7 @@ VSOutput vertMain(VSInput input, uint instanceId: SV_InstanceID, uint baseInstan
     return output;
 }
 
-static const float MAX_REFLECTION_LOD = 4.0;
+static const float MAX_REFLECTION_LOD = 10.0;
 
 [shader("fragment")]
 float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
@@ -139,7 +139,7 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
         geometry.normal = normalize(mul(geometry.normal, TBN));
     }
 
-    irradiance *= irradianceMap.Sample(directionToUV(normalize(coarseVertex.normal))).rgb;
+    irradiance *= irradianceMap.Sample(directionToUV(normalize(geometry.normal))).rgb;
     metallic *= boundMaterial.metallicFactor;
     roughness *= boundMaterial.roughnessFactor;
     albedo *= boundMaterial.albedoFactor;
@@ -188,7 +188,10 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
         }
     }
 
-    return float4(color, 1.0);
+    // tonemapping
+    color = color / (color + 1.0f);
+
+    return float4(color, 1.0f);
 }
 
 }

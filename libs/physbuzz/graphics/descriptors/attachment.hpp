@@ -27,7 +27,7 @@ class Attachment : public EventSubject {
     struct Info {
         Type type = Type::Dim2D;
         Usage usage = Usage::Color;
-        Format format = Format::eR8G8B8A8Unorm;
+        Format format = Format::eR16G16B16A16Sfloat;
 
         Sampler sampler = {{Sampler::Type::None}};
         std::vector<Image::ViewInfo> views = {};

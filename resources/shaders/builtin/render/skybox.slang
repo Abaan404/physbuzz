@@ -95,13 +95,20 @@ VSOutput vertMain(uint vertexIdx: SV_VertexID) {
 
 [shader("fragment")]
 float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
+    float3 color = float3(0.0f);
+
     static if (isCubemap) {
-        return skybox_cube.Sample(coarseVertex.texCoord);
+        color = skybox_cube.Sample(coarseVertex.texCoord).rgb;
+    }
+    else {
+        float2 uv = directionToUV(normalize(coarseVertex.texCoord));
+        color = skybox_equirectangular.Sample(uv).rgb;
     }
 
-    float2 uv = directionToUV(normalize(coarseVertex.texCoord));
+    // tonemapping
+    color = color / (color + 1.0f);
 
-    return skybox_equirectangular.Sample(uv);
+    return float4(color, 1.0f);
 }
 
 }

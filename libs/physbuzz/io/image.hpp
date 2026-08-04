@@ -19,6 +19,7 @@ class ImageFile {
         struct {
             glm::uvec2 resolution = {0, 0};
             std::size_t size = 0;
+            bool hdr = false;
         } meta;
     };
 
