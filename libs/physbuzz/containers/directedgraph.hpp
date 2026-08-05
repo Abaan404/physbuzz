@@ -18,7 +18,6 @@ class DirectedGraph {
 
     std::pair<K, K> insertEdge(const K &from, const K &to) {
         insertNode(from);
-        insertNode(to);
         m_Adjacency[from].insert(to);
 
         return {from, to};
@@ -35,10 +34,6 @@ class DirectedGraph {
 
     bool eraseEdge(const K &from, const K &to) {
         if (!m_Adjacency.contains(from)) {
-            return false;
-        }
-
-        if (!m_Adjacency.contains(to)) {
             return false;
         }
 
@@ -69,7 +64,41 @@ class DirectedGraph {
     }
 
     void cull(const K &preserve) {
-        // TODO
+        std::unordered_map<K, std::unordered_set<K>> inverseAdjacency;
+
+        for (const auto &[node, neighbors] : m_Adjacency) {
+            inverseAdjacency.try_emplace(node);
+            for (const auto &neighbor : neighbors) {
+                inverseAdjacency[neighbor].insert(node);
+            }
+        }
+
+        std::deque<K> queue = {preserve};
+        std::unordered_set<K> visited = {preserve};
+        std::vector<std::pair<K, K>> edges;
+
+        while (!queue.empty()) {
+            K current = std::move(queue.front());
+            queue.pop_front();
+
+            if (!inverseAdjacency.contains(current)) {
+                continue;
+            }
+
+            for (const auto &node : inverseAdjacency.at(current)) {
+                edges.emplace_back(node, current);
+                if (visited.insert(node).second) {
+                    queue.emplace_back(node);
+                }
+            }
+        }
+
+        m_Adjacency.clear();
+        m_Adjacency.try_emplace(preserve);
+
+        for (const auto &[from, to] : edges) {
+            insertEdge(from, to);
+        }
     }
 
     void clear() {
