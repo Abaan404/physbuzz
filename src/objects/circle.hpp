@@ -5,10 +5,6 @@
 #include <physbuzz/math/transform.hpp>
 #include <physbuzz/physics/dynamics.hpp>
 
-struct RadialComponent {
-    float radius = 0.0f;
-};
-
 struct Circle {
     // physics info
     Physbuzz::RigidBodyComponent body;

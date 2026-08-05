@@ -16,3 +16,7 @@ struct RebuildableComponent {
 struct ResourceComponent {
     Physbuzz::Resource<Physbuzz::Material> material = {"default"};
 };
+
+struct RadialComponent {
+    float radius = 0.0f;
+};

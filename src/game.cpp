@@ -3,6 +3,7 @@
 #include "objects/cuboid.hpp"
 #include "objects/lightdirectional.hpp"
 #include "objects/lightpoint.hpp"
+#include "objects/materialsphere.hpp"
 #include "objects/model.hpp"
 #include "objects/player.hpp"
 #include "objects/quad.hpp"
@@ -131,18 +132,8 @@ void Game::build() {
             "default",
             {
                 .textures = {
-                    {
-                        Physbuzz::TextureType::Albedo,
-                        {
-                            {"default/albedo"},
-                        },
-                    },
-                    {
-                        Physbuzz::TextureType::Metallic,
-                        {
-                            {"default/metallic"},
-                        },
-                    },
+                    {Physbuzz::TextureType::Albedo, {"default/albedo"}},
+                    {Physbuzz::TextureType::Metallic, {"default/metallic"}},
                 },
             });
     }
@@ -155,18 +146,8 @@ void Game::build() {
             "crate",
             {
                 .textures = {
-                    {
-                        Physbuzz::TextureType::Albedo,
-                        {
-                            {"crate/albedo"},
-                        },
-                    },
-                    {
-                        Physbuzz::TextureType::Metallic,
-                        {
-                            {"crate/metallic"},
-                        },
-                    },
+                    {Physbuzz::TextureType::Albedo, {"crate/albedo"}},
+                    {Physbuzz::TextureType::Metallic, {"crate/metallic"}},
                 },
             });
     }
@@ -178,14 +159,55 @@ void Game::build() {
             "floor",
             {
                 .textures = {
-                    {
-                        Physbuzz::TextureType::Albedo,
-                        {
-                            {"floor"},
-                        },
-                    },
+                    {Physbuzz::TextureType::Albedo, {"floor"}},
                 },
             });
+    }
+
+    {
+        std::vector<std::string> materials = {"gold", "grass", "plastic", "rusted_iron", "wall"};
+
+        for (int i = 0; i < materials.size(); i++) {
+            const auto &material = materials[i];
+
+            Physbuzz::ResourceID albedo = std::format("{}/albedo.png", material);
+            Physbuzz::ResourceID ao = std::format("{}/ao.png", material);
+            Physbuzz::ResourceID metallic = std::format("{}/metallic.png", material);
+            Physbuzz::ResourceID normal = std::format("{}/normal.png", material);
+            Physbuzz::ResourceID roughness = std::format("{}/roughness.png", material);
+
+            ResourceLoader::loadTexture(albedo, {.files = {{.path = std::format("resources/textures/{}/albedo.png", material)}}}, batch);
+            ResourceLoader::loadTexture(ao, {.files = {{.path = std::format("resources/textures/{}/ao.png", material)}}}, batch);
+            ResourceLoader::loadTexture(metallic, {.files = {{.path = std::format("resources/textures/{}/metallic.png", material)}}}, batch);
+            ResourceLoader::loadTexture(normal, {.files = {{.path = std::format("resources/textures/{}/normal.png", material)}}}, batch);
+            ResourceLoader::loadTexture(roughness, {.files = {{.path = std::format("resources/textures/{}/roughness.png", material)}}}, batch);
+
+            Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+                material,
+                {
+                    .textures = {
+                        {Physbuzz::TextureType::Albedo, albedo},
+                        {Physbuzz::TextureType::AmbientOcclusion, ao},
+                        {Physbuzz::TextureType::Metallic, metallic},
+                        {Physbuzz::TextureType::Normal, normal},
+                        {Physbuzz::TextureType::Roughness, roughness},
+                    },
+                });
+
+            MaterialSphere sphere = {
+                .sphere = {
+                    .radius = 10.0f,
+                },
+                .transform = {{
+                    .position = {(i - 2) * 50.0f, 100.0f, 0},
+                }},
+                .resources = {
+                    .material = material,
+                },
+            };
+
+            ObjectBuilder::create(Physbuzz::App::GScene, sphere);
+        }
     }
 
     ResourceLoader::loadTexture("hdr_skybox", {.files = {{.path = "resources/textures/hdr_skybox/newport_loft.hdr"}}, .flipVertically = true}, batch);
@@ -334,14 +356,15 @@ void Game::build() {
     {
         Model model = {
             .model = {
-                .path = "resources/models/backpack/backpack.obj",
+                .path = "resources/models/survival_guitar_backpack/scene.gltf",
+                .flipUVs = true,
             },
             .transform = {{
-                .position = {0, -150, 0},
-                .scale = {30, 30, 30},
+                .position = {0, -150.0f, 0},
+                .scale = {0.5f, 0.5f, 0.5f},
             }},
             .identifier = {
-                .name = "Backpack",
+                .name = "Survival Guitar Backpack",
             },
         };
 
@@ -351,17 +374,35 @@ void Game::build() {
     {
         Model model = {
             .model = {
-                .path = "resources/models/Sponza/glTF/Sponza.gltf",
-                .flipTextureVertically = true,
+                .path = "resources/models/cerberusffvii_gun_model_by_andrew_maximov/scene.gltf",
+                .flipUVs = true,
             },
-            .transform = {{}},
+            .transform = {{
+                .position = {0, 200.0f, 0},
+                .scale = {1.0f, 1.0f, 1.0f},
+            }},
             .identifier = {
-                .name = "Sponza",
+                .name = "Cerberus",
             },
         };
 
         ObjectBuilder::create(Physbuzz::App::GScene, model);
     }
+
+    // {
+    //     Model model = {
+    //         .model = {
+    //             .path = "resources/models/Sponza/glTF/Sponza.gltf",
+    //             .flipTextureVertically = true,
+    //         },
+    //         .transform = {{}},
+    //         .identifier = {
+    //             .name = "Sponza",
+    //         },
+    //     };
+    //
+    //     ObjectBuilder::create(Physbuzz::App::GScene, model);
+    // }
 }
 
 void Game::rebuild() {
