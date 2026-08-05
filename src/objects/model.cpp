@@ -17,7 +17,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         },
     };
 
-    render.model.load(info.model.path, scene.getSystem<Physbuzz::Transfer>(), info.model.flipTextureVertically);
+    render.model.load(info.model.path, scene.getSystem<Physbuzz::Transfer>(), info.model.flipUVs);
 
     scene.setComponent(object, info.model, info.identifier, render, shadow);
 

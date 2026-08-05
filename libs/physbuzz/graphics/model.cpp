@@ -39,7 +39,7 @@ VertexDescription Model::Vertex::Description = {{
 Model::Model(const Info &info)
     : m_Info(info) {}
 
-bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer, bool flipTexturesVertically) {
+bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer, bool flipUVs) {
     ZoneScopedN("Model/Load");
     ZoneText(path.string().c_str(), path.string().size());
 
@@ -51,7 +51,14 @@ bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transf
 
     // if supplied a path, load the model from the filesystem
     Assimp::Importer importer;
-    const aiScene *aiscene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
+
+    std::uint32_t flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace;
+
+    if (flipUVs) {
+        flags |= aiProcess_FlipUVs;
+    }
+
+    const aiScene *aiscene = importer.ReadFile(path, flags);
 
     if (!aiscene || aiscene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !aiscene->mRootNode) {
         Logger::ERROR("[Model] Could not import model at '{}'.\n[Assimp]: {}", path.string(), importer.GetErrorString());
@@ -78,7 +85,6 @@ bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transf
                     .files = {{
                         .path = texturePath,
                     }},
-                    .flipVertically = flipTexturesVertically,
                 }};
 
                 imageFile.readMeta();
@@ -233,10 +239,10 @@ Model::MeshResult Model::processMesh(const aiNode *root, const aiScene *aiscene)
 
         for (std::size_t i = 0; i < ainode->mNumMeshes; ++i) {
             aiMesh *aimesh = aiscene->mMeshes[ainode->mMeshes[i]];
-            SubMeshResult &submesh = submeshes.emplace_back(processSubMesh(aimesh));
+            SubMeshResult &submesh = submeshes.emplace_back(processSubMesh(aimesh, transform));
 
             AABB::Info aabb = {};
-            for (const auto vertex : submesh.vertices) {
+            for (const auto &vertex : submesh.vertices) {
                 aabb.min = glm::min(vertex.position, aabb.min);
                 aabb.max = glm::max(vertex.position, aabb.max);
             }
@@ -274,7 +280,7 @@ Model::MeshResult Model::processMesh(const aiNode *root, const aiScene *aiscene)
     return result;
 }
 
-Model::SubMeshResult Model::processSubMesh(const aiMesh *aimesh) {
+Model::SubMeshResult Model::processSubMesh(const aiMesh *aimesh, const aiMatrix4x4 &transform) {
     ZoneScopedN("Model/ProcessMesh");
 
     SubMeshResult result = {
@@ -285,22 +291,32 @@ Model::SubMeshResult Model::processSubMesh(const aiMesh *aimesh) {
         .indices = {},
     };
 
+    aiMatrix3x3 linear = aiMatrix3x3(transform);
+    aiMatrix3x3 normalMatrix = linear;
+    normalMatrix.Inverse();
+    normalMatrix.Transpose();
+
     result.vertices.resize(aimesh->mNumVertices);
     if (aimesh->HasPositions()) {
         for (std::size_t i = 0; i < aimesh->mNumVertices; ++i) {
-            result.vertices[i].position = {aimesh->mVertices[i].x, aimesh->mVertices[i].y, aimesh->mVertices[i].z};
+            const aiVector3D position = transform * aimesh->mVertices[i];
+            result.vertices[i].position = {position.x, position.y, position.z};
         }
     }
 
     if (aimesh->HasNormals()) {
         for (std::size_t i = 0; i < aimesh->mNumVertices; ++i) {
-            result.vertices[i].normal = {aimesh->mNormals[i].x, aimesh->mNormals[i].y, aimesh->mNormals[i].z};
+            aiVector3D normal = normalMatrix * aimesh->mNormals[i];
+            normal.Normalize();
+            result.vertices[i].normal = {normal.x, normal.y, normal.z};
         }
     }
 
     if (aimesh->HasTangentsAndBitangents()) {
         for (std::size_t i = 0; i < aimesh->mNumVertices; ++i) {
-            result.vertices[i].tangent = {aimesh->mTangents[i].x, aimesh->mTangents[i].y, aimesh->mTangents[i].z};
+            aiVector3D tangent = linear * aimesh->mTangents[i];
+            tangent.Normalize();
+            result.vertices[i].tangent = {tangent.x, tangent.y, tangent.z};
         }
     }
 

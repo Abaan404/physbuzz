@@ -52,16 +52,14 @@ bool ModelSphere::build(TransferBatch &batch) {
             float phi = u * 2 * glm::pi<float>();
 
             // source: https://en.wikipedia.org/wiki/Sphere#Parametric
-            glm::vec3 position = {
+            glm::vec3 position = glm::normalize(glm::vec3{
                 std::sin(theta) * std::cos(phi),
                 std::sin(theta) * std::sin(phi),
                 std::cos(theta),
-            };
+            });
 
-            glm::vec3 normal = glm::normalize(position);
-
-            glm::vec3 tangent = {-std::sin(theta), 0.0f, std::cos(theta)};
-            tangent = glm::normalize(tangent - normal * glm::dot(normal, tangent));
+            glm::vec3 normal = position;
+            glm::vec3 tangent = {-std::sin(phi), std::cos(phi), 0.0f};
 
             vertices.emplace_back<Physbuzz::Model::Vertex>({
                 .position = position,

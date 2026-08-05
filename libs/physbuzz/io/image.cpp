@@ -28,29 +28,44 @@ bool ImageFile::read() {
     m_Data.image.resize(m_Data.meta.size * m_Info.files.size());
 
     for (std::size_t i = 0; i < m_Info.files.size(); i++) {
-        // might be worth keeping 8bit rgb and setting hdr = false in the future
-        // however stbi_loadf converts LDR to HDR with stbi_ldr_to_hdr_scale(1.0f)
-        // and stbi_ldr_to_hdr_gamma(2.2f) if it ever becomes an issue. but they
-        // aren't thread safe.
-
         int x, y;
-        float *buffer = stbi_loadf(m_Info.files[i].path.c_str(), &x, &y, nullptr, STBI_rgb_alpha);
-
-        if (!buffer) {
-            Logger::ERROR("[ImageFile] Could not read image from {}: {}", m_Info.files[i].path.string(), stbi_failure_reason());
-            m_Data = {};
-            return false;
-        }
-
-        std::size_t count = x * y * STBI_rgb_alpha;
+        std::size_t count = 0;
         std::size_t offset = i * m_Data.meta.size;
-
         imath_half_bits_t *dst = reinterpret_cast<imath_half_bits_t *>(m_Data.image.data() + offset);
-        for (std::size_t pixel = 0; pixel < count; pixel++) {
-            dst[pixel] = imath_float_to_half(buffer[pixel]);
-        }
 
-        stbi_image_free(buffer);
+        if (m_Data.meta.hdr) {
+            float *buffer = stbi_loadf(m_Info.files[i].path.c_str(), &x, &y, nullptr, STBI_rgb_alpha);
+
+            if (!buffer) {
+                Logger::ERROR("[ImageFile] Could not read image from {}: {}", m_Info.files[i].path.string(), stbi_failure_reason());
+                m_Data = {};
+                return false;
+            }
+
+            count = x * y * STBI_rgb_alpha;
+
+            for (std::size_t pixel = 0; pixel < count; pixel++) {
+                dst[pixel] = imath_float_to_half(buffer[pixel]);
+            }
+
+            stbi_image_free(buffer);
+        } else {
+            stbi_uc *buffer = stbi_load(m_Info.files[i].path.c_str(), &x, &y, nullptr, STBI_rgb_alpha);
+
+            if (!buffer) {
+                Logger::ERROR("[ImageFile] Could not read image from {}: {}", m_Info.files[i].path.string(), stbi_failure_reason());
+                m_Data = {};
+                return false;
+            }
+
+            count = x * y * STBI_rgb_alpha;
+
+            for (std::size_t pixel = 0; pixel < count; pixel++) {
+                dst[pixel] = imath_float_to_half(buffer[pixel] / 255.0f);
+            }
+
+            stbi_image_free(buffer);
+        }
     }
 
     return true;

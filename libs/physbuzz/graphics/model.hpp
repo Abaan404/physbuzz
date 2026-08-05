@@ -39,7 +39,7 @@ class Model {
 
     Model(const Info &info);
 
-    bool load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer, bool flipTexturesVertically = false);
+    bool load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer, bool flipUVs = false);
 
     const Info &getInfo() const;
 
@@ -78,7 +78,7 @@ class Model {
 
     MaterialResult processMaterial(const aiMaterial *aimaterial);
     MeshResult processMesh(const aiNode *ainode, const aiScene *aiscene);
-    SubMeshResult processSubMesh(const aiMesh *aimesh);
+    SubMeshResult processSubMesh(const aiMesh *aimesh, const aiMatrix4x4 &transform);
 };
 
 } // namespace Physbuzz
