@@ -23,7 +23,7 @@ const bool enableShadows;
 PushConstants pc;
 
 [[vk::binding(0, 0)]]
-Sampler2D<float3> textures[];
+Sampler2D<float4> textures[];
 
 [[vk::binding(0, 1)]]
 Sampler2D<float4> irradianceMap;
@@ -113,10 +113,10 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     float roughness = 1.0f;
     float ambientOcclusion = 1.0f;
     float3 irradiance = 1.0f;
-    float3 albedo = float3(1.0f);
+    float4 albedo = float4(1.0f);
 
     if (boundMaterial.albedoTextureId != -1) {
-        albedo *= textures[boundMaterial.albedoTextureId].Sample(coarseVertex.texCoord0).rgb;
+        albedo *= textures[boundMaterial.albedoTextureId].Sample(coarseVertex.texCoord0);
     }
 
     if (boundMaterial.roughnessTextureId != -1) {
@@ -142,7 +142,7 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     irradiance *= irradianceMap.Sample(directionToUV(normalize(geometry.normal))).rgb;
     metallic *= boundMaterial.metallicFactor;
     roughness *= boundMaterial.roughnessFactor;
-    albedo *= boundMaterial.albedoFactor;
+    albedo *= float4(boundMaterial.albedoFactor.rgb, 1.0f);
 
     float3 viewDirection = normalize(camera.position - geometry.position);
     float3 R = reflect(-viewDirection, geometry.normal);
@@ -151,7 +151,7 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     float2 envBRDF = brdfLut.Sample(float2(max(dot(viewDirection, geometry.normal), 0.0), roughness)).rg;
 
     SimpleMaterial material = {
-        albedo,
+        albedo.rgb,
         irradiance,
         prefilteredColor,
         envBRDF,
@@ -191,7 +191,7 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
     // tonemapping
     color = color / (color + 1.0f);
 
-    return float4(color, 1.0f);
+    return float4(color, albedo.a);
 }
 
 }

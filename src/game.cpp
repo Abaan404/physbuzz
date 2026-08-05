@@ -393,9 +393,12 @@ void Game::build() {
     //     Model model = {
     //         .model = {
     //             .path = "resources/models/Sponza/glTF/Sponza.gltf",
-    //             .flipTextureVertically = true,
+    //             .flipUVs = true,
     //         },
-    //         .transform = {{}},
+    //         .transform = {{
+    //             .position = {0, 200.0f, 0},
+    //             .scale = {50.0f, 50.0f, 50.0f},
+    //         }},
     //         .identifier = {
     //             .name = "Sponza",
     //         },

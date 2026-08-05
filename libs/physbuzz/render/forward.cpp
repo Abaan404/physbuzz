@@ -112,6 +112,24 @@ bool PipelineForward::build() {
             },
             {
                 .description = &Model::Vertex::Description,
+                // TODO implement a proper OIT
+                .blend = {
+                    .logicOpEnable = false,
+                    .logicOp = GraphicsPipeline::LogicOp::eCopy,
+                    .attachments = {{
+                        .blendEnable = true,
+                        .srcColorBlendFactor = GraphicsPipeline::BlendFactor::eSrcAlpha,
+                        .dstColorBlendFactor = GraphicsPipeline::BlendFactor::eOneMinusSrcAlpha,
+                        .colorBlendOp = GraphicsPipeline::BlendOp::eAdd,
+                        .srcAlphaBlendFactor = GraphicsPipeline::BlendFactor::eOne,
+                        .dstAlphaBlendFactor = GraphicsPipeline::BlendFactor::eZero,
+                        .alphaBlendOp = GraphicsPipeline::BlendOp::eAdd,
+                        .colorWriteMask = GraphicsPipeline::ColorComponentFlags::eR | //
+                                          GraphicsPipeline::ColorComponentFlags::eG | //
+                                          GraphicsPipeline::ColorComponentFlags::eB | //
+                                          GraphicsPipeline::ColorComponentFlags::eA,
+                    }},
+                },
                 .layouts = {
                     .resources = {
                         LayoutMaterial::Resource,
