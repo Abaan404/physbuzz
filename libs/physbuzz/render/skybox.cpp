@@ -44,10 +44,12 @@ bool PipelineSkybox::build() {
                     {
                         // skybox (cubemap)
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
                     },
                     {
                         // skybox (equirectangular)
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
                     },
                 },
                 .lifetime = DescriptorLayout::Lifetime::Global,

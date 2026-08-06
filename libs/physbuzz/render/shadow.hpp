@@ -12,6 +12,12 @@ namespace Builtin {
 
 namespace PipelineShadow {
 
+struct Vertex {
+    glm::vec3 position;
+
+    static VertexDescription Description;
+};
+
 namespace Directional {
 
 struct PushConstants {

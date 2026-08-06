@@ -11,6 +11,17 @@ namespace Physbuzz {
 
 namespace Builtin {
 
+VertexDescription PipelineShadow::Vertex::Description = {{
+    .attributes = {
+        {
+            .format = VertexDescription::Format::eR32G32B32Sfloat,
+            .size = sizeof(Vertex::position) / sizeof(decltype(Vertex::position)::value_type),
+            .offset = offsetof(Vertex, position),
+        },
+    },
+    .size = sizeof(Vertex),
+}};
+
 bool PipelineShadow::Directional::build(const glm::uvec2 &resolution) {
     if (ResourceRegistry<GraphicsPipeline>::contains(Resource)) {
         return true;
@@ -70,7 +81,7 @@ bool PipelineShadow::Directional::build(const glm::uvec2 &resolution) {
                 .module = "builtin/render/shadow/directional",
             },
             {
-                .description = &Model::Vertex::Description,
+                .description = &PipelineShadow::Vertex::Description,
                 .rasterization = {
                     .depthBiasEnable = true,
                     .depthBiasConstantFactor = 6.0f,
@@ -181,7 +192,7 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
                 .module = "builtin/render/shadow/point",
             },
             {
-                .description = &Model::Vertex::Description,
+                .description = &PipelineShadow::Vertex::Description,
                 .rasterization = {
                     .depthBiasEnable = true,
                     .depthBiasConstantFactor = 6.0f,

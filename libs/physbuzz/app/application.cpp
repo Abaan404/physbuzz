@@ -361,6 +361,7 @@ bool App::quit() {
 
     // cleanup vulkan resources
     ResourceRegistry<GraphicsPipeline>::clear();
+    ResourceRegistry<ComputePipeline>::clear();
     ResourceRegistry<DescriptorLayout>::clear();
     ResourceRegistry<StaticBuffer>::clear();
     ResourceRegistry<DynamicBuffer>::clear();

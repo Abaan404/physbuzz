@@ -117,6 +117,8 @@ bool RenderGraph::compile() {
     for (const auto &id : m_ExecutableNodeIds) {
         RenderNode &node = m_ExecutableNodes.emplace_back(m_Nodes.at(id));
 
+        m_ExecutableNodeBarriers.emplace_back<Barriers>({});
+
         // give invalid functions a noop
         if (!node.prepare) {
             node.prepare = [](Scene *scene, const RenderContext &context) {
@@ -639,7 +641,6 @@ void RenderGraph::setupGraphForResource() {
             if (usage & UsageFlagBits::Read) {
                 // cannot build a relationship if the first node needs a read
                 if (lastWriterId.empty()) {
-                    Logger::WARNING("[RenderGraph] Node '{}' reads a texture '{}' that has not been written yet.", nodeId, resource);
                     continue;
                 }
 
@@ -665,9 +666,11 @@ bool RenderGraph::setupBarriersForResource(const std::function<bool(
                                                const typename RenderNode::Description<T>::Desc &desc)> &callback) {
     bool success = true;
 
-    for (const auto &id : m_ExecutableNodeIds) {
+    for (std::size_t i = 0; i < m_ExecutableNodeIds.size(); i++) {
+        const RenderNodeID &id = m_ExecutableNodeIds.at(i);
+
         RenderNode &node = m_Nodes.at(id);
-        Barriers &barriers = m_ExecutableNodeBarriers.emplace_back<Barriers>({});
+        Barriers &barriers = m_ExecutableNodeBarriers.at(i);
 
         // collect all resources
         std::vector<std::tuple<
@@ -706,10 +709,10 @@ bool RenderGraph::setupBarriersForResource(const std::function<bool(
 
 void RenderGraph::Barriers::apply(const RenderContext &context) const {
     std::vector<vk::BufferMemoryBarrier2> bufferBarriers;
-    std::vector<vk::ImageMemoryBarrier2> attachmentBarriers;
+    std::vector<vk::ImageMemoryBarrier2> imageBarriers;
 
     bufferBarriers.reserve(m_BufferBarriers.size());
-    attachmentBarriers.reserve(m_AttachmentBarriers.size());
+    imageBarriers.reserve(m_AttachmentBarriers.size() + m_TextureBarriers.size());
 
     for (const auto &[barrier, buffer] : m_BufferBarriers) {
         vk::BufferMemoryBarrier2 &elem = bufferBarriers.emplace_back(barrier);
@@ -718,13 +721,13 @@ void RenderGraph::Barriers::apply(const RenderContext &context) const {
     }
 
     for (const auto &[barrier, attachment] : m_AttachmentBarriers) {
-        vk::ImageMemoryBarrier2 &elem = attachmentBarriers.emplace_back(barrier);
+        vk::ImageMemoryBarrier2 &elem = imageBarriers.emplace_back(barrier);
 
         elem.image = attachment->getRingData()[context.frameInFlight].image.getData().image;
     }
 
     for (const auto &[barrier, texture] : m_TextureBarriers) {
-        vk::ImageMemoryBarrier2 &elem = attachmentBarriers.emplace_back(barrier);
+        vk::ImageMemoryBarrier2 &elem = imageBarriers.emplace_back(barrier);
 
         elem.image = texture->getData().image.getData().image;
     }
@@ -733,8 +736,8 @@ void RenderGraph::Barriers::apply(const RenderContext &context) const {
         .dependencyFlags = {},
         .bufferMemoryBarrierCount = static_cast<std::uint32_t>(bufferBarriers.size()),
         .pBufferMemoryBarriers = bufferBarriers.data(),
-        .imageMemoryBarrierCount = static_cast<std::uint32_t>(attachmentBarriers.size()),
-        .pImageMemoryBarriers = attachmentBarriers.data(),
+        .imageMemoryBarrierCount = static_cast<std::uint32_t>(imageBarriers.size()),
+        .pImageMemoryBarriers = imageBarriers.data(),
     });
 }
 

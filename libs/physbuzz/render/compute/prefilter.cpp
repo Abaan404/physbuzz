@@ -25,11 +25,13 @@ bool PipelinePrefilter::build() {
                     {
                         // environment map (cubemap)
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
                         .stage = DescriptorLayout::ShaderStageFlags::eCompute,
                     },
                     {
                         // environment map (equirectangular)
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
                         .stage = DescriptorLayout::ShaderStageFlags::eCompute,
                     },
                     {
@@ -135,7 +137,11 @@ bool PrefilterCompute::build() {
                         m_Info.environmentMap,
                         {
                             .stage = RenderNode::Stage::Compute,
-                            .subresourceRanges = subresourceRanges,
+                            .subresourceRanges = {{
+                                .aspectMask = Image::AspectFlags::eColor,
+                                .levelCount = 1,
+                                .layerCount = 1,
+                            }},
                         },
                     }},
                     .output = {{
@@ -233,7 +239,7 @@ bool PrefilterCompute::build() {
 }
 
 bool PrefilterCompute::destroy() {
-    m_Resource->destroy();
+    ResourceRegistry<Texture>::erase(m_Resource);
 
     return true;
 }

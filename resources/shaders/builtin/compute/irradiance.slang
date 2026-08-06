@@ -45,12 +45,12 @@ void main(uint3 tid: SV_DispatchThreadID) {
             float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
 
             static if (isCubemap) {
-                irradiance += input_cube.Sample(sampleVec).rgb * cos(theta) * sin(theta);
+                irradiance += input_cube.SampleLevelZero(sampleVec).rgb * cos(theta) * sin(theta);
             }
 
             else {
                 float2 uvSample = directionToUV(sampleVec);
-                irradiance += input_equirectangular.Sample(uvSample).rgb * cos(theta) * sin(theta);
+                irradiance += input_equirectangular.SampleLevelZero(uvSample).rgb * cos(theta) * sin(theta);
             }
 
             sampleCount++;

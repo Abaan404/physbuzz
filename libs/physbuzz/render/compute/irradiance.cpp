@@ -4,6 +4,7 @@
 #include "../../graphics/layout.hpp"
 #include "../../graphics/material.hpp"
 #include "../../graphics/pipeline.hpp"
+#include "physbuzz/resources/registry.hpp"
 #include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
@@ -25,11 +26,13 @@ bool PipelineIrradiance::build() {
                     {
                         // environment map (cubemap)
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
                         .stage = DescriptorLayout::ShaderStageFlags::eCompute,
                     },
                     {
                         // environment map (equirectangular)
                         .type = DescriptorLayout::Type::eCombinedImageSampler,
+                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
                         .stage = DescriptorLayout::ShaderStageFlags::eCompute,
                     },
                     {
@@ -195,7 +198,7 @@ bool IrradianceCompute::build() {
 }
 
 bool IrradianceCompute::destroy() {
-    m_Resource->destroy();
+    ResourceRegistry<Texture>::erase(m_Resource);
 
     return true;
 }

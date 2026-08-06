@@ -263,6 +263,43 @@ bool ForwardRenderer::build() {
                         },
                     },
                 },
+                .textures = {
+                    .input = {
+                        {
+                            m_Irradiance.getIrradianceMap(),
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eColor,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
+                            },
+                        },
+                        {
+                            m_Prefilter.getPrefilterMap(),
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eColor,
+                                    .levelCount = Image::RemainingMipLevels,
+                                    .layerCount = 1,
+                                }},
+                            },
+                        },
+                        {
+                            Builtin::PipelineBrdfLut::ResourceLut,
+                            {
+                                .stage = RenderNode::Stage::Fragment,
+                                .subresourceRanges = {{
+                                    .aspectMask = Image::AspectFlags::eColor,
+                                    .levelCount = 1,
+                                    .layerCount = 1,
+                                }},
+                            },
+                        },
+                    },
+                },
             },
             .execute = [this](Scene *scene, const RenderContext &context) {
                 ZoneScopedN("ForwardRenderer/Execute");
@@ -440,8 +477,13 @@ bool ForwardRenderer::build() {
 bool ForwardRenderer::destroy() {
     m_Info.window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
 
-    m_Batch.destroy();
-    m_Culling.destroy();
+    bool success = true;
+
+    success &= m_Batch.destroy();
+    success &= m_Culling.destroy();
+    success &= m_Irradiance.destroy();
+    success &= m_Prefilter.destroy();
+    success &= m_BrdfLut.destroy();
 
     return true;
 }

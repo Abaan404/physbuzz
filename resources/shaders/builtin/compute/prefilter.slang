@@ -57,12 +57,12 @@ void main(uint3 tid: SV_DispatchThreadID) {
             float2 uvSample = directionToUV(L);
 
             static if (isCubemap) {
-                prefilteredColor += input_cube.Sample(L).rgb * NdotL;
+                prefilteredColor += input_cube.SampleLevelZero(L).rgb * NdotL;
             }
 
             else {
                 float2 uvSample = directionToUV(L);
-                prefilteredColor += input_equirectangular.Sample(uvSample).rgb * NdotL;
+                prefilteredColor += input_equirectangular.SampleLevelZero(uvSample).rgb * NdotL;
             }
 
             totalWeight += NdotL;
