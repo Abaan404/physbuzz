@@ -189,7 +189,6 @@ bool App::init(const DescriptorLayoutAllocator::Info &layoutAllocatorInfo) {
     }
 
     PhysicalDevice = physicalDevice;
-    PhysicalDeviceProperties = physicalDevice.getProperties();
 
     // find the needed queues
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties = PhysicalDevice.getQueueFamilyProperties();
@@ -432,6 +431,18 @@ std::shared_ptr<Window> App::getWindow(const std::string &name) {
     }
 
     return m_Windows[name];
+}
+
+App::DeviceProperties App::getDeviceProperties() {
+    return PhysicalDevice.getProperties();
+};
+
+App::MemoryProperties App::getMemoryProperties() {
+    return PhysicalDevice.getMemoryProperties();
+}
+
+App::FormatProperties App::getFormatProperties(const Format &format) {
+    return PhysicalDevice.getFormatProperties(format);
 }
 
 } // namespace Physbuzz

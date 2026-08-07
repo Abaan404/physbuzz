@@ -76,6 +76,8 @@ class Image {
     using ViewType = vk::ImageViewType;
     using SubresourceRange = vk::ImageSubresourceRange;
 
+    using ImageFormatProperties = vk::ImageFormatProperties;
+
     static constexpr std::uint32_t RemainingMipLevels = vk::RemainingMipLevels;
     static constexpr std::uint32_t RemainingArrayLayers = vk::RemainingArrayLayers;
 
@@ -134,12 +136,14 @@ class Image {
 
     const Info &getInfo() const;
     const Data &getData() const;
+    const ImageFormatProperties &getImageFormatProperties() const;
 
   private:
     Info m_Info = {};
     Data m_Data = {};
 
     VmaAllocation m_Allocation = nullptr;
+    ImageFormatProperties m_ImageFormatProperties;
 
     friend class Buffer;
 };

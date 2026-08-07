@@ -210,6 +210,16 @@ bool Image::build(const glm::uvec3 &extent) {
         buildView(viewInfo);
     }
 
+    vk::ImageFormatProperties2 formatProperties = PBZ_VK_CHECK(App::PhysicalDevice.getImageFormatProperties2(vk::PhysicalDeviceImageFormatInfo2{
+        .format = m_Data.imageInfo.format,
+        .type = m_Data.imageInfo.imageType,
+        .tiling = vk::ImageTiling::eOptimal,
+        .usage = m_Data.imageInfo.usage,
+        .flags = m_Data.imageInfo.flags,
+    }));
+
+    m_ImageFormatProperties = formatProperties.imageFormatProperties;
+
     return true;
 }
 
@@ -330,6 +340,10 @@ const Image::Info &Image::getInfo() const {
 
 const Image::Data &Image::getData() const {
     return m_Data;
+}
+
+const Image::ImageFormatProperties &Image::getImageFormatProperties() const {
+    return m_ImageFormatProperties;
 }
 
 } // namespace Physbuzz

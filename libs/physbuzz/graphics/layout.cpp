@@ -459,9 +459,9 @@ void DescriptorLayoutAllocator::bind(const RenderContext &context, const Graphic
             std::uint32_t minDynamicOffset = 0;
 
             if (binding.type == vk::DescriptorType::eStorageBufferDynamic) {
-                minDynamicOffset = App::PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
+                minDynamicOffset = App::getDeviceProperties().limits.minStorageBufferOffsetAlignment;
             } else if (binding.type == vk::DescriptorType::eUniformBufferDynamic) {
-                minDynamicOffset = App::PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+                minDynamicOffset = App::getDeviceProperties().limits.minUniformBufferOffsetAlignment;
             } else {
                 continue;
             }
@@ -498,9 +498,9 @@ void DescriptorLayoutAllocator::bind(const RenderContext &context, const Compute
             std::uint32_t minDynamicOffset = 0;
 
             if (binding.type == vk::DescriptorType::eStorageBufferDynamic) {
-                minDynamicOffset = App::PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
+                minDynamicOffset = App::getDeviceProperties().limits.minStorageBufferOffsetAlignment;
             } else if (binding.type == vk::DescriptorType::eUniformBufferDynamic) {
-                minDynamicOffset = App::PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+                minDynamicOffset = App::getDeviceProperties().limits.minUniformBufferOffsetAlignment;
             } else {
                 continue;
             }

@@ -47,7 +47,7 @@ vk::Sampler Sampler::createSampler() const {
             .addressModeW = vk::SamplerAddressMode::eRepeat,
             .mipLodBias = 0.0f,
             .anisotropyEnable = vk::True,
-            .maxAnisotropy = App::PhysicalDeviceProperties.limits.maxSamplerAnisotropy,
+            .maxAnisotropy = App::getDeviceProperties().limits.maxSamplerAnisotropy,
             .compareEnable = vk::False,
             .compareOp = vk::CompareOp::eAlways,
             .minLod = 0.0f,

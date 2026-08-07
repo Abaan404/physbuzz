@@ -10,7 +10,7 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-bool PipelinePrefilter::build() {
+bool PipelinePrefilter::build(const std::uint32_t &maxMipLevels) {
     if (ResourceRegistry<ComputePipeline>::contains(Resource)) {
         return true;
     }
@@ -39,7 +39,7 @@ bool PipelinePrefilter::build() {
                         .type = DescriptorLayout::Type::eStorageImage,
                         .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
                         .stage = DescriptorLayout::ShaderStageFlags::eCompute,
-                        .count = 15, // assumed from maxImageDimension2D = 16384 offline TODO get this value from VkPhysicalDevicegetImageFormatProperties
+                        .count = maxMipLevels,
                     },
                 },
                 .lifetime = DescriptorLayout::Lifetime::Global,
@@ -83,7 +83,10 @@ PrefilterCompute::PrefilterCompute(const Info &info)
 
 bool PrefilterCompute::build() {
     // build pipeline
-    if (!Builtin::PipelinePrefilter::build()) {
+
+    std::uint32_t maxMipLevels = m_Info.environmentMap->getData().image.getImageFormatProperties().maxMipLevels;
+
+    if (!Builtin::PipelinePrefilter::build(maxMipLevels)) {
         Logger::ERROR("[PrefilterCompute] Could not build prefilter pipeline.");
         return false;
     }

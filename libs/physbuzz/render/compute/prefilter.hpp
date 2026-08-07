@@ -22,7 +22,7 @@ inline Resource<DescriptorLayout> ResourceLayout = {"builtin/prefilter"};
 
 inline Resource<ComputePipeline> Resource = {"builtin/prefilter"};
 
-bool build();
+bool build(const std::uint32_t &maxMipLevels);
 
 } // namespace PipelinePrefilter
 

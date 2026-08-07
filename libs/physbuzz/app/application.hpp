@@ -13,6 +13,12 @@ class DeletionQueue;
 
 class App {
   public:
+    using DeviceProperties = vk::PhysicalDeviceProperties;
+    using MemoryProperties = vk::PhysicalDeviceMemoryProperties;
+    using FormatProperties = vk::FormatProperties;
+
+    using Format = vk::Format;
+
     static bool init(const DescriptorLayoutAllocator::Info &layoutAllocatorInfo = {});
     static bool quit();
 
@@ -20,6 +26,11 @@ class App {
     static std::shared_ptr<Window> createWindow(const std::string &name, const Window::Info &windowInfo, const glm::ivec2 &resolution);
     static bool destroyWindow(const std::string &name);
     static std::shared_ptr<Window> getWindow(const std::string &name);
+
+    // properties
+    static DeviceProperties getDeviceProperties();
+    static MemoryProperties getMemoryProperties();
+    static FormatProperties getFormatProperties(const Format &format);
 
     // global ECS registry
     static Scene GScene;
@@ -38,7 +49,6 @@ class App {
     // Device info
     inline static vk::PhysicalDevice PhysicalDevice = nullptr;
     inline static vk::Device Device = nullptr;
-    inline static vk::PhysicalDeviceProperties PhysicalDeviceProperties = {};
 
     // VMA
     inline static VmaAllocator Allocator = VK_NULL_HANDLE;
