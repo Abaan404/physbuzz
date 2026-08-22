@@ -22,7 +22,7 @@ FrustumCulling::FrustumCulling(const Info &info)
       m_Pipeline(std::format("{}pipeline", info.resourceIdPrefix)),
       m_Layout(std::format("{}layout", info.resourceIdPrefix)) {}
 
-bool FrustumCulling::build() {
+bool FrustumCulling::build(Scene &scene) {
     bool success = true;
 
     if (!ResourceRegistry<DynamicBuffer>::contains(m_Frustum)) {
@@ -125,7 +125,7 @@ bool FrustumCulling::build() {
                     },
                 },
             },
-            .prepare = [this](Scene *scene, const RenderContext &context) {
+            .prepare = [this, &scene](const RenderContext &context) {
                 ZoneScopedN("FrustumCulling/Node/Prepare");
 
                 std::size_t frustumCount = m_Info.objects.cameras.size() +
@@ -140,7 +140,7 @@ bool FrustumCulling::build() {
                 std::uint32_t frustumIdx = 0;
 
                 for (const auto &object : m_Info.objects.cameras) {
-                    const auto [camera] = scene->getComponent<CameraComponent>(object);
+                    const auto [camera] = scene.getComponent<CameraComponent>(object);
                     const Frustum::Info &info = camera.getFrustum().getInfo();
 
                     m_FrustumBuffer.emplace_back<FrustumBufferData>({
@@ -159,7 +159,7 @@ bool FrustumCulling::build() {
                 }
 
                 for (const auto &object : m_Info.objects.directionalLights) {
-                    const auto [directional] = scene->getComponent<DirectionalLightComponent>(object);
+                    const auto [directional] = scene.getComponent<DirectionalLightComponent>(object);
                     const Frustum::Info &info = directional.getFrustum().getInfo();
 
                     m_FrustumBuffer.emplace_back<FrustumBufferData>({
@@ -178,7 +178,7 @@ bool FrustumCulling::build() {
                 }
 
                 for (const auto &object : m_Info.objects.pointLights) {
-                    const auto [point] = scene->getComponent<PointLightComponent>(object);
+                    const auto [point] = scene.getComponent<PointLightComponent>(object);
                     for (const auto &frustum : point.getFrustums()) {
                         const Frustum::Info &info = frustum.getInfo();
 
@@ -199,7 +199,7 @@ bool FrustumCulling::build() {
                 }
 
                 for (const auto &object : m_Info.objects.spotLights) {
-                    const auto [spot] = scene->getComponent<SpotLightComponent>(object);
+                    const auto [spot] = scene.getComponent<SpotLightComponent>(object);
                     const Frustum::Info &info = spot.getFrustum().getInfo();
 
                     m_FrustumBuffer.emplace_back<FrustumBufferData>({
@@ -222,7 +222,7 @@ bool FrustumCulling::build() {
                     m_Frustum->rebuild(context, requiredFrustumSize);
                 }
             },
-            .execute = [this](Scene *scene, const RenderContext &context) {
+            .execute = [this](const RenderContext &context) {
                 m_Frustum->update<FrustumBufferData>(context, m_FrustumBuffer);
             },
         });
@@ -268,7 +268,7 @@ bool FrustumCulling::build() {
                     },
                 },
             },
-            .prepare = [this](Scene *scene, const RenderContext &context) {
+            .prepare = [this](const RenderContext &context) {
                 ZoneScopedN("FrustumCulling/Node/Prepare");
 
                 std::size_t frustumCount = m_FrustumBuffer.size();
@@ -286,7 +286,7 @@ bool FrustumCulling::build() {
                     m_Indirect->rebuild(context, requiredIndirectSize);
                 }
             },
-            .execute = [this](Scene *scene, const RenderContext &context) {
+            .execute = [this](const RenderContext &context) {
                 ZoneScopedN("FrustumCulling/Cull/Execute");
                 TracyVkZone(context.tracy, context.command, "FrustumCulling");
 

@@ -8,8 +8,6 @@
 
 namespace Physbuzz {
 
-class Scene;
-
 using RenderNodeID = std::string;
 
 struct RenderNode {
@@ -65,8 +63,8 @@ struct RenderNode {
         DescriptionMap<Texture> textures;
     } description = {};
 
-    std::function<void(Scene *, const RenderContext &)> prepare;
-    std::function<void(Scene *, const RenderContext &)> execute;
+    std::function<void(const RenderContext &)> prepare;
+    std::function<void(const RenderContext &)> execute;
 };
 
 class RenderGraph {
@@ -90,7 +88,7 @@ class RenderGraph {
     void merge(const RenderGraph &graph);
 
     bool compile();
-    void execute(Scene *scene, const RenderContext &context) const;
+    void execute(const RenderContext &context) const;
 
     const std::vector<RenderNodeID> &getExecutableNodes() const;
     const Resources &getResources() const;

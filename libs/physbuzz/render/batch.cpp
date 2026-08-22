@@ -18,7 +18,7 @@ BatchGenerator::BatchGenerator(const Info &info)
       m_Instance(std::format("{}instance", info.resourceIdPrefix)),
       m_Indirect(std::format("{}indirect", info.resourceIdPrefix)) {}
 
-bool BatchGenerator::build(const std::unordered_set<ObjectID> &objects) {
+bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &objects) {
     bool success = true;
 
     if (!ResourceRegistry<DynamicBuffer>::contains(m_Instance)) {
@@ -58,7 +58,7 @@ bool BatchGenerator::build(const std::unordered_set<ObjectID> &objects) {
                 },
             },
         },
-        .prepare = [this, &objects](Scene *scene, const RenderContext &context) {
+        .prepare = [this, &scene, &objects](const RenderContext &context) {
             ZoneScopedN("BatchGenerator/Prepare");
 
             std::size_t instanceBufferSize = 0;
@@ -66,7 +66,7 @@ bool BatchGenerator::build(const std::unordered_set<ObjectID> &objects) {
             // store a map of each mesh to the objects it corresponds to
             std::unordered_map<Resource<Mesh>, std::vector<ObjectID>> meshes;
             for (const auto &object : objects) {
-                const auto [render] = scene->getComponent<RenderComponent>(object);
+                const auto [render] = scene.getComponent<RenderComponent>(object);
                 const Model::Info &info = render.model.getInfo();
 
                 meshes[info.mesh].emplace_back(object);
@@ -113,7 +113,7 @@ bool BatchGenerator::build(const std::unordered_set<ObjectID> &objects) {
 
                 // store as planar SoA so all index information can be stored in baseInstance during draw
                 for (std::size_t instanceIdx = 0; instanceIdx < instanceCount; instanceIdx++) {
-                    const auto [render] = scene->getComponent<RenderComponent>(instances[instanceIdx]);
+                    const auto [render] = scene.getComponent<RenderComponent>(instances[instanceIdx]);
                     const Model::Info &info = render.model.getInfo();
 
                     for (std::size_t submeshIdx = 0; submeshIdx < submeshCount; submeshIdx++) {
@@ -154,7 +154,7 @@ bool BatchGenerator::build(const std::unordered_set<ObjectID> &objects) {
                 m_Indirect->rebuild(context, requiredIndirectSize);
             }
         },
-        .execute = [this](Scene *scene, const RenderContext &context) {
+        .execute = [this](const RenderContext &context) {
             ZoneScopedN("BatchGenerator/Execute");
             TracyVkZone(context.tracy, context.command, "BatchGenerator");
 

@@ -31,7 +31,7 @@ class FrustumCulling {
 
     FrustumCulling(const Info &info);
 
-    bool build();
+    bool build(Scene &scene);
     bool destroy();
 
     void setObjects(const Objects &objects);

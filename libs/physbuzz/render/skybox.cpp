@@ -108,7 +108,7 @@ bool SkyboxRenderer::build() {
         }),
     };
 
-    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
+    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(*m_Scene, m_Info.camera));
 
     m_Graph.add(
         Output,
@@ -125,7 +125,7 @@ bool SkyboxRenderer::build() {
                     },
                 },
             },
-            .execute = [this](Scene *, const RenderContext &context) {
+            .execute = [this](const RenderContext &context) {
                 ZoneScopedN("SkyboxRenderer/Execute");
                 TracyVkZone(context.tracy, context.command, "SkyboxRenderer");
 

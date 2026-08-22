@@ -6,6 +6,8 @@
 
 namespace Physbuzz {
 
+class Scene;
+
 namespace Builtin {
 
 namespace RenderNodeCamera {
@@ -18,7 +20,7 @@ struct CameraBuffer {
 
 inline Resource<DynamicBuffer> ResourceBuffer = {"builtin/camera"};
 
-RenderNode build(const ObjectID &object);
+RenderNode build(Scene &scene, const ObjectID &object);
 
 } // namespace RenderNodeCamera
 

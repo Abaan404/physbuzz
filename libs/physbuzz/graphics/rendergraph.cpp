@@ -1,6 +1,5 @@
 #include "rendergraph.hpp"
 
-#include "../ecs/scene.hpp"
 #include "../resources/registry.hpp"
 #include <tracy/Tracy.hpp>
 
@@ -121,12 +120,12 @@ bool RenderGraph::compile() {
 
         // give invalid functions a noop
         if (!node.prepare) {
-            node.prepare = [](Scene *scene, const RenderContext &context) {
+            node.prepare = [](const RenderContext &context) {
             };
         }
 
         if (!node.execute) {
-            node.execute = [](Scene *scene, const RenderContext &context) {
+            node.execute = [](const RenderContext &context) {
             };
         }
     }
@@ -552,12 +551,12 @@ bool RenderGraph::compile() {
     return success;
 }
 
-void RenderGraph::execute(Scene *scene, const RenderContext &context) const {
+void RenderGraph::execute(const RenderContext &context) const {
     // prepare any nodes for rebuilding, validating, etc
     {
         ZoneScopedN("RenderGraph/Prepare");
         for (std::size_t i = 0; i < m_ExecutableNodeIds.size(); i++) {
-            m_ExecutableNodes[i].prepare(scene, context);
+            m_ExecutableNodes[i].prepare(context);
         }
     }
 
@@ -566,7 +565,7 @@ void RenderGraph::execute(Scene *scene, const RenderContext &context) const {
         ZoneScopedN("RenderGraph/Execute");
         for (std::size_t i = 0; i < m_ExecutableNodeIds.size(); i++) {
             m_ExecutableNodeBarriers[i].apply(context);
-            m_ExecutableNodes[i].execute(scene, context);
+            m_ExecutableNodes[i].execute(context);
         }
     }
 }

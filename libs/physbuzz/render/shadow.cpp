@@ -238,8 +238,8 @@ bool ShadowRenderer::build() {
     success &= Builtin::PipelineShadow::Directional::build(m_Info.resolution);
     success &= Builtin::PipelineShadow::Point::build(m_Info.resolution);
 
-    success &= m_Batch.build(m_Objects);
-    success &= m_Culling.build();
+    success &= m_Batch.build(*m_Scene, m_Objects);
+    success &= m_Culling.build(*m_Scene);
 
     const auto updateCullingObjects = [this](...) {
         m_Culling.setObjects({
@@ -263,7 +263,7 @@ bool ShadowRenderer::build() {
         return false;
     }
 
-    m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
+    m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build(*m_Scene));
     m_Graph.add("builtin/shadow/batch", m_Batch.getRenderNode());
     m_Graph.merge(m_Culling.getGraph());
 
@@ -315,7 +315,7 @@ bool ShadowRenderer::build() {
                     },
                 },
             },
-            .execute = [this](Scene *scene, const RenderContext &context) {
+            .execute = [this](const RenderContext &context) {
                 ZoneScopedN("ShadowRenderer/Directional/Execute");
                 TracyVkZone(context.tracy, context.command, "ShadowRenderer/Directional");
 
@@ -425,7 +425,7 @@ bool ShadowRenderer::build() {
                     },
                 },
             },
-            .execute = [this](Scene *scene, const RenderContext &context) {
+            .execute = [this](const RenderContext &context) {
                 ZoneScopedN("ShadowRenderer/Point/Execute");
                 TracyVkZone(context.tracy, context.command, "ShadowRenderer/Point");
 

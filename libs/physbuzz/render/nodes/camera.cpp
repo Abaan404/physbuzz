@@ -8,7 +8,7 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-RenderNode RenderNodeCamera::build(const ObjectID &object) {
+RenderNode RenderNodeCamera::build(Scene &scene, const ObjectID &object) {
     RenderNode node = {{}};
 
     bool success = true;
@@ -40,11 +40,11 @@ RenderNode RenderNodeCamera::build(const ObjectID &object) {
                 },
             },
         },
-        .execute = [&object](Scene *scene, const RenderContext &context) {
+        .execute = [&object, &scene](const RenderContext &context) {
             ZoneScopedN("RenderNodeCamera/Execute");
             TracyVkZone(context.tracy, context.command, "Camera");
 
-            const auto [camera] = scene->getComponent<CameraComponent>(object);
+            const auto [camera] = scene.getComponent<CameraComponent>(object);
 
             std::vector<CameraBuffer> buffer = {{
                 .position = camera.getInfo().view.position,

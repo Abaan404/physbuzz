@@ -265,11 +265,11 @@ bool DeferredRenderer::build() {
 
     bool success = true;
 
-    success &= m_Batch.build(m_Objects);
-    success &= m_Culling.build();
+    success &= m_Batch.build(*m_Scene, m_Objects);
+    success &= m_Culling.build(*m_Scene);
 
-    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
-    m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
+    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(*m_Scene, m_Info.camera));
+    m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build(*m_Scene));
     m_Graph.add("builtin/batch", m_Batch.getRenderNode());
     m_Graph.merge(m_Culling.getGraph());
 
@@ -343,7 +343,7 @@ bool DeferredRenderer::build() {
                     },
                 },
             },
-            .prepare = [this](Scene *scene, const RenderContext &context) {
+            .prepare = [this](const RenderContext &context) {
                 ZoneScopedN("DeferredRenderer/GBuffer/Prepare");
 
                 std::array gBuffers = {
@@ -359,7 +359,7 @@ bool DeferredRenderer::build() {
                     }
                 }
             },
-            .execute = [this](Scene *scene, const RenderContext &context) {
+            .execute = [this](const RenderContext &context) {
                 ZoneScopedN("DeferredRenderer/GBuffer/Execute");
                 TracyVkZone(context.tracy, context.command, "DeferredRenderer/GBuffer");
 
@@ -540,15 +540,15 @@ bool DeferredRenderer::build() {
                     },
                 },
             },
-            .execute = [this](Scene *scene, const RenderContext &context) {
+            .execute = [this](const RenderContext &context) {
                 ZoneScopedN("DeferredRenderer/Lighting/Execute");
                 TracyVkZone(context.tracy, context.command, "DeferredRenderer/Lighting");
 
                 std::lock_guard<std::mutex> lock(ResourceRegistry<GraphicsPipeline>::ReloadMutex);
 
-                const std::vector<DirectionalLightComponent> &directionals = scene->getComponentArray<DirectionalLightComponent>();
-                const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
-                const std::vector<SpotLightComponent> &spots = scene->getComponentArray<SpotLightComponent>();
+                const std::vector<DirectionalLightComponent> &directionals = m_Scene->getComponentArray<DirectionalLightComponent>();
+                const std::vector<PointLightComponent> &points = m_Scene->getComponentArray<PointLightComponent>();
+                const std::vector<SpotLightComponent> &spots = m_Scene->getComponentArray<SpotLightComponent>();
 
                 std::array colorAttachments = {
                     vk::RenderingAttachmentInfo{

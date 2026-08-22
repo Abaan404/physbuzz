@@ -170,8 +170,8 @@ bool ForwardRenderer::build() {
 
     bool success = true;
 
-    success &= m_Batch.build(m_Objects);
-    success &= m_Culling.build();
+    success &= m_Batch.build(*m_Scene, m_Objects);
+    success &= m_Culling.build(*m_Scene);
     success &= m_Irradiance.build();
     success &= m_Prefilter.build();
     success &= m_BrdfLut.build();
@@ -182,8 +182,8 @@ bool ForwardRenderer::build() {
     renderer->immediate(m_Prefilter.getGraph());
     renderer->immediate(m_BrdfLut.getGraph());
 
-    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(m_Info.camera));
-    m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build());
+    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(*m_Scene, m_Info.camera));
+    m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build(*m_Scene));
     m_Graph.add("builtin/batch", m_Batch.getRenderNode());
     m_Graph.merge(m_Culling.getGraph());
 
@@ -301,7 +301,7 @@ bool ForwardRenderer::build() {
                     },
                 },
             },
-            .execute = [this](Scene *scene, const RenderContext &context) {
+            .execute = [this](const RenderContext &context) {
                 ZoneScopedN("ForwardRenderer/Execute");
                 TracyVkZone(context.tracy, context.command, "ForwardRenderer");
 
@@ -334,9 +334,9 @@ bool ForwardRenderer::build() {
                     },
                 };
 
-                const std::vector<DirectionalLightComponent> &directionals = scene->getComponentArray<DirectionalLightComponent>();
-                const std::vector<PointLightComponent> &points = scene->getComponentArray<PointLightComponent>();
-                const std::vector<SpotLightComponent> &spots = scene->getComponentArray<SpotLightComponent>();
+                const std::vector<DirectionalLightComponent> &directionals = m_Scene->getComponentArray<DirectionalLightComponent>();
+                const std::vector<PointLightComponent> &points = m_Scene->getComponentArray<PointLightComponent>();
+                const std::vector<SpotLightComponent> &spots = m_Scene->getComponentArray<SpotLightComponent>();
 
                 context.command.setViewport(0, vk::Viewport{0.0f, 0.0f, static_cast<float>(context.extent.width), static_cast<float>(context.extent.height), 0.0f, 1.0f});
                 context.command.setScissor(0, vk::Rect2D{{0, 0}, context.extent});

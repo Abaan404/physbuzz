@@ -92,7 +92,7 @@ bool BrdfLutCompute::build() {
                     }},
                 },
             },
-            .execute = [this](Scene *scene, const RenderContext &context) {
+            .execute = [this](const RenderContext &context) {
                 ZoneScopedN("BrdfLutCompute/Execute");
                 TracyVkZone(context.tracy, context.command, "BrdfLutCompute");
 

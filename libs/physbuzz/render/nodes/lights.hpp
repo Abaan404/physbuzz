@@ -5,6 +5,8 @@
 
 namespace Physbuzz {
 
+class Scene;
+
 namespace Builtin {
 
 namespace RenderNodeLights {
@@ -39,7 +41,7 @@ inline Resource<DynamicBuffer> ResourceBufferDirectional = {"builtin/lights/dire
 inline Resource<DynamicBuffer> ResourceBufferPoint = {"builtin/lights/point"};
 inline Resource<DynamicBuffer> ResourceBufferSpot = {"builtin/lights/spot"};
 
-RenderNode build();
+RenderNode build(Scene &scene);
 
 } // namespace RenderNodeLights
 

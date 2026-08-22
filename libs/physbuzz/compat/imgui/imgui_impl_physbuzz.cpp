@@ -83,11 +83,11 @@ bool ImGuiRenderer::build() {
     m_Graph.add(
         Output,
         {
-            .prepare = [](Scene *scene, const RenderContext &context) {
+            .prepare = [this](const RenderContext &context) {
                 // this is necessary for capturing current attachment in the ring buffer.
-                scene->getSystem<ImGuiRenderer>()->m_FrameInFlight = context.frameInFlight;
+                m_FrameInFlight = context.frameInFlight;
             },
-            .execute = [](Scene *, const RenderContext &context) {
+            .execute = [](const RenderContext &context) {
                 std::vector<vk::RenderingAttachmentInfo> colorAttachments = {
                     {
                         .imageView = context.color.view,

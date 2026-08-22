@@ -156,7 +156,7 @@ bool PrefilterCompute::build() {
                     }},
                 },
             },
-            .execute = [this, mipLevels](Scene *scene, const RenderContext &context) {
+            .execute = [this, mipLevels](const RenderContext &context) {
                 ZoneScopedN("PrefilterCompute/Execute");
                 TracyVkZone(context.tracy, context.command, "PrefilterCompute");
 

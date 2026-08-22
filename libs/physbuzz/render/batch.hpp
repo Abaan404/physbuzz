@@ -6,6 +6,7 @@
 
 namespace Physbuzz {
 
+class Scene;
 class DynamicBuffer;
 class DescriptorLayout;
 class Mesh;
@@ -30,7 +31,7 @@ class BatchGenerator {
 
     BatchGenerator(const Info &info);
 
-    bool build(const std::unordered_set<ObjectID> &objects);
+    bool build(Scene &scene, const std::unordered_set<ObjectID> &objects);
     bool destroy();
 
     void draw(const RenderContext &context);

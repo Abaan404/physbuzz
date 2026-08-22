@@ -10,7 +10,7 @@ namespace Physbuzz {
 
 namespace Builtin {
 
-RenderNode RenderNodeLights::build() {
+RenderNode RenderNodeLights::build(Scene &scene) {
     RenderNode node = {{}};
 
     bool success = true;
@@ -76,10 +76,10 @@ RenderNode RenderNodeLights::build() {
                 },
             },
         },
-        .prepare = [directionals, points, spots](Scene *scene, const RenderContext &context) {
+        .prepare = [&scene, directionals, points, spots](const RenderContext &context) {
             ZoneScopedN("RenderNodeLights/Prepare");
 
-            std::vector<DirectionalLightComponent> directionalComponents = scene->getComponentArray<DirectionalLightComponent>();
+            std::vector<DirectionalLightComponent> directionalComponents = scene.getComponentArray<DirectionalLightComponent>();
             std::size_t requiredSizeDirectionals = directionalComponents.size() * sizeof(DirectionalLightBuffer);
 
             if (ResourceBufferDirectional->getSize(context.frameInFlight) < requiredSizeDirectionals) {
@@ -98,7 +98,7 @@ RenderNode RenderNodeLights::build() {
                 });
             }
 
-            std::vector<PointLightComponent> pointComponents = scene->getComponentArray<PointLightComponent>();
+            std::vector<PointLightComponent> pointComponents = scene.getComponentArray<PointLightComponent>();
             std::size_t requiredSizePoints = pointComponents.size() * sizeof(PointLightBuffer);
 
             if (ResourceBufferPoint->getSize(context.frameInFlight) < requiredSizePoints) {
@@ -118,7 +118,7 @@ RenderNode RenderNodeLights::build() {
                 });
             }
 
-            std::vector<SpotLightComponent> spotComponents = scene->getComponentArray<SpotLightComponent>();
+            std::vector<SpotLightComponent> spotComponents = scene.getComponentArray<SpotLightComponent>();
             std::size_t requiredSizeSpots = spotComponents.size() * sizeof(SpotLightBuffer);
 
             if (ResourceBufferSpot->getSize(context.frameInFlight) < requiredSizeSpots) {
@@ -140,7 +140,7 @@ RenderNode RenderNodeLights::build() {
                 });
             }
         },
-        .execute = [directionals, points, spots](Scene *scene, const RenderContext &context) {
+        .execute = [directionals, points, spots](const RenderContext &context) {
             ZoneScopedN("RenderNodeLights/Execute");
             TracyVkZone(context.tracy, context.command, "Light");
 

@@ -129,7 +129,7 @@ bool IrradianceCompute::build() {
                     }},
                 },
             },
-            .execute = [this](Scene *scene, const RenderContext &context) {
+            .execute = [this](const RenderContext &context) {
                 ZoneScopedN("IrradianceCompute/Execute");
                 TracyVkZone(context.tracy, context.command, "IrradianceCompute");
 

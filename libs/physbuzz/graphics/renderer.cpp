@@ -206,7 +206,7 @@ void Renderer::tick() {
         TracyVkZone(App::Tracy, m_Command.buffers[m_FrameInFlight], "RenderGraph");
 
         // execute the graph
-        m_Graph.execute(m_Scene, context);
+        m_Graph.execute(context);
     }
 
     // transition image
@@ -322,7 +322,7 @@ void Renderer::immediate(const RenderGraph &graph) {
         TracyVkZone(App::Tracy, immediate, "RenderGraph/ImmediateGraph");
 
         // execute the graph
-        graph.execute(m_Scene, context);
+        graph.execute(context);
     }
 
     PBZ_VK_CHECK_RESULT(immediate.end());
