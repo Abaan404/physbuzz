@@ -95,12 +95,8 @@ class Mesh {
   private:
     Info m_Info;
 
-    StaticBuffer m_Vertices = {{
-        .type = StaticBuffer::Type::Vertex,
-    }};
-
-    StaticBuffer m_Indices = {{
-        .type = StaticBuffer::Type::Index,
+    StaticBuffer m_Mesh = {{
+        .type = StaticBuffer::Type::Mesh,
     }};
 };
 

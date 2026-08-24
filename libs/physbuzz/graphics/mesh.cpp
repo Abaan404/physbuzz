@@ -43,8 +43,10 @@ const VertexDescription::Data &VertexDescription::getData() const {
 bool Mesh::build() {
     bool success = true;
 
-    success &= m_Vertices.build(m_Info.vertexCount * sizeof(std::byte) * m_Info.description->getInfo().size);
-    success &= m_Indices.build(m_Info.indexCount * sizeof(Index));
+    std::uint64_t vertexSize = m_Info.vertexCount * sizeof(std::byte) * m_Info.description->getInfo().size;
+    std::uint64_t indexSize = m_Info.indexCount * sizeof(Index);
+
+    success &= m_Mesh.build(vertexSize + indexSize);
 
     if (!success) {
         destroy();
@@ -57,8 +59,7 @@ bool Mesh::build() {
 bool Mesh::destroy() {
     bool success = true;
 
-    success &= m_Vertices.destroy();
-    success &= m_Indices.destroy();
+    success &= m_Mesh.destroy();
 
     return success;
 }
@@ -66,8 +67,10 @@ bool Mesh::destroy() {
 bool Mesh::write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&indices, TransferBatch &batch) {
     bool success = true;
 
-    success &= batch.add(m_Vertices.getData().buffer, std::move(vertices), 0);
-    success &= batch.add(m_Indices.getData().buffer, std::move(indices), 0);
+    std::uint64_t vertexSize = m_Info.vertexCount * sizeof(std::byte) * m_Info.description->getInfo().size;
+
+    success &= batch.add(m_Mesh.getData().buffer, std::move(vertices), 0);
+    success &= batch.add(m_Mesh.getData().buffer, std::move(indices), vertexSize);
 
     return success;
 }
@@ -75,8 +78,10 @@ bool Mesh::write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&ind
 void Mesh::bind(const RenderContext &context) const {
     ZoneScopedN("Mesh/Draw");
 
-    context.command.bindVertexBuffers(0, m_Vertices.getData().buffer.getData().buffer, {0});
-    context.command.bindIndexBuffer(m_Indices.getData().buffer.getData().buffer, 0, vk::IndexType::eUint32);
+    std::uint64_t vertexSize = m_Info.vertexCount * sizeof(std::byte) * m_Info.description->getInfo().size;
+
+    context.command.bindVertexBuffers(0, m_Mesh.getData().buffer.getData().buffer, {0});
+    context.command.bindIndexBuffer(m_Mesh.getData().buffer.getData().buffer, vertexSize, vk::IndexType::eUint32);
 }
 
 const Mesh::Info &Mesh::getInfo() const {

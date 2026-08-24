@@ -21,7 +21,7 @@ bool Texture::build(const glm::uvec3 &resolution) {
         return false;
     }
 
-    vk::ImageUsageFlags usage = Image::UsageFlags::eTransferSrc | Image::UsageFlags::eTransferDst;
+    Image::Usage usage = Image::UsageFlags::eTransferSrc | Image::UsageFlags::eTransferDst;
     switch (m_Info.usage) {
     case Usage::Sampled:
         usage |= Image::UsageFlags::eSampled;

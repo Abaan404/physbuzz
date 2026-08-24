@@ -123,8 +123,8 @@ bool Buffer::map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span
         return false;
     }
 
-    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, bytes.data(), stagingBuffer.m_Allocation, offset, bytes.size())));
-    vmaFlushAllocation(App::Allocator, stagingBuffer.m_Allocation, offset, bytes.size());
+    PBZ_VK_CHECK_RESULT(static_cast<vk::Result>(vmaCopyMemoryToAllocation(App::Allocator, bytes.data(), stagingBuffer.m_Allocation, 0, bytes.size())));
+    vmaFlushAllocation(App::Allocator, stagingBuffer.m_Allocation, 0, bytes.size());
 
     vk::BufferCopy copy = {
         .srcOffset = 0,

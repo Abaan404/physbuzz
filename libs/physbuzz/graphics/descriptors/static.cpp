@@ -17,14 +17,11 @@ bool StaticBuffer::build(std::uint64_t size) {
         return true;
     }
 
-    Buffer::UsageFlags usage = {};
+    Buffer::Usage usage = {};
 
     switch (m_Info.type) {
-    case Type::Vertex:
-        usage = Buffer::UsageFlags::eVertexBuffer;
-        break;
-    case Type::Index:
-        usage = Buffer::UsageFlags::eIndexBuffer;
+    case Type::Mesh:
+        usage = Buffer::UsageFlags::eVertexBuffer | Buffer::UsageFlags::eIndexBuffer;
         break;
     case Type::None:
         break;

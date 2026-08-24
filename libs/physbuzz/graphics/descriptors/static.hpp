@@ -11,8 +11,7 @@ struct RenderContext;
 class StaticBuffer : public EventSubject {
   public:
     enum class Type {
-        Vertex,
-        Index,
+        Mesh,
         None,
     };
 
