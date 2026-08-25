@@ -76,6 +76,7 @@ class DeferredRenderer : public System<RenderComponent> {
 
     bool specialize(const Builtin::PipelineDeferred::Lighting::Specialization &specialization);
 
+    const BatchGenerator &getBatch() const;
     const RenderGraph &getGraph() const;
 
     const Info &getInfo() const;

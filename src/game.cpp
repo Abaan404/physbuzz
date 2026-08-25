@@ -7,6 +7,7 @@
 #include "objects/model.hpp"
 #include "objects/player.hpp"
 #include "objects/quad.hpp"
+#include "renderers/collision_highlight.hpp"
 #include "resources/loader.hpp"
 #include "ui/handler.hpp"
 #include <filesystem>
@@ -258,11 +259,19 @@ void Game::build() {
             .skybox = {"hdr_skybox"},
         });
 
+    std::shared_ptr<CollisionHighlight> collisionHighlight = Physbuzz::App::GScene.createSystem<CollisionHighlight>(
+        CollisionHighlight::Info{
+            .camera = playerId,
+            .window = window,
+            .batch = forward->getBatch(),
+        });
+
     Physbuzz::RenderGraph graph = {{}};
 
     graph.merge(forward->getGraph());
     graph.merge(skybox->getGraph());
     graph.merge(imgui->getGraph());
+    graph.merge(collisionHighlight->getGraph());
 
     if (!graph.compile()) {
         Physbuzz::Logger::CRITICAL("[Game] Failed to merge render graphs.");

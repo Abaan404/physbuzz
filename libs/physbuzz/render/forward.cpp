@@ -500,4 +500,8 @@ const ForwardRenderer::Info &ForwardRenderer::getInfo() const {
     return m_Info;
 }
 
+const BatchGenerator &ForwardRenderer::getBatch() const {
+    return m_Batch;
+}
+
 } // namespace Physbuzz

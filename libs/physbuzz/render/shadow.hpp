@@ -73,6 +73,7 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
     bool build();
     bool destroy();
 
+    const BatchGenerator &getBatch() const;
     const RenderGraph &getGraph() const;
 
     const Info &getInfo() const;

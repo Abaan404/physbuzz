@@ -61,7 +61,7 @@ bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &obj
         .prepare = [this, &scene, &objects](const RenderContext &context) {
             ZoneScopedN("BatchGenerator/Prepare");
 
-            std::size_t instanceBufferSize = 0;
+            std::size_t instanceBufferCount = 0;
 
             // store a map of each mesh to the objects it corresponds to
             std::unordered_map<Resource<Mesh>, std::vector<ObjectID>> meshes;
@@ -70,19 +70,22 @@ bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &obj
                 const Model::Info &info = render.model.getInfo();
 
                 meshes[info.mesh].emplace_back(object);
-                instanceBufferSize += info.mesh->getInfo().submeshes.size();
+                instanceBufferCount += info.mesh->getInfo().submeshes.size();
             }
 
-            std::size_t indirectBufferSize = 0;
+            std::size_t indirectBufferCount = 0;
             for (const auto &[mesh, instances] : meshes) {
-                indirectBufferSize += mesh->getInfo().submeshes.size();
+                indirectBufferCount += mesh->getInfo().submeshes.size();
             }
+
+            m_InstanceObjects.clear();
+            m_InstanceObjects.reserve(instanceBufferCount);
 
             m_InstanceBuffer.clear();
-            m_InstanceBuffer.resize(instanceBufferSize);
+            m_InstanceBuffer.reserve(instanceBufferCount);
 
             m_IndirectBuffer.clear();
-            m_IndirectBuffer.reserve(indirectBufferSize);
+            m_IndirectBuffer.reserve(indirectBufferCount);
 
             m_IndirectMeshes.clear();
             m_IndirectMeshes.reserve(meshes.size());
@@ -112,20 +115,19 @@ bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &obj
                 }
 
                 // store as planar SoA so all index information can be stored in baseInstance during draw
-                for (std::size_t instanceIdx = 0; instanceIdx < instanceCount; instanceIdx++) {
-                    const auto [render] = scene.getComponent<RenderComponent>(instances[instanceIdx]);
+                for (const auto &instance : instances) {
+                    const auto [render] = scene.getComponent<RenderComponent>(instance);
                     const Model::Info &info = render.model.getInfo();
+
+                    std::fill_n(std::back_inserter(m_InstanceObjects), submeshCount, instance);
 
                     for (std::size_t submeshIdx = 0; submeshIdx < submeshCount; submeshIdx++) {
                         const Mesh::SubMesh &submesh = mesh->getInfo().submeshes[submeshIdx];
 
                         const AABB::Info aabb = submesh.bounding.getInfo();
 
-                        // use the firstInstance to lookup the correct object data in the buffer
-                        std::size_t firstInstance = submeshIdx * instanceCount + meshOffset;
-                        std::size_t bufferIdx = instanceIdx + firstInstance;
-
-                        m_InstanceBuffer[bufferIdx] = {
+                        // equivalent to instanceIdx + (submeshIdx * instanceCount + meshOffset) (aka firstInstance)
+                        m_InstanceBuffer.emplace_back<InstanceData>({
                             .model = render.transform.getModel(),
                             .normal = render.transform.getNormal(),
                             .materialIdx = context.materialAllocator->query(info.materials[info.submeshMaterialIndices[submeshIdx]]),
@@ -133,7 +135,7 @@ bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &obj
                                 .min = aabb.min,
                                 .max = aabb.max,
                             },
-                        };
+                        });
                     }
                 }
 
@@ -144,12 +146,12 @@ bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &obj
                 indirectOffset += submeshCount;
             }
 
-            std::size_t requiredInstanceSize = instanceBufferSize * sizeof(InstanceData);
+            std::size_t requiredInstanceSize = instanceBufferCount * sizeof(InstanceData);
             if (m_Instance->getSize(context.frameInFlight) < requiredInstanceSize) {
                 m_Instance->rebuild(context, requiredInstanceSize);
             }
 
-            std::size_t requiredIndirectSize = indirectBufferSize * sizeof(vk::DrawIndexedIndirectCommand);
+            std::size_t requiredIndirectSize = indirectBufferCount * sizeof(vk::DrawIndexedIndirectCommand);
             if (m_Indirect->getSize(context.frameInFlight) < requiredIndirectSize) {
                 m_Indirect->rebuild(context, requiredIndirectSize);
             }
@@ -179,7 +181,7 @@ bool BatchGenerator::destroy() {
     return success;
 }
 
-void BatchGenerator::draw(const RenderContext &context) {
+void BatchGenerator::draw(const RenderContext &context) const {
     ZoneScopedN("BatchGenerator/Draw");
 
     for (const auto &[mesh, indirectOffset] : m_IndirectMeshes) {
@@ -193,7 +195,7 @@ void BatchGenerator::draw(const RenderContext &context) {
     }
 }
 
-void BatchGenerator::draw(const RenderContext &context, const Resource<DynamicBuffer> &indirect, std::uint64_t offset) {
+void BatchGenerator::draw(const RenderContext &context, const Resource<DynamicBuffer> &indirect, std::uint64_t offset) const {
     ZoneScopedN("BatchGenerator/Draw");
 
     for (const auto &[mesh, indirectOffset] : m_IndirectMeshes) {
@@ -213,6 +215,14 @@ const Resource<DynamicBuffer> &BatchGenerator::getInstanceBuffer() const {
 
 const Resource<DynamicBuffer> &BatchGenerator::getIndirectBuffer() const {
     return m_Indirect;
+}
+
+const std::vector<ObjectID> &BatchGenerator::getInstanceObjects() const {
+    return m_InstanceObjects;
+}
+
+const std::vector<BatchGenerator::InstanceData> &BatchGenerator::getInstanceData() const {
+    return m_InstanceBuffer;
 }
 
 const RenderNode &BatchGenerator::getRenderNode() const {

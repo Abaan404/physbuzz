@@ -59,6 +59,7 @@ class ForwardRenderer : public System<RenderComponent> {
 
     bool specialize(const Builtin::PipelineForward::Specialization &specialization);
 
+    const BatchGenerator &getBatch() const;
     const RenderGraph &getGraph() const;
 
     const Info &getInfo() const;

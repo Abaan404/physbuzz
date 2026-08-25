@@ -34,11 +34,14 @@ class BatchGenerator {
     bool build(Scene &scene, const std::unordered_set<ObjectID> &objects);
     bool destroy();
 
-    void draw(const RenderContext &context);
-    void draw(const RenderContext &context, const Resource<DynamicBuffer> &indirect, std::uint64_t offset = 0);
+    void draw(const RenderContext &context) const;
+    void draw(const RenderContext &context, const Resource<DynamicBuffer> &indirect, std::uint64_t offset = 0) const;
 
     const Resource<DynamicBuffer> &getIndirectBuffer() const;
     const Resource<DynamicBuffer> &getInstanceBuffer() const;
+
+    const std::vector<ObjectID> &getInstanceObjects() const;
+    const std::vector<InstanceData> &getInstanceData() const;
 
     std::size_t getObjectCount(std::uint32_t frameInFlight) const;
     std::size_t getDrawCount(std::uint32_t frameInFlight) const;
@@ -52,6 +55,8 @@ class BatchGenerator {
     RenderNode m_RenderNode;
 
     std::vector<InstanceData> m_InstanceBuffer;
+    std::vector<ObjectID> m_InstanceObjects;
+
     std::vector<vk::DrawIndexedIndirectCommand> m_IndirectBuffer;
     std::vector<std::tuple<Resource<Mesh>, std::size_t>> m_IndirectMeshes;
 

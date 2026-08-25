@@ -533,6 +533,10 @@ bool ShadowRenderer::destroy() {
     return success;
 }
 
+const BatchGenerator &ShadowRenderer::getBatch() const {
+    return m_Batch;
+}
+
 const RenderGraph &ShadowRenderer::getGraph() const {
     return m_Graph;
 }

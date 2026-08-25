@@ -712,6 +712,10 @@ bool DeferredRenderer::specialize(const Builtin::PipelineDeferred::Lighting::Spe
     return Builtin::PipelineDeferred::Lighting::Resource->specialize(specialization);
 }
 
+const BatchGenerator &DeferredRenderer::getBatch() const {
+    return m_Batch;
+}
+
 const RenderGraph &DeferredRenderer::getGraph() const {
     return m_Graph;
 }
