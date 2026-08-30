@@ -157,13 +157,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
 
                     const glm::ivec2 &cursor = event.window->getCursorPos();
                     Circle info = {
-                        .body = {
-                            .angular = {},
-                            .gravity = {
-                                .acceleration = {0.0f, 1000.0f, 0.0f},
-                            },
-                            .drag = {},
-                        },
                         .circle = {
                             .radius = 100.0f,
                         },

@@ -1,14 +1,14 @@
 #include "sepaxis.hpp"
 
 #include "../../../ecs/scene.hpp"
-#include "../../../physics/dynamics.hpp"
+#include "../../components/rigidbody.hpp"
 
 namespace Physbuzz {
 
 SeperatingAxis2D::SeperatingAxis2D(Scene *scene)
-    : ICollisionDetector(scene) {}
+    : CollisionDetector(scene) {}
 
-bool SeperatingAxis2D::check(Contact &contact) {
+bool SeperatingAxis2D::checkImpl(Contact &contact) {
     const auto [body1] = m_Scene->getComponent<RigidBodyComponent>(contact.object1);
     const auto [body2] = m_Scene->getComponent<RigidBodyComponent>(contact.object2);
 
@@ -41,7 +41,7 @@ float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const RigidBodyCom
             float max = std::numeric_limits<float>::lowest();
         } ret;
 
-        for (const auto &vertex : body.geometry.vertices) {
+        for (const auto &vertex : body.getInfo().geometry.vertices) {
             float projection = glm::dot(vertex.position, axis);
 
             ret.min = glm::min(projection, ret.min);
@@ -69,7 +69,7 @@ void SeperatingAxis2D::addMeshNormals(const RigidBodyComponent &body, std::vecto
     constexpr float PARALLEL_AXIS_THRESHOLD = 1e-3f;
 
     // TODO do a perf test on n^2 normal check or running on every normal based on no. of vertices
-    for (const auto &vertex : body.geometry.vertices) {
+    for (const auto &vertex : body.getInfo().geometry.vertices) {
         bool parallelFound = false;
         for (const auto &axis : axes) {
             if (glm::length(glm::cross(axis, vertex.normal)) < PARALLEL_AXIS_THRESHOLD) {

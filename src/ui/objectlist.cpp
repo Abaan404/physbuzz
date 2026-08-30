@@ -7,6 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <physbuzz/graphics/renderer.hpp>
+#include <physbuzz/physics/collision.hpp>
 #include <physbuzz/render/components/lights.hpp>
 #include <physbuzz/render/defines.hpp>
 #include <unordered_set>
@@ -64,13 +65,14 @@ void ObjectList::draw() {
                 const auto [render] = m_Scene->getComponent<Physbuzz::RenderComponent>(object);
 
                 Physbuzz::Transform::Info info = render.transform.getInfo();
+                bool updateTransform = false;
 
                 if (ImGui::DragFloat3("position", glm::value_ptr(info.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    render.transform.update(info);
+                    updateTransform = true;
                 }
 
                 if (ImGui::DragFloat3("scale", glm::value_ptr(info.scale), 0.1f, MIN_VALUE, MAX_VALUE)) {
-                    render.transform.update(info);
+                    updateTransform = true;
                 }
 
                 glm::vec3 axis = glm::axis(info.orientation);
@@ -78,12 +80,21 @@ void ObjectList::draw() {
 
                 if (ImGui::DragFloat3("rotAxis", glm::value_ptr(axis), 0.01f, 0.0f, 1.0f)) {
                     info.orientation = glm::angleAxis(angle, glm::normalize(axis));
-                    render.transform.update(info);
+                    updateTransform = true;
                 }
 
                 if (ImGui::DragFloat("rotMag", &angle, glm::pi<float>() / 50.0f, 0.0f, 2 * glm::pi<float>())) {
                     info.orientation = glm::angleAxis(angle, glm::normalize(axis));
+                    updateTransform = true;
+                }
+
+                if (updateTransform) {
                     render.transform.update(info);
+
+                    if (m_Scene->containsComponent<Physbuzz::RigidBodyComponent, Physbuzz::BoundingComponent>(object)) {
+                        const auto [body, bounding] = m_Scene->getComponent<Physbuzz::RigidBodyComponent, Physbuzz::BoundingComponent>(object);
+                        bounding.aabb = body.getAABB().withTransform(info);
+                    }
                 }
 
                 for (auto &material : render.model.getInfo().materials) {
@@ -106,13 +117,16 @@ void ObjectList::draw() {
             if (m_Scene->containsComponent<Physbuzz::RigidBodyComponent>(object)) {
                 ImGui::SeparatorText("RigidBody");
 
-                const auto [physics] = m_Scene->getComponent<Physbuzz::RigidBodyComponent>(object);
+                const auto [body] = m_Scene->getComponent<Physbuzz::RigidBodyComponent>(object);
 
-                ImGui::DragFloat("mass", &physics.mass, 0.01f, -MAX_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("velocity", glm::value_ptr(physics.velocity), 0.01f, -MAX_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("acceleration", glm::value_ptr(physics.acceleration), 0.01f, -MAX_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("gravity", glm::value_ptr(physics.gravity.acceleration), 0.01f, -MAX_VALUE, MAX_VALUE);
-                ImGui::DragFloat2("drag", &physics.drag.k1, 0.01f, -MAX_VALUE, MAX_VALUE);
+                Physbuzz::RigidBodyComponent::Info info = body.getInfo();
+
+                ImGui::DragFloat("mass", &info.mass, 0.01f, -MAX_VALUE, MAX_VALUE);
+                ImGui::DragFloat3("velocity", glm::value_ptr(info.velocity), 0.01f, -MAX_VALUE, MAX_VALUE);
+                ImGui::DragFloat3("acceleration", glm::value_ptr(info.acceleration), 0.01f, -MAX_VALUE, MAX_VALUE);
+                ImGui::DragFloat2("drag", &info.drag.k1, 0.01f, -MAX_VALUE, MAX_VALUE);
+
+                body.update(info);
             }
 
             if (m_Scene->containsComponent<QuadComponent>(object)) {

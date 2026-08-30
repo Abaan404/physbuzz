@@ -15,9 +15,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Quad left = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
-            .angular = {},
-            .gravity = {},
-            .drag = {},
         },
         .quad = {
             .width = info.wall.thickness,
@@ -34,9 +31,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Quad right = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
-            .angular = {},
-            .gravity = {},
-            .drag = {},
         },
         .quad = {
             .width = info.wall.thickness,
@@ -53,9 +47,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Quad up = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
-            .angular = {},
-            .gravity = {},
-            .drag = {},
         },
         .quad = {
             .width = info.wall.width,
@@ -72,9 +63,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Quad down = {
         .body = {
             .mass = std::numeric_limits<float>::infinity(),
-            .angular = {},
-            .gravity = {},
-            .drag = {},
         },
         .quad = {
             .width = info.wall.width,

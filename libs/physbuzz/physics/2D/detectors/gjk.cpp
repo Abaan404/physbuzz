@@ -2,7 +2,8 @@
 
 #include "../../../debug/macros.hpp"
 #include "../../../ecs/scene.hpp"
-#include "../../../physics/dynamics.hpp"
+#include "../../../render/defines.hpp"
+#include "../../components/rigidbody.hpp"
 #include <limits>
 #include <vector>
 
@@ -50,9 +51,9 @@ auto Simplex::end() const {
 }
 
 Gjk2D::Gjk2D(Scene *scene)
-    : ICollisionDetector(scene) {}
+    : CollisionDetector(scene) {}
 
-bool Gjk2D::check(Contact &contact) {
+bool Gjk2D::checkImpl(Contact &contact) {
     const auto [body1, render1] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(contact.object1);
     const auto [body2, render2] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(contact.object2);
 
@@ -83,6 +84,8 @@ bool Gjk2D::nextSimplex(Simplex &simplex, glm::vec3 &direction) {
         return line(simplex, direction);
     case 3:
         return triangle(simplex, direction);
+    case 4:
+        return tetrahedron(simplex, direction);
     }
 
     PBZ_UNREACHABLE("Invalid Simplex.");
@@ -114,12 +117,61 @@ bool Gjk2D::triangle(Simplex &simplex, glm::vec3 &direction) {
     const glm::vec3 ac = c - a;
     const glm::vec3 ao = -a;
 
-    glm::vec3 nABC = glm::cross(ab, ac);
+    glm::vec3 abc = glm::cross(ab, ac);
 
-    if (isFacing(direction = glm::cross(nABC, ac), ao)) {
-        return line(simplex = {a, c}, direction);
-    } else if (isFacing(direction = glm::cross(ab, nABC), ao)) {
-        return line(simplex = {a, b}, direction);
+    if (isFacing(cross(abc, ac), ao)) {
+        if (isFacing(ac, ao)) {
+            simplex = {a, c};
+            direction = cross(cross(ac, ao), ac);
+        } else {
+            Simplex simplex = {a, b};
+            return line(simplex, direction);
+        }
+    } else {
+        if (isFacing(cross(ab, abc), ao)) {
+            Simplex simplex = {a, b};
+            return line(simplex, direction);
+        } else {
+            if (isFacing(abc, ao)) {
+                direction = abc;
+            } else {
+                simplex = {a, c, b};
+                direction = -abc;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool Gjk2D::tetrahedron(Simplex &simplex, glm::vec3 &direction) {
+    glm::vec3 a = simplex[0];
+    glm::vec3 b = simplex[1];
+    glm::vec3 c = simplex[2];
+    glm::vec3 d = simplex[3];
+
+    glm::vec3 ab = b - a;
+    glm::vec3 ac = c - a;
+    glm::vec3 ad = d - a;
+    glm::vec3 ao = -a;
+
+    glm::vec3 abc = cross(ab, ac);
+    glm::vec3 acd = cross(ac, ad);
+    glm::vec3 adb = cross(ad, ab);
+
+    if (isFacing(abc, ao)) {
+        Simplex simplex = {a, b, c};
+        return triangle(simplex, direction);
+    }
+
+    if (isFacing(acd, ao)) {
+        Simplex simplex = {a, c, d};
+        return triangle(simplex, direction);
+    }
+
+    if (isFacing(adb, ao)) {
+        Simplex simplex = {a, d, b};
+        return triangle(simplex, direction);
     }
 
     return true;
@@ -174,7 +226,7 @@ glm::vec3 Gjk2D::supportPoint(const RigidBodyComponent &body, const RenderCompon
     glm::vec3 point;
     float proj = std::numeric_limits<float>::lowest();
 
-    for (const auto &vertex : body.geometry.vertices) {
+    for (const auto &vertex : body.getInfo().geometry.vertices) {
         glm::vec3 position = render.transform.toWorld(vertex.position);
 
         const float newProj = glm::dot(position, direction);

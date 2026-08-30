@@ -23,4 +23,15 @@ const AABB::Info &AABB::getInfo() const {
     return m_Info;
 }
 
+AABB AABB::withTransform(const Transform &transform) const {
+    return {{
+        .min = transform.toWorld(m_Info.min),
+        .max = transform.toWorld(m_Info.max),
+    }};
+}
+
+void AABB::update(const Info &info) {
+    m_Info = info;
+}
+
 } // namespace Physbuzz

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "transform.hpp"
 #include <glm/glm.hpp>
 
 namespace Physbuzz {
@@ -18,6 +19,10 @@ class AABB {
 
     bool intersects(const glm::vec3 &point) const;
     bool intersects(const AABB &aabb) const;
+
+    AABB withTransform(const Transform &transform) const;
+
+    void update(const Info &info);
 
     const Info &getInfo() const;
 

@@ -1,5 +1,6 @@
 #include "game.hpp"
 
+#include "collision.hpp"
 #include "objects/cuboid.hpp"
 #include "objects/lightdirectional.hpp"
 #include "objects/lightpoint.hpp"
@@ -281,8 +282,9 @@ void Game::build() {
 
     Physbuzz::App::GScene.createSystem<Physbuzz::InputEvents>(window);
     Physbuzz::App::GScene.createSystem<Physbuzz::Clock>();
-    Physbuzz::App::GScene.createSystem<Physbuzz::Dynamics>(1.0f);
+    Physbuzz::App::GScene.createSystem<Physbuzz::Dynamics>(0.001f);
     Physbuzz::App::GScene.createSystem<InterfaceManager>();
+    Physbuzz::App::GScene.createSystem<Collision>(1.0f);
 
     std::random_device rd;
     std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-250, 250);
@@ -302,7 +304,7 @@ void Game::build() {
                 .resources = {
                     .material = {"crate"},
                 },
-                .hasPhysics = false,
+                .hasPhysics = true,
             };
 
             ObjectBuilder::create(Physbuzz::App::GScene, cube);
@@ -311,7 +313,6 @@ void Game::build() {
 
     {
         Quad quad = {
-            .body = {},
             .quad = {
                 .width = 1500.0f,
                 .height = 1500.0f,
@@ -427,7 +428,7 @@ void Game::loop() {
 
     while (m_IsRunning && !window->shouldClose()) {
         Physbuzz::App::GScene.tickSystem<Physbuzz::Clock>();
-        Physbuzz::App::GScene.tickSystem<Physbuzz::Dynamics>();
+        Physbuzz::App::GScene.tickSystem<Physbuzz::Dynamics, Collision>();
         Physbuzz::App::GScene.tickSystem<Physbuzz::InputEvents>();
         Physbuzz::App::GScene.tickSystem<InterfaceManager, Physbuzz::Renderer>();
     }

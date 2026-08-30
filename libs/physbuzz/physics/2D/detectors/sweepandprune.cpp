@@ -5,10 +5,18 @@
 namespace Physbuzz {
 
 SweepAndPrune2D::SweepAndPrune2D(Scene *scene, std::unordered_set<ObjectID> *objects)
-    : ICollisionDetector(scene), m_Objects(objects) {}
+    : CollisionDetector(scene), m_Objects(objects) {}
 
-std::list<Contact> SweepAndPrune2D::find() {
-    std::list<Contact> contacts;
+bool SweepAndPrune2D::buildImpl() {
+    return true;
+}
+
+bool SweepAndPrune2D::destroyImpl() {
+    return true;
+}
+
+std::vector<Contact> SweepAndPrune2D::findBroadImpl() {
+    std::vector<Contact> contacts;
 
     std::list<SweepEdge> edges = getEdges();
     std::list<SweepEdge> inSweep;
@@ -44,6 +52,16 @@ std::list<Contact> SweepAndPrune2D::find() {
     return contacts;
 }
 
+bool SweepAndPrune2D::checkImpl(Contact &contact) {
+    const auto [bounding1] = m_Scene->getComponent<BoundingComponent>(contact.object1);
+    const auto [bounding2] = m_Scene->getComponent<BoundingComponent>(contact.object2);
+
+    const AABB::Info &aabb1 = bounding1.aabb.getInfo();
+    const AABB::Info &aabb2 = bounding2.aabb.getInfo();
+
+    return aabb1.max.x > aabb2.min.x && aabb2.max.x > aabb1.min.x && aabb1.max.y > aabb2.min.y && aabb2.max.y > aabb1.min.y;
+}
+
 std::list<SweepEdge> SweepAndPrune2D::getEdges() {
     std::list<SweepEdge> edges;
 
@@ -52,7 +70,8 @@ std::list<SweepEdge> SweepAndPrune2D::getEdges() {
     };
 
     for (const auto &object : *m_Objects) {
-        const auto [aabb] = m_Scene->getComponent<AABBComponent>(object);
+        const auto [bounding] = m_Scene->getComponent<BoundingComponent>(object);
+        const AABB::Info &aabb = bounding.aabb.getInfo();
 
         const SweepEdge edgeLeft = {
             .object = object,
@@ -74,13 +93,6 @@ std::list<SweepEdge> SweepAndPrune2D::getEdges() {
     }
 
     return edges;
-}
-
-bool SweepAndPrune2D::check(Contact &contact) {
-    const auto [aabb1] = m_Scene->getComponent<AABBComponent>(contact.object1);
-    const auto [aabb2] = m_Scene->getComponent<AABBComponent>(contact.object2);
-
-    return aabb1.max.x > aabb2.min.x && aabb2.max.x > aabb1.min.x && aabb1.max.y > aabb2.min.y && aabb2.max.y > aabb1.min.y;
 }
 
 } // namespace Physbuzz

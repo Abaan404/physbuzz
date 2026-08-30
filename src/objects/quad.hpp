@@ -12,7 +12,7 @@ struct QuadComponent {
 
 struct Quad {
     // physics info
-    Physbuzz::RigidBodyComponent body;
+    Physbuzz::RigidBodyComponent::Info body;
 
     // geometry
     QuadComponent quad;

@@ -11,6 +11,7 @@ bool Collision::build() {
 
     success &= m_DetectorBroad.build();
     success &= m_DetectorNarrow.build();
+    success &= m_Resolver.build();
 
     return success;
 }
@@ -20,15 +21,20 @@ bool Collision::destroy() {
 
     success &= m_DetectorBroad.destroy();
     success &= m_DetectorNarrow.destroy();
+    success &= m_Resolver.destroy();
 
     return success;
 }
 
 void Collision::tick() {
-    std::list<Physbuzz::Contact> contacts = m_DetectorBroad.find();
-    m_DetectorNarrow.find(contacts);
+    m_Contacts = m_DetectorBroad.findBroad();
+    m_DetectorNarrow.findNarrow(m_Contacts);
 
-    for (auto &contact : contacts) {
+    for (auto &contact : m_Contacts) {
         m_Resolver.solve(contact);
     }
+}
+
+const std::vector<Physbuzz::Contact> &Collision::getContacts() const {
+    return m_Contacts;
 }

@@ -25,11 +25,37 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
 
     scene.setComponent(object, info.cuboid, info.identifier, info.resources, render, shadow);
 
-    // if (info.hasPhysics) {
-    //     // generate bounding box
-    //     Physbuzz::AABBComponent aabb = Physbuzz::AABBComponent(render);
-    //     scene.setComponent(object, aabb);
-    // }
+    // TODO clean this up
+    if (info.hasPhysics) {
+        const std::vector<std::byte> &modelIndices = Physbuzz::Builtin::ModelCube::Resource->getIndices();
+        std::span<const Physbuzz::Index> indices(
+            reinterpret_cast<const Physbuzz::Index *>(modelIndices.data()),
+            modelIndices.size() / sizeof(Physbuzz::Index));
+
+        const std::vector<std::byte> &modelVertices = Physbuzz::Builtin::ModelCube::Resource->getVertices();
+        std::span<const Physbuzz::Model::Vertex> vertices(
+            reinterpret_cast<const Physbuzz::Model::Vertex *>(modelVertices.data()),
+            modelVertices.size() / sizeof(Physbuzz::Model::Vertex));
+
+        info.body.geometry.indices = std::vector(indices.begin(), indices.end());
+
+        info.body.geometry.vertices.reserve(vertices.size());
+        for (const auto &vertex : vertices) {
+            info.body.geometry.vertices.emplace_back<Physbuzz::RigidBodyComponent::Vertex>({
+                .position = vertex.position,
+                .normal = vertex.normal,
+            });
+        }
+
+        Physbuzz::RigidBodyComponent body = info.body;
+
+        // generate bounding box
+        Physbuzz::BoundingComponent bounding = {
+            .aabb = body.getAABB().withTransform(info.transform),
+        };
+
+        scene.setComponent(object, bounding, body);
+    }
 
     return object;
 }

@@ -90,10 +90,15 @@ class Mesh {
 
     void bind(const RenderContext &context) const;
 
+    const std::vector<std::byte> &getVertices() const;
+    const std::vector<std::byte> &getIndices() const;
     const Info &getInfo() const;
 
   private:
     Info m_Info;
+
+    std::vector<std::byte> m_Vertices;
+    std::vector<std::byte> m_Indices;
 
     StaticBuffer m_Mesh = {{
         .type = StaticBuffer::Type::Mesh,

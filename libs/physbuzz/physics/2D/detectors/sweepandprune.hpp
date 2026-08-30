@@ -11,17 +11,26 @@ struct SweepEdge {
     bool isLeft;
 };
 
-class SweepAndPrune2D : public ICollisionDetector {
+class SweepAndPrune2D : public CollisionDetector<SweepAndPrune2D> {
   public:
     SweepAndPrune2D(Scene *scene, std::unordered_set<ObjectID> *objects);
 
-    bool check(Contact &contact) override;
-    std::list<Contact> find() override;
-
   protected:
+    using CollisionDetector::findNarrowImpl;
+
+    bool buildImpl();
+    bool destroyImpl();
+
+    bool checkImpl(Contact &contact);
+
+    std::vector<Contact> findBroadImpl();
+
+  private:
     std::list<SweepEdge> getEdges();
 
     std::unordered_set<ObjectID> *m_Objects;
+
+    friend class CollisionDetector<SweepAndPrune2D>;
 };
 
 } // namespace Physbuzz

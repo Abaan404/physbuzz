@@ -5,6 +5,8 @@
 
 namespace Physbuzz {
 
+class RenderComponent;
+
 class Simplex {
   public:
     Simplex();
@@ -27,23 +29,33 @@ class Simplex {
     std::size_t m_Size;
 };
 
-class Gjk2D : public ICollisionDetector {
+class Gjk2D : public CollisionDetector<Gjk2D> {
   public:
     Gjk2D(Scene *scene);
 
-    bool check(Contact &contact) override;
-
   protected:
+    bool checkImpl(Contact &contact);
+
+  private:
+    bool buildImpl() { return true; }
+    bool destroyImpl() { return true; }
+
+    using CollisionDetector::findBroadImpl;
+    using CollisionDetector::findNarrowImpl;
+
     void Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2);
 
     bool nextSimplex(Simplex &simplex, glm::vec3 &direction);
 
     bool line(Simplex &simplex, glm::vec3 &direction);
     bool triangle(Simplex &simplex, glm::vec3 &direction);
+    bool tetrahedron(Simplex &simplex, glm::vec3 &direction);
 
     glm::vec3 supportPoint(const RigidBodyComponent &body, const RenderComponent &render, const glm::vec3 &direction);
     glm::vec3 minkowskiSupportPoint(const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2, const glm::vec3 &direction);
     bool isFacing(const glm::vec3 &vec, const glm::vec3 &direction);
+
+    friend class CollisionDetector<Gjk2D>;
 };
 
 } // namespace Physbuzz

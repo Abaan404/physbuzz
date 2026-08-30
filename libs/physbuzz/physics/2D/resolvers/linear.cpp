@@ -18,18 +18,27 @@ void LinearResolver2D::solve(const Contact &contact) {
 
     const glm::vec3 impulse = calcImpulse(body1, body2, contact);
 
-    body1.velocity -= impulse / body1.mass;
-    body2.velocity += impulse / body2.mass;
+    RigidBodyComponent::Info info1 = body1.getInfo();
+    RigidBodyComponent::Info info2 = body2.getInfo();
+
+    info1.velocity -= impulse / info1.mass;
+    info2.velocity += impulse / info2.mass;
+
+    body1.update(info1);
+    body2.update(info2);
 }
 
 const glm::vec3 LinearResolver2D::calcImpulse(const RigidBodyComponent &body1, const RigidBodyComponent &body2, const Contact &contact) {
+    const RigidBodyComponent::Info &info1 = body1.getInfo();
+    const RigidBodyComponent::Info &info2 = body2.getInfo();
+
     // dont resolve if velocities are separating
-    const float velocityAlongNormal = glm::dot(body2.velocity - body1.velocity, contact.normal);
+    const float velocityAlongNormal = glm::dot(info2.velocity - info1.velocity, contact.normal);
     if (velocityAlongNormal > 0) {
         return glm::vec3(0.0f, 0.0f, 0.0f);
     }
 
-    return ((-(1.0f + m_Restitution) * velocityAlongNormal) / ((1.0f / body1.mass) + (1.0f / body2.mass))) * contact.normal;
+    return ((-(1.0f + m_Restitution) * velocityAlongNormal) / ((1.0f / info1.mass) + (1.0f / info2.mass))) * contact.normal;
 }
 
 } // namespace Physbuzz

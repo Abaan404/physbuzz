@@ -7,7 +7,7 @@
 
 struct Circle {
     // physics info
-    Physbuzz::RigidBodyComponent body;
+    Physbuzz::RigidBodyComponent::Info body;
 
     // geometry
     RadialComponent circle;

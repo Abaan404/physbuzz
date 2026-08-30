@@ -42,49 +42,57 @@ void Dynamics::tick() {
 void Dynamics::tickMotion(ObjectID id) const {
     const auto [body, render] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(id);
 
+    RigidBodyComponent::Info info = body.getInfo();
+
     // apply gravity
     {
-        if (!glm::isinf(body.mass)) {
-            glm::vec3 force = body.gravity.acceleration * body.mass;
+        if (!glm::isinf(info.mass)) {
+            glm::vec3 force = m_Gravity * info.mass;
             body.addForce(force);
         }
     }
 
     // apply drag
     {
-        float speed = glm::length(body.velocity);
+        float speed = glm::length(info.velocity);
         if (speed != 0.0f) {
-            glm::vec3 force = -glm::normalize(body.velocity) * (body.drag.k1 * speed + body.drag.k2 * speed * speed);
+            glm::vec3 force = -glm::normalize(info.velocity) * (info.drag.k1 * speed + info.drag.k2 * speed * speed);
             body.addForce(force);
         }
 
-        body.angular.velocity *= glm::pow(body.angular.drag, m_DeltaTime);
+        info.angular.velocity *= glm::pow(info.angular.drag, m_DeltaTime);
     }
 
     // move object wrt S = ut + 1/2 a t**2
     // rotate object wrt axis and length of angular velocity vector
     // Note: t**2 is approx 0 for t << 0 (at high framerate)
     {
-        Transform::Info info = render.transform.getInfo();
-        info.position += body.velocity * m_DeltaTime;
-        if (glm::length(body.angular.velocity) > 0.0f) {
-            info.orientation = glm::angleAxis(glm::length(body.angular.velocity) * m_DeltaTime, glm::normalize(body.angular.velocity)) * info.orientation;
+        Transform::Info transform = render.transform.getInfo();
+        transform.position += info.velocity * m_DeltaTime;
+        if (glm::length(info.angular.velocity) > 0.0f) {
+            transform.orientation = glm::angleAxis(glm::length(info.angular.velocity) * m_DeltaTime, glm::normalize(info.angular.velocity)) * transform.orientation;
         }
 
-        render.transform.update(info);
-
-        // adjust collision bounding box
-        AABBComponent aabb = AABBComponent(render, body);
-        m_Scene->setComponent(id, aabb);
+        render.transform.update(transform);
     }
 
-    // apply accumulated forces to velocity and clear them
+    // adjust bounding box
     {
-        body.angular.velocity += (body.angular.acceleration + body.accumTorques / body.angular.inertia) * m_DeltaTime;
-        body.velocity += (body.acceleration + body.accumForces / body.mass) * m_DeltaTime;
-        body.accumForces = glm::vec3(0.0f, 0.0f, 0.0f);
-        body.accumTorques = glm::vec3(0.0f, 0.0f, 0.0f);
+        if (m_Scene->containsComponent<BoundingComponent>(id)) {
+            auto [bounding] = m_Scene->getComponent<BoundingComponent>(id);
+            bounding.aabb = body.getAABB().withTransform(render.transform);
+        }
     }
+
+    // apply accumulated info to velocity and clear them
+    {
+        info.angular.velocity += (info.angular.acceleration + info.torques / info.angular.inertia) * m_DeltaTime;
+        info.velocity += (info.acceleration + info.forces / info.mass) * m_DeltaTime;
+        info.forces = glm::vec3(0.0f, 0.0f, 0.0f);
+        info.torques = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+
+    body.update(info);
 }
 
 void Dynamics::start() {

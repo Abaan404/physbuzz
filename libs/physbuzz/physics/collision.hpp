@@ -1,20 +1,16 @@
 #pragma once
 
 #include "../ecs/defines.hpp"
-#include "../events/handler.hpp"
-#include "../render/defines.hpp"
+#include "../ecs/scene.hpp"
+#include "../math/bounding.hpp"
 #include <list>
 
 namespace Physbuzz {
 
-class Scene;
 struct RigidBodyComponent;
 
-struct AABBComponent {
-    AABBComponent(const RenderComponent &render, const RigidBodyComponent &mesh);
-
-    glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
-    glm::vec3 max = glm::vec3(std::numeric_limits<float>::lowest());
+struct BoundingComponent {
+    AABB aabb;
 };
 
 struct Contact {
@@ -28,20 +24,66 @@ struct Contact {
     glm::vec3 point2 = {0.0f, 0.0f, 0.0f};
 };
 
-class ICollisionDetector : public EventSubject {
+template <typename T>
+class CollisionDetector {
   public:
-    ICollisionDetector(Scene *scene);
-    virtual ~ICollisionDetector() = default;
+    CollisionDetector(Scene *scene)
+        : m_Scene(scene) {}
 
-    virtual bool build();
-    virtual bool destroy();
+    bool build() {
+        return static_cast<T *>(this)->buildImpl();
+    }
 
-    virtual bool check(Contact &contact) = 0;
-    virtual std::list<Contact> find();
-    virtual void find(std::list<Contact> &contacts);
+    bool destroy() {
+        return static_cast<T *>(this)->destroyImpl();
+    }
+
+    bool check(Contact &contact) {
+        return static_cast<T *>(this)->checkImpl(contact);
+    }
+
+    std::vector<Contact> findBroad() {
+        return static_cast<T *>(this)->findBroadImpl();
+    }
+
+    void findNarrow(std::vector<Contact> &contacts) {
+        static_cast<T *>(this)->findNarrowImpl(contacts);
+    }
 
   protected:
     Scene *m_Scene;
+
+    std::vector<Contact> findBroadImpl() {
+        std::vector<Contact> contacts;
+
+        for (const auto &object1 : m_Scene->getObjects()) {
+            for (const auto &object2 : m_Scene->getObjects()) {
+                if (object1 == object2) {
+                    continue;
+                }
+
+                Contact contact = {
+                    .object1 = object1,
+                    .object2 = object2,
+                };
+
+                if (check(contact)) {
+                    contacts.emplace_back(std::move(contact));
+                }
+            }
+        }
+
+        return contacts;
+    }
+
+    void findNarrowImpl(std::vector<Contact> &contacts) {
+        for (auto &contact : contacts) {
+            if (!check(contact)) {
+                std::swap(contact, contacts.back());
+                contacts.pop_back();
+            }
+        }
+    }
 };
 
 class ICollisionResolver : public EventSubject {

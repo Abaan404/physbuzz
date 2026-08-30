@@ -4,15 +4,24 @@
 
 namespace Physbuzz {
 
-class SeperatingAxis2D : public ICollisionDetector {
+class SeperatingAxis2D : public CollisionDetector<SeperatingAxis2D> {
   public:
     SeperatingAxis2D(Scene *scene);
 
-    bool check(Contact &contact) override;
-
   protected:
+    using CollisionDetector::findBroadImpl;
+    using CollisionDetector::findNarrowImpl;
+
+    bool buildImpl() { return true; }
+    bool destroyImpl() { return true; }
+
+    bool checkImpl(Contact &contact);
+
+  private:
     float getAxisOverlap(const glm::vec3 &axis, const RigidBodyComponent &body1, const RigidBodyComponent &body2);
     void addMeshNormals(const RigidBodyComponent &body, std::vector<glm::vec3> &axes);
+
+    friend class CollisionDetector<SeperatingAxis2D>;
 };
 
 } // namespace Physbuzz

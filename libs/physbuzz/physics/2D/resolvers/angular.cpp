@@ -21,11 +21,17 @@ void AngularResolver2D::solve(const Contact &contact) {
 
     // TODO this needs ALOT more work
 
-    body1.velocity -= impulse / body1.mass;
-    body2.velocity += impulse / body2.mass;
+    RigidBodyComponent::Info info1 = body1.getInfo();
+    RigidBodyComponent::Info info2 = body2.getInfo();
 
-    body1.angular.velocity -= torque1 / body1.angular.inertia;
-    body2.angular.velocity += torque2 / body2.angular.inertia;
+    info1.velocity -= impulse / info1.mass;
+    info2.velocity += impulse / info2.mass;
+
+    info1.angular.velocity -= torque1 / info1.angular.inertia;
+    info2.angular.velocity += torque2 / info2.angular.inertia;
+
+    body1.update(info1);
+    body2.update(info2);
 }
 
 const glm::vec3 AngularResolver2D::calcTorque(const RigidBodyComponent &body, const Transform &transfrom, const glm::vec3 &point, const glm::vec3 &impulse) {

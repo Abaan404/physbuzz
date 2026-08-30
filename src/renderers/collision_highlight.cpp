@@ -1,12 +1,12 @@
 #include "collision_highlight.hpp"
-#include "physbuzz/app/application.hpp"
-#include "physbuzz/ecs/scene.hpp"
-#include "physbuzz/events/window.hpp"
-#include "physbuzz/render/components/camera.hpp"
 
+#include "../collision.hpp"
+#include <physbuzz/app/application.hpp>
+#include <physbuzz/events/window.hpp>
 #include <physbuzz/graphics/layout.hpp>
 #include <physbuzz/graphics/model.hpp>
 #include <physbuzz/graphics/pipeline.hpp>
+#include <physbuzz/render/components/camera.hpp>
 #include <physbuzz/render/nodes/camera.hpp>
 #include <tracy/Tracy.hpp>
 
@@ -137,10 +137,19 @@ bool CollisionHighlight::build() {
                 m_Highlighted.clear();
                 m_Highlighted.reserve(m_Info.batch.getInstanceObjects().size());
 
+                std::vector<Physbuzz::Contact> contacts = m_Scene->getSystem<Collision>()->getContacts();
+
                 for (const auto &instance : m_Info.batch.getInstanceObjects()) {
-                    m_Highlighted.emplace_back<PipelineCollisionHighlight::HighlightedObject>({
-                        .highlighted = true, // TODO actually check collision
+                    PipelineCollisionHighlight::HighlightedObject &highlighted = m_Highlighted.emplace_back<PipelineCollisionHighlight::HighlightedObject>({
+                        .highlighted = false,
                     });
+
+                    for (const auto &contact : contacts) {
+                        if (contact.object1 == instance || contact.object2 == instance) {
+                            highlighted.highlighted = true;
+                            break;
+                        }
+                    }
                 }
 
                 std::size_t highlightBufferSize = m_Highlighted.size() * sizeof(PipelineCollisionHighlight::HighlightedObject);

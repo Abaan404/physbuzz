@@ -3,6 +3,7 @@
 #include "builder.hpp"
 #include "common.hpp"
 #include <physbuzz/math/transform.hpp>
+#include <physbuzz/physics/components/rigidbody.hpp>
 
 struct CuboidComponent {
     float width = 0.0f;
@@ -14,6 +15,7 @@ struct Cuboid {
     // geometry
     CuboidComponent cuboid;
     Physbuzz::Transform transform;
+    Physbuzz::RigidBodyComponent::Info body;
 
     // naming
     IdentifiableComponent identifier = {
