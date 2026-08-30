@@ -32,7 +32,7 @@ struct InputEventComponent {
 
 class InputEvents : public System<InputEventComponent> {
   public:
-    InputEvents(const std::shared_ptr<Window> window);
+    InputEvents(Scene *scene, const std::shared_ptr<Window> window);
 
     bool build() override;
     bool destroy() override;

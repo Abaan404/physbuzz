@@ -68,7 +68,7 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
         glm::uvec2 resolution = {1024, 1024};
     };
 
-    ShadowRenderer(const Info &info);
+    ShadowRenderer(Scene *scene, const Info &info);
 
     bool build();
     bool destroy();

@@ -55,7 +55,7 @@ struct RigidBodyComponent {
 
 class Dynamics : public System<RenderComponent, RigidBodyComponent> {
   public:
-    Dynamics(float dtime);
+    Dynamics(Scene *scene, float dtime);
     ~Dynamics();
 
     void tick();

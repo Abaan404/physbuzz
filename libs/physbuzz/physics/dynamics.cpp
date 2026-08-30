@@ -7,8 +7,9 @@
 
 namespace Physbuzz {
 
-Dynamics::Dynamics(float dtime)
-    : m_DeltaTime(dtime) {}
+Dynamics::Dynamics(Scene *scene, float dtime)
+    : System<RenderComponent, RigidBodyComponent>(scene),
+      m_DeltaTime(dtime) {}
 
 Dynamics::~Dynamics() {}
 

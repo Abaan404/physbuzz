@@ -151,8 +151,9 @@ bool PipelineForward::build() {
 
 } // namespace Builtin
 
-ForwardRenderer::ForwardRenderer(const Info &info)
-    : m_Info(info) {}
+ForwardRenderer::ForwardRenderer(Scene *scene, const Info &info)
+    : System<RenderComponent>(scene),
+      m_Info(info) {}
 
 bool ForwardRenderer::build() {
     // build pipeline

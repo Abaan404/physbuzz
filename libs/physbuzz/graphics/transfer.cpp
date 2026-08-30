@@ -74,8 +74,9 @@ const TransferBatch::Info &TransferBatch::getInfo() const {
     return m_Info;
 }
 
-Transfer::Transfer(const Info &info)
-    : m_Info(info) {}
+Transfer::Transfer(Scene *scene, const Info &info)
+    : System<>(scene),
+      m_Info(info) {}
 
 bool Transfer::build() {
     m_Command.pool = PBZ_VK_CHECK(App::Device.createCommandPool({
@@ -610,7 +611,6 @@ void Transfer::immediate(const std::function<void(vk::CommandBuffer)> &record) {
     App::Device.freeCommandBuffers(m_Command.pool, 1, &immediate);
     immediate = nullptr;
 }
-
 
 const Transfer::Info Transfer::getInfo() const {
     return m_Info;

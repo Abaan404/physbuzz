@@ -32,8 +32,9 @@ bool RenderPipelineImGui::build() {
 
 } // namespace Builtin
 
-ImGuiRenderer::ImGuiRenderer(const Info &info)
-    : m_Info(info) {}
+ImGuiRenderer::ImGuiRenderer(Scene *scene, const Info &info)
+    : System<>(scene),
+      m_Info(info) {}
 
 bool ImGuiRenderer::build() {
     IMGUI_CHECKVERSION();

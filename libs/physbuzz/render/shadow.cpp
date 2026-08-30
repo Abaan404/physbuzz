@@ -229,8 +229,9 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
 
 } // namespace Builtin
 
-ShadowRenderer::ShadowRenderer(const Info &info)
-    : m_Info(info) {}
+ShadowRenderer::ShadowRenderer(Scene *scene, const Info &info)
+    : System<RenderComponent, ShadowComponent>(scene),
+      m_Info(info) {}
 
 bool ShadowRenderer::build() {
     bool success = true;

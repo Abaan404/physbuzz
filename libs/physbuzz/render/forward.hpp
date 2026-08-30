@@ -52,7 +52,7 @@ class ForwardRenderer : public System<RenderComponent> {
         Resource<Texture> environmentMap = {""};
     };
 
-    ForwardRenderer(const Info &info);
+    ForwardRenderer(Scene *scene, const Info &info);
 
     bool build() override;
     bool destroy() override;

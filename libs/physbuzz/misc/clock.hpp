@@ -9,7 +9,7 @@ class Scene;
 
 class Clock : public System<> {
   public:
-    Clock();
+    Clock(Scene *scene);
 
     void tick();
     std::uint32_t getDelta() const;

@@ -33,7 +33,7 @@ class ImGuiRenderer : public System<> {
         std::shared_ptr<Window> window;
     };
 
-    ImGuiRenderer(const Info &info);
+    ImGuiRenderer(Scene *scene, const Info &info);
 
     bool build() override;
     bool destroy() override;

@@ -6,8 +6,9 @@
 
 namespace Physbuzz {
 
-InputEvents::InputEvents(const std::shared_ptr<Window> window)
-    : m_Window(window) {}
+InputEvents::InputEvents(Scene *scene, const std::shared_ptr<Window> window)
+    : System<InputEventComponent>(scene),
+      m_Window(window) {}
 
 bool InputEvents::build() {
     if (!m_Window) {

@@ -6,8 +6,9 @@
 
 namespace Physbuzz {
 
-Renderer::Renderer(const Info &info, const RenderGraph &graph)
-    : m_Info(info), m_Graph(graph) {}
+Renderer::Renderer(Scene *scene, const Info &info, const RenderGraph &graph)
+    : System<>(scene),
+      m_Info(info), m_Graph(graph) {}
 
 bool Renderer::build() {
     if (m_Command.pool != nullptr) {

@@ -15,7 +15,8 @@
 #include "overlay.hpp"
 #include "rendergraph.hpp"
 
-InterfaceManager::InterfaceManager() {}
+InterfaceManager::InterfaceManager(Physbuzz::Scene *scene)
+    : Physbuzz::System<>(scene) {}
 
 bool InterfaceManager::build() {
     ImGuiIO &io = ImGui::GetIO();

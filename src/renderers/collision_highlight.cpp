@@ -84,8 +84,9 @@ bool PipelineCollisionHighlight::build() {
     return success;
 }
 
-CollisionHighlight::CollisionHighlight(const Info &info)
-    : m_Info(info) {}
+CollisionHighlight::CollisionHighlight(Physbuzz::Scene *scene, const Info &info)
+    : Physbuzz::System<>(scene),
+      m_Info(info) {}
 
 bool CollisionHighlight::build() {
     // build pipeline

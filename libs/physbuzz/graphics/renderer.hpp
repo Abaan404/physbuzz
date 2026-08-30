@@ -19,7 +19,7 @@ class Renderer : public System<> {
         std::shared_ptr<Window> window;
     };
 
-    Renderer(const Info &info, const RenderGraph &graph);
+    Renderer(Scene *scene, const Info &info, const RenderGraph &graph);
 
     bool build() override;
     bool destroy() override;

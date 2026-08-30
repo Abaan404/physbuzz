@@ -30,7 +30,7 @@ class CollisionHighlight : public Physbuzz::System<> {
         const Physbuzz::BatchGenerator &batch;
     };
 
-    CollisionHighlight(const Info &info);
+    CollisionHighlight(Physbuzz::Scene *scene, const Info &info);
 
     bool build() override;
     bool destroy() override;

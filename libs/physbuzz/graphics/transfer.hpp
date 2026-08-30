@@ -48,7 +48,7 @@ class Transfer : public System<> {
         std::size_t maxChunkSize = 64 * 1024 * 1024;
     };
 
-    Transfer(const Info &info);
+    Transfer(Scene *scene, const Info &info);
 
     bool build() override;
     bool destroy() override;

@@ -6,7 +6,7 @@
 
 class InterfaceManager : public Physbuzz::System<> {
   public:
-    InterfaceManager();
+    InterfaceManager(Physbuzz::Scene *scene);
 
     bool build() override;
     bool destroy() override;

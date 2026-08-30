@@ -246,8 +246,9 @@ bool PipelineDeferred::build() {
 
 } // namespace Builtin
 
-DeferredRenderer::DeferredRenderer(const Info &info)
-    : m_Info(info) {}
+DeferredRenderer::DeferredRenderer(Scene *scene, const Info &info)
+    : System<RenderComponent>(scene),
+      m_Info(info) {}
 
 bool DeferredRenderer::build() {
     // build pipeline

@@ -83,8 +83,9 @@ bool PipelineSkybox::build() {
 
 } // namespace Builtin
 
-SkyboxRenderer::SkyboxRenderer(const Info &info)
-    : m_Info(info) {}
+SkyboxRenderer::SkyboxRenderer(Scene *scene, const Info &info)
+    : System<>(scene),
+      m_Info(info) {}
 
 bool SkyboxRenderer::build() {
     // build pipeline

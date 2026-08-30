@@ -42,7 +42,7 @@ class SkyboxRenderer : public System<> {
         Resource<Texture> skybox;
     };
 
-    SkyboxRenderer(const Info &info);
+    SkyboxRenderer(Scene *scene, const Info &info);
 
     bool build() override;
     bool destroy() override;

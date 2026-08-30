@@ -4,7 +4,8 @@
 
 namespace Physbuzz {
 
-Clock::Clock() {
+Clock::Clock(Scene *scene)
+    : System<>(scene) {
     m_Init = std::chrono::steady_clock::now();
     m_Prev = m_Init;
 }

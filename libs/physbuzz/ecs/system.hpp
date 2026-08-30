@@ -11,6 +11,9 @@ class Scene;
 
 class ISystem {
   public:
+    ISystem(Scene *scene)
+        : m_Scene(scene) {}
+
     virtual ~ISystem() = default;
     virtual bool build() { return true; }
     virtual bool destroy() { return true; }
@@ -26,6 +29,10 @@ class ISystem {
 
 template <typename... Signature>
 class System : public ISystem {
+  public:
+    System(Scene *scene)
+        : ISystem(scene) {}
+
   private:
     inline bool containsSignature(ComponentManager &componentManager, ObjectID id) override {
         if constexpr (sizeof...(Signature) == 0) {
@@ -38,7 +45,7 @@ class System : public ISystem {
     friend class Scene;
 };
 
-template <typename T>
+template <typename T, typename... Args>
 concept SystemType = std::derived_from<T, ISystem>;
 
 template <typename T, typename... Args>
@@ -55,8 +62,7 @@ class SystemManager {
         SignatureID id = Signature::ID<T>();
 
         if (!m_Systems.contains(id)) {
-            m_Systems[id] = std::make_shared<T>(std::forward<Args>(system)...);
-            m_Systems[id]->m_Scene = scene;
+            m_Systems[id] = std::make_shared<T>(scene, std::forward<Args>(system)...);
             if (!m_Systems[id]->build()) {
                 Logger::ERROR("[Scene/Systems] Failed to build a system.");
             }

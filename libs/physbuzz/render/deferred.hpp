@@ -69,7 +69,7 @@ class DeferredRenderer : public System<RenderComponent> {
         std::shared_ptr<Window> window;
     };
 
-    DeferredRenderer(const Info &info);
+    DeferredRenderer(Scene *scene, const Info &info);
 
     bool build() override;
     bool destroy() override;
