@@ -88,31 +88,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         .hasPhysics = info.isCollidable,
     };
 
-    // create a rebuild callback
-    RebuildableComponent rebuilder = {
-        .rebuild = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
-            const auto [wall, identifier] = scene.getComponent<WallComponent, IdentifiableComponent>(object);
-
-            bool isCollidable = false;
-
-            for (const auto &id : {wall.left, wall.right, wall.up, wall.down}) {
-                isCollidable = scene.containsComponent<Physbuzz::AABBComponent>(id) || isCollidable;
-
-                scene.eraseObject(id);
-            }
-
-            Wall info = {
-                .wall = wall,
-                .identifier = identifier,
-                .isCollidable = isCollidable,
-            };
-
-            ObjectBuilder::create(scene, object, info);
-        },
-    };
-
-    scene.setComponent(object, rebuilder);
-
     // TODO imposter syndrome has bested me
     // calling create within this scope nukes object's internal state for some obscure reason
     // ideally doing info.wall.left = create(left); and object.setComponent(info.wall); should be the better way

@@ -26,29 +26,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         info.transform.getInfo().position.z,
     });
 
-    // create a rebuild callback
-    RebuildableComponent rebuilder = {
-        .rebuild = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
-            if (!scene.containsComponent<RadialComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
-                Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
-                return;
-            }
-
-            const auto [sphere, identifier, resources, render, pointLight] = scene.getComponent<RadialComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent, Physbuzz::PointLightComponent>(object);
-
-            LightPoint info = {
-                .sphere = sphere,
-                .transform = render.transform,
-                .identifier = identifier,
-                .resources = resources,
-                .pointLight = pointLight,
-            };
-
-            ObjectBuilder::create(scene, object, info);
-        },
-    };
-
-    scene.setComponent(object, info.sphere, info.identifier, info.resources, info.pointLight, render, rebuilder);
+    scene.setComponent(object, info.sphere, info.identifier, info.resources, info.pointLight, render);
 
     return object;
 }

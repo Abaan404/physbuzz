@@ -20,35 +20,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         }},
     };
 
-    // create a rebuild callback
-    RebuildableComponent rebuilder = {
-        .rebuild = [](Physbuzz::Scene &scene, Physbuzz::ObjectID object) {
-            if (!scene.containsComponent<QuadComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object)) {
-                Physbuzz::Logger::ERROR("[RebuildableComponent] Cannot rebuild object with id '{}' with missing core components.", object);
-                return;
-            }
-
-            const auto [quad, identifier, resources, render] = scene.getComponent<QuadComponent, IdentifiableComponent, ResourceComponent, Physbuzz::RenderComponent>(object);
-
-            Quad info = {
-                .body = {},
-                .quad = quad,
-                .transform = render.transform,
-                .identifier = identifier,
-                .resources = resources,
-                .hasPhysics = scene.containsComponent<Physbuzz::RigidBodyComponent>(object),
-            };
-
-            if (info.hasPhysics) {
-                const auto [body] = scene.getComponent<Physbuzz::RigidBodyComponent>(object);
-                info.body = body;
-            }
-
-            ObjectBuilder::create(scene, object, info);
-        },
-    };
-
-    scene.setComponent(object, info.quad, info.identifier, info.resources, render, rebuilder);
+    scene.setComponent(object, info.quad, info.identifier, info.resources, render);
 
     // generate bounding box
     // if (info.hasPhysics) {

@@ -1,6 +1,5 @@
 #include "objectlist.hpp"
 
-#include "../objects/circle.hpp"
 #include "../objects/cuboid.hpp"
 #include "../objects/quad.hpp"
 #include <glm/ext/quaternion_trigonometric.hpp>
@@ -45,7 +44,6 @@ void ObjectList::draw() {
         int i = 0;
         for (const auto &object : objects) {
             ImGui::PushID(i++);
-            bool rebuild = false;
             if (!m_Scene->containsComponent<IdentifiableComponent>(object)) {
                 ImGui::PopID();
                 continue;
@@ -120,38 +118,38 @@ void ObjectList::draw() {
             if (m_Scene->containsComponent<QuadComponent>(object)) {
                 ImGui::SeparatorText("Quad");
 
-                const auto [quad] = m_Scene->getComponent<QuadComponent>(object);
+                const auto [quad, render] = m_Scene->getComponent<QuadComponent, Physbuzz::RenderComponent>(object);
                 float wh[] = {quad.width, quad.height};
 
                 if (ImGui::DragFloat2("quad", wh, 1.0f, MIN_VALUE, MAX_VALUE)) {
                     quad.width = wh[0];
                     quad.height = wh[1];
 
-                    rebuild = true;
+                    render.transform.setScale({quad.width, quad.height, 1.0f});
                 }
             }
 
             if (m_Scene->containsComponent<CuboidComponent>(object)) {
                 ImGui::SeparatorText("Cube");
 
-                const auto [cube] = m_Scene->getComponent<CuboidComponent>(object);
-                float whl[] = {cube.width, cube.breadth, cube.height};
+                const auto [cuboid, render] = m_Scene->getComponent<CuboidComponent, Physbuzz::RenderComponent>(object);
+                float whl[] = {cuboid.width, cuboid.breadth, cuboid.height};
 
                 if (ImGui::DragFloat3("cube", whl, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    cube.width = whl[0];
-                    cube.breadth = whl[1];
-                    cube.height = whl[2];
+                    cuboid.width = whl[0];
+                    cuboid.breadth = whl[1];
+                    cuboid.height = whl[2];
 
-                    rebuild = true;
+                    render.transform.setScale({cuboid.width, cuboid.breadth, cuboid.height});
                 }
             }
 
             if (m_Scene->containsComponent<RadialComponent>(object)) {
                 ImGui::SeparatorText("Radial");
 
-                const auto [radial] = m_Scene->getComponent<RadialComponent>(object);
+                const auto [radial, render] = m_Scene->getComponent<RadialComponent, Physbuzz::RenderComponent>(object);
                 if (ImGui::DragFloat("radius", &radial.radius, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    rebuild = true;
+                    render.transform.setScale({radial.radius, radial.radius, radial.radius});
                 }
             }
 
@@ -225,11 +223,6 @@ void ObjectList::draw() {
                 if (ImGui::DragFloat("depth", &info.depth, 0.01f, MIN_VALUE, MAX_VALUE)) {
                     directionalLight.update(info);
                 }
-            }
-
-            if (rebuild && m_Scene->containsComponent<RebuildableComponent>(object)) {
-                const auto [rebuilder] = m_Scene->getComponent<RebuildableComponent>(object);
-                rebuilder.rebuild(*m_Scene, object);
             }
 
             ImGui::PopID();
