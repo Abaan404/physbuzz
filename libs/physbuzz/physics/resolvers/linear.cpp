@@ -1,6 +1,7 @@
 #include "linear.hpp"
 
-#include "../../../ecs/scene.hpp"
+#include "../../ecs/scene.hpp"
+#include "../components/rigidbody.hpp"
 
 namespace Physbuzz {
 

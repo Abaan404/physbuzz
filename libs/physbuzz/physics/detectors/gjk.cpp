@@ -1,9 +1,9 @@
 #include "gjk.hpp"
 
-#include "../../../debug/macros.hpp"
-#include "../../../ecs/scene.hpp"
-#include "../../../render/defines.hpp"
-#include "../../components/rigidbody.hpp"
+#include "../../debug/macros.hpp"
+#include "../../ecs/scene.hpp"
+#include "../../render/defines.hpp"
+#include "../components/rigidbody.hpp"
 #include <limits>
 #include <vector>
 
@@ -50,10 +50,10 @@ auto Simplex::end() const {
     return m_Points.begin() + m_Size;
 }
 
-Gjk2D::Gjk2D(Scene *scene)
+Gjk3D::Gjk3D(Scene *scene)
     : CollisionDetector(scene) {}
 
-bool Gjk2D::checkImpl(Contact &contact) {
+bool Gjk3D::checkImpl(Contact &contact) {
     const auto [body1, render1] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(contact.object1);
     const auto [body2, render2] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(contact.object2);
 
@@ -78,7 +78,8 @@ bool Gjk2D::checkImpl(Contact &contact) {
     }
 }
 
-bool Gjk2D::nextSimplex(Simplex &simplex, glm::vec3 &direction) {
+// https://www.youtube.com/watch?v=Qupqu1xe7Io
+bool Gjk3D::nextSimplex(Simplex &simplex, glm::vec3 &direction) {
     switch (simplex.size()) {
     case 2:
         return line(simplex, direction);
@@ -91,7 +92,7 @@ bool Gjk2D::nextSimplex(Simplex &simplex, glm::vec3 &direction) {
     PBZ_UNREACHABLE("Invalid Simplex.");
 }
 
-bool Gjk2D::line(Simplex &simplex, glm::vec3 &direction) {
+bool Gjk3D::line(Simplex &simplex, glm::vec3 &direction) {
     const glm::vec3 &a = simplex[0];
     const glm::vec3 &b = simplex[1];
 
@@ -108,7 +109,7 @@ bool Gjk2D::line(Simplex &simplex, glm::vec3 &direction) {
     return false;
 }
 
-bool Gjk2D::triangle(Simplex &simplex, glm::vec3 &direction) {
+bool Gjk3D::triangle(Simplex &simplex, glm::vec3 &direction) {
     const glm::vec3 &a = simplex[0];
     const glm::vec3 &b = simplex[1];
     const glm::vec3 &c = simplex[2];
@@ -124,12 +125,12 @@ bool Gjk2D::triangle(Simplex &simplex, glm::vec3 &direction) {
             simplex = {a, c};
             direction = cross(cross(ac, ao), ac);
         } else {
-            Simplex simplex = {a, b};
+            simplex = {a, b};
             return line(simplex, direction);
         }
     } else {
         if (isFacing(cross(ab, abc), ao)) {
-            Simplex simplex = {a, b};
+            simplex = {a, b};
             return line(simplex, direction);
         } else {
             if (isFacing(abc, ao)) {
@@ -144,7 +145,7 @@ bool Gjk2D::triangle(Simplex &simplex, glm::vec3 &direction) {
     return false;
 }
 
-bool Gjk2D::tetrahedron(Simplex &simplex, glm::vec3 &direction) {
+bool Gjk3D::tetrahedron(Simplex &simplex, glm::vec3 &direction) {
     glm::vec3 a = simplex[0];
     glm::vec3 b = simplex[1];
     glm::vec3 c = simplex[2];
@@ -160,24 +161,24 @@ bool Gjk2D::tetrahedron(Simplex &simplex, glm::vec3 &direction) {
     glm::vec3 adb = cross(ad, ab);
 
     if (isFacing(abc, ao)) {
-        Simplex simplex = {a, b, c};
+        simplex = {a, b, c};
         return triangle(simplex, direction);
     }
 
     if (isFacing(acd, ao)) {
-        Simplex simplex = {a, c, d};
+        simplex = {a, c, d};
         return triangle(simplex, direction);
     }
 
     if (isFacing(adb, ao)) {
-        Simplex simplex = {a, d, b};
+        simplex = {a, d, b};
         return triangle(simplex, direction);
     }
 
     return true;
 }
 
-void Gjk2D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2) {
+void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2) {
     std::vector<glm::vec3> polytope(simplex.begin(), simplex.end());
 
     std::size_t minIndex = 0;
@@ -222,7 +223,7 @@ void Gjk2D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &bo
 }
 
 // this might belong to a component than here, if I care about MPR (https://en.wikipedia.org/wiki/Minkowski_Portal_Refinement)
-glm::vec3 Gjk2D::supportPoint(const RigidBodyComponent &body, const RenderComponent &render, const glm::vec3 &direction) {
+glm::vec3 Gjk3D::supportPoint(const RigidBodyComponent &body, const RenderComponent &render, const glm::vec3 &direction) {
     glm::vec3 point;
     float proj = std::numeric_limits<float>::lowest();
 
@@ -239,11 +240,11 @@ glm::vec3 Gjk2D::supportPoint(const RigidBodyComponent &body, const RenderCompon
     return point;
 }
 
-glm::vec3 Gjk2D::minkowskiSupportPoint(const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2, const glm::vec3 &direction) {
+glm::vec3 Gjk3D::minkowskiSupportPoint(const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2, const glm::vec3 &direction) {
     return supportPoint(body1, render1, direction) - supportPoint(body2, render2, -direction);
 }
 
-bool Gjk2D::isFacing(const glm::vec3 &vec, const glm::vec3 &direction) {
+bool Gjk3D::isFacing(const glm::vec3 &vec, const glm::vec3 &direction) {
     return glm::dot(vec, direction) > 0.0f;
 }
 

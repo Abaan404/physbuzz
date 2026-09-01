@@ -1,7 +1,7 @@
 #include "sepaxis.hpp"
 
-#include "../../../ecs/scene.hpp"
-#include "../../components/rigidbody.hpp"
+#include "../../ecs/scene.hpp"
+#include "../components/rigidbody.hpp"
 
 namespace Physbuzz {
 
@@ -51,7 +51,6 @@ float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const RigidBodyCom
         return ret;
     };
 
-    // auto is truly cpp magic
     const auto proj1 = getMinMax(body1, axis);
     const auto proj2 = getMinMax(body2, axis);
 
@@ -66,22 +65,7 @@ float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const RigidBodyCom
 }
 
 void SeperatingAxis2D::addMeshNormals(const RigidBodyComponent &body, std::vector<glm::vec3> &axes) {
-    constexpr float PARALLEL_AXIS_THRESHOLD = 1e-3f;
-
-    // TODO do a perf test on n^2 normal check or running on every normal based on no. of vertices
     for (const auto &vertex : body.getInfo().geometry.vertices) {
-        bool parallelFound = false;
-        for (const auto &axis : axes) {
-            if (glm::length(glm::cross(axis, vertex.normal)) < PARALLEL_AXIS_THRESHOLD) {
-                parallelFound = true;
-                break;
-            }
-        }
-
-        if (parallelFound) {
-            continue;
-        }
-
         axes.emplace_back(vertex.normal);
     }
 }

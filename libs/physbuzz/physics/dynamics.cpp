@@ -23,12 +23,12 @@ void Dynamics::tick() {
     static float time = 0.0f;
     const float &delta = m_Scene->getSystem<Clock>()->getDelta();
 
-    if (delta > 10.0f) {
-        Logger::WARNING("[Dynamics] Max Timeout exceeded, skipping frame. ({:.3f}ms since last tick)", delta);
+    if (delta > 10e3f) {
+        Logger::WARNING("[Dynamics] Max Timeout exceeded, skipping frame. ({:.3f}ms since last tick)", delta / 1e3f);
         return;
     }
 
-    time += delta / 1000.0f;
+    time += delta / 1e6f;
 
     while (m_DeltaTime - time <= 0.0f) {
         for (auto &object : m_Objects) {

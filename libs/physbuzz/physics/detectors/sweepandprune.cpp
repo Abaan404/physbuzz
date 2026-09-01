@@ -1,6 +1,6 @@
 #include "sweepandprune.hpp"
 
-#include "../../../ecs/scene.hpp"
+#include "../../ecs/scene.hpp"
 
 namespace Physbuzz {
 

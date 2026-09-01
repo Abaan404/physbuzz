@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../ecs/system.hpp"
-#include "../../collision.hpp"
+#include "../../ecs/system.hpp"
+#include "../collision.hpp"
 
 namespace Physbuzz {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../collision.hpp"
+#include "../collision.hpp"
 
 namespace Physbuzz {
 

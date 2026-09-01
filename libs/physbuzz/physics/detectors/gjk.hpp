@@ -1,11 +1,10 @@
 #pragma once
 
-#include "../../collision.hpp"
+#include "../../render/defines.hpp"
+#include "../collision.hpp"
 #include <initializer_list>
 
 namespace Physbuzz {
-
-class RenderComponent;
 
 class Simplex {
   public:
@@ -29,9 +28,9 @@ class Simplex {
     std::size_t m_Size;
 };
 
-class Gjk2D : public CollisionDetector<Gjk2D> {
+class Gjk3D : public CollisionDetector<Gjk3D> {
   public:
-    Gjk2D(Scene *scene);
+    Gjk3D(Scene *scene);
 
   protected:
     bool checkImpl(Contact &contact);
@@ -55,7 +54,7 @@ class Gjk2D : public CollisionDetector<Gjk2D> {
     glm::vec3 minkowskiSupportPoint(const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2, const glm::vec3 &direction);
     bool isFacing(const glm::vec3 &vec, const glm::vec3 &direction);
 
-    friend class CollisionDetector<Gjk2D>;
+    friend class CollisionDetector<Gjk3D>;
 };
 
 } // namespace Physbuzz
