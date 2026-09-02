@@ -5,8 +5,6 @@
 
 namespace Physbuzz {
 
-class Plane;
-
 class AABB {
   public:
     struct Info {

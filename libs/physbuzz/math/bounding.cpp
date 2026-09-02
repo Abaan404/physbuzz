@@ -24,10 +24,23 @@ const AABB::Info &AABB::getInfo() const {
 }
 
 AABB AABB::withTransform(const Transform &transform) const {
-    return {{
-        .min = transform.toWorld(m_Info.min),
-        .max = transform.toWorld(m_Info.max),
-    }};
+    // https://www.realtimerendering.com/resources/GraphicsGems/gems/TransBox.c
+    AABB::Info result;
+
+    const glm::mat4 model = transform.getModel();
+
+    result.min = glm::vec3(model[3]);
+    result.max = glm::vec3(model[3]);
+
+    for (int j = 0; j < 3; j++) {
+        glm::vec3 a = glm::vec3{model[j]} * m_Info.min[j];
+        glm::vec3 b = glm::vec3{model[j]} * m_Info.max[j];
+
+        result.min += glm::min(a, b);
+        result.max += glm::max(a, b);
+    }
+
+    return result;
 }
 
 void AABB::update(const Info &info) {

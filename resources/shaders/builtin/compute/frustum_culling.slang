@@ -57,29 +57,8 @@ void main(uint3 tid: SV_DispatchThreadID) {
     for (uint j = 0; j < draw.instanceCount; j++) {
         InstanceData object = objects[draw.firstInstance + j];
 
-        // TODO use an OBB here to avoid computing a second rotated AABB
-        float3[] corners = {
-            float3(mul(float4(object.bounding.min.x, object.bounding.min.y, object.bounding.min.z, 1.0f), object.model).xyz),
-            float3(mul(float4(object.bounding.min.x, object.bounding.max.y, object.bounding.min.z, 1.0f), object.model).xyz),
-            float3(mul(float4(object.bounding.min.x, object.bounding.min.y, object.bounding.max.z, 1.0f), object.model).xyz),
-            float3(mul(float4(object.bounding.min.x, object.bounding.max.y, object.bounding.max.z, 1.0f), object.model).xyz),
-            float3(mul(float4(object.bounding.max.x, object.bounding.min.y, object.bounding.min.z, 1.0f), object.model).xyz),
-            float3(mul(float4(object.bounding.max.x, object.bounding.max.y, object.bounding.min.z, 1.0f), object.model).xyz),
-            float3(mul(float4(object.bounding.max.x, object.bounding.min.y, object.bounding.max.z, 1.0f), object.model).xyz),
-            float3(mul(float4(object.bounding.max.x, object.bounding.max.y, object.bounding.max.z, 1.0f), object.model).xyz),
-        };
-
-        InstanceData.Bounding aabb;
-        aabb.min = float3(float.maxValue);
-        aabb.max = float3(-float.maxValue);
-
-        for (uint k = 0; k < 8; k++) {
-            aabb.min = min(aabb.min, corners[k]);
-            aabb.max = max(aabb.max, corners[k]);
-        }
-
-        float3 center = (aabb.min + aabb.max) / 2.0f;
-        float radius = length(aabb.max - aabb.min) / 2.0f;
+        float3 center = (object.bounding.min + object.bounding.max) / 2.0f;
+        float radius = length(object.bounding.max - object.bounding.min) / 2.0f;
 
         bool isCulled =
             signedDistance(camera.planes[0], center) < -radius ||

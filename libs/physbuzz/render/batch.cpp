@@ -124,7 +124,7 @@ bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &obj
                     for (std::size_t submeshIdx = 0; submeshIdx < submeshCount; submeshIdx++) {
                         const Mesh::SubMesh &submesh = mesh->getInfo().submeshes[submeshIdx];
 
-                        const AABB::Info aabb = submesh.bounding.getInfo();
+                        const AABB::Info &aabb = submesh.bounding.withTransform(render.transform).getInfo();
 
                         // equivalent to instanceIdx + (submeshIdx * instanceCount + meshOffset) (aka firstInstance)
                         m_InstanceBuffer.emplace_back<InstanceData>({
