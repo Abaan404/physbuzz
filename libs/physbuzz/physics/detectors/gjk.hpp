@@ -52,6 +52,10 @@ class Gjk3D : public CollisionDetector<Gjk3D> {
 
     glm::vec3 supportPoint(const RigidBodyComponent &body, const RenderComponent &render, const glm::vec3 &direction);
     glm::vec3 minkowskiSupportPoint(const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2, const glm::vec3 &direction);
+
+    std::pair<std::vector<glm::vec4>, std::size_t> getFaceNormals(const std::vector<glm::vec3> &polytope, const std::vector<Index> &faces);
+    void AddIfUniqueEdge(std::vector<std::pair<Index, Index>> &edges, const std::vector<Index> &faces, std::size_t a, std::size_t b);
+
     bool isFacing(const glm::vec3 &vec, const glm::vec3 &direction);
 
     friend class CollisionDetector<Gjk3D>;

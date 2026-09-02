@@ -7,6 +7,11 @@
 #include <limits>
 #include <vector>
 
+// Completely adapted from
+// - https://winter.dev/articles/epa-algorithm/
+// - https://winter.dev/articles/gjk-algorithm/
+// - https://www.youtube.com/watch?v=Qupqu1xe7Io (referenced)
+
 namespace Physbuzz {
 
 Simplex::Simplex() {
@@ -146,10 +151,10 @@ bool Gjk3D::triangle(Simplex &simplex, glm::vec3 &direction) {
 }
 
 bool Gjk3D::tetrahedron(Simplex &simplex, glm::vec3 &direction) {
-    glm::vec3 a = simplex[0];
-    glm::vec3 b = simplex[1];
-    glm::vec3 c = simplex[2];
-    glm::vec3 d = simplex[3];
+    const glm::vec3 &a = simplex[0];
+    const glm::vec3 &b = simplex[1];
+    const glm::vec3 &c = simplex[2];
+    const glm::vec3 &d = simplex[3];
 
     glm::vec3 ab = b - a;
     glm::vec3 ac = c - a;
@@ -180,43 +185,74 @@ bool Gjk3D::tetrahedron(Simplex &simplex, glm::vec3 &direction) {
 
 void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2) {
     std::vector<glm::vec3> polytope(simplex.begin(), simplex.end());
+    std::vector<Index> faces = {0, 1, 2, 0, 3, 1, 0, 2, 3, 1, 3, 2};
 
-    std::size_t minIndex = 0;
+    // list: vec4(normal, distance), index: min distance
+    auto [normals, minFace] = getFaceNormals(polytope, faces);
+
     contact.depth = std::numeric_limits<float>::max();
 
     while (contact.depth == std::numeric_limits<float>::max()) {
-        for (std::size_t i = 0; i < polytope.size(); i++) {
-            std::size_t j = (i + 1) % polytope.size();
-            const glm::vec3 tangent = polytope[j] - polytope[i];
+        contact.normal = normals[minFace];
+        contact.depth = normals[minFace].w;
 
-            glm::vec3 normal = glm::normalize(glm::cross(tangent, glm::vec3(0.0f, 0.0f, 1.0f)));
-            float depth = glm::dot(normal, polytope[i]);
-
-            if (depth < 0.0f) {
-                depth *= -1.0f;
-                normal *= -1.0f;
-            }
-
-            if (depth < contact.depth) {
-                minIndex = j;
-                contact.depth = depth;
-                contact.normal = normal;
-            }
-        }
-
-        const glm::vec3 support1 = supportPoint(body1, render1, contact.normal);
-        const glm::vec3 support2 = supportPoint(body2, render2, -contact.normal);
-        const glm::vec3 support = support1 - support2;
-
+        glm::vec3 support = minkowskiSupportPoint(body1, render1, body2, render2, contact.normal);
         const float curDepth = glm::dot(contact.normal, support);
 
         if (glm::abs(curDepth - contact.depth) > 1e-4f) {
             contact.depth = std::numeric_limits<float>::max();
-            polytope.insert(polytope.begin() + minIndex, support);
-        }
 
-        contact.point1 = support1;
-        contact.point2 = support2;
+            std::vector<std::pair<Index, Index>> uniqueEdges;
+
+            for (std::size_t i = 0; i < normals.size(); i++) {
+                if (isFacing(normals[i], support)) {
+                    std::size_t f = i * 3;
+
+                    AddIfUniqueEdge(uniqueEdges, faces, f, f + 1);
+                    AddIfUniqueEdge(uniqueEdges, faces, f + 1, f + 2);
+                    AddIfUniqueEdge(uniqueEdges, faces, f + 2, f);
+
+                    faces[f + 2] = faces.back();
+                    faces.pop_back();
+
+                    faces[f + 1] = faces.back();
+                    faces.pop_back();
+
+                    faces[f] = faces.back();
+                    faces.pop_back();
+
+                    normals[i] = normals.back(); // pop-erase
+                    normals.pop_back();
+
+                    i--;
+                }
+            }
+
+            std::vector<Index> newFaces;
+            for (auto [edgeIndex1, edgeIndex2] : uniqueEdges) {
+                newFaces.push_back(edgeIndex1);
+                newFaces.push_back(edgeIndex2);
+                newFaces.push_back(polytope.size());
+            }
+
+            polytope.push_back(support);
+
+            auto [newNormals, newMinFace] = getFaceNormals(polytope, newFaces);
+            float oldMinDistance = FLT_MAX;
+            for (std::size_t i = 0; i < normals.size(); i++) {
+                if (normals[i].w < oldMinDistance) {
+                    oldMinDistance = normals[i].w;
+                    minFace = i;
+                }
+            }
+
+            if (newNormals[newMinFace].w < oldMinDistance) {
+                minFace = newMinFace + normals.size();
+            }
+
+            faces.insert(faces.end(), newFaces.begin(), newFaces.end());
+            normals.insert(normals.end(), newNormals.begin(), newNormals.end());
+        }
     }
 
     contact.depth += 1e-4f;
@@ -242,6 +278,45 @@ glm::vec3 Gjk3D::supportPoint(const RigidBodyComponent &body, const RenderCompon
 
 glm::vec3 Gjk3D::minkowskiSupportPoint(const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2, const glm::vec3 &direction) {
     return supportPoint(body1, render1, direction) - supportPoint(body2, render2, -direction);
+}
+
+std::pair<std::vector<glm::vec4>, std::size_t> Gjk3D::getFaceNormals(const std::vector<glm::vec3> &polytope, const std::vector<Index> &faces) {
+    std::vector<glm::vec4> normals;
+    std::size_t minTriangle = 0;
+    float minDistance = std::numeric_limits<float>::max();
+
+    for (std::size_t i = 0; i < faces.size(); i += 3) {
+        const glm::vec3 &a = polytope[faces[i]];
+        const glm::vec3 &b = polytope[faces[i + 1]];
+        const glm::vec3 &c = polytope[faces[i + 2]];
+
+        glm::vec3 normal = glm::normalize(glm::cross(b - a, c - a));
+        float distance = glm::dot(normal, a);
+
+        if (distance < 0) {
+            normal *= -1;
+            distance *= -1;
+        }
+
+        normals.emplace_back(normal, distance);
+
+        if (distance < minDistance) {
+            minTriangle = i / 3;
+            minDistance = distance;
+        }
+    }
+
+    return {normals, minTriangle};
+}
+
+void Gjk3D::AddIfUniqueEdge(std::vector<std::pair<Index, Index>> &edges, const std::vector<Index> &faces, std::size_t a, std::size_t b) {
+    auto reverse = std::find(edges.begin(), edges.end(), std::make_pair(faces[b], faces[a]));
+
+    if (reverse != edges.end()) {
+        edges.erase(reverse);
+    } else {
+        edges.emplace_back(faces[a], faces[b]);
+    }
 }
 
 bool Gjk3D::isFacing(const glm::vec3 &vec, const glm::vec3 &direction) {
