@@ -358,7 +358,7 @@ bool ForwardRenderer::build() {
                     .directionalCount = static_cast<std::uint32_t>(directionals.size()),
                     .spotCount = static_cast<std::uint32_t>(spots.size()),
                     .pointCount = static_cast<std::uint32_t>(points.size()),
-                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().buffer.getData().address,
+                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
                 };
 
                 // bind resources

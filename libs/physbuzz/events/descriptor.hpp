@@ -7,7 +7,6 @@ namespace Physbuzz {
 class Texture;
 class Attachment;
 class DynamicBuffer;
-class StaticBuffer;
 struct RenderContext;
 
 struct OnTextureRebuild {
@@ -17,11 +16,6 @@ struct OnTextureRebuild {
 
 struct OnAttachmentRebuild {
     Attachment *attachment;
-    const RenderContext &context;
-};
-
-struct OnStaticBufferRebuild {
-    StaticBuffer *buffer;
     const RenderContext &context;
 };
 

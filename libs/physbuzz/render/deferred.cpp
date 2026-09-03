@@ -434,7 +434,7 @@ bool DeferredRenderer::build() {
                 });
 
                 Builtin::PipelineDeferred::Geometry::PushConstants pushConstants = {
-                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().buffer.getData().address,
+                    .materialBaseAddress = context.materialAllocator->getMaterialBuffer().getData().address,
                 };
 
                 // bind resources

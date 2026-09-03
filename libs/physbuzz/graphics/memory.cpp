@@ -51,7 +51,7 @@ bool Buffer::build(std::uint64_t size) {
         break;
     }
 
-    UsageFlags usage = Buffer::UsageFlags::eShaderDeviceAddress;
+    Usage usage = Buffer::UsageFlags::eTransferSrc | Buffer::UsageFlags::eTransferDst | Buffer::UsageFlags::eShaderDeviceAddress;
 
     m_Data.bufferInfo = {
         .flags = m_Info.flags,
@@ -80,6 +80,27 @@ bool Buffer::destroy() {
     vmaDestroyBuffer(App::Allocator, static_cast<VkBuffer>(m_Data.buffer), m_Allocation);
     m_Data.buffer = nullptr;
     m_Allocation = nullptr;
+
+    return true;
+}
+
+bool Buffer::rebuild(DeletionQueue &deletionQueue, std::uint64_t size) {
+    Buffer buffer = {m_Info};
+
+    // no need to rebuild
+    if (m_Data.bufferInfo.size >= size) {
+        return false;
+    }
+
+    // create new buffer
+    if (!buffer.build(size)) {
+        Logger::ERROR("[Buffer] Failed to recreate new buffers.");
+        return false;
+    }
+
+    // mark old buffer for deferred deletion and update
+    deletionQueue.enqueue(std::move(*this));
+    *this = std::move(buffer);
 
     return true;
 }

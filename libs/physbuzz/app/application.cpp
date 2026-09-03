@@ -3,7 +3,6 @@
 #include "../ecs/scene.hpp"
 #include "../graphics/descriptors/attachment.hpp"
 #include "../graphics/descriptors/dynamic.hpp"
-#include "../graphics/descriptors/static.hpp"
 #include "../graphics/descriptors/texture.hpp"
 #include "../graphics/layout.hpp"
 #include "../graphics/material.hpp"
@@ -362,7 +361,6 @@ bool App::quit() {
     ResourceRegistry<GraphicsPipeline>::clear();
     ResourceRegistry<ComputePipeline>::clear();
     ResourceRegistry<DescriptorLayout>::clear();
-    ResourceRegistry<StaticBuffer>::clear();
     ResourceRegistry<DynamicBuffer>::clear();
     ResourceRegistry<Texture>::clear();
     ResourceRegistry<Attachment>::clear();

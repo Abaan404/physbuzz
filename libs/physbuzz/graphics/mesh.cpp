@@ -76,8 +76,8 @@ bool Mesh::write(std::vector<std::byte> &&vertices, std::vector<std::byte> &&ind
     m_Vertices = vertices;
     m_Indices = indices;
 
-    success &= batch.add(m_Mesh.getData().buffer, std::move(vertices), 0);
-    success &= batch.add(m_Mesh.getData().buffer, std::move(indices), vertexSize);
+    success &= batch.add(m_Mesh, std::move(vertices), 0);
+    success &= batch.add(m_Mesh, std::move(indices), vertexSize);
 
     return success;
 }
@@ -87,8 +87,8 @@ void Mesh::bind(const RenderContext &context) const {
 
     std::uint64_t vertexSize = m_Info.vertexCount * sizeof(std::byte) * m_Info.description->getInfo().size;
 
-    context.command.bindVertexBuffers(0, m_Mesh.getData().buffer.getData().buffer, {0});
-    context.command.bindIndexBuffer(m_Mesh.getData().buffer.getData().buffer, vertexSize, vk::IndexType::eUint32);
+    context.command.bindVertexBuffers(0, m_Mesh.getData().buffer, {0});
+    context.command.bindIndexBuffer(m_Mesh.getData().buffer, vertexSize, vk::IndexType::eUint32);
 }
 
 const std::vector<std::byte> &Mesh::getVertices() const {

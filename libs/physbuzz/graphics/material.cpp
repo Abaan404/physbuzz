@@ -171,8 +171,8 @@ void MaterialAllocator::refresh(const RenderContext &context) {
 
     if (m_BufferIsDirty) {
         // TODO a buffer copy + offset write would be better
-        m_MaterialBuffer.rebuild(context, m_Buffer.size() * sizeof(Builtin::LayoutMaterial::MaterialBuffer));
-        m_MaterialBuffer.update<Builtin::LayoutMaterial::MaterialBuffer>(context, m_Buffer, 0);
+        m_MaterialBuffer.rebuild(*context.deletionQueue, m_Buffer.size() * sizeof(Builtin::LayoutMaterial::MaterialBuffer));
+        m_MaterialBuffer.map<Builtin::LayoutMaterial::MaterialBuffer>(context.command, context.deletionQueue, m_Buffer, 0);
 
         m_BufferIsDirty = false;
     }
@@ -186,7 +186,7 @@ std::uint32_t MaterialAllocator::query(const Resource<Texture> &texture) const {
     return m_Textures.query(texture);
 }
 
-const StaticBuffer &MaterialAllocator::getMaterialBuffer() const {
+const Buffer &MaterialAllocator::getMaterialBuffer() const {
     return m_MaterialBuffer;
 }
 

@@ -1,7 +1,8 @@
 #include "dynamic.hpp"
 
-#include "../../app/deletion.hpp"
+#include "../../debug/macros.hpp"
 #include "../../events/descriptor.hpp"
+#include "../../io/logging.hpp"
 
 namespace Physbuzz {
 
@@ -37,7 +38,7 @@ bool DynamicBuffer::build(std::uint64_t size) {
 
     for (std::size_t i = 0; i < detail::MAX_FRAMES_IN_FLIGHT; i++) {
         Buffer buffer = {{
-            .usage = usage | Buffer::UsageFlags::eTransferSrc | Buffer::UsageFlags::eTransferDst,
+            .usage = usage,
             .memoryUsage = Buffer::MemoryUsage::GPUOnly,
         }};
 
@@ -88,20 +89,7 @@ bool DynamicBuffer::destroy() {
 bool DynamicBuffer::rebuild(const RenderContext &context, std::uint64_t size) {
     Data &data = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData)[context.frameInFlight];
 
-    Buffer buffer = data.buffer.getInfo();
-
-    // create new buffer
-    if (!buffer.build(size)) {
-        Logger::ERROR("[DynamicBuffer] Failed to create new dynamic buffers.");
-        return false;
-    }
-
-    // mark old buffer for deferred deletion and update
-    context.deletionQueue->enqueue(std::move(data.buffer));
-
-    data = {
-        .buffer = buffer,
-    };
+    data.buffer.rebuild(*context.deletionQueue, size);
 
     notifyCallbacks<OnDynamicBufferRebuild>({
         .buffer = this,

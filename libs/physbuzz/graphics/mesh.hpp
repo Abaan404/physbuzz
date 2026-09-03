@@ -2,7 +2,7 @@
 
 #include "../math/bounding.hpp"
 #include "../resources/defines.hpp"
-#include "descriptors/static.hpp"
+#include "memory.hpp"
 
 namespace Physbuzz {
 
@@ -100,8 +100,9 @@ class Mesh {
     std::vector<std::byte> m_Vertices;
     std::vector<std::byte> m_Indices;
 
-    StaticBuffer m_Mesh = {{
-        .type = StaticBuffer::Type::Mesh,
+    Buffer m_Mesh = {{
+        .usage = Buffer::UsageFlags::eVertexBuffer |
+                 Buffer::UsageFlags::eIndexBuffer,
     }};
 };
 

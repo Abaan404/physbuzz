@@ -44,6 +44,14 @@ class Buffer {
     bool build(std::uint64_t size);
     bool destroy();
 
+    bool rebuild(DeletionQueue &deletionQueue, std::uint64_t size);
+
+    template <typename T>
+    bool map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<T> &data, std::size_t index) const {
+        std::span<const std::byte> bytes = std::as_bytes(std::span(data));
+        return map(cmd, deletion, bytes, sizeof(T) * index);
+    }
+
     bool map(vk::CommandBuffer cmd, DeletionQueue *deletion, const std::span<const std::byte> &bytes, std::uint64_t offset) const;
 
     const Info &getInfo() const;

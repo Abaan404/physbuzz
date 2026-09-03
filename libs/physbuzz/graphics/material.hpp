@@ -1,10 +1,12 @@
 #pragma once
 
 #include "../resources/table.hpp"
-#include "descriptors/static.hpp"
+#include "memory.hpp"
+#include <glm/glm.hpp>
 
 namespace Physbuzz {
 
+struct RenderContext;
 class DescriptorLayout;
 class Texture;
 class Model;
@@ -60,7 +62,7 @@ class MaterialAllocator {
     std::uint32_t query(const Resource<Material> &material) const;
     std::uint32_t query(const Resource<Texture> &texture) const;
 
-    const StaticBuffer &getMaterialBuffer() const;
+    const Buffer &getMaterialBuffer() const;
 
   private:
     ResourceTable<Material> m_Materials;
@@ -69,7 +71,7 @@ class MaterialAllocator {
     std::vector<Builtin::LayoutMaterial::MaterialBuffer> m_Buffer;
     bool m_BufferIsDirty;
 
-    StaticBuffer m_MaterialBuffer = {{}};
+    Buffer m_MaterialBuffer = {{}};
 
     struct {
         EventID build = -1;
