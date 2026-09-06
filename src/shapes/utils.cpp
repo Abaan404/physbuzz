@@ -1,7 +1,5 @@
 #include "utils.hpp"
 
-namespace Physbuzz {
-
 namespace detail {
 
 std::vector<glm::vec2> generate2DTexCoords(const std::vector<glm::vec3> &positions) {
@@ -86,5 +84,3 @@ std::vector<NormalTangent> generate2DNormalTangent(const std::vector<Physbuzz::I
 }
 
 } // namespace detail
-
-} // namespace Physbuzz

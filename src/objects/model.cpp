@@ -2,7 +2,6 @@
 
 #include <physbuzz/graphics/transfer.hpp>
 #include <physbuzz/render/shadow.hpp>
-#include <physbuzz/shapes/cube.hpp>
 
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Model &info) {
@@ -11,9 +10,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     Physbuzz::RenderComponent render = {
         .transform = info.transform,
         .model = Physbuzz::Model::Info{
-            .mesh = Physbuzz::Builtin::ModelCube::Resource,
-            .materials = {{"default"}},
-            .submeshMaterialIndices = {0},
+            .mesh = {{}},
+            .materials = {{}},
+            .submeshMaterialIndices = {},
         },
     };
 

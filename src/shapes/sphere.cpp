@@ -1,47 +1,18 @@
 #include "sphere.hpp"
 
-#include "../graphics/mesh.hpp"
-#include "../graphics/model.hpp"
 #include <glm/ext/scalar_constants.hpp>
 
-namespace Physbuzz {
-
-namespace Builtin {
-
-bool ModelSphere::build(TransferBatch &batch) {
-    if (ResourceRegistry<Mesh>::contains(Resource)) {
-        return true;
-    }
+Physbuzz::Geometry<Physbuzz::Model::Vertex> ModelSphere::build() {
+    Physbuzz::Geometry<Physbuzz::Model::Vertex> geometry;
 
     constexpr std::uint32_t rings = 32;
     constexpr std::uint32_t sectors = 64;
 
-    Mesh::Info info = {
-        .description = &Model::Vertex::Description,
-        .vertexCount = (rings + 1) * (sectors + 1),
-        .indexCount = rings * sectors * 6,
-        .submeshes = {
-            {
-                .bounding = {{
-                    .min = {-1.0f, -1.0f, -1.0f},
-                    .max = {1.0f, 1.0f, 1.0f},
-                }},
-                .indexCount = rings * sectors * 6,
-                .firstIndex = 0,
-                .vertexOffset = 0,
-            },
-        },
-    };
+    std::uint32_t vertexCount = (rings + 1) * (sectors + 1);
+    std::uint32_t indexCount = rings * sectors * 6;
 
-    if (!Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(Resource, info)) {
-        return false;
-    }
-
-    std::vector<Model::Vertex> vertices;
-    std::vector<Index> indices;
-
-    vertices.reserve(info.vertexCount);
-    indices.reserve(info.indexCount);
+    geometry.vertices.reserve(vertexCount);
+    geometry.indices.reserve(indexCount);
 
     for (std::uint32_t ring = 0; ring <= rings; ++ring) {
         float v = static_cast<float>(ring) / rings;
@@ -61,7 +32,7 @@ bool ModelSphere::build(TransferBatch &batch) {
             glm::vec3 normal = position;
             glm::vec3 tangent = {-std::sin(phi), std::cos(phi), 0.0f};
 
-            vertices.emplace_back<Physbuzz::Model::Vertex>({
+            geometry.vertices.emplace_back<Physbuzz::Model::Vertex>({
                 .position = position,
                 .normal = normal,
                 .tangent = tangent,
@@ -79,19 +50,15 @@ bool ModelSphere::build(TransferBatch &batch) {
             std::uint32_t i2 = (r + 1) * stride + (s + 1);
             std::uint32_t i3 = r * stride + (s + 1);
 
-            indices.emplace_back(i0);
-            indices.emplace_back(i1);
-            indices.emplace_back(i2);
+            geometry.indices.emplace_back(i0);
+            geometry.indices.emplace_back(i1);
+            geometry.indices.emplace_back(i2);
 
-            indices.emplace_back(i0);
-            indices.emplace_back(i2);
-            indices.emplace_back(i3);
+            geometry.indices.emplace_back(i0);
+            geometry.indices.emplace_back(i2);
+            geometry.indices.emplace_back(i3);
         }
     }
 
-    return Resource->write(std::move(vertices), std::move(indices), batch);
+    return geometry;
 }
-
-} // namespace Builtin
-
-} // namespace Physbuzz

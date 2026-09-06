@@ -73,15 +73,8 @@ void Dynamics::tickMotion(ObjectID id) const {
             transform.orientation = glm::angleAxis(glm::length(info.angular.velocity) * m_DeltaTime, glm::normalize(info.angular.velocity)) * transform.orientation;
         }
 
+        body.applyTransform(transform);
         render.transform.update(transform);
-    }
-
-    // adjust bounding box
-    {
-        if (m_Scene->containsComponent<BoundingComponent>(id)) {
-            auto [bounding] = m_Scene->getComponent<BoundingComponent>(id);
-            bounding.aabb = body.getAABB().withTransform(render.transform);
-        }
     }
 
     // apply accumulated info to velocity and clear them

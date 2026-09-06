@@ -1,8 +1,5 @@
 #include "objectpicker.hpp"
 
-#include "../objects/builder.hpp"
-#include "../objects/circle.hpp"
-#include "../objects/quad.hpp"
 #include <glm/glm.hpp>
 #include <imgui.h>
 #include <physbuzz/graphics/renderer.hpp>
@@ -15,36 +12,36 @@ struct PickableComponent {
 
 ObjectPicker::ObjectPicker(Physbuzz::Scene *scene)
     : IUserInterface(scene) {
-    Quad quad = {
-        .body = {},
-        .quad = {
-            .width = m_PreviewSize.x,
-            .height = m_PreviewSize.y,
-        },
-        .transform = {{
-            .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
-        }},
-        .resources = {},
-    };
-
-    Circle circle = {
-        .body = {},
-        .circle = {
-            .radius = glm::min(m_PreviewSize.x, m_PreviewSize.y) / 2.0f,
-        },
-        .transform = {{
-            .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
-        }},
-        .resources = {},
-    };
+    // Quad quad = {
+    //     .body = {},
+    //     .quad = {
+    //         .width = m_PreviewSize.x,
+    //         .height = m_PreviewSize.y,
+    //     },
+    //     .transform = {{
+    //         .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
+    //     }},
+    //     .resources = {},
+    // };
+    //
+    // Circle circle = {
+    //     .body = {},
+    //     .circle = {
+    //         .radius = glm::min(m_PreviewSize.x, m_PreviewSize.y) / 2.0f,
+    //     },
+    //     .transform = {{
+    //         .position = {m_PreviewSize.x / 2.0f, m_PreviewSize.y / 2.0f, 0.0f},
+    //     }},
+    //     .resources = {},
+    // };
 
     // m_PickerScene.createSystem<Physbuzz::Renderer>(Physbuzz::Renderer::Info{
     //     // .passthrough = false,
     //     // .resolution = {m_PreviewSize.x, m_PreviewSize.y},
     // });
 
-    ObjectBuilder::create(m_PickerScene, circle);
-    ObjectBuilder::create(m_PickerScene, quad);
+    // ObjectBuilder::create(m_PickerScene, circle);
+    // ObjectBuilder::create(m_PickerScene, quad);
 
     Physbuzz::CameraComponent camera = {{
         .resolution = {m_PreviewSize.x, m_PreviewSize.y},

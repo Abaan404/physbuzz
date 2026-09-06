@@ -36,8 +36,8 @@ class Gjk3D : public CollisionDetector<Gjk3D> {
     bool checkImpl(Contact &contact);
 
   private:
-    bool buildImpl() { return true; }
-    bool destroyImpl() { return true; }
+    bool buildImpl();
+    bool destroyImpl();
 
     using CollisionDetector::findBroadImpl;
     using CollisionDetector::findNarrowImpl;

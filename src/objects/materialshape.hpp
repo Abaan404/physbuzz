@@ -5,9 +5,8 @@
 #include <physbuzz/math/transform.hpp>
 #include <physbuzz/physics/dynamics.hpp>
 
-struct MaterialSphere {
+struct MaterialShape {
     // geometry
-    RadialComponent sphere;
     Physbuzz::Transform transform;
 
     // resources
@@ -15,7 +14,7 @@ struct MaterialSphere {
 };
 
 template <>
-struct IsBuildable<MaterialSphere> : std::true_type {};
+struct IsBuildable<MaterialShape> : std::true_type {};
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, MaterialSphere &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, MaterialShape &info);

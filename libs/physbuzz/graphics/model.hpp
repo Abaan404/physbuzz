@@ -57,8 +57,7 @@ class Model {
         Mesh::Info info;
         std::vector<std::size_t> submeshMaterialIndices;
 
-        std::vector<Vertex> vertices;
-        std::vector<Index> indices;
+        Geometry<Vertex> geometry;
     };
 
     struct TextureResult {

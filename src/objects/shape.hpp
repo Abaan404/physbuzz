@@ -5,15 +5,8 @@
 #include <physbuzz/math/transform.hpp>
 #include <physbuzz/physics/components/rigidbody.hpp>
 
-struct CuboidComponent {
-    float width = 0.0f;
-    float breadth = 0.0f;
-    float height = 0.0f;
-};
-
-struct Cuboid {
+struct Shape {
     // geometry
-    CuboidComponent cuboid;
     Physbuzz::Transform transform;
     Physbuzz::RigidBodyComponent::Info body;
 
@@ -27,10 +20,11 @@ struct Cuboid {
     ResourceComponent resources;
 
     bool hasPhysics = false;
+    bool hasShadow = false;
 };
 
 template <>
-struct IsBuildable<Cuboid> : std::true_type {};
+struct IsBuildable<Shape> : std::true_type {};
 
 template <>
-Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Cuboid &info);
+Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Shape &info);

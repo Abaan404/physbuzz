@@ -1,6 +1,7 @@
 #include "sweepandprune.hpp"
 
 #include "../../ecs/scene.hpp"
+#include "../components/rigidbody.hpp"
 
 namespace Physbuzz {
 
@@ -53,11 +54,11 @@ std::vector<Contact> SweepAndPrune2D::findBroadImpl() {
 }
 
 bool SweepAndPrune2D::checkImpl(Contact &contact) {
-    const auto [bounding1] = m_Scene->getComponent<BoundingComponent>(contact.object1);
-    const auto [bounding2] = m_Scene->getComponent<BoundingComponent>(contact.object2);
+    const auto [body1] = m_Scene->getComponent<RigidBodyComponent>(contact.object1);
+    const auto [body2] = m_Scene->getComponent<RigidBodyComponent>(contact.object2);
 
-    const AABB::Info &aabb1 = bounding1.aabb.getInfo();
-    const AABB::Info &aabb2 = bounding2.aabb.getInfo();
+    const AABB::Info &aabb1 = body1.getAABB().getInfo();
+    const AABB::Info &aabb2 = body2.getAABB().getInfo();
 
     return aabb1.max.x > aabb2.min.x && aabb2.max.x > aabb1.min.x && aabb1.max.y > aabb2.min.y && aabb2.max.y > aabb1.min.y;
 }
@@ -70,8 +71,8 @@ std::list<SweepEdge> SweepAndPrune2D::getEdges() {
     };
 
     for (const auto &object : *m_Objects) {
-        const auto [bounding] = m_Scene->getComponent<BoundingComponent>(object);
-        const AABB::Info &aabb = bounding.aabb.getInfo();
+        const auto [bounding] = m_Scene->getComponent<RigidBodyComponent>(object);
+        const AABB::Info &aabb = bounding.getAABB().getInfo();
 
         const SweepEdge edgeLeft = {
             .object = object,

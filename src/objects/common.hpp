@@ -1,7 +1,8 @@
 #pragma once
 
-#include <physbuzz/ecs/scene.hpp>
 #include <physbuzz/graphics/material.hpp>
+#include <physbuzz/graphics/mesh.hpp>
+#include <physbuzz/physics/components/rigidbody.hpp>
 
 struct IdentifiableComponent {
     std::string name = "Unknown";
@@ -9,9 +10,6 @@ struct IdentifiableComponent {
 };
 
 struct ResourceComponent {
+    Physbuzz::Resource<Physbuzz::Mesh> mesh = {"default"};
     Physbuzz::Resource<Physbuzz::Material> material = {"default"};
-};
-
-struct RadialComponent {
-    float radius = 0.0f;
 };

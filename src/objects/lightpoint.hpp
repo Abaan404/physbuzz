@@ -1,11 +1,11 @@
 #pragma once
 
-#include "circle.hpp"
+#include "builder.hpp"
+#include "common.hpp"
 #include <physbuzz/render/components/lights.hpp>
 
 struct LightPoint {
     // geometry
-    RadialComponent sphere;
     Physbuzz::Transform transform;
 
     // naming
@@ -16,9 +16,6 @@ struct LightPoint {
 
     // rendering
     ResourceComponent resources;
-
-    bool hasPhysics = false;
-
     Physbuzz::PointLightComponent pointLight;
 };
 

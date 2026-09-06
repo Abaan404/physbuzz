@@ -4,14 +4,7 @@ namespace Physbuzz {
 
 RigidBodyComponent::RigidBodyComponent(const Info &info)
     : m_Info(info) {
-    AABB::Info aabb;
-
-    for (const auto &vertex : m_Info.geometry.vertices) {
-        aabb.min = glm::min(aabb.min, vertex.position);
-        aabb.max = glm::max(aabb.max, vertex.position);
-    }
-
-    m_AABB = {aabb};
+    m_AABB = info.mesh->bounding;
 }
 
 void RigidBodyComponent::addForce(const glm::vec3 &force) {
@@ -33,6 +26,10 @@ const RigidBodyComponent::Info &RigidBodyComponent::getInfo() const {
 
 const AABB &RigidBodyComponent::getAABB() const {
     return m_AABB;
+}
+
+void RigidBodyComponent::applyTransform(const Transform &transform) {
+    m_AABB = m_Info.mesh->bounding.withTransform(transform);
 }
 
 } // namespace Physbuzz

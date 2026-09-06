@@ -1,7 +1,7 @@
 #include "collision.hpp"
 
 Collision::Collision(Physbuzz::Scene *scene, const float restitution)
-    : Physbuzz::System<Physbuzz::RigidBodyComponent, Physbuzz::BoundingComponent, Physbuzz::RenderComponent>(scene),
+    : Physbuzz::System<Physbuzz::RigidBodyComponent, Physbuzz::RenderComponent>(scene),
       m_DetectorBroad(m_Scene, &m_Objects), m_DetectorNarrow(m_Scene), m_Resolver(m_Scene, restitution) {}
 
 Collision::~Collision() {}

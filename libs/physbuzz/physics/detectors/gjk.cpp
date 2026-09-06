@@ -58,6 +58,14 @@ auto Simplex::end() const {
 Gjk3D::Gjk3D(Scene *scene)
     : CollisionDetector(scene) {}
 
+bool Gjk3D::buildImpl() {
+    return true;
+}
+
+bool Gjk3D::destroyImpl() {
+    return true;
+}
+
 bool Gjk3D::checkImpl(Contact &contact) {
     const auto [body1, render1] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(contact.object1);
     const auto [body2, render2] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(contact.object2);
@@ -263,7 +271,7 @@ glm::vec3 Gjk3D::supportPoint(const RigidBodyComponent &body, const RenderCompon
     glm::vec3 point;
     float proj = std::numeric_limits<float>::lowest();
 
-    for (const auto &vertex : body.getInfo().geometry.vertices) {
+    for (const auto &vertex : body.getInfo().mesh->geometry.vertices) {
         glm::vec3 position = render.transform.toWorld(vertex.position);
 
         const float newProj = glm::dot(position, direction);

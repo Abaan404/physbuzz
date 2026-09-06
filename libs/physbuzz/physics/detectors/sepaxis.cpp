@@ -41,7 +41,7 @@ float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const RigidBodyCom
             float max = std::numeric_limits<float>::lowest();
         } ret;
 
-        for (const auto &vertex : body.getInfo().geometry.vertices) {
+        for (const auto &vertex : body.getInfo().mesh->geometry.vertices) {
             float projection = glm::dot(vertex.position, axis);
 
             ret.min = glm::min(projection, ret.min);
@@ -65,7 +65,7 @@ float SeperatingAxis2D::getAxisOverlap(const glm::vec3 &axis, const RigidBodyCom
 }
 
 void SeperatingAxis2D::addMeshNormals(const RigidBodyComponent &body, std::vector<glm::vec3> &axes) {
-    for (const auto &vertex : body.getInfo().geometry.vertices) {
+    for (const auto &vertex : body.getInfo().mesh->geometry.vertices) {
         axes.emplace_back(vertex.normal);
     }
 }

@@ -1,15 +1,18 @@
 #include "game.hpp"
 
 #include "collision.hpp"
-#include "objects/cuboid.hpp"
 #include "objects/lightdirectional.hpp"
 #include "objects/lightpoint.hpp"
-#include "objects/materialsphere.hpp"
+#include "objects/materialshape.hpp"
 #include "objects/model.hpp"
 #include "objects/player.hpp"
-#include "objects/quad.hpp"
+#include "objects/shape.hpp"
 #include "renderers/collision_highlight.hpp"
 #include "resources/loader.hpp"
+#include "shapes/circle.hpp"
+#include "shapes/cube.hpp"
+#include "shapes/sphere.hpp"
+#include "shapes/square.hpp"
 #include "ui/handler.hpp"
 #include <filesystem>
 #include <physbuzz/app/application.hpp>
@@ -27,10 +30,6 @@
 #include <physbuzz/render/forward.hpp>
 #include <physbuzz/render/shadow.hpp>
 #include <physbuzz/render/skybox.hpp>
-#include <physbuzz/shapes/circle.hpp>
-#include <physbuzz/shapes/cube.hpp>
-#include <physbuzz/shapes/sphere.hpp>
-#include <physbuzz/shapes/square.hpp>
 #include <physbuzz/window/inputs.hpp>
 #include <random>
 
@@ -121,10 +120,19 @@ void Game::build() {
 
     Physbuzz::TransferBatch batch = {{}};
 
-    Physbuzz::Builtin::ModelCube::build(batch);
-    Physbuzz::Builtin::ModelSquare::build(batch);
-    Physbuzz::Builtin::ModelCircle::build(batch);
-    Physbuzz::Builtin::ModelSphere::build(batch);
+    {
+        ResourceLoader::loadMesh({"cube"}, ModelCube::build(), batch);
+        ResourceLoader::loadMesh({"square"}, ModelSquare::build(), batch);
+        ResourceLoader::loadMesh({"circle"}, ModelCircle::build(), batch);
+        ResourceLoader::loadMesh({"sphere"}, ModelSphere::build(), batch);
+    }
+
+    {
+        ResourceLoader::loadPhysicsMesh({"cube"}, ModelCube::build());
+        ResourceLoader::loadPhysicsMesh({"square"}, ModelSquare::build());
+        ResourceLoader::loadPhysicsMesh({"circle"}, ModelCircle::build());
+        ResourceLoader::loadPhysicsMesh({"sphere"}, ModelSphere::build());
+    }
 
     {
         ResourceLoader::loadTexture("default/albedo", {.files = {{.path = "resources/textures/default/albedo.png"}}}, batch);
@@ -196,14 +204,13 @@ void Game::build() {
                     },
                 });
 
-            MaterialSphere sphere = {
-                .sphere = {
-                    .radius = 10.0f,
-                },
+            MaterialShape sphere = {
                 .transform = {{
                     .position = {(i - 2) * 50.0f, 100.0f, 0},
+                    .scale = {10.0f, 10.0f, 10.0f},
                 }},
                 .resources = {
+                    .mesh = {"sphere"},
                     .material = material,
                 },
             };
@@ -292,54 +299,65 @@ void Game::build() {
     // cubes
     {
         for (int i = 0; i < 5; ++i) {
-            Cuboid cube = {
-                .cuboid = {
-                    .width = 50.0f,
-                    .breadth = 50.0f,
-                    .height = 50.0f,
-                },
+            Shape shape = {
                 .transform = {{
                     .position = {(i - 5 / 2) * 100, 0, 0},
+                    .scale = {50.0f, 50.0f, 50.0f},
                 }},
+                .body = {
+                    .mesh = {"cube"},
+                },
+                .identifier = {
+                    .name = "Cuboid",
+                    .hidden = false,
+                },
                 .resources = {
+                    .mesh = {"cube"},
                     .material = {"crate"},
                 },
                 .hasPhysics = true,
+                .hasShadow = true,
             };
 
-            ObjectBuilder::create(Physbuzz::App::GScene, cube);
+            ObjectBuilder::create(Physbuzz::App::GScene, shape);
         }
     }
 
     {
-        Quad quad = {
-            .quad = {
-                .width = 1500.0f,
-                .height = 1500.0f,
-            },
+        Shape shape = {
             .transform = {{
                 .position = {0.0f, -300.0f, 0.0f},
+                .scale = {1500.0f, 1500.0f, 1.0f},
                 .orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             }},
+            .body = {
+                .mesh = {"square"},
+            },
+            .identifier = {
+                .name = "Floor",
+                .hidden = false,
+            },
             .resources = {
+                .mesh = {"square"},
                 .material = {"floor"},
             },
         };
 
-        ObjectBuilder::create(Physbuzz::App::GScene, quad);
+        ObjectBuilder::create(Physbuzz::App::GScene, shape);
     }
 
     // point lights
     {
         for (int i = 0; i < 1; ++i) {
             LightPoint point = {
-                .sphere = {
-                    .radius = 10.0f,
-                },
                 .transform = {{
                     .position = {(i - 5 / 2) * 100, 150, 0},
+                    .scale = {10.0f, 10.0f, 10.0f},
                     .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
                 }},
+                .resources = {
+                    .mesh = {"circle"},
+                },
                 .pointLight = {{
                     .intensity = {10000.0f, 10000.0f, 10000.0f},
                     .depth = 2000.0f,
@@ -398,24 +416,6 @@ void Game::build() {
 
         ObjectBuilder::create(Physbuzz::App::GScene, model);
     }
-
-    // {
-    //     Model model = {
-    //         .model = {
-    //             .path = "resources/models/Sponza/glTF/Sponza.gltf",
-    //             .flipUVs = true,
-    //         },
-    //         .transform = {{
-    //             .position = {0, 200.0f, 0},
-    //             .scale = {50.0f, 50.0f, 50.0f},
-    //         }},
-    //         .identifier = {
-    //             .name = "Sponza",
-    //         },
-    //     };
-    //
-    //     ObjectBuilder::create(Physbuzz::App::GScene, model);
-    // }
 }
 
 void Game::rebuild() {

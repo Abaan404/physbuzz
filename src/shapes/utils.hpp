@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../graphics/mesh.hpp"
-#include <vector>
-
-namespace Physbuzz {
+#include <physbuzz/graphics/mesh.hpp>
 
 namespace detail {
 
@@ -16,5 +13,3 @@ std::vector<glm::vec2> generate2DTexCoords(const std::vector<glm::vec3> &positio
 std::vector<NormalTangent> generate2DNormalTangent(const std::vector<Physbuzz::Index> &indices, const std::vector<glm::vec3> &positions, const std::vector<glm::vec2> &texCoords);
 
 } // namespace detail
-
-} // namespace Physbuzz

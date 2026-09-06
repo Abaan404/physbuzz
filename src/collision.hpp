@@ -5,7 +5,7 @@
 #include <physbuzz/physics/detectors/sweepandprune.hpp>
 #include <physbuzz/physics/resolvers/angular.hpp>
 
-class Collision : public Physbuzz::System<Physbuzz::RigidBodyComponent, Physbuzz::BoundingComponent, Physbuzz::RenderComponent> {
+class Collision : public Physbuzz::System<Physbuzz::RigidBodyComponent, Physbuzz::RenderComponent> {
   public:
     Collision(Physbuzz::Scene *scene, const float restitution);
     ~Collision();

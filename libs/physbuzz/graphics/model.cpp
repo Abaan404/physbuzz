@@ -123,10 +123,7 @@ bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transf
             return false;
         }
 
-        if (!Resource<Mesh>{m_Info.mesh}->write(
-                std::move(meshResult.vertices),
-                std::move(meshResult.indices),
-                batch)) {
+        if (!Resource<Mesh>{m_Info.mesh}->write(std::move(meshResult.geometry), batch)) {
             Logger::ERROR("[Model] Failed to write mesh resource {}.", m_Info.mesh);
             return false;
         }
@@ -224,8 +221,7 @@ Model::MeshResult Model::processMesh(const aiNode *root, const aiScene *aiscene)
             .submeshes = {},
         },
         .submeshMaterialIndices = {},
-        .vertices = {},
-        .indices = {},
+        .geometry = {},
     };
 
     std::vector<std::pair<const aiNode *, aiMatrix4x4>> stack;
@@ -267,14 +263,14 @@ Model::MeshResult Model::processMesh(const aiNode *root, const aiScene *aiscene)
         }
     }
 
-    result.vertices.reserve(result.info.vertexCount);
-    result.indices.reserve(result.info.indexCount);
+    result.geometry.vertices.reserve(result.info.vertexCount);
+    result.geometry.indices.reserve(result.info.indexCount);
 
     for (const auto &submesh : submeshes) {
         result.submeshMaterialIndices.emplace_back(submesh.materialIdx);
 
-        result.vertices.insert(result.vertices.end(), submesh.vertices.begin(), submesh.vertices.end());
-        result.indices.insert(result.indices.end(), submesh.indices.begin(), submesh.indices.end());
+        result.geometry.vertices.insert(result.geometry.vertices.end(), submesh.vertices.begin(), submesh.vertices.end());
+        result.geometry.indices.insert(result.geometry.indices.end(), submesh.indices.begin(), submesh.indices.end());
     }
 
     return result;

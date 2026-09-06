@@ -2,8 +2,6 @@
 
 #include "../game.hpp"
 #include "../ui/handler.hpp"
-#include "circle.hpp"
-#include "cuboid.hpp"
 #include <imgui.h>
 #include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/misc/context.hpp>
@@ -116,60 +114,6 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
 
                     camera.setPosition(camera.getInfo().view.position + camera.getUp() * player.speed);
                     flashlight.setPosition(camera.getInfo().view.position);
-                },
-            },
-        },
-        .mouseCallbacks = {
-            {
-                .button = Physbuzz::Button::Left,
-                .type = Physbuzz::CallbackType::OneShot,
-                .callback = [](Physbuzz::Scene &scene, const Physbuzz::MouseButtonEvent &) {
-                    if (ImGui::GetIO().WantCaptureMouse) {
-                        return;
-                    }
-
-                    Cuboid info = {
-                        .cuboid = {
-                            .width = 100.0f,
-                            .breadth = 100.0f,
-                            .height = 100.0f,
-                        },
-                        .transform = {{
-                            .position = {0.0f, 0.0f, 0.0f},
-                            .orientation = glm::angleAxis(glm::pi<float>() / 4.0f, glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f))),
-                        }},
-                        .resources = {
-                            .material = {"crate"},
-                        },
-                        .hasPhysics = false,
-                    };
-
-                    ObjectBuilder::create(scene, info);
-                },
-            },
-            {
-                .button = Physbuzz::Button::Right,
-                .type = Physbuzz::CallbackType::OneShot,
-                .callback = [](Physbuzz::Scene &scene, const Physbuzz::MouseButtonEvent &event) {
-                    if (ImGui::GetIO().WantCaptureMouse) {
-                        return;
-                    }
-
-                    const glm::ivec2 &cursor = event.window->getCursorPos();
-                    Circle info = {
-                        .circle = {
-                            .radius = 100.0f,
-                        },
-                        .transform = {{
-                            .position = {cursor.x, cursor.y, 0.0f},
-                        }},
-                        .resources = {
-                            .material = {"floor"},
-                        },
-                        .hasPhysics = true,
-                    };
-
-                    ObjectBuilder::create(scene, info);
                 },
             },
         },

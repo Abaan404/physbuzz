@@ -1,13 +1,13 @@
 #include "objectlist.hpp"
 
-#include "../objects/cuboid.hpp"
-#include "../objects/quad.hpp"
+#include "../objects/common.hpp"
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <physbuzz/graphics/renderer.hpp>
 #include <physbuzz/physics/collision.hpp>
+#include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/components/lights.hpp>
 #include <physbuzz/render/defines.hpp>
 #include <unordered_set>
@@ -91,9 +91,9 @@ void ObjectList::draw() {
                 if (updateTransform) {
                     render.transform.update(info);
 
-                    if (m_Scene->containsComponent<Physbuzz::RigidBodyComponent, Physbuzz::BoundingComponent>(object)) {
-                        const auto [body, bounding] = m_Scene->getComponent<Physbuzz::RigidBodyComponent, Physbuzz::BoundingComponent>(object);
-                        bounding.aabb = body.getAABB().withTransform(info);
+                    if (m_Scene->containsComponent<Physbuzz::RigidBodyComponent>(object)) {
+                        const auto [body] = m_Scene->getComponent<Physbuzz::RigidBodyComponent>(object);
+                        body.applyTransform(info);
                     }
                 }
 
@@ -127,44 +127,6 @@ void ObjectList::draw() {
                 ImGui::DragFloat2("drag", &info.drag.k1, 0.01f, -MAX_VALUE, MAX_VALUE);
 
                 body.update(info);
-            }
-
-            if (m_Scene->containsComponent<QuadComponent>(object)) {
-                ImGui::SeparatorText("Quad");
-
-                const auto [quad, render] = m_Scene->getComponent<QuadComponent, Physbuzz::RenderComponent>(object);
-                float wh[] = {quad.width, quad.height};
-
-                if (ImGui::DragFloat2("quad", wh, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    quad.width = wh[0];
-                    quad.height = wh[1];
-
-                    render.transform.setScale({quad.width, quad.height, 1.0f});
-                }
-            }
-
-            if (m_Scene->containsComponent<CuboidComponent>(object)) {
-                ImGui::SeparatorText("Cube");
-
-                const auto [cuboid, render] = m_Scene->getComponent<CuboidComponent, Physbuzz::RenderComponent>(object);
-                float whl[] = {cuboid.width, cuboid.breadth, cuboid.height};
-
-                if (ImGui::DragFloat3("cube", whl, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    cuboid.width = whl[0];
-                    cuboid.breadth = whl[1];
-                    cuboid.height = whl[2];
-
-                    render.transform.setScale({cuboid.width, cuboid.breadth, cuboid.height});
-                }
-            }
-
-            if (m_Scene->containsComponent<RadialComponent>(object)) {
-                ImGui::SeparatorText("Radial");
-
-                const auto [radial, render] = m_Scene->getComponent<RadialComponent, Physbuzz::RenderComponent>(object);
-                if (ImGui::DragFloat("radius", &radial.radius, 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    render.transform.setScale({radial.radius, radial.radius, radial.radius});
-                }
             }
 
             if (m_Scene->containsComponent<Physbuzz::PointLightComponent>(object)) {

@@ -2,16 +2,12 @@
 
 #include "../ecs/defines.hpp"
 #include "../ecs/scene.hpp"
-#include "../math/bounding.hpp"
+#include <glm/glm.hpp>
 #include <list>
 
 namespace Physbuzz {
 
 struct RigidBodyComponent;
-
-struct BoundingComponent {
-    AABB aabb;
-};
 
 struct Contact {
     ObjectID object1;

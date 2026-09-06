@@ -1,24 +1,16 @@
 #pragma once
 
-#include "../../graphics/mesh.hpp"
 #include "../../math/bounding.hpp"
+#include "../../math/transform.hpp"
+#include "../../resources/resource.hpp"
+#include "../defines.hpp"
 
 namespace Physbuzz {
 
 class RigidBodyComponent {
   public:
-    struct Vertex {
-        glm::vec3 position;
-        glm::vec3 normal;
-    };
-
-    struct Geometry {
-        std::vector<Vertex> vertices;
-        std::vector<Index> indices;
-    };
-
     struct Info {
-        Geometry geometry;
+        Resource<PhysicsMesh> mesh;
 
         glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
         glm::vec3 acceleration = {0.0f, 0.0f, 0.0f};
@@ -47,6 +39,8 @@ class RigidBodyComponent {
     void addForceAtPoint(const glm::vec3 &force, const glm::vec3 &relPosition);
 
     void update(const Info &info);
+
+    void applyTransform(const Transform &transform);
 
     const Info &getInfo() const;
     const AABB &getAABB() const;

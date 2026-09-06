@@ -17,6 +17,12 @@ concept VertexAttributeFormatType =
 
 using Index = std::uint32_t;
 
+template <typename T>
+struct Geometry {
+    std::vector<T> vertices;
+    std::vector<Index> indices;
+};
+
 class VertexDescription {
   public:
     using Format = vk::Format;
@@ -74,14 +80,14 @@ class Mesh {
     bool destroy();
 
     template <typename T>
-    bool write(std::vector<T> &&vertices, std::vector<Index> &&indices, TransferBatch &batch) {
+    bool write(Geometry<T> &&geometry, TransferBatch &batch) {
         std::vector<std::byte> vertexBytes(
-            reinterpret_cast<std::byte *>(vertices.data()),
-            reinterpret_cast<std::byte *>(vertices.data() + vertices.size()));
+            reinterpret_cast<std::byte *>(geometry.vertices.data()),
+            reinterpret_cast<std::byte *>(geometry.vertices.data() + geometry.vertices.size()));
 
         std::vector<std::byte> indexBytes(
-            reinterpret_cast<std::byte *>(indices.data()),
-            reinterpret_cast<std::byte *>(indices.data() + indices.size()));
+            reinterpret_cast<std::byte *>(geometry.indices.data()),
+            reinterpret_cast<std::byte *>(geometry.indices.data() + geometry.indices.size()));
 
         return write(std::move(vertexBytes), std::move(indexBytes), batch);
     }
@@ -90,15 +96,10 @@ class Mesh {
 
     void bind(const RenderContext &context) const;
 
-    const std::vector<std::byte> &getVertices() const;
-    const std::vector<std::byte> &getIndices() const;
     const Info &getInfo() const;
 
   private:
     Info m_Info;
-
-    std::vector<std::byte> m_Vertices;
-    std::vector<std::byte> m_Indices;
 
     Buffer m_Mesh = {{
         .usage = Buffer::UsageFlags::eVertexBuffer |

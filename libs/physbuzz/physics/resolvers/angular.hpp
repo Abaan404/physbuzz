@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../math/transform.hpp"
 #include "linear.hpp"
 
 namespace Physbuzz {
