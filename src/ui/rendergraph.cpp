@@ -12,7 +12,7 @@ RenderGraph::RenderGraph(Physbuzz::Scene *scene)
     : IUserInterface(scene) {}
 
 void RenderGraph::draw() {
-    const std::shared_ptr<Physbuzz::Renderer> renderer = m_Scene->getSystem<Physbuzz::Renderer>();
+    Physbuzz::Renderer *renderer = m_Scene->getSystem<Physbuzz::Renderer>();
 
     ImGuiWindowFlags windowFlags = 0;
     if (!ImGui::Begin("RenderGraph", &show, windowFlags)) {
@@ -134,11 +134,11 @@ void RenderGraph::draw() {
     if (updateGraph) {
         Physbuzz::RenderGraph graph = {{}};
 
-        std::shared_ptr<Physbuzz::ShadowRenderer> shadow = m_Scene->getSystem<Physbuzz::ShadowRenderer>();
-        std::shared_ptr<Physbuzz::DeferredRenderer> deferred = m_Scene->getSystem<Physbuzz::DeferredRenderer>();
-        std::shared_ptr<Physbuzz::ForwardRenderer> forward = m_Scene->getSystem<Physbuzz::ForwardRenderer>();
-        std::shared_ptr<Physbuzz::ImGuiRenderer> imgui = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
-        std::shared_ptr<Physbuzz::SkyboxRenderer> skybox = m_Scene->getSystem<Physbuzz::SkyboxRenderer>();
+        Physbuzz::ShadowRenderer *shadow = m_Scene->getSystem<Physbuzz::ShadowRenderer>();
+        Physbuzz::DeferredRenderer *deferred = m_Scene->getSystem<Physbuzz::DeferredRenderer>();
+        Physbuzz::ForwardRenderer *forward = m_Scene->getSystem<Physbuzz::ForwardRenderer>();
+        Physbuzz::ImGuiRenderer *imgui = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
+        Physbuzz::SkyboxRenderer *skybox = m_Scene->getSystem<Physbuzz::SkyboxRenderer>();
 
         if (m_EnableShadows) {
             graph.merge(shadow->getGraph());

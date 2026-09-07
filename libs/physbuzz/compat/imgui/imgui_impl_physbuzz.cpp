@@ -226,7 +226,7 @@ std::optional<ImTextureID> ImGuiRenderer::getTexture(const Resource<Attachment> 
         }
     }
 
-    std::shared_ptr<Renderer> renderer = m_Scene->getSystem<Renderer>();
+    Renderer *renderer = m_Scene->getSystem<Renderer>();
     return stored.textureIds.at(viewInfo)[m_FrameInFlight];
 }
 

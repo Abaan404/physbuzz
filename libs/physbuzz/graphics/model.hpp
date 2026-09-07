@@ -39,7 +39,7 @@ class Model {
 
     Model(const Info &info);
 
-    bool load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer, bool flipUVs = false);
+    bool load(const std::filesystem::path &path, Transfer *transfer, bool flipUVs = false);
 
     const Info &getInfo() const;
 

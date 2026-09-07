@@ -98,7 +98,7 @@ void ObjectList::draw() {
                 }
 
                 for (auto &material : render.model.getInfo().materials) {
-                    const std::shared_ptr<Physbuzz::Renderer> renderer = m_Scene->getSystem<Physbuzz::Renderer>();
+                    Physbuzz::Renderer *renderer = m_Scene->getSystem<Physbuzz::Renderer>();
 
                     if (ImGui::DragFloat3("albedoFactor", glm::value_ptr(material->albedoFactor), 0.001f, 0.0f, 1.0f)) {
                         renderer->updateMaterial(material);

@@ -39,7 +39,7 @@ VertexDescription Model::Vertex::Description = {{
 Model::Model(const Info &info)
     : m_Info(info) {}
 
-bool Model::load(const std::filesystem::path &path, const std::shared_ptr<Transfer> transfer, bool flipUVs) {
+bool Model::load(const std::filesystem::path &path, Transfer *transfer, bool flipUVs) {
     ZoneScopedN("Model/Load");
     ZoneText(path.string().c_str(), path.string().size());
 

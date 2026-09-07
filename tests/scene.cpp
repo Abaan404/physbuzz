@@ -662,8 +662,8 @@ TEST_CASE("Physbuzz::Scene") {
         scene.createSystem<TestSystem1>();
         scene.createSystem<TestSystem2>();
 
-        std::shared_ptr<TestSystem1> system1 = scene.getSystem<TestSystem1>();
-        std::shared_ptr<TestSystem2> system2 = scene.getSystem<TestSystem2>();
+        TestSystem1 *system1 = scene.getSystem<TestSystem1>();
+        TestSystem2 *system2 = scene.getSystem<TestSystem2>();
 
         Physbuzz::ObjectID id1 = scene.createObject(1);
         Physbuzz::ObjectID id2 = scene.createObject(2);

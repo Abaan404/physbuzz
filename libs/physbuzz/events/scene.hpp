@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../ecs/defines.hpp"
-#include <memory>
 
 namespace Physbuzz {
 
@@ -41,14 +40,14 @@ template <typename T>
 struct OnSystemCreateEvent {
     Scene *scene;
 
-    std::shared_ptr<T> system;
+    T *system;
 };
 
 template <typename T>
 struct OnSystemEraseEvent {
     Scene *scene;
 
-    std::shared_ptr<T> system;
+    T *system;
 };
 
 } // namespace Physbuzz

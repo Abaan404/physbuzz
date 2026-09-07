@@ -34,7 +34,7 @@ class System : public ISystem {
         : ISystem(scene) {}
 
   private:
-    inline bool containsSignature(ComponentManager &componentManager, ObjectID id) override {
+    inline bool containsSignature(ComponentManager &componentManager, ObjectID id) final {
         if constexpr (sizeof...(Signature) == 0) {
             return false;
         } else {
@@ -45,7 +45,7 @@ class System : public ISystem {
     friend class Scene;
 };
 
-template <typename T, typename... Args>
+template <typename T>
 concept SystemType = std::derived_from<T, ISystem>;
 
 template <typename T, typename... Args>
@@ -58,39 +58,60 @@ concept SystemTickable =
 class SystemManager {
   public:
     template <SystemType T, typename... Args>
-    inline std::shared_ptr<T> emplace(Scene *scene, Args &&...system) {
-        SignatureID id = Signature::ID<T>();
-
-        if (!m_Systems.contains(id)) {
-            m_Systems[id] = std::make_shared<T>(scene, std::forward<Args>(system)...);
-            if (!m_Systems[id]->build()) {
-                Logger::ERROR("[Scene/Systems] Failed to build a system.");
-            }
+    inline T *emplace(Scene *scene, Args &&...args) {
+        if (contains<T>()) {
+            Logger::WARNING("[Scene/Systems] System already exists, ignoring new.");
+            return get<T>();
         }
 
+        SignatureID id = Signature::ID<T>();
+
+        if (m_Systems.size() <= id) {
+            m_Systems.resize(id + 1);
+        }
+
+        std::unique_ptr<T> system = std::make_unique<T>(scene, std::forward<Args>(args)...);
+        if (!system->build()) {
+            Logger::ERROR("[Scene/Systems] Failed to build a system.");
+            return nullptr;
+        }
+
+        m_Systems[id] = std::move(system);
         return get<T>();
     }
 
     template <SystemType... T>
-    inline bool erase() {
+    inline void erase() {
         if (!contains<T...>()) {
-            return false;
+            return;
         }
 
-        (m_Systems[Signature::ID<T>()]->destroy(), ...);
-        return (m_Systems.erase(Signature::ID<T>()) && ...);
+        ([this] {
+            SignatureID id = Signature::ID<T>();
+
+            if (!m_Systems[id]->destroy()) {
+                Logger::ERROR("[Scene/Systems] Failed to destroy a system.");
+            }
+
+            m_Systems[id].reset();
+        }(),
+         ...);
     }
 
     template <SystemType... T>
-    inline bool contains() {
-        return (m_Systems.contains(Signature::ID<T>()) && ...);
+    inline bool contains() const {
+        return ((m_Systems.size() > Signature::ID<T>() && m_Systems.at(Signature::ID<T>())) && ...);
     }
 
     template <SystemType T>
-    inline std::shared_ptr<T> get() const {
+    inline T *get() const {
+        if (!contains<T>()) {
+            Logger::CRITICAL("[Scene] System not found.");
+            return nullptr;
+        }
+
         SignatureID id = Signature::ID<T>();
-        PBZ_ASSERT(m_Systems.contains(id), "[Scene] System not found.");
-        return std::static_pointer_cast<T>(m_Systems.at(id));
+        return static_cast<T *>(m_Systems.at(id).get());
     }
 
     template <typename T, typename... Args>
@@ -106,7 +127,7 @@ class SystemManager {
     void objectDestroyed(ObjectID id);
 
   private:
-    std::unordered_map<SignatureID, std::shared_ptr<ISystem>> m_Systems;
+    std::vector<std::unique_ptr<ISystem>> m_Systems;
 };
 
 } // namespace Physbuzz

@@ -86,8 +86,8 @@ class Scene : public EventSubject {
     }
 
     template <SystemType T, typename... Args>
-    inline std::shared_ptr<T> createSystem(Args &&...args) {
-        std::shared_ptr<T> system = m_SystemManager.emplace<T>(this, std::forward<Args>(args)...);
+    inline T *createSystem(Args &&...args) {
+        T *system = m_SystemManager.emplace<T>(this, std::forward<Args>(args)...);
 
         for (ObjectID id : getObjects()) {
             if (system->containsSignature(m_ComponentManager, id)) {
@@ -106,7 +106,7 @@ class Scene : public EventSubject {
     }
 
     template <SystemType T>
-    inline bool eraseSystem() {
+    inline void eraseSystem() {
         if (m_SystemManager.contains<T>()) {
             notifyCallbacks<OnSystemEraseEvent<T>>({
                 .scene = this,
@@ -123,7 +123,7 @@ class Scene : public EventSubject {
     }
 
     template <SystemType T>
-    inline std::shared_ptr<T> getSystem() const {
+    inline T *getSystem() const {
         return m_SystemManager.get<T>();
     }
 

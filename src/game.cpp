@@ -110,9 +110,9 @@ void Game::build() {
         playerId = ObjectBuilder::create(Physbuzz::App::GScene, player);
     }
 
-    std::shared_ptr<Physbuzz::Transfer> transfer = Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>(Physbuzz::Transfer::Info{});
+    Physbuzz::Transfer *transfer = Physbuzz::App::GScene.createSystem<Physbuzz::Transfer>(Physbuzz::Transfer::Info{});
 
-    std::shared_ptr<Physbuzz::Renderer> renderer = Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(
+    Physbuzz::Renderer *renderer = Physbuzz::App::GScene.createSystem<Physbuzz::Renderer>(
         Physbuzz::Renderer::Info{
             .window = window,
         },
@@ -237,37 +237,37 @@ void Game::build() {
 
     transfer->submit(batch);
 
-    std::shared_ptr<Physbuzz::ShadowRenderer> shadow = Physbuzz::App::GScene.createSystem<Physbuzz::ShadowRenderer>(
+    Physbuzz::ShadowRenderer *shadow = Physbuzz::App::GScene.createSystem<Physbuzz::ShadowRenderer>(
         Physbuzz::ShadowRenderer::Info{
             .resolution = {2048, 2048},
         });
 
-    std::shared_ptr<Physbuzz::ForwardRenderer> forward = Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(
+    Physbuzz::ForwardRenderer *forward = Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(
         Physbuzz::ForwardRenderer::Info{
             .camera = playerId,
             .window = window,
             .environmentMap = {"hdr_skybox"},
         });
 
-    std::shared_ptr<Physbuzz::DeferredRenderer> deferred = Physbuzz::App::GScene.createSystem<Physbuzz::DeferredRenderer>(
+    Physbuzz::DeferredRenderer *deferred = Physbuzz::App::GScene.createSystem<Physbuzz::DeferredRenderer>(
         Physbuzz::DeferredRenderer::Info{
             .camera = playerId,
             .window = window,
         });
 
-    std::shared_ptr<Physbuzz::ImGuiRenderer> imgui = Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(
+    Physbuzz::ImGuiRenderer *imgui = Physbuzz::App::GScene.createSystem<Physbuzz::ImGuiRenderer>(
         Physbuzz::ImGuiRenderer::Info{
             .window = window,
         });
 
-    std::shared_ptr<Physbuzz::SkyboxRenderer> skybox = Physbuzz::App::GScene.createSystem<Physbuzz::SkyboxRenderer>(
+    Physbuzz::SkyboxRenderer *skybox = Physbuzz::App::GScene.createSystem<Physbuzz::SkyboxRenderer>(
         Physbuzz::SkyboxRenderer::Info{
             .camera = playerId,
             .window = window,
             .skybox = {"hdr_skybox"},
         });
 
-    std::shared_ptr<CollisionHighlight> collisionHighlight = Physbuzz::App::GScene.createSystem<CollisionHighlight>(
+    CollisionHighlight *collisionHighlight = Physbuzz::App::GScene.createSystem<CollisionHighlight>(
         CollisionHighlight::Info{
             .camera = playerId,
             .window = window,

@@ -13,7 +13,7 @@ Image<T>::Image(const Physbuzz::Resource<T> &attachment, Physbuzz::Scene *scene)
 
 template <typename T>
 void Image<T>::draw() {
-    std::shared_ptr<Physbuzz::Renderer> renderer = m_Scene->getSystem<Physbuzz::Renderer>();
+    Physbuzz::Renderer *renderer = m_Scene->getSystem<Physbuzz::Renderer>();
 
     ImVec2 resolution = getResolution();
     float aspectRatio = resolution.x / resolution.y;
@@ -100,7 +100,7 @@ void Image<T>::draw() {
     ImGui::InputScalar("count", ImGuiDataType_U32, &m_ViewInfo.subresourceRange.layerCount, &step);
     ImGui::PopID();
 
-    std::shared_ptr<Physbuzz::ImGuiRenderer> imguiImpl = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
+    Physbuzz::ImGuiRenderer *imguiImpl = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
     std::optional<ImTextureID> id = imguiImpl->getTexture(m_Resource, m_ViewInfo);
 
     // use this to compute constraints next frame
@@ -125,7 +125,7 @@ ImVec2 Image<Physbuzz::Texture>::getResolution() {
 
 template <>
 ImVec2 Image<Physbuzz::Attachment>::getResolution() {
-    std::shared_ptr<Physbuzz::ImGuiRenderer> imguiImpl = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
+    Physbuzz::ImGuiRenderer *imguiImpl = m_Scene->getSystem<Physbuzz::ImGuiRenderer>();
 
     glm::uvec2 resolution = m_Resource->getSize(imguiImpl->getFrameInFlight());
     return ImVec2(resolution.x, resolution.y);

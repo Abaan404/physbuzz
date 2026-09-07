@@ -178,7 +178,7 @@ bool ForwardRenderer::build() {
     success &= m_BrdfLut.build();
 
     // bake environment textures
-    std::shared_ptr<Renderer> renderer = m_Scene->getSystem<Renderer>();
+    Renderer *renderer = m_Scene->getSystem<Renderer>();
     renderer->immediate(m_Irradiance.getGraph());
     renderer->immediate(m_Prefilter.getGraph());
     renderer->immediate(m_BrdfLut.getGraph());

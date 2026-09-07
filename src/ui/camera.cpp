@@ -18,7 +18,7 @@ void Camera::draw() {
         return;
     }
 
-    std::shared_ptr<Physbuzz::Renderer> renderer = m_Scene->getSystem<Physbuzz::Renderer>();
+    Physbuzz::Renderer *renderer = m_Scene->getSystem<Physbuzz::Renderer>();
 
     const auto [_, camera, player] = m_Scene->getComponents<Physbuzz::CameraComponent, PlayerComponent>().front();
 
