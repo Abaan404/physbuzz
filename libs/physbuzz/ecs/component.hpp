@@ -18,28 +18,32 @@ class IComponentArray {
 template <typename T>
 class ComponentArray : public IComponentArray {
   public:
-    inline void set(ObjectID id, T &component) {
+    void set(ObjectID id, T &component) {
         m_Map.insert(id, component);
     }
 
-    inline bool erase(ObjectID id) {
+    bool erase(ObjectID id) {
         return m_Map.erase(id);
     }
 
-    inline bool contains(ObjectID id) {
+    bool contains(ObjectID id) const {
         return m_Map.contains(id);
     }
 
-    inline T &get(ObjectID id) {
+    T &get(ObjectID id) {
+        return m_Map.get(id);
+    }
+
+    const T &get(ObjectID id) const {
         PBZ_ASSERT(m_Map.contains(id), "[Scene] Component not found.");
         return m_Map.get(id);
     }
 
-    inline const std::vector<T> &getArray() {
+    const std::vector<T> &getArray() const {
         return m_Map.getArray();
     }
 
-    inline const std::unordered_set<ObjectID> &getKeys() {
+    const std::unordered_set<ObjectID> &getKeys() const {
         return m_Map.getKeys();
     }
 
@@ -49,6 +53,11 @@ class ComponentArray : public IComponentArray {
 
     void clear() override {
         m_Map.clear();
+    }
+
+    static const ComponentArray<T> &getEmpty() {
+        static ComponentArray<T> Empty;
+        return Empty;
     }
 
   private:
@@ -63,12 +72,12 @@ concept ComponentArrayType =
 class ComponentManager {
   public:
     template <ComponentArrayType... T>
-    inline void set(ObjectID id, T &...component) {
+    void set(ObjectID id, T &...component) {
         (getComponents<T>()->set(id, component), ...);
     }
 
     template <ComponentArrayType... T>
-    inline bool erase(ObjectID id) {
+    bool erase(ObjectID id) {
         // erase only all (&&) matches
         if (sizeof...(T) > 1 && !contains<T...>(id)) {
             return false;
@@ -78,12 +87,17 @@ class ComponentManager {
     }
 
     template <ComponentArrayType... T>
-    inline bool contains(ObjectID id) {
+    bool contains(ObjectID id) const {
         return (getComponents<T>()->contains(id) && ...);
     }
 
     template <ComponentArrayType... T>
-    inline std::tuple<T &...> get(ObjectID id) {
+    std::tuple<T &...> get(ObjectID id) {
+        return std::tie(getComponents<T>()->get(id)...);
+    }
+
+    template <ComponentArrayType... T>
+    std::tuple<const T &...> get(ObjectID id) const {
         return std::tie(getComponents<T>()->get(id)...);
     }
 
@@ -98,11 +112,27 @@ class ComponentManager {
                 result.emplace_back(std::tuple_cat(std::make_tuple(id), get<T...>(id)));
             }
         }
+
         return result;
     }
 
     template <ComponentArrayType... T>
-    std::unordered_set<ObjectID> getObjects() {
+    std::vector<std::tuple<ObjectID, const T &...>> getArray() const {
+        std::unordered_set<ObjectID> ids;
+        (ids.insert(getComponents<T>()->getKeys().begin(), getComponents<T>()->getKeys().end()), ...);
+
+        std::vector<std::tuple<ObjectID, const T &...>> result;
+        for (const auto &id : ids) {
+            if (contains<T...>(id)) {
+                result.emplace_back(std::tuple_cat(std::make_tuple(id), get<T...>(id)));
+            }
+        }
+
+        return result;
+    }
+
+    template <ComponentArrayType... T>
+    std::unordered_set<ObjectID> getObjects() const {
         std::unordered_set<ObjectID> ids;
         (ids.insert(getComponents<T>()->getKeys().begin(), getComponents<T>()->getKeys().end()), ...);
 
@@ -110,7 +140,7 @@ class ComponentManager {
     }
 
     template <ComponentArrayType T>
-    const std::vector<T> &getComponentArray() {
+    const std::vector<T> &getComponentArray() const {
         return getComponents<T>()->getArray();
     }
 
@@ -119,17 +149,32 @@ class ComponentManager {
 
   private:
     template <ComponentArrayType T>
-    std::shared_ptr<ComponentArray<T>> getComponents() {
+    ComponentArray<T> *getComponents() {
         SignatureID id = Signature::ID<T>();
 
-        if (!m_Components.contains(id)) {
-            m_Components[id] = std::make_shared<ComponentArray<T>>();
+        if (m_Components.size() <= id) {
+            m_Components.resize(id + 1);
         }
 
-        return std::static_pointer_cast<ComponentArray<T>>(m_Components[id]);
+        if (!m_Components[id]) {
+            m_Components[id] = std::make_unique<ComponentArray<T>>();
+        }
+
+        return static_cast<ComponentArray<T> *>(m_Components[id].get());
     }
 
-    std::unordered_map<SignatureID, std::shared_ptr<IComponentArray>> m_Components;
+    template <ComponentArrayType T>
+    const ComponentArray<T> *getComponents() const {
+        SignatureID id = Signature::ID<T>();
+
+        if (m_Components.size() <= id || !m_Components[id]) {
+            return &ComponentArray<T>::getEmpty();
+        }
+
+        return static_cast<const ComponentArray<T> *>(m_Components[id].get());
+    }
+
+    std::vector<std::unique_ptr<IComponentArray>> m_Components;
 };
 
 } // namespace Physbuzz

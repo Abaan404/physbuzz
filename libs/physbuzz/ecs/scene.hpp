@@ -12,7 +12,7 @@ class Scene : public EventSubject {
     ObjectID createObject(ObjectID id);
     bool eraseObject(ObjectID id);
     bool containsObject(ObjectID id) const;
-    const std::unordered_set<ObjectID> &getObjects();
+    const std::unordered_set<ObjectID> &getObjects() const;
 
     template <typename... T>
     inline void setComponent(ObjectID id, T &...component) {
@@ -56,22 +56,32 @@ class Scene : public EventSubject {
     }
 
     template <typename... T>
+    inline std::tuple<const T &...> getComponent(ObjectID id) const {
+        return m_ComponentManager.get<T...>(id);
+    }
+
+    template <typename... T>
     std::vector<std::tuple<ObjectID, T &...>> getComponents() {
         return m_ComponentManager.getArray<T...>();
     }
 
     template <typename... T>
-    std::unordered_set<ObjectID> getObjects() {
+    std::vector<std::tuple<ObjectID, const T &...>> getComponents() const {
+        return m_ComponentManager.getArray<T...>();
+    }
+
+    template <typename... T>
+    std::unordered_set<ObjectID> getObjects() const {
         return m_ComponentManager.getObjects<T...>();
     }
 
     template <typename T>
-    const std::vector<T> &getComponentArray() {
+    const std::vector<T> &getComponentArray() const {
         return m_ComponentManager.getComponentArray<T>();
     }
 
     template <typename... T>
-    inline bool containsComponent(ObjectID id) {
+    inline bool containsComponent(ObjectID id) const {
         return m_ComponentManager.contains<T...>(id);
     }
 

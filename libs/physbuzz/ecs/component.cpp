@@ -3,13 +3,21 @@
 namespace Physbuzz {
 
 void ComponentManager::objectDestroyed(ObjectID id) {
-    for (const auto &[_, components] : m_Components) {
+    for (const auto &components : m_Components) {
+        if (!components) {
+            continue;
+        }
+
         components->objectDestroyed(id);
     }
 }
 
 void ComponentManager::clear() {
-    for (const auto &[_, components] : m_Components) {
+    for (const auto &components : m_Components) {
+        if (!components) {
+            continue;
+        }
+
         components->clear();
     }
 }

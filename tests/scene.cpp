@@ -17,6 +17,9 @@ struct TestComponent3 {
 
 class TestSystem1 : public Physbuzz::System<TestComponent1, TestComponent3> {
   public:
+    TestSystem1(Physbuzz::Scene *scene)
+        : Physbuzz::System<TestComponent1, TestComponent3>(scene) {}
+
     void tick() {
         for (const auto &id : m_Objects) {
             tickedIds.insert(id);
@@ -28,6 +31,9 @@ class TestSystem1 : public Physbuzz::System<TestComponent1, TestComponent3> {
 
 class TestSystem2 : public Physbuzz::System<TestComponent2, TestComponent3> {
   public:
+    TestSystem2(Physbuzz::Scene *scene)
+        : Physbuzz::System<TestComponent2, TestComponent3>(scene) {}
+
     void tick() {
         for (const auto &id : m_Objects) {
             tickedIds.insert(id);
@@ -135,6 +141,7 @@ TEST_CASE("Physbuzz::Scene") {
 
     SECTION("setComponent()") {
         Physbuzz::Scene scene;
+        const Physbuzz::Scene &constScene = scene;
 
         Physbuzz::ObjectID id1 = scene.createObject(5);
         Physbuzz::ObjectID id2 = scene.createObject(4);
@@ -152,8 +159,8 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(!scene.containsComponent<TestComponent1>(id2));
         CHECK(!scene.containsComponent<TestComponent2>(id1));
         CHECK(!scene.containsComponent<TestComponent2>(id2));
-        CHECK(scene.getComponents<TestComponent1>().size() == 0);
-        CHECK(scene.getComponents<TestComponent2>().size() == 0);
+        CHECK(constScene.getComponents<TestComponent1>().size() == 0);
+        CHECK(constScene.getComponents<TestComponent2>().size() == 0);
 
         scene.setComponent(id1, component1);
         {
@@ -166,8 +173,8 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(!scene.containsComponent<TestComponent1>(id2));
         CHECK(!scene.containsComponent<TestComponent2>(id1));
         CHECK(!scene.containsComponent<TestComponent2>(id2));
-        CHECK(scene.getComponents<TestComponent1>().size() == 1);
-        CHECK(scene.getComponents<TestComponent2>().size() == 0);
+        CHECK(constScene.getComponents<TestComponent1>().size() == 1);
+        CHECK(constScene.getComponents<TestComponent2>().size() == 0);
 
         scene.setComponent(id2, component1);
         {
@@ -182,8 +189,8 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(scene.containsComponent<TestComponent1>(id2));
         CHECK(!scene.containsComponent<TestComponent2>(id1));
         CHECK(!scene.containsComponent<TestComponent2>(id2));
-        CHECK(scene.getComponents<TestComponent1>().size() == 2);
-        CHECK(scene.getComponents<TestComponent2>().size() == 0);
+        CHECK(constScene.getComponents<TestComponent1>().size() == 2);
+        CHECK(constScene.getComponents<TestComponent2>().size() == 0);
 
         scene.setComponent(id1, component2);
         {
@@ -210,8 +217,8 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(scene.containsComponent<TestComponent1>(id2));
         CHECK(scene.containsComponent<TestComponent2>(id1));
         CHECK(!scene.containsComponent<TestComponent2>(id2));
-        CHECK(scene.getComponents<TestComponent1>().size() == 2);
-        CHECK(scene.getComponents<TestComponent2>().size() == 1);
+        CHECK(constScene.getComponents<TestComponent1>().size() == 2);
+        CHECK(constScene.getComponents<TestComponent2>().size() == 1);
 
         scene.setComponent(id2, component2);
         {
@@ -231,8 +238,8 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(scene.containsComponent<TestComponent1>(id2));
         CHECK(scene.containsComponent<TestComponent2>(id1));
         CHECK(scene.containsComponent<TestComponent2>(id2));
-        CHECK(scene.getComponents<TestComponent1>().size() == 2);
-        CHECK(scene.getComponents<TestComponent2>().size() == 2);
+        CHECK(constScene.getComponents<TestComponent1>().size() == 2);
+        CHECK(constScene.getComponents<TestComponent2>().size() == 2);
 
         TestComponent1 component3 = {
             .x = 1984,
@@ -256,8 +263,8 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(scene.containsComponent<TestComponent1>(id2));
         CHECK(scene.containsComponent<TestComponent2>(id1));
         CHECK(scene.containsComponent<TestComponent2>(id2));
-        CHECK(scene.getComponents<TestComponent1>().size() == 2);
-        CHECK(scene.getComponents<TestComponent2>().size() == 2);
+        CHECK(constScene.getComponents<TestComponent1>().size() == 2);
+        CHECK(constScene.getComponents<TestComponent2>().size() == 2);
 
         Physbuzz::ObjectID id3 = scene.createObject(21);
 
@@ -284,8 +291,8 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(scene.containsComponent<TestComponent2>(id1));
         CHECK(scene.containsComponent<TestComponent2>(id2));
         CHECK(!scene.containsComponent<TestComponent2>(id3));
-        CHECK(scene.getComponents<TestComponent1>().size() == 3);
-        CHECK(scene.getComponents<TestComponent2>().size() == 2);
+        CHECK(constScene.getComponents<TestComponent1>().size() == 3);
+        CHECK(constScene.getComponents<TestComponent2>().size() == 2);
 
         // overwrite variadic
         scene.setComponent(id1, component1, component2, component3);
@@ -310,12 +317,13 @@ TEST_CASE("Physbuzz::Scene") {
         CHECK(scene.containsComponent<TestComponent2>(id1));
         CHECK(scene.containsComponent<TestComponent2>(id2));
         CHECK(!scene.containsComponent<TestComponent2>(id3));
-        CHECK(scene.getComponents<TestComponent1>().size() == 3);
-        CHECK(scene.getComponents<TestComponent2>().size() == 2);
+        CHECK(constScene.getComponents<TestComponent1>().size() == 3);
+        CHECK(constScene.getComponents<TestComponent2>().size() == 2);
     }
 
     SECTION("getComponent()") {
         Physbuzz::Scene scene;
+        const Physbuzz::Scene &constScene = scene;
 
         Physbuzz::ObjectID id1 = scene.createObject(5);
         Physbuzz::ObjectID id2 = scene.createObject(4);
@@ -338,7 +346,7 @@ TEST_CASE("Physbuzz::Scene") {
         scene.setComponent(id3, component2, component3);
 
         {
-            const auto components = scene.getComponents<TestComponent1>();
+            const auto components = constScene.getComponents<TestComponent1>();
             CHECK(components.size() == 2);
 
             for (const auto [_, comp1] : components) {
@@ -357,7 +365,7 @@ TEST_CASE("Physbuzz::Scene") {
         }
 
         {
-            const auto components = scene.getComponents<TestComponent1, TestComponent3>();
+            const auto components = constScene.getComponents<TestComponent1, TestComponent3>();
             CHECK(components.size() == 2);
 
             for (const auto [_, comp1, comp3] : components) {
@@ -377,14 +385,14 @@ TEST_CASE("Physbuzz::Scene") {
         }
 
         {
-            const auto [comp1, comp2, comp3] = scene.getComponent<TestComponent1, TestComponent2, TestComponent3>(id1);
+            const auto [comp1, comp2, comp3] = constScene.getComponent<TestComponent1, TestComponent2, TestComponent3>(id1);
             CHECK(comp1.x == 12);
             CHECK(comp2.x == -10);
             CHECK(comp3.z == 15);
         }
 
         {
-            const auto [comp1] = scene.getComponent<TestComponent1>(id2);
+            const auto [comp1] = constScene.getComponent<TestComponent1>(id2);
             CHECK(comp1.x == 12);
         }
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <unordered_set>
 
 namespace Physbuzz {
 
@@ -11,23 +10,12 @@ class Signature {
   public:
     template <typename T>
     inline static SignatureID ID() {
-        static SignatureID id = nextID<T>();
+        static const SignatureID id = m_CurId++;
         return id;
     }
 
   private:
-    template <typename T>
-    inline static SignatureID nextID() {
-        if (!m_Ids.contains(m_CurId)) {
-            m_Ids.insert(m_CurId);
-            m_CurId++;
-        }
-
-        return m_CurId;
-    }
-
     inline static SignatureID m_CurId = 0;
-    inline static std::unordered_set<SignatureID> m_Ids;
 };
 
 } // namespace Physbuzz

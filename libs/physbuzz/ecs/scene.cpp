@@ -60,7 +60,7 @@ bool Scene::containsObject(ObjectID id) const {
     return m_Objects.contains(id);
 }
 
-const std::unordered_set<ObjectID> &Scene::getObjects() {
+const std::unordered_set<ObjectID> &Scene::getObjects() const {
     return m_Objects;
 }
 

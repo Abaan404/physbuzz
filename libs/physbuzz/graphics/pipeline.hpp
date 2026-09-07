@@ -4,6 +4,7 @@
 #include "defines.hpp"
 #include <glm/glm.hpp>
 #include <string>
+#include <unordered_set>
 #include <vulkan/vulkan.hpp>
 
 namespace Physbuzz {

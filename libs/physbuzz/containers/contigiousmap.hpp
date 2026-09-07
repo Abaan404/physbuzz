@@ -60,8 +60,12 @@ class ContiguousMap {
     }
 
     T &get(const K &key) {
-        PBZ_ASSERT(contains(key), "Map Does Not Contain Key.");
         return m_Array[m_IdxMap[key]];
+    }
+
+    const T &get(const K &key) const {
+        PBZ_ASSERT(contains(key), "Map Does Not Contain Key.");
+        return m_Array.at(m_IdxMap.at(key));
     }
 
     void clear() {
@@ -79,11 +83,11 @@ class ContiguousMap {
         return m_Array.size();
     }
 
-    const std::vector<T> &getArray() {
+    const std::vector<T> &getArray() const {
         return m_Array;
     }
 
-    const std::unordered_set<K> &getKeys() {
+    const std::unordered_set<K> &getKeys() const {
         return m_Keys;
     }
 
