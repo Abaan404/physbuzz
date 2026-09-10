@@ -37,29 +37,6 @@ class Model {
         std::vector<std::size_t> submeshMaterialIndices;
     };
 
-    Model(const Info &info);
-
-    bool load(const std::filesystem::path &path, Transfer *transfer, bool flipUVs = false);
-
-    const Info &getInfo() const;
-
-  private:
-    struct SubMeshResult {
-        std::uint32_t submeshIdx;
-        std::uint32_t materialIdx;
-
-        AABB bounding;
-        std::vector<Vertex> vertices;
-        std::vector<Index> indices;
-    };
-
-    struct MeshResult {
-        Mesh::Info info;
-        std::vector<std::size_t> submeshMaterialIndices;
-
-        Geometry<Vertex> geometry;
-    };
-
     struct TextureResult {
         Texture::Info info;
         std::filesystem::path path;
@@ -71,6 +48,34 @@ class Model {
         float albedoFactor;
         float metallicFactor;
         float roughnessFactor;
+    };
+
+    struct MeshResult {
+        Mesh::Info info;
+        std::vector<std::size_t> submeshMaterialIndices;
+
+        Geometry<Vertex> geometry;
+    };
+
+    struct Result {
+        MeshResult mesh;
+        std::vector<MaterialResult> materials;
+    };
+
+    Model(const Info &info);
+
+    std::optional<Result> load(const std::filesystem::path &path, TransferBatch &batch, bool flipUVs = false);
+
+    const Info &getInfo() const;
+
+  private:
+    struct SubMeshResult {
+        std::uint32_t submeshIdx;
+        std::uint32_t materialIdx;
+
+        AABB bounding;
+        std::vector<Vertex> vertices;
+        std::vector<Index> indices;
     };
 
     Info m_Info;

@@ -39,9 +39,11 @@ VertexDescription Model::Vertex::Description = {{
 Model::Model(const Info &info)
     : m_Info(info) {}
 
-bool Model::load(const std::filesystem::path &path, Transfer *transfer, bool flipUVs) {
+std::optional<Model::Result> Model::load(const std::filesystem::path &path, TransferBatch &batch, bool flipUVs) {
     ZoneScopedN("Model/Load");
     ZoneText(path.string().c_str(), path.string().size());
+
+    Result result;
 
     m_Info = {
         .mesh = {""},
@@ -62,15 +64,13 @@ bool Model::load(const std::filesystem::path &path, Transfer *transfer, bool fli
 
     if (!aiscene || aiscene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !aiscene->mRootNode) {
         Logger::ERROR("[Model] Could not import model at '{}'.\n[Assimp]: {}", path.string(), importer.GetErrorString());
-        return false;
+        return std::nullopt;
     }
-
-    TransferBatch batch = {{}};
 
     for (std::size_t i = 0; i < aiscene->mNumMaterials; i++) {
         ResourceID resourceId = std::format("model/{}@{}", i, path.string());
 
-        MaterialResult materialResult = processMaterial(aiscene->mMaterials[i]);
+        const MaterialResult &materialResult = result.materials.emplace_back(processMaterial(aiscene->mMaterials[i]));
 
         Material material;
 
@@ -91,12 +91,12 @@ bool Model::load(const std::filesystem::path &path, Transfer *transfer, bool fli
 
                 if (!ResourceRegistry<Texture>::insert(resourceId, texture.info, glm::uvec3{imageFile.getData().meta.resolution, 1})) {
                     Logger::ERROR("[Model] Failed to build texture resource {}.", resourceId);
-                    return false;
+                    return std::nullopt;
                 }
 
                 if (!Resource<Texture>{resourceId}->write(imageFile.getInfo(), batch)) {
                     Logger::ERROR("[Model] Failed to write texture resource {}.", resourceId);
-                    return false;
+                    return std::nullopt;
                 }
             }
 
@@ -106,34 +106,32 @@ bool Model::load(const std::filesystem::path &path, Transfer *transfer, bool fli
         if (!ResourceRegistry<Material>::contains(resourceId)) {
             if (!ResourceRegistry<Material>::insert(resourceId, std::move(material))) {
                 Logger::ERROR("[Model] Failed to load material resource {}.", resourceId);
-                return false;
+                return std::nullopt;
             }
         }
 
         m_Info.materials.emplace_back(resourceId);
     }
 
-    MeshResult meshResult = processMesh(aiscene->mRootNode, aiscene);
+    result.mesh = processMesh(aiscene->mRootNode, aiscene);
 
     m_Info.mesh = std::format("model@{}", path.string());
 
     if (!ResourceRegistry<Mesh>::contains(m_Info.mesh)) {
-        if (!ResourceRegistry<Mesh>::insert(m_Info.mesh, meshResult.info)) {
+        if (!ResourceRegistry<Mesh>::insert(m_Info.mesh, result.mesh.info)) {
             Logger::ERROR("[Model] Failed to build mesh resource {}.", m_Info.mesh);
-            return false;
+            return std::nullopt;
         }
 
-        if (!Resource<Mesh>{m_Info.mesh}->write(std::move(meshResult.geometry), batch)) {
+        if (!Resource<Mesh>{m_Info.mesh}->write(std::move(result.mesh.geometry), batch)) {
             Logger::ERROR("[Model] Failed to write mesh resource {}.", m_Info.mesh);
-            return false;
+            return std::nullopt;
         }
     }
 
-    m_Info.submeshMaterialIndices = meshResult.submeshMaterialIndices;
+    m_Info.submeshMaterialIndices = result.mesh.submeshMaterialIndices;
 
-    transfer->submit(batch);
-
-    return true;
+    return result;
 }
 
 const Model::Info &Model::getInfo() const {

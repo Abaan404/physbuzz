@@ -121,17 +121,25 @@ void Game::build() {
     Physbuzz::TransferBatch batch = {{}};
 
     {
-        ResourceLoader::loadMesh({"cube"}, ModelCube::build(), batch);
-        ResourceLoader::loadMesh({"square"}, ModelSquare::build(), batch);
-        ResourceLoader::loadMesh({"circle"}, ModelCircle::build(), batch);
-        ResourceLoader::loadMesh({"sphere"}, ModelSphere::build(), batch);
-    }
+        Physbuzz::Geometry<Physbuzz::Model::Vertex> cube = ModelCube::build();
+        Physbuzz::Geometry<Physbuzz::Model::Vertex> square = ModelSquare::build();
+        Physbuzz::Geometry<Physbuzz::Model::Vertex> circle = ModelCircle::build();
+        Physbuzz::Geometry<Physbuzz::Model::Vertex> sphere = ModelSphere::build();
 
-    {
-        ResourceLoader::loadPhysicsMesh({"cube"}, ModelCube::build());
-        ResourceLoader::loadPhysicsMesh({"square"}, ModelSquare::build());
-        ResourceLoader::loadPhysicsMesh({"circle"}, ModelCircle::build());
-        ResourceLoader::loadPhysicsMesh({"sphere"}, ModelSphere::build());
+        ResourceLoader::loadMesh({"cube"}, cube, batch);
+        ResourceLoader::loadMesh({"square"}, square, batch);
+        ResourceLoader::loadMesh({"circle"}, circle, batch);
+        ResourceLoader::loadMesh({"sphere"}, sphere, batch);
+
+        ResourceLoader::loadShadowMesh({"cube/shadow"}, cube, batch);
+        ResourceLoader::loadShadowMesh({"square/shadow"}, square, batch);
+        ResourceLoader::loadShadowMesh({"circle/shadow"}, circle, batch);
+        ResourceLoader::loadShadowMesh({"sphere/shadow"}, sphere, batch);
+
+        ResourceLoader::loadPhysicsMesh({"cube"}, cube);
+        ResourceLoader::loadPhysicsMesh({"square"}, square);
+        ResourceLoader::loadPhysicsMesh({"circle"}, circle);
+        ResourceLoader::loadPhysicsMesh({"sphere"}, sphere);
     }
 
     {
@@ -314,6 +322,7 @@ void Game::build() {
                 },
                 .resources = {
                     .mesh = {"cube"},
+                    .shadowMesh = {"cube/shadow"},
                     .material = {"crate"},
                 },
                 .hasPhysics = true,
@@ -358,6 +367,7 @@ void Game::build() {
                 }},
                 .resources = {
                     .mesh = {"circle"},
+                    .shadowMesh = {"circle/shadow"},
                 },
                 .pointLight = {{
                     .intensity = {10000.0f, 10000.0f, 10000.0f},
@@ -431,7 +441,7 @@ void Game::loop() {
         Physbuzz::App::GScene.tickSystem<Physbuzz::Clock>();
         Physbuzz::App::GScene.tickSystem<Physbuzz::Dynamics, Collision>();
         Physbuzz::App::GScene.tickSystem<Physbuzz::InputEvents>();
-        Physbuzz::App::GScene.tickSystem<Physbuzz::ForwardRenderer, InterfaceManager, Physbuzz::Renderer>();
+        Physbuzz::App::GScene.tickSystem<Physbuzz::ForwardRenderer, Physbuzz::ShadowRenderer, InterfaceManager, Physbuzz::Renderer>();
     }
 }
 

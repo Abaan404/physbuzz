@@ -11,5 +11,6 @@ struct IdentifiableComponent {
 
 struct ResourceComponent {
     Physbuzz::Resource<Physbuzz::Mesh> mesh = {"default"};
+    Physbuzz::Resource<Physbuzz::Mesh> shadowMesh = {"default/shadow"};
     Physbuzz::Resource<Physbuzz::Material> material = {"default"};
 };

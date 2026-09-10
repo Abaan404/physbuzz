@@ -24,8 +24,14 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     scene.setComponent(object, info.identifier, info.resources, render, transform);
 
     if (info.hasShadow) {
+        const Physbuzz::Model::Info &modelInfo = render.model.getInfo();
+
         Physbuzz::ShadowComponent shadow = {
-            .model = render.model,
+            .model = {{
+                .mesh = info.resources.shadowMesh,
+                .materials = modelInfo.materials,
+                .submeshMaterialIndices = modelInfo.submeshMaterialIndices,
+            }},
         };
 
         scene.setComponent(object, shadow);

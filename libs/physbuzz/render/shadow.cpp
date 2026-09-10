@@ -81,7 +81,7 @@ bool PipelineShadow::Directional::build(const glm::uvec2 &resolution) {
                 .module = "builtin/render/shadow/directional",
             },
             {
-                .description = &Model::Vertex::Description,
+                .description = &Builtin::PipelineShadow::Vertex::Description,
                 .rasterization = {
                     .depthBiasEnable = true,
                     .depthBiasConstantFactor = 6.0f,
@@ -192,7 +192,7 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
                 .module = "builtin/render/shadow/point",
             },
             {
-                .description = &Model::Vertex::Description,
+                .description = &Builtin::PipelineShadow::Vertex::Description,
                 .rasterization = {
                     .depthBiasEnable = true,
                     .depthBiasConstantFactor = 6.0f,
