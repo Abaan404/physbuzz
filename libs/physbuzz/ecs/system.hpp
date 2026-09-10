@@ -2,8 +2,6 @@
 
 #include "../misc/signature.hpp"
 #include "component.hpp"
-#include <concepts>
-#include <unordered_set>
 
 namespace Physbuzz {
 
@@ -18,8 +16,11 @@ class ISystem {
     virtual bool build() { return true; }
     virtual bool destroy() { return true; }
 
+    const Scene &getScene() const { return *m_Scene; }
+    const std::vector<ObjectID> &getObjects() const { return m_Objects; }
+
   protected:
-    std::unordered_set<ObjectID> m_Objects;
+    std::vector<ObjectID> m_Objects;
     Scene *m_Scene = nullptr;
 
   private:

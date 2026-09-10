@@ -8,10 +8,16 @@ void SystemManager::objectUpdate(ComponentManager &componentManager, ObjectID id
             continue;
         }
 
-        if (system->containsSignature(componentManager, id)) {
-            system->m_Objects.insert(id);
-        } else {
-            system->m_Objects.erase(id);
+        std::vector<ObjectID> &objects = system->m_Objects;
+
+        auto position = std::lower_bound(objects.begin(), objects.end(), id);
+        bool contains = (position != objects.end()) && (*position == id);
+        bool containsSignature = system->containsSignature(componentManager, id);
+
+        if (containsSignature && !contains) {
+            objects.insert(position, id);
+        } else if (!containsSignature && contains) {
+            objects.erase(position);
         }
     }
 }
@@ -22,7 +28,14 @@ void SystemManager::objectDestroyed(ObjectID id) {
             continue;
         }
 
-        system->m_Objects.erase(id);
+        std::vector<ObjectID> &objects = system->m_Objects;
+
+        auto position = std::lower_bound(objects.begin(), objects.end(), id);
+        bool contains = (position != objects.end()) && (*position == id);
+
+        if (contains) {
+            objects.erase(position);
+        }
     }
 }
 

@@ -13,7 +13,7 @@ struct SweepEdge {
 
 class SweepAndPrune2D : public CollisionDetector<SweepAndPrune2D> {
   public:
-    SweepAndPrune2D(Scene *scene, std::unordered_set<ObjectID> *objects);
+    SweepAndPrune2D(Scene *scene, std::vector<ObjectID> *objects);
 
   protected:
     using CollisionDetector::findNarrowImpl;
@@ -28,7 +28,7 @@ class SweepAndPrune2D : public CollisionDetector<SweepAndPrune2D> {
   private:
     std::list<SweepEdge> getEdges();
 
-    std::unordered_set<ObjectID> *m_Objects;
+    std::vector<ObjectID> *m_Objects;
 
     friend class CollisionDetector<SweepAndPrune2D>;
 };

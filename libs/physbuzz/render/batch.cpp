@@ -55,7 +55,7 @@ bool RenderBatch::build(const std::vector<Renderable *> &renderables) {
                 },
             },
         },
-        .prepare = [this, renderables](const RenderContext &context) {
+        .prepare = [this, &renderables](const RenderContext &context) {
             ZoneScopedN("BatchGenerator/Prepare");
 
             std::size_t instanceBufferCount = 0;

@@ -27,6 +27,7 @@ class CollisionHighlight : public Physbuzz::System<> {
         Physbuzz::ObjectID camera;
         std::shared_ptr<Physbuzz::Window> window;
 
+        const std::vector<Physbuzz::ObjectID> &objects;
         const Physbuzz::RenderBatch &batch;
     };
 

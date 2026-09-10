@@ -3,6 +3,7 @@
 #include "../ecs/system.hpp"
 #include "../events/handler.hpp"
 #include "../events/scene.hpp"
+#include <algorithm>
 
 namespace Physbuzz {
 
@@ -20,8 +21,13 @@ class Scene : public EventSubject {
             createObject(id);
         }
 
+        bool shouldUpdateSystems = !m_ComponentManager.contains<T...>(id);
+
         m_ComponentManager.set<T...>(id, component...);
-        m_SystemManager.objectUpdate(m_ComponentManager, id);
+
+        if (shouldUpdateSystems) {
+            m_SystemManager.objectUpdate(m_ComponentManager, id);
+        }
 
         (notifyCallbacks<OnComponentSetEvent<T>>(OnComponentSetEvent<T>{
              .scene = this,
@@ -88,19 +94,23 @@ class Scene : public EventSubject {
     template <SystemType T, typename... Args>
     inline T *createSystem(Args &&...args) {
         T *system = m_SystemManager.emplace<T>(this, std::forward<Args>(args)...);
+        if (!system) {
+            return nullptr;
+        }
 
         for (ObjectID id : getObjects()) {
+            std::vector<ObjectID> &objects = system->m_Objects;
+
             if (system->containsSignature(m_ComponentManager, id)) {
-                system->m_Objects.insert(id);
+                auto position = std::lower_bound(objects.begin(), objects.end(), id);
+                objects.insert(position, id);
             }
         }
 
-        if (system) {
-            notifyCallbacks<OnSystemCreateEvent<T>>({
-                .scene = this,
-                .system = system,
-            });
-        }
+        notifyCallbacks<OnSystemCreateEvent<T>>({
+            .scene = this,
+            .system = system,
+        });
 
         return system;
     }

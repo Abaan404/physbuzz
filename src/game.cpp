@@ -271,6 +271,7 @@ void Game::build() {
         CollisionHighlight::Info{
             .camera = playerId,
             .window = window,
+            .objects = forward->getObjects(),
             .batch = forward->getBatch(),
         });
 
@@ -430,7 +431,7 @@ void Game::loop() {
         Physbuzz::App::GScene.tickSystem<Physbuzz::Clock>();
         Physbuzz::App::GScene.tickSystem<Physbuzz::Dynamics, Collision>();
         Physbuzz::App::GScene.tickSystem<Physbuzz::InputEvents>();
-        Physbuzz::App::GScene.tickSystem<InterfaceManager, Physbuzz::Renderer>();
+        Physbuzz::App::GScene.tickSystem<Physbuzz::ForwardRenderer, InterfaceManager, Physbuzz::Renderer>();
     }
 }
 
