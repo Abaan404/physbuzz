@@ -8,14 +8,15 @@ template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, MaterialShape &info) {
     // setup rendering
     Physbuzz::RenderComponent render = {
-        .renderable = {
-            .model = {{
-                .mesh = info.resources.mesh,
-                .materials = {info.resources.material},
-                .submeshMaterialIndices = {0},
-            }},
-            .transform = info.transform,
-        },
+        .model = {{
+            .mesh = info.resources.mesh,
+            .materials = {info.resources.material},
+            .submeshMaterialIndices = {0},
+        }},
+    };
+
+    Physbuzz::TransformComponent transform = {
+        .transform = info.transform,
     };
 
     // naming
@@ -23,7 +24,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         .name = std::format("Material ({})", info.resources.material.getIdentifier()),
     };
 
-    scene.setComponent(object, identifier, info.resources, render);
+    scene.setComponent(object, identifier, info.resources, render, transform);
 
     return object;
 }

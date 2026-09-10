@@ -10,16 +10,16 @@ AngularResolver2D::AngularResolver2D(Scene *scene, float restitution)
     : LinearResolver2D(scene, restitution) {}
 
 void AngularResolver2D::solve(const Contact &contact) {
-    const auto [render1] = m_Scene->getComponent<RenderComponent>(contact.object1);
-    const auto [render2] = m_Scene->getComponent<RenderComponent>(contact.object2);
+    const auto [transform1] = m_Scene->getComponent<TransformComponent>(contact.object1);
+    const auto [transform2] = m_Scene->getComponent<TransformComponent>(contact.object2);
 
     const auto [body1] = m_Scene->getComponent<RigidBodyComponent>(contact.object1);
     const auto [body2] = m_Scene->getComponent<RigidBodyComponent>(contact.object2);
 
     const glm::vec3 impulse = LinearResolver2D::calcImpulse(body1, body2, contact);
 
-    const glm::vec3 torque1 = calcTorque(body1, render1.renderable.transform, contact.point1, impulse);
-    const glm::vec3 torque2 = calcTorque(body2, render2.renderable.transform, contact.point2, impulse);
+    const glm::vec3 torque1 = calcTorque(body1, transform1.transform, contact.point1, impulse);
+    const glm::vec3 torque2 = calcTorque(body2, transform2.transform, contact.point2, impulse);
 
     // TODO this needs ALOT more work
 

@@ -60,7 +60,7 @@ bool build();
 
 } // namespace Builtin
 
-class DeferredRenderer : public System<RenderComponent> {
+class DeferredRenderer : public System<RenderComponent, TransformComponent> {
   public:
     constexpr static RenderNodeID Output = "builtin/deferred";
 
@@ -86,7 +86,7 @@ class DeferredRenderer : public System<RenderComponent> {
   private:
     Info m_Info;
 
-    std::vector<Renderable *> m_Renderables;
+    std::vector<Renderable> m_Renderables;
 
     RenderBatch m_Batch = {{
         .resourceIdPrefix = std::format("{}/batch/", Output),

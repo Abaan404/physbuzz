@@ -6,21 +6,25 @@
 template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Model &info) {
     // setup rendering
-    Physbuzz::ShadowComponent shadow;
     Physbuzz::RenderComponent render = {
-        .renderable = {
-            .model = Physbuzz::Model::Info{
-                .mesh = {{}},
-                .materials = {{}},
-                .submeshMaterialIndices = {},
-            },
-            .transform = info.transform,
+        .model = Physbuzz::Model::Info{
+            .mesh = {{}},
+            .materials = {{}},
+            .submeshMaterialIndices = {},
         },
     };
 
-    render.renderable.model.load(info.model.path, scene.getSystem<Physbuzz::Transfer>(), info.model.flipUVs);
+    Physbuzz::TransformComponent transform = {
+        .transform = info.transform,
+    };
 
-    scene.setComponent(object, info.model, info.identifier, render, shadow);
+    render.model.load(info.model.path, scene.getSystem<Physbuzz::Transfer>(), info.model.flipUVs);
+
+    Physbuzz::ShadowComponent shadow = {
+        .model = render.model,
+    };
+
+    scene.setComponent(object, info.model, info.identifier, render, shadow, transform);
 
     return object;
 }

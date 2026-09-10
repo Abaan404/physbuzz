@@ -2,13 +2,19 @@
 
 #include "../graphics/rendergraph.hpp"
 #include "../resources/resource.hpp"
-#include "defines.hpp"
 
 namespace Physbuzz {
 
+class Model;
+class Transform;
 class DynamicBuffer;
 class DescriptorLayout;
 class Mesh;
+
+struct Renderable {
+    Model *model;
+    Transform *transform;
+};
 
 class RenderBatch {
   public:
@@ -30,7 +36,7 @@ class RenderBatch {
 
     RenderBatch(const Info &info);
 
-    bool build(const std::vector<Renderable *> &renderables);
+    bool build(const std::vector<Renderable> &renderables);
     bool destroy();
 
     void draw(const RenderContext &context) const;

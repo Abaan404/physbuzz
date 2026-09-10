@@ -57,9 +57,11 @@ bool build(const glm::uvec2 &resolution);
 
 } // namespace Builtin
 
-struct ShadowComponent {};
+struct ShadowComponent {
+    Model model;
+};
 
-class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
+class ShadowRenderer : public System<ShadowComponent, TransformComponent> {
   public:
     inline static RenderNodeID OutputDirectional = "builtin/shadow/directional";
     constexpr static RenderNodeID OutputPoint = "builtin/shadow/point";
@@ -83,7 +85,7 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
   private:
     Info m_Info;
 
-    std::vector<Renderable *> m_Renderables;
+    std::vector<Renderable> m_Renderables;
 
     RenderBatch m_Batch = {{
         .resourceIdPrefix = "builtin/shadow/",

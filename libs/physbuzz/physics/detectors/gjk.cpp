@@ -67,17 +67,17 @@ bool Gjk3D::destroyImpl() {
 }
 
 bool Gjk3D::checkImpl(Contact &contact) {
-    const auto [body1, render1] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(contact.object1);
-    const auto [body2, render2] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(contact.object2);
+    const auto [body1, transform1] = m_Scene->getComponent<RigidBodyComponent, TransformComponent>(contact.object1);
+    const auto [body2, transform2] = m_Scene->getComponent<RigidBodyComponent, TransformComponent>(contact.object2);
 
-    glm::vec3 support = minkowskiSupportPoint(body1, render1, body2, render2, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 support = minkowskiSupportPoint(body1, transform1.transform, body2, transform2.transform, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 direction = -support;
 
     Simplex simplex;
     simplex.pushFront(support);
 
     while (true) {
-        support = minkowskiSupportPoint(body1, render1, body2, render2, direction);
+        support = minkowskiSupportPoint(body1, transform1.transform, body2, transform2.transform, direction);
 
         if (glm::dot(support, direction) <= 0) {
             return false;
@@ -85,7 +85,7 @@ bool Gjk3D::checkImpl(Contact &contact) {
 
         simplex.pushFront(support);
         if (nextSimplex(simplex, direction)) {
-            Epa(simplex, contact, body1, render1, body2, render2);
+            Epa(simplex, contact, body1, transform1.transform, body2, transform2.transform);
             return true;
         }
     }
@@ -191,7 +191,7 @@ bool Gjk3D::tetrahedron(Simplex &simplex, glm::vec3 &direction) {
     return true;
 }
 
-void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2) {
+void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &body1, const Transform &transform1, const RigidBodyComponent &body2, const Transform &transform2) {
     std::vector<glm::vec3> polytope(simplex.begin(), simplex.end());
     std::vector<Index> faces = {0, 1, 2, 0, 3, 1, 0, 2, 3, 1, 3, 2};
 
@@ -204,7 +204,7 @@ void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &bo
         contact.normal = normals[minFace];
         contact.depth = normals[minFace].w;
 
-        glm::vec3 support = minkowskiSupportPoint(body1, render1, body2, render2, contact.normal);
+        glm::vec3 support = minkowskiSupportPoint(body1, transform1, body2, transform2, contact.normal);
         const float curDepth = glm::dot(contact.normal, support);
 
         if (glm::abs(curDepth - contact.depth) > 1e-4f) {
@@ -267,12 +267,12 @@ void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &bo
 }
 
 // this might belong to a component than here, if I care about MPR (https://en.wikipedia.org/wiki/Minkowski_Portal_Refinement)
-glm::vec3 Gjk3D::supportPoint(const RigidBodyComponent &body, const RenderComponent &render, const glm::vec3 &direction) {
+glm::vec3 Gjk3D::supportPoint(const RigidBodyComponent &body, const Transform &transform, const glm::vec3 &direction) {
     glm::vec3 point;
     float proj = std::numeric_limits<float>::lowest();
 
     for (const auto &vertex : body.getInfo().mesh->geometry.vertices) {
-        glm::vec3 position = render.renderable.transform.toWorld(vertex.position);
+        glm::vec3 position = transform.toWorld(vertex.position);
 
         const float newProj = glm::dot(position, direction);
         if (newProj > proj) {
@@ -284,8 +284,8 @@ glm::vec3 Gjk3D::supportPoint(const RigidBodyComponent &body, const RenderCompon
     return point;
 }
 
-glm::vec3 Gjk3D::minkowskiSupportPoint(const RigidBodyComponent &body1, const RenderComponent &render1, const RigidBodyComponent &body2, const RenderComponent &render2, const glm::vec3 &direction) {
-    return supportPoint(body1, render1, direction) - supportPoint(body2, render2, -direction);
+glm::vec3 Gjk3D::minkowskiSupportPoint(const RigidBodyComponent &body1, const Transform &transform1, const RigidBodyComponent &body2, const Transform &transform2, const glm::vec3 &direction) {
+    return supportPoint(body1, transform1, direction) - supportPoint(body2, transform2, -direction);
 }
 
 std::pair<std::vector<glm::vec4>, std::size_t> Gjk3D::getFaceNormals(const std::vector<glm::vec3> &polytope, const std::vector<Index> &faces) {

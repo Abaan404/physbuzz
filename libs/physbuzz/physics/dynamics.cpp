@@ -8,7 +8,7 @@
 namespace Physbuzz {
 
 Dynamics::Dynamics(Scene *scene, float dtime)
-    : System<RenderComponent, RigidBodyComponent>(scene),
+    : System<TransformComponent, RigidBodyComponent>(scene),
       m_DeltaTime(dtime) {}
 
 Dynamics::~Dynamics() {}
@@ -40,7 +40,7 @@ void Dynamics::tick() {
 }
 
 void Dynamics::tickMotion(ObjectID id) const {
-    const auto [body, render] = m_Scene->getComponent<RigidBodyComponent, RenderComponent>(id);
+    const auto [body, transform] = m_Scene->getComponent<RigidBodyComponent, TransformComponent>(id);
 
     RigidBodyComponent::Info info = body.getInfo();
 
@@ -67,14 +67,14 @@ void Dynamics::tickMotion(ObjectID id) const {
     // rotate object wrt axis and length of angular velocity vector
     // Note: t**2 is approx 0 for t << 0 (at high framerate)
     {
-        Transform::Info transform = render.renderable.transform.getInfo();
-        transform.position += info.velocity * m_DeltaTime;
+        Transform::Info transformInfo = transform.transform.getInfo();
+        transformInfo.position += info.velocity * m_DeltaTime;
         if (glm::length(info.angular.velocity) > 0.0f) {
-            transform.orientation = glm::angleAxis(glm::length(info.angular.velocity) * m_DeltaTime, glm::normalize(info.angular.velocity)) * transform.orientation;
+            transformInfo.orientation = glm::angleAxis(glm::length(info.angular.velocity) * m_DeltaTime, glm::normalize(info.angular.velocity)) * transformInfo.orientation;
         }
 
-        body.applyTransform(transform);
-        render.renderable.transform.update(transform);
+        body.applyTransform(transformInfo);
+        transform.transform.update(transformInfo);
     }
 
     // apply accumulated info to velocity and clear them

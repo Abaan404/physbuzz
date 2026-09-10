@@ -15,7 +15,7 @@ RenderBatch::RenderBatch(const Info &info)
       m_Instance(std::format("{}instance", info.resourceIdPrefix)),
       m_Indirect(std::format("{}indirect", info.resourceIdPrefix)) {}
 
-bool RenderBatch::build(const std::vector<Renderable *> &renderables) {
+bool RenderBatch::build(const std::vector<Renderable> &renderables) {
     bool success = true;
 
     if (!ResourceRegistry<DynamicBuffer>::contains(m_Instance)) {
@@ -63,7 +63,7 @@ bool RenderBatch::build(const std::vector<Renderable *> &renderables) {
             // store a map of each mesh to the objects it corresponds to
             std::unordered_map<Resource<Mesh>, std::vector<std::size_t>> meshes;
             for (std::size_t i = 0; i < renderables.size(); i++) {
-                const Model::Info &info = renderables[i]->model.getInfo();
+                const Model::Info &info = renderables[i].model->getInfo();
 
                 meshes[info.mesh].emplace_back(i);
                 instanceBufferCount += info.mesh->getInfo().submeshes.size();
@@ -112,20 +112,20 @@ bool RenderBatch::build(const std::vector<Renderable *> &renderables) {
 
                 // store as planar SoA so all index information can be stored in baseInstance during draw
                 for (const auto &instance : instances) {
-                    const Renderable *renderable = renderables[instance];
-                    const Model::Info &info = renderable->model.getInfo();
+                    const Renderable &renderable = renderables[instance];
+                    const Model::Info &info = renderable.model->getInfo();
 
                     std::fill_n(std::back_inserter(m_InstanceObjects), submeshCount, instance);
 
                     for (std::size_t submeshIdx = 0; submeshIdx < submeshCount; submeshIdx++) {
                         const Mesh::SubMesh &submesh = mesh->getInfo().submeshes[submeshIdx];
 
-                        const AABB::Info &aabb = submesh.bounding.withTransform(renderable->transform).getInfo();
+                        const AABB::Info &aabb = submesh.bounding.withTransform(*renderable.transform).getInfo();
 
                         // equivalent to instanceIdx + (submeshIdx * instanceCount + meshOffset) (aka firstInstance)
                         m_InstanceBuffer.emplace_back<InstanceData>({
-                            .model = renderable->transform.getModel(),
-                            .normal = renderable->transform.getNormal(),
+                            .model = renderable.transform->getModel(),
+                            .normal = renderable.transform->getNormal(),
                             .materialIdx = context.materialAllocator->query(info.materials[info.submeshMaterialIndices[submeshIdx]]),
                             .bounding = {
                                 .min = aabb.min,

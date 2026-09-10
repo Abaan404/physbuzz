@@ -10,6 +10,7 @@
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/components/lights.hpp>
 #include <physbuzz/render/defines.hpp>
+#include <physbuzz/render/shadow.hpp>
 #include <unordered_set>
 
 constexpr float MAX_VALUE = 1000.0f;
@@ -59,20 +60,20 @@ void ObjectList::draw() {
 
             ImGui::SeparatorText(std::format("{}) {}", object, identifier.name).c_str());
 
-            if (m_Scene->containsComponent<Physbuzz::RenderComponent>(object)) {
-                ImGui::SeparatorText("Render");
+            if (m_Scene->containsComponent<Physbuzz::TransformComponent>(object)) {
+                ImGui::SeparatorText("Transform");
 
-                const auto [render] = m_Scene->getComponent<Physbuzz::RenderComponent>(object);
+                const auto [transform] = m_Scene->getComponent<Physbuzz::TransformComponent>(object);
 
-                Physbuzz::Transform::Info info = render.renderable.transform.getInfo();
-                bool updateTransform = false;
+                Physbuzz::Transform::Info info = transform.transform.getInfo();
+                bool update = false;
 
                 if (ImGui::DragFloat3("position", glm::value_ptr(info.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
-                    updateTransform = true;
+                    update = true;
                 }
 
                 if (ImGui::DragFloat3("scale", glm::value_ptr(info.scale), 0.1f, MIN_VALUE, MAX_VALUE)) {
-                    updateTransform = true;
+                    update = true;
                 }
 
                 glm::vec3 axis = glm::axis(info.orientation);
@@ -80,24 +81,30 @@ void ObjectList::draw() {
 
                 if (ImGui::DragFloat3("rotAxis", glm::value_ptr(axis), 0.01f, 0.0f, 1.0f)) {
                     info.orientation = glm::angleAxis(angle, glm::normalize(axis));
-                    updateTransform = true;
+                    update = true;
                 }
 
                 if (ImGui::DragFloat("rotMag", &angle, glm::pi<float>() / 50.0f, 0.0f, 2 * glm::pi<float>())) {
                     info.orientation = glm::angleAxis(angle, glm::normalize(axis));
-                    updateTransform = true;
+                    update = true;
                 }
 
-                if (updateTransform) {
-                    render.renderable.transform.update(info);
+                if (update) {
+                    transform.transform.update(info);
 
                     if (m_Scene->containsComponent<Physbuzz::RigidBodyComponent>(object)) {
                         const auto [body] = m_Scene->getComponent<Physbuzz::RigidBodyComponent>(object);
                         body.applyTransform(info);
                     }
                 }
+            }
 
-                for (auto &material : render.renderable.model.getInfo().materials) {
+            if (m_Scene->containsComponent<Physbuzz::RenderComponent>(object)) {
+                ImGui::SeparatorText("Render");
+
+                const auto [render] = m_Scene->getComponent<Physbuzz::RenderComponent>(object);
+
+                for (auto &material : render.model.getInfo().materials) {
                     Physbuzz::Renderer *renderer = m_Scene->getSystem<Physbuzz::Renderer>();
 
                     if (ImGui::DragFloat3("albedoFactor", glm::value_ptr(material->albedoFactor), 0.001f, 0.0f, 1.0f)) {

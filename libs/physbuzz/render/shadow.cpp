@@ -81,7 +81,7 @@ bool PipelineShadow::Directional::build(const glm::uvec2 &resolution) {
                 .module = "builtin/render/shadow/directional",
             },
             {
-                .description = &PipelineShadow::Vertex::Description,
+                .description = &Model::Vertex::Description,
                 .rasterization = {
                     .depthBiasEnable = true,
                     .depthBiasConstantFactor = 6.0f,
@@ -192,7 +192,7 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
                 .module = "builtin/render/shadow/point",
             },
             {
-                .description = &PipelineShadow::Vertex::Description,
+                .description = &Model::Vertex::Description,
                 .rasterization = {
                     .depthBiasEnable = true,
                     .depthBiasConstantFactor = 6.0f,
@@ -230,7 +230,7 @@ bool PipelineShadow::Point::build(const glm::uvec2 &resolution) {
 } // namespace Builtin
 
 ShadowRenderer::ShadowRenderer(Scene *scene, const Info &info)
-    : System<RenderComponent, ShadowComponent>(scene),
+    : System<ShadowComponent, TransformComponent>(scene),
       m_Info(info) {}
 
 bool ShadowRenderer::build() {
@@ -529,8 +529,12 @@ void ShadowRenderer::tick() {
     m_Renderables.clear();
 
     for (const auto &object : m_Objects) {
-        const auto [render] = m_Scene->getComponent<RenderComponent>(object);
-        m_Renderables.emplace_back(&render.renderable);
+        const auto [shadow, transform] = m_Scene->getComponent<ShadowComponent, TransformComponent>(object);
+
+        m_Renderables.emplace_back<Renderable>({
+            .model = &shadow.model,
+            .transform = &transform.transform,
+        });
     }
 }
 

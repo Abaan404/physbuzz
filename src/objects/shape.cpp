@@ -10,20 +10,24 @@ template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Shape &info) {
     // setup rendering
     Physbuzz::RenderComponent render = {
-        .renderable = {
-            .model = {{
-                .mesh = info.resources.mesh,
-                .materials = {info.resources.material},
-                .submeshMaterialIndices = {0},
-            }},
-            .transform = info.transform,
-        },
+        .model = {{
+            .mesh = info.resources.mesh,
+            .materials = {info.resources.material},
+            .submeshMaterialIndices = {0},
+        }},
     };
 
-    scene.setComponent(object, info.identifier, info.resources, render);
+    Physbuzz::TransformComponent transform = {
+        .transform = info.transform,
+    };
+
+    scene.setComponent(object, info.identifier, info.resources, render, transform);
 
     if (info.hasShadow) {
-        Physbuzz::ShadowComponent shadow;
+        Physbuzz::ShadowComponent shadow = {
+            .model = render.model,
+        };
+
         scene.setComponent(object, shadow);
     }
 

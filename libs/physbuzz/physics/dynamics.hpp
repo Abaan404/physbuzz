@@ -6,7 +6,7 @@
 
 namespace Physbuzz {
 
-class Dynamics : public System<RenderComponent, RigidBodyComponent> {
+class Dynamics : public System<TransformComponent, RigidBodyComponent> {
   public:
     Dynamics(Scene *scene, float dtime);
     ~Dynamics();

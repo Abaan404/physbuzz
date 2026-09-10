@@ -247,7 +247,7 @@ bool PipelineDeferred::build() {
 } // namespace Builtin
 
 DeferredRenderer::DeferredRenderer(Scene *scene, const Info &info)
-    : System<RenderComponent>(scene),
+    : System<RenderComponent, TransformComponent>(scene),
       m_Info(info) {}
 
 bool DeferredRenderer::build() {
@@ -704,8 +704,12 @@ void DeferredRenderer::tick() {
     m_Renderables.clear();
 
     for (const auto &object : m_Objects) {
-        const auto [render] = m_Scene->getComponent<RenderComponent>(object);
-        m_Renderables.emplace_back(&render.renderable);
+        const auto [render, transform] = m_Scene->getComponent<RenderComponent, TransformComponent>(object);
+
+        m_Renderables.emplace_back<Renderable>({
+            .model = &render.model,
+            .transform = &transform.transform,
+        });
     }
 }
 
