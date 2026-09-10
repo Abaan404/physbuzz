@@ -8,15 +8,17 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     // setup rendering
     Physbuzz::ShadowComponent shadow;
     Physbuzz::RenderComponent render = {
-        .transform = info.transform,
-        .model = Physbuzz::Model::Info{
-            .mesh = {{}},
-            .materials = {{}},
-            .submeshMaterialIndices = {},
+        .renderable = {
+            .model = Physbuzz::Model::Info{
+                .mesh = {{}},
+                .materials = {{}},
+                .submeshMaterialIndices = {},
+            },
+            .transform = info.transform,
         },
     };
 
-    render.model.load(info.model.path, scene.getSystem<Physbuzz::Transfer>(), info.model.flipUVs);
+    render.renderable.model.load(info.model.path, scene.getSystem<Physbuzz::Transfer>(), info.model.flipUVs);
 
     scene.setComponent(object, info.model, info.identifier, render, shadow);
 

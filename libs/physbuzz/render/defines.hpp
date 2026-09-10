@@ -5,9 +5,13 @@
 
 namespace Physbuzz {
 
-struct RenderComponent {
-    Transform transform;
+struct Renderable {
     Model model;
+    Transform transform;
+};
+
+struct RenderComponent {
+    Renderable renderable;
 };
 
 } // namespace Physbuzz

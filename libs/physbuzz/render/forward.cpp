@@ -171,7 +171,7 @@ bool ForwardRenderer::build() {
 
     bool success = true;
 
-    success &= m_Batch.build(*m_Scene, m_Objects);
+    success &= m_Batch.build(m_Renderables);
     success &= m_Culling.build(*m_Scene);
     success &= m_Irradiance.build();
     success &= m_Prefilter.build();
@@ -475,6 +475,15 @@ bool ForwardRenderer::build() {
     return success;
 }
 
+void ForwardRenderer::tick() {
+    m_Renderables.clear();
+
+    for (const auto &object : m_Objects) {
+        const auto [render] = m_Scene->getComponent<RenderComponent>(object);
+        m_Renderables.emplace_back(&render.renderable);
+    }
+}
+
 bool ForwardRenderer::destroy() {
     m_Info.window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
 
@@ -501,7 +510,7 @@ const ForwardRenderer::Info &ForwardRenderer::getInfo() const {
     return m_Info;
 }
 
-const BatchGenerator &ForwardRenderer::getBatch() const {
+const RenderBatch &ForwardRenderer::getBatch() const {
     return m_Batch;
 }
 

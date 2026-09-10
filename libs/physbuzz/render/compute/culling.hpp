@@ -11,7 +11,7 @@ class DynamicBuffer;
 class DescriptorLayout;
 class Mesh;
 class Frustum;
-class BatchGenerator;
+class RenderBatch;
 
 class FrustumCulling {
   public:
@@ -23,7 +23,7 @@ class FrustumCulling {
     };
 
     struct Info {
-        const BatchGenerator &batch;
+        const RenderBatch &batch;
         Objects objects;
         RenderNodeID nodeIdPrefix;
         ResourceID resourceIdPrefix;

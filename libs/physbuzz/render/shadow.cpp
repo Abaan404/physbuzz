@@ -239,7 +239,7 @@ bool ShadowRenderer::build() {
     success &= Builtin::PipelineShadow::Directional::build(m_Info.resolution);
     success &= Builtin::PipelineShadow::Point::build(m_Info.resolution);
 
-    success &= m_Batch.build(*m_Scene, m_Objects);
+    success &= m_Batch.build(m_Renderables);
     success &= m_Culling.build(*m_Scene);
 
     const auto updateCullingObjects = [this](...) {
@@ -525,6 +525,15 @@ bool ShadowRenderer::build() {
     return success;
 }
 
+void ShadowRenderer::tick() {
+    m_Renderables.clear();
+
+    for (const auto &object : m_Objects) {
+        const auto [render] = m_Scene->getComponent<RenderComponent>(object);
+        m_Renderables.emplace_back(&render.renderable);
+    }
+}
+
 bool ShadowRenderer::destroy() {
     bool success = true;
 
@@ -534,7 +543,7 @@ bool ShadowRenderer::destroy() {
     return success;
 }
 
-const BatchGenerator &ShadowRenderer::getBatch() const {
+const RenderBatch &ShadowRenderer::getBatch() const {
     return m_Batch;
 }
 

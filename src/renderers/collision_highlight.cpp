@@ -139,6 +139,7 @@ bool CollisionHighlight::build() {
 
                 std::vector<Physbuzz::Contact> contacts = m_Scene->getSystem<Collision>()->getContacts();
 
+                // FIXME This assumption invalid fixme later
                 for (const auto &instance : m_Info.batch.getInstanceObjects()) {
                     PipelineCollisionHighlight::HighlightedObject &highlighted = m_Highlighted.emplace_back<PipelineCollisionHighlight::HighlightedObject>({
                         .highlighted = false,

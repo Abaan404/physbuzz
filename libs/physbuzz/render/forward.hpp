@@ -57,9 +57,11 @@ class ForwardRenderer : public System<RenderComponent> {
     bool build() override;
     bool destroy() override;
 
+    void tick();
+
     bool specialize(const Builtin::PipelineForward::Specialization &specialization);
 
-    const BatchGenerator &getBatch() const;
+    const RenderBatch &getBatch() const;
     const RenderGraph &getGraph() const;
 
     const Info &getInfo() const;
@@ -67,7 +69,9 @@ class ForwardRenderer : public System<RenderComponent> {
   private:
     Info m_Info;
 
-    BatchGenerator m_Batch = {{
+    std::vector<Renderable *> m_Renderables;
+
+    RenderBatch m_Batch = {{
         .resourceIdPrefix = std::format("{}/batch/", Output),
     }};
 

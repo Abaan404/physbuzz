@@ -266,7 +266,7 @@ bool DeferredRenderer::build() {
 
     bool success = true;
 
-    success &= m_Batch.build(*m_Scene, m_Objects);
+    success &= m_Batch.build(m_Renderables);
     success &= m_Culling.build(*m_Scene);
 
     m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(*m_Scene, m_Info.camera));
@@ -700,6 +700,15 @@ bool DeferredRenderer::build() {
     return success;
 }
 
+void DeferredRenderer::tick() {
+    m_Renderables.clear();
+
+    for (const auto &object : m_Objects) {
+        const auto [render] = m_Scene->getComponent<RenderComponent>(object);
+        m_Renderables.emplace_back(&render.renderable);
+    }
+}
+
 bool DeferredRenderer::destroy() {
     m_Info.window->eraseCallback<WindowSwapchainResizeEvent>(m_Events.resize);
 
@@ -713,7 +722,7 @@ bool DeferredRenderer::specialize(const Builtin::PipelineDeferred::Lighting::Spe
     return Builtin::PipelineDeferred::Lighting::Resource->specialize(specialization);
 }
 
-const BatchGenerator &DeferredRenderer::getBatch() const {
+const RenderBatch &DeferredRenderer::getBatch() const {
     return m_Batch;
 }
 

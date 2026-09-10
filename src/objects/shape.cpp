@@ -10,12 +10,14 @@ template <>
 Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::ObjectID object, Shape &info) {
     // setup rendering
     Physbuzz::RenderComponent render = {
-        .transform = info.transform,
-        .model = {{
-            .mesh = info.resources.mesh,
-            .materials = {info.resources.material},
-            .submeshMaterialIndices = {0},
-        }},
+        .renderable = {
+            .model = {{
+                .mesh = info.resources.mesh,
+                .materials = {info.resources.material},
+                .submeshMaterialIndices = {0},
+            }},
+            .transform = info.transform,
+        },
     };
 
     scene.setComponent(object, info.identifier, info.resources, render);

@@ -18,8 +18,8 @@ void AngularResolver2D::solve(const Contact &contact) {
 
     const glm::vec3 impulse = LinearResolver2D::calcImpulse(body1, body2, contact);
 
-    const glm::vec3 torque1 = calcTorque(body1, render1.transform, contact.point1, impulse);
-    const glm::vec3 torque2 = calcTorque(body2, render2.transform, contact.point2, impulse);
+    const glm::vec3 torque1 = calcTorque(body1, render1.renderable.transform, contact.point1, impulse);
+    const glm::vec3 torque2 = calcTorque(body2, render2.renderable.transform, contact.point2, impulse);
 
     // TODO this needs ALOT more work
 

@@ -64,7 +64,7 @@ void ObjectList::draw() {
 
                 const auto [render] = m_Scene->getComponent<Physbuzz::RenderComponent>(object);
 
-                Physbuzz::Transform::Info info = render.transform.getInfo();
+                Physbuzz::Transform::Info info = render.renderable.transform.getInfo();
                 bool updateTransform = false;
 
                 if (ImGui::DragFloat3("position", glm::value_ptr(info.position), 1.0f, MIN_VALUE, MAX_VALUE)) {
@@ -89,7 +89,7 @@ void ObjectList::draw() {
                 }
 
                 if (updateTransform) {
-                    render.transform.update(info);
+                    render.renderable.transform.update(info);
 
                     if (m_Scene->containsComponent<Physbuzz::RigidBodyComponent>(object)) {
                         const auto [body] = m_Scene->getComponent<Physbuzz::RigidBodyComponent>(object);
@@ -97,7 +97,7 @@ void ObjectList::draw() {
                     }
                 }
 
-                for (auto &material : render.model.getInfo().materials) {
+                for (auto &material : render.renderable.model.getInfo().materials) {
                     Physbuzz::Renderer *renderer = m_Scene->getSystem<Physbuzz::Renderer>();
 
                     if (ImGui::DragFloat3("albedoFactor", glm::value_ptr(material->albedoFactor), 0.001f, 0.0f, 1.0f)) {

@@ -272,7 +272,7 @@ glm::vec3 Gjk3D::supportPoint(const RigidBodyComponent &body, const RenderCompon
     float proj = std::numeric_limits<float>::lowest();
 
     for (const auto &vertex : body.getInfo().mesh->geometry.vertices) {
-        glm::vec3 position = render.transform.toWorld(vertex.position);
+        glm::vec3 position = render.renderable.transform.toWorld(vertex.position);
 
         const float newProj = glm::dot(position, direction);
         if (newProj > proj) {

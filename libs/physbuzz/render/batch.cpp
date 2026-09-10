@@ -1,24 +1,21 @@
 #include "batch.hpp"
 
-#include "../app/application.hpp"
-#include "../ecs/scene.hpp"
 #include "../graphics/descriptors/dynamic.hpp"
 #include "../graphics/material.hpp"
 #include "../graphics/mesh.hpp"
 #include "../graphics/model.hpp"
 #include "../graphics/pipeline.hpp"
-#include "defines.hpp"
 #include <format>
 #include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
-BatchGenerator::BatchGenerator(const Info &info)
+RenderBatch::RenderBatch(const Info &info)
     : m_Info(info),
       m_Instance(std::format("{}instance", info.resourceIdPrefix)),
       m_Indirect(std::format("{}indirect", info.resourceIdPrefix)) {}
 
-bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &objects) {
+bool RenderBatch::build(const std::vector<Renderable *> &renderables) {
     bool success = true;
 
     if (!ResourceRegistry<DynamicBuffer>::contains(m_Instance)) {
@@ -58,18 +55,17 @@ bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &obj
                 },
             },
         },
-        .prepare = [this, &scene, &objects](const RenderContext &context) {
+        .prepare = [this, renderables](const RenderContext &context) {
             ZoneScopedN("BatchGenerator/Prepare");
 
             std::size_t instanceBufferCount = 0;
 
             // store a map of each mesh to the objects it corresponds to
-            std::unordered_map<Resource<Mesh>, std::vector<ObjectID>> meshes;
-            for (const auto &object : objects) {
-                const auto [render] = scene.getComponent<RenderComponent>(object);
-                const Model::Info &info = render.model.getInfo();
+            std::unordered_map<Resource<Mesh>, std::vector<std::size_t>> meshes;
+            for (std::size_t i = 0; i < renderables.size(); i++) {
+                const Model::Info &info = renderables[i]->model.getInfo();
 
-                meshes[info.mesh].emplace_back(object);
+                meshes[info.mesh].emplace_back(i);
                 instanceBufferCount += info.mesh->getInfo().submeshes.size();
             }
 
@@ -116,20 +112,20 @@ bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &obj
 
                 // store as planar SoA so all index information can be stored in baseInstance during draw
                 for (const auto &instance : instances) {
-                    const auto [render] = scene.getComponent<RenderComponent>(instance);
-                    const Model::Info &info = render.model.getInfo();
+                    const Renderable *renderable = renderables[instance];
+                    const Model::Info &info = renderable->model.getInfo();
 
                     std::fill_n(std::back_inserter(m_InstanceObjects), submeshCount, instance);
 
                     for (std::size_t submeshIdx = 0; submeshIdx < submeshCount; submeshIdx++) {
                         const Mesh::SubMesh &submesh = mesh->getInfo().submeshes[submeshIdx];
 
-                        const AABB::Info &aabb = submesh.bounding.withTransform(render.transform).getInfo();
+                        const AABB::Info &aabb = submesh.bounding.withTransform(renderable->transform).getInfo();
 
                         // equivalent to instanceIdx + (submeshIdx * instanceCount + meshOffset) (aka firstInstance)
                         m_InstanceBuffer.emplace_back<InstanceData>({
-                            .model = render.transform.getModel(),
-                            .normal = render.transform.getNormal(),
+                            .model = renderable->transform.getModel(),
+                            .normal = renderable->transform.getNormal(),
                             .materialIdx = context.materialAllocator->query(info.materials[info.submeshMaterialIndices[submeshIdx]]),
                             .bounding = {
                                 .min = aabb.min,
@@ -168,7 +164,7 @@ bool BatchGenerator::build(Scene &scene, const std::unordered_set<ObjectID> &obj
     return success;
 }
 
-bool BatchGenerator::destroy() {
+bool RenderBatch::destroy() {
     bool success = true;
 
     success &= ResourceRegistry<DynamicBuffer>::erase(m_Instance);
@@ -181,7 +177,7 @@ bool BatchGenerator::destroy() {
     return success;
 }
 
-void BatchGenerator::draw(const RenderContext &context) const {
+void RenderBatch::draw(const RenderContext &context) const {
     ZoneScopedN("BatchGenerator/Draw");
 
     for (const auto &[mesh, indirectOffset] : m_IndirectMeshes) {
@@ -195,7 +191,7 @@ void BatchGenerator::draw(const RenderContext &context) const {
     }
 }
 
-void BatchGenerator::draw(const RenderContext &context, const Resource<DynamicBuffer> &indirect, std::uint64_t offset) const {
+void RenderBatch::draw(const RenderContext &context, const Resource<DynamicBuffer> &indirect, std::uint64_t offset) const {
     ZoneScopedN("BatchGenerator/Draw");
 
     for (const auto &[mesh, indirectOffset] : m_IndirectMeshes) {
@@ -209,35 +205,35 @@ void BatchGenerator::draw(const RenderContext &context, const Resource<DynamicBu
     }
 }
 
-const Resource<DynamicBuffer> &BatchGenerator::getInstanceBuffer() const {
+const Resource<DynamicBuffer> &RenderBatch::getInstanceBuffer() const {
     return m_Instance;
 }
 
-const Resource<DynamicBuffer> &BatchGenerator::getIndirectBuffer() const {
+const Resource<DynamicBuffer> &RenderBatch::getIndirectBuffer() const {
     return m_Indirect;
 }
 
-const std::vector<ObjectID> &BatchGenerator::getInstanceObjects() const {
+const std::vector<std::size_t> &RenderBatch::getInstanceObjects() const {
     return m_InstanceObjects;
 }
 
-const std::vector<BatchGenerator::InstanceData> &BatchGenerator::getInstanceData() const {
+const std::vector<RenderBatch::InstanceData> &RenderBatch::getInstanceData() const {
     return m_InstanceBuffer;
 }
 
-const RenderNode &BatchGenerator::getRenderNode() const {
+const RenderNode &RenderBatch::getRenderNode() const {
     return m_RenderNode;
 }
 
-const BatchGenerator::Info &BatchGenerator::getInfo() const {
+const RenderBatch::Info &RenderBatch::getInfo() const {
     return m_Info;
 }
 
-std::size_t BatchGenerator::getObjectCount(std::uint32_t frameInFlight) const {
-    return m_Instance->getSize(frameInFlight) / sizeof(BatchGenerator::InstanceData);
+std::size_t RenderBatch::getObjectCount(std::uint32_t frameInFlight) const {
+    return m_Instance->getSize(frameInFlight) / sizeof(RenderBatch::InstanceData);
 }
 
-std::size_t BatchGenerator::getDrawCount(std::uint32_t frameInFlight) const {
+std::size_t RenderBatch::getDrawCount(std::uint32_t frameInFlight) const {
     return m_Indirect->getSize(frameInFlight) / sizeof(vk::DrawIndexedIndirectCommand);
 }
 

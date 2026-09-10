@@ -73,7 +73,9 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
     bool build();
     bool destroy();
 
-    const BatchGenerator &getBatch() const;
+    void tick();
+
+    const RenderBatch &getBatch() const;
     const RenderGraph &getGraph() const;
 
     const Info &getInfo() const;
@@ -81,7 +83,9 @@ class ShadowRenderer : public System<RenderComponent, ShadowComponent> {
   private:
     Info m_Info;
 
-    BatchGenerator m_Batch = {{
+    std::vector<Renderable *> m_Renderables;
+
+    RenderBatch m_Batch = {{
         .resourceIdPrefix = "builtin/shadow/",
     }};
 
