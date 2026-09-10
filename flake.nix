@@ -34,7 +34,7 @@
           pkgs.glfw
           pkgs.spdlog
           pkgs.glm
-          pkgs.catch2_3
+          (pkgs.catch2_3.override { stdenv = pkgs.llvmPackages.libcxxStdenv; })
           pkgs.vulkan-headers
           pkgs.vulkan-loader
           pkgs.vulkan-memory-allocator
