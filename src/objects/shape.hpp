@@ -8,7 +8,7 @@
 struct Shape {
     // geometry
     Physbuzz::Transform transform;
-    Physbuzz::RigidBodyComponent::Info body;
+    Physbuzz::RigidBodyComponent body;
 
     // naming
     IdentifiableComponent identifier = {

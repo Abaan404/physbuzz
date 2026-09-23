@@ -113,8 +113,18 @@ bool Gjk3D::line(Simplex &simplex, glm::vec3 &direction) {
     const glm::vec3 ao = -a;
 
     if (isFacing(ab, ao)) {
-        direction = cross(cross(ab, ao), ab);
+        // R_ab
+        direction = glm::cross(glm::cross(ab, ao), ab);
+
+        if (direction == glm::vec3(0.0f)) {
+            // https://math.stackexchange.com/a/4112622
+            direction = glm::vec3(
+                copysign(ab.z, ab.x),
+                copysign(ab.z, ab.y),
+                copysign(abs(ab.x) + abs(ab.y), ab.z));
+        }
     } else {
+        // R_a
         simplex = {a}; // go towards origin in next iteration
         direction = ao;
     }
@@ -133,25 +143,29 @@ bool Gjk3D::triangle(Simplex &simplex, glm::vec3 &direction) {
 
     glm::vec3 abc = glm::cross(ab, ac);
 
-    if (isFacing(cross(abc, ac), ao)) {
+    if (isFacing(glm::cross(abc, ac), ao)) {
         if (isFacing(ac, ao)) {
+            // R_ac
+            // plane normal is not the origin's direction, recompute
             simplex = {a, c};
-            direction = cross(cross(ac, ao), ac);
+            direction = glm::cross(glm::cross(ac, ao), ac);
         } else {
+            // could be R_a or R_ab
             simplex = {a, b};
             return line(simplex, direction);
         }
+    } else if (isFacing(glm::cross(ab, abc), ao)) {
+        // could be R_a or R_ab
+        simplex = {a, b};
+        return line(simplex, direction);
     } else {
-        if (isFacing(cross(ab, abc), ao)) {
-            simplex = {a, b};
-            return line(simplex, direction);
+        if (isFacing(abc, ao)) {
+            // R_abc (outwards)
+            direction = abc;
         } else {
-            if (isFacing(abc, ao)) {
-                direction = abc;
-            } else {
-                simplex = {a, c, b};
-                direction = -abc;
-            }
+            // R_acb (inwards)
+            simplex = {a, c, b};
+            direction = -abc;
         }
     }
 
@@ -169,21 +183,20 @@ bool Gjk3D::tetrahedron(Simplex &simplex, glm::vec3 &direction) {
     glm::vec3 ad = d - a;
     glm::vec3 ao = -a;
 
-    glm::vec3 abc = cross(ab, ac);
-    glm::vec3 acd = cross(ac, ad);
-    glm::vec3 adb = cross(ad, ab);
+    glm::vec3 abc = glm::cross(ab, ac);
+    glm::vec3 acd = glm::cross(ac, ad);
+    glm::vec3 adb = glm::cross(ad, ab);
 
     if (isFacing(abc, ao)) {
+        // R_abc
         simplex = {a, b, c};
         return triangle(simplex, direction);
-    }
-
-    if (isFacing(acd, ao)) {
+    } else if (isFacing(acd, ao)) {
+        // R_acd
         simplex = {a, c, d};
         return triangle(simplex, direction);
-    }
-
-    if (isFacing(adb, ao)) {
+    } else if (isFacing(adb, ao)) {
+        // R_adb
         simplex = {a, d, b};
         return triangle(simplex, direction);
     }
@@ -191,6 +204,8 @@ bool Gjk3D::tetrahedron(Simplex &simplex, glm::vec3 &direction) {
     return true;
 }
 
+// FIXME this can possibly cause infinite loops or segfault in rare cases
+// i.e. spheres imposed on each other, normals being empty, etc. investigate further later
 void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &body1, const Transform &transform1, const RigidBodyComponent &body2, const Transform &transform2) {
     std::vector<glm::vec3> polytope(simplex.begin(), simplex.end());
     std::vector<Index> faces = {0, 1, 2, 0, 3, 1, 0, 2, 3, 1, 3, 2};
@@ -213,7 +228,7 @@ void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &bo
             std::vector<std::pair<Index, Index>> uniqueEdges;
 
             for (std::size_t i = 0; i < normals.size(); i++) {
-                if (isFacing(normals[i], support)) {
+                if (isFacing(normals[i], support - polytope[faces[i * 3]])) {
                     std::size_t f = i * 3;
 
                     AddIfUniqueEdge(uniqueEdges, faces, f, f + 1);
@@ -246,7 +261,7 @@ void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &bo
             polytope.push_back(support);
 
             auto [newNormals, newMinFace] = getFaceNormals(polytope, newFaces);
-            float oldMinDistance = FLT_MAX;
+            float oldMinDistance = std::numeric_limits<float>::max();
             for (std::size_t i = 0; i < normals.size(); i++) {
                 if (normals[i].w < oldMinDistance) {
                     oldMinDistance = normals[i].w;
@@ -266,26 +281,12 @@ void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &bo
     contact.depth += 1e-4f;
 }
 
-// this might belong to a component than here, if I care about MPR (https://en.wikipedia.org/wiki/Minkowski_Portal_Refinement)
-glm::vec3 Gjk3D::supportPoint(const RigidBodyComponent &body, const Transform &transform, const glm::vec3 &direction) {
-    glm::vec3 point;
-    float proj = std::numeric_limits<float>::lowest();
-
-    for (const auto &vertex : body.getInfo().mesh->geometry.vertices) {
-        glm::vec3 position = transform.toWorld(vertex.position);
-
-        const float newProj = glm::dot(position, direction);
-        if (newProj > proj) {
-            point = position;
-            proj = newProj;
-        }
-    }
-
-    return point;
-}
-
 glm::vec3 Gjk3D::minkowskiSupportPoint(const RigidBodyComponent &body1, const Transform &transform1, const RigidBodyComponent &body2, const Transform &transform2, const glm::vec3 &direction) {
-    return supportPoint(body1, transform1, direction) - supportPoint(body2, transform2, -direction);
+    const glm::mat3 modelNoTranslation1 = glm::mat3(transform1.getModel());
+    const glm::mat3 modelNoTranslation2 = glm::mat3(transform2.getModel());
+
+    return transform1.toWorld(body1.calcSupportPoint(glm::transpose(modelNoTranslation1) * direction)) -
+           transform2.toWorld(body2.calcSupportPoint(glm::transpose(modelNoTranslation2) * -direction));
 }
 
 std::pair<std::vector<glm::vec4>, std::size_t> Gjk3D::getFaceNormals(const std::vector<glm::vec3> &polytope, const std::vector<Index> &faces) {

@@ -2,6 +2,7 @@
 
 #include "../../ecs/system.hpp"
 #include "../collision.hpp"
+#include <list>
 
 namespace Physbuzz {
 

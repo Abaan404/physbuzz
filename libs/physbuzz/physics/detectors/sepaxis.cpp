@@ -8,6 +8,14 @@ namespace Physbuzz {
 SeperatingAxis2D::SeperatingAxis2D(Scene *scene)
     : CollisionDetector(scene) {}
 
+bool SeperatingAxis2D::buildImpl() {
+    return true;
+}
+
+bool SeperatingAxis2D::destroyImpl() {
+    return true;
+}
+
 bool SeperatingAxis2D::checkImpl(Contact &contact) {
     const auto [body1] = m_Scene->getComponent<RigidBodyComponent>(contact.object1);
     const auto [body2] = m_Scene->getComponent<RigidBodyComponent>(contact.object2);

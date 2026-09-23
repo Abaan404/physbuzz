@@ -3,7 +3,7 @@
 #include "../ecs/defines.hpp"
 #include "../ecs/scene.hpp"
 #include <glm/glm.hpp>
-#include <list>
+#include <vector>
 
 namespace Physbuzz {
 
@@ -73,12 +73,9 @@ class CollisionDetector {
     }
 
     void findNarrowImpl(std::vector<Contact> &contacts) {
-        for (auto &contact : contacts) {
-            if (!check(contact)) {
-                std::swap(contact, contacts.back());
-                contacts.pop_back();
-            }
-        }
+        std::erase_if(contacts, [this](Contact &c) {
+            return !check(c);
+        });
     }
 };
 

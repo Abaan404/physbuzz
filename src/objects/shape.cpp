@@ -38,10 +38,9 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     }
 
     if (info.hasPhysics) {
-        Physbuzz::RigidBodyComponent body = {info.body};
-        body.applyTransform(info.transform);
+        info.body.applyTransform(info.transform);
 
-        scene.setComponent(object, body);
+        scene.setComponent(object, info.body);
     }
 
     return object;

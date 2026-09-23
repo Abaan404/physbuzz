@@ -12,8 +12,8 @@ class SeperatingAxis2D : public CollisionDetector<SeperatingAxis2D> {
     using CollisionDetector::findBroadImpl;
     using CollisionDetector::findNarrowImpl;
 
-    bool buildImpl() { return true; }
-    bool destroyImpl() { return true; }
+    bool buildImpl();
+    bool destroyImpl();
 
     bool checkImpl(Contact &contact);
 

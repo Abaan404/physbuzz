@@ -136,10 +136,29 @@ void Game::build() {
         ResourceLoader::loadShadowMesh({"circle/shadow"}, circle, batch);
         ResourceLoader::loadShadowMesh({"sphere/shadow"}, sphere, batch);
 
-        ResourceLoader::loadPhysicsMesh({"cube"}, cube);
-        ResourceLoader::loadPhysicsMesh({"square"}, square);
-        ResourceLoader::loadPhysicsMesh({"circle"}, circle);
-        ResourceLoader::loadPhysicsMesh({"sphere"}, sphere);
+        ResourceLoader::loadPhysicsMesh({"cube"}, cube, [](const glm::vec3 &direction) {
+            return glm::vec3{
+                direction.x >= 0 ? 0.5f : -0.5f,
+                direction.y >= 0 ? 0.5f : -0.5f,
+                direction.z >= 0 ? 0.5f : -0.5f,
+            };
+        });
+
+        ResourceLoader::loadPhysicsMesh({"square"}, square, [](const glm::vec3 &direction) {
+            return glm::vec3{
+                direction.x >= 0 ? 0.5f : -0.5f,
+                direction.y >= 0 ? 0.5f : -0.5f,
+                0.0,
+            };
+        });
+
+        ResourceLoader::loadPhysicsMesh({"circle"}, circle, [](const glm::vec3 &direction) {
+            return glm::vec3(glm::normalize(direction));
+        });
+
+        ResourceLoader::loadPhysicsMesh({"sphere"}, sphere, [](const glm::vec3 &direction) {
+            return glm::normalize(direction);
+        });
     }
 
     {
@@ -313,9 +332,9 @@ void Game::build() {
                     .position = {(i - 5 / 2) * 100, 0, 0},
                     .scale = {50.0f, 50.0f, 50.0f},
                 }},
-                .body = {
+                .body = {{
                     .mesh = {"cube"},
-                },
+                }},
                 .identifier = {
                     .name = "Cuboid",
                     .hidden = false,
@@ -333,6 +352,34 @@ void Game::build() {
         }
     }
 
+    // spheres
+    {
+        for (int i = 0; i < 5; ++i) {
+            Shape shape = {
+                .transform = {{
+                    .position = {(i - 5 / 2) * 100, 200, 0},
+                    .scale = {20.0f, 20.0f, 20.0f},
+                }},
+                .body = {{
+                    .mesh = {"sphere"},
+                }},
+                .identifier = {
+                    .name = "Sphere",
+                    .hidden = false,
+                },
+                .resources = {
+                    .mesh = {"sphere"},
+                    .shadowMesh = {"sphere/shadow"},
+                    .material = {"crate"},
+                },
+                .hasPhysics = true,
+                .hasShadow = true,
+            };
+
+            ObjectBuilder::create(Physbuzz::App::GScene, shape);
+        }
+    }
+
     {
         Shape shape = {
             .transform = {{
@@ -340,9 +387,9 @@ void Game::build() {
                 .scale = {1500.0f, 1500.0f, 1.0f},
                 .orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             }},
-            .body = {
+            .body = {{
                 .mesh = {"square"},
-            },
+            }},
             .identifier = {
                 .name = "Floor",
                 .hidden = false,

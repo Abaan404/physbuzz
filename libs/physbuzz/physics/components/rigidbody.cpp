@@ -32,4 +32,23 @@ void RigidBodyComponent::applyTransform(const Transform &transform) {
     m_AABB = m_Info.mesh->bounding.withTransform(transform);
 }
 
+glm::vec3 RigidBodyComponent::calcSupportPoint(const glm::vec3 &direction) const {
+    if (m_Info.mesh->supportPoint) {
+        return m_Info.mesh->supportPoint(direction);
+    }
+
+    glm::vec3 point;
+    float proj = std::numeric_limits<float>::lowest();
+
+    for (const auto &vertex : m_Info.mesh->geometry.vertices) {
+        const float newProj = glm::dot(vertex.position, direction);
+        if (newProj > proj) {
+            point = vertex.position;
+            proj = newProj;
+        }
+    }
+
+    return point;
+}
+
 } // namespace Physbuzz

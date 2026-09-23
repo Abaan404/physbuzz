@@ -13,6 +13,8 @@ struct PhysicsMesh {
 
     Geometry<Vertex> geometry;
     AABB bounding;
+
+    std::function<glm::vec3(const glm::vec3 &)> supportPoint = nullptr;
 };
 
 template <>

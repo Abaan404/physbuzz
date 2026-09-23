@@ -125,7 +125,7 @@ bool ResourceLoader::loadShadowMesh(const Physbuzz::ResourceID &resourceId, cons
     return true;
 }
 
-bool ResourceLoader::loadPhysicsMesh(const Physbuzz::ResourceID &resourceId, const Physbuzz::Geometry<Physbuzz::Model::Vertex> &geometry) {
+bool ResourceLoader::loadPhysicsMesh(const Physbuzz::ResourceID &resourceId, const Physbuzz::Geometry<Physbuzz::Model::Vertex> &geometry, std::function<glm::vec3(const glm::vec3 &)> support) {
     Physbuzz::AABB::Info aabb;
 
     for (const auto &vertex : geometry.vertices) {
@@ -138,6 +138,7 @@ bool ResourceLoader::loadPhysicsMesh(const Physbuzz::ResourceID &resourceId, con
             .indices = std::move(geometry.indices),
         },
         .bounding = {aabb},
+        .supportPoint = support,
     };
 
     physicsMesh.geometry.vertices.reserve(geometry.vertices.size());
