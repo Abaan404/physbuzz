@@ -15,7 +15,7 @@ struct LightPoint {
     };
 
     // rendering
-    ResourceComponent resources;
+    ResourceList resources;
     Physbuzz::PointLightComponent pointLight;
 };
 

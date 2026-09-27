@@ -137,19 +137,11 @@ void Game::build() {
         ResourceLoader::loadShadowMesh({"sphere/shadow"}, sphere, batch);
 
         ResourceLoader::loadPhysicsMesh({"cube"}, cube, [](const glm::vec3 &direction) {
-            return glm::vec3{
-                direction.x >= 0 ? 0.5f : -0.5f,
-                direction.y >= 0 ? 0.5f : -0.5f,
-                direction.z >= 0 ? 0.5f : -0.5f,
-            };
+            return glm::vec3(0.5f) * glm::sign(direction);
         });
 
         ResourceLoader::loadPhysicsMesh({"square"}, square, [](const glm::vec3 &direction) {
-            return glm::vec3{
-                direction.x >= 0 ? 0.5f : -0.5f,
-                direction.y >= 0 ? 0.5f : -0.5f,
-                0.0,
-            };
+            return glm::vec3(0.5f, 0.5f, 0.0f) * glm::sign(direction);
         });
 
         ResourceLoader::loadPhysicsMesh({"circle"}, circle, [](const glm::vec3 &direction) {
@@ -315,25 +307,35 @@ void Game::build() {
 
     renderer->setGraph(graph);
 
+    Physbuzz::App::GScene.createSystem<Collision>(
+        Collision::Info{
+            .restitution = 1.0f,
+        });
+
     Physbuzz::App::GScene.createSystem<Physbuzz::InputEvents>(window);
     Physbuzz::App::GScene.createSystem<Physbuzz::Clock>();
-    Physbuzz::App::GScene.createSystem<Physbuzz::Dynamics>(0.001f);
     Physbuzz::App::GScene.createSystem<InterfaceManager>();
-    Physbuzz::App::GScene.createSystem<Collision>(1.0f);
 
     std::random_device rd;
     std::uniform_int_distribution<int> distribution = std::uniform_int_distribution<int>(-250, 250);
 
     // cubes
     {
+        float density = 1.0f;
+        float length = 50.0f;
+
         for (int i = 0; i < 5; ++i) {
             Shape shape = {
                 .transform = {{
-                    .position = {(i - 5 / 2) * 100, 0, 0},
-                    .scale = {50.0f, 50.0f, 50.0f},
+                    .position = {(i - 5 / 2) * 100, 10.0f, 0},
+                    .scale = glm::vec3(length),
                 }},
                 .body = {{
                     .mesh = {"cube"},
+                    .inverseMass = 1.0f,
+                    .angular = {
+                        .inverseInertia = glm::inverse(glm::mat3(1.0f / 6.0f * density * length * length)),
+                    },
                 }},
                 .identifier = {
                     .name = "Cuboid",
@@ -341,11 +343,11 @@ void Game::build() {
                 },
                 .resources = {
                     .mesh = {"cube"},
-                    .shadowMesh = {"cube/shadow"},
                     .material = {"crate"},
+                    .shadowMesh = {{"cube/shadow"}},
                 },
                 .hasPhysics = true,
-                .hasShadow = true,
+                .hasGravity = true,
             };
 
             ObjectBuilder::create(Physbuzz::App::GScene, shape);
@@ -354,14 +356,21 @@ void Game::build() {
 
     // spheres
     {
+        float density = 1.0f;
+        float radius = 10.0f;
+
         for (int i = 0; i < 5; ++i) {
             Shape shape = {
                 .transform = {{
                     .position = {(i - 5 / 2) * 100, 200, 0},
-                    .scale = {20.0f, 20.0f, 20.0f},
+                    .scale = glm::vec3(2.0f * radius),
                 }},
                 .body = {{
                     .mesh = {"sphere"},
+                    .inverseMass = 1.0f,
+                    .angular = {
+                        .inverseInertia = glm::inverse(glm::mat3(7.0f / 5.0f * density * radius * radius)),
+                    },
                 }},
                 .identifier = {
                     .name = "Sphere",
@@ -369,11 +378,11 @@ void Game::build() {
                 },
                 .resources = {
                     .mesh = {"sphere"},
-                    .shadowMesh = {"sphere/shadow"},
                     .material = {"crate"},
+                    .shadowMesh = {{"sphere/shadow"}},
                 },
                 .hasPhysics = true,
-                .hasShadow = true,
+                .hasGravity = true,
             };
 
             ObjectBuilder::create(Physbuzz::App::GScene, shape);
@@ -398,6 +407,7 @@ void Game::build() {
                 .mesh = {"square"},
                 .material = {"floor"},
             },
+            .hasPhysics = true,
         };
 
         ObjectBuilder::create(Physbuzz::App::GScene, shape);
@@ -414,7 +424,7 @@ void Game::build() {
                 }},
                 .resources = {
                     .mesh = {"circle"},
-                    .shadowMesh = {"circle/shadow"},
+                    .shadowMesh = {{"circle/shadow"}},
                 },
                 .pointLight = {{
                     .intensity = {10000.0f, 10000.0f, 10000.0f},

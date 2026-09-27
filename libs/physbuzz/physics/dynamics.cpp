@@ -3,64 +3,69 @@
 #include "../ecs/scene.hpp"
 #include "../misc/clock.hpp"
 #include "collision.hpp"
+#include "components/gravity.hpp"
 #include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
 
-Dynamics::Dynamics(Scene *scene, float dtime)
+Dynamics::Dynamics(Scene *scene, const Info &info)
     : System<TransformComponent, RigidBodyComponent>(scene),
-      m_DeltaTime(dtime) {}
+      m_Info(info) {}
 
 Dynamics::~Dynamics() {}
 
 void Dynamics::tick() {
     ZoneScopedN("Dynamics/Tick");
 
-    if (!m_IsRunning) {
-        return;
-    }
-
     static float time = 0.0f;
-    const float &delta = m_Scene->getSystem<Clock>()->getDelta();
+    const float &deltaMicros = m_Scene->getSystem<Clock>()->getDelta();
 
-    if (delta > 10e3f) {
-        Logger::WARNING("[Dynamics] Max Timeout exceeded, skipping frame. ({:.3f}ms since last tick)", delta / 1e3f);
+    if (deltaMicros > 10e3f) {
+        Logger::WARNING("[Dynamics] Max Timeout exceeded, skipping physics frame. ({:.3f}ms since last tick)", deltaMicros / 1e3f);
         return;
     }
 
-    time += delta / 1e6f;
+    time += deltaMicros / 1e6f;
 
-    while (m_DeltaTime - time <= 0.0f) {
+    while (m_Info.deltaTime - time <= 0.0f) {
         for (auto &object : m_Objects) {
-            tickMotion(object);
+            tickMotion(object, m_Info.deltaTime);
         }
 
-        time -= m_DeltaTime;
+        time -= m_Info.deltaTime;
     }
 }
 
-void Dynamics::tickMotion(ObjectID id) const {
-    const auto [body, transform] = m_Scene->getComponent<RigidBodyComponent, TransformComponent>(id);
+void Dynamics::tickMotion(ObjectID object, float deltaTime) const {
+    const auto [body, transform] = m_Scene->getComponent<RigidBodyComponent, TransformComponent>(object);
 
     RigidBodyComponent::Info info = body.getInfo();
 
     // apply gravity
-    {
-        if (!glm::isinf(info.mass)) {
-            glm::vec3 force = m_Gravity * info.mass;
-            body.addForce(force);
+    if (m_Scene->containsComponent<GravityComponent>(object)) {
+        if (info.inverseMass > 0.0f) {
+            info.forces += m_Info.gravity / info.inverseMass;
         }
     }
 
     // apply drag
     {
         float speed = glm::length(info.velocity);
-        if (speed != 0.0f) {
-            glm::vec3 force = -glm::normalize(info.velocity) * (info.drag.k1 * speed + info.drag.k2 * speed * speed);
-            body.addForce(force);
+
+        if (speed > 0.0f) {
+            info.forces += -glm::normalize(info.velocity) * (info.drag.k1 * speed + info.drag.k2 * speed * speed);
         }
 
-        info.angular.velocity *= glm::pow(info.angular.drag, m_DeltaTime);
+        info.angular.velocity *= glm::pow(info.angular.drag, deltaTime);
+    }
+
+    // apply accumulated torques and linear forces to velocity and clear them
+    {
+        info.angular.velocity += (info.angular.acceleration + info.angular.inverseInertia * info.torques) * deltaTime;
+        info.velocity += (info.acceleration + info.forces * info.inverseMass) * deltaTime;
+
+        info.forces = glm::vec3(0.0f);
+        info.torques = glm::vec3(0.0f);
     }
 
     // move object wrt S = ut + 1/2 a t**2
@@ -68,40 +73,18 @@ void Dynamics::tickMotion(ObjectID id) const {
     // Note: t**2 is approx 0 for t << 0 (at high framerate)
     {
         Transform::Info transformInfo = transform.transform.getInfo();
-        transformInfo.position += info.velocity * m_DeltaTime;
+
+        transformInfo.position += info.velocity * deltaTime;
+
         if (glm::length(info.angular.velocity) > 0.0f) {
-            transformInfo.orientation = glm::angleAxis(glm::length(info.angular.velocity) * m_DeltaTime, glm::normalize(info.angular.velocity)) * transformInfo.orientation;
+            transformInfo.orientation = glm::angleAxis(glm::length(info.angular.velocity) * deltaTime, glm::normalize(info.angular.velocity)) * transformInfo.orientation;
         }
 
         body.applyTransform(transformInfo);
         transform.transform.update(transformInfo);
     }
 
-    // apply accumulated info to velocity and clear them
-    {
-        info.angular.velocity += (info.angular.acceleration + info.torques / info.angular.inertia) * m_DeltaTime;
-        info.velocity += (info.acceleration + info.forces / info.mass) * m_DeltaTime;
-        info.forces = glm::vec3(0.0f, 0.0f, 0.0f);
-        info.torques = glm::vec3(0.0f, 0.0f, 0.0f);
-    }
-
     body.update(info);
-}
-
-void Dynamics::start() {
-    m_IsRunning = true;
-}
-
-void Dynamics::stop() {
-    m_IsRunning = false;
-}
-
-const bool &Dynamics::toggle() {
-    return m_IsRunning ^= true;
-}
-
-const bool &Dynamics::isRunning() const {
-    return m_IsRunning;
 }
 
 } // namespace Physbuzz

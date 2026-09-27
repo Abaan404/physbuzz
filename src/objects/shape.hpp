@@ -17,10 +17,10 @@ struct Shape {
     };
 
     // rendering
-    ResourceComponent resources;
+    ResourceList resources;
 
     bool hasPhysics = false;
-    bool hasShadow = false;
+    bool hasGravity = false;
 };
 
 template <>

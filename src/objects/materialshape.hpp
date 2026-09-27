@@ -10,7 +10,7 @@ struct MaterialShape {
     Physbuzz::Transform transform;
 
     // resources
-    ResourceComponent resources;
+    ResourceList resources;
 };
 
 template <>

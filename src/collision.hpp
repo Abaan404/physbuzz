@@ -1,14 +1,18 @@
 #pragma once
 
-#include <physbuzz/render/defines.hpp>
 #include <physbuzz/physics/components/rigidbody.hpp>
 #include <physbuzz/physics/detectors/gjk.hpp>
 #include <physbuzz/physics/detectors/sweepandprune.hpp>
-#include <physbuzz/physics/resolvers/angular.hpp>
+#include <physbuzz/physics/resolvers/simple.hpp>
+#include <physbuzz/render/defines.hpp>
 
 class Collision : public Physbuzz::System<Physbuzz::RigidBodyComponent, Physbuzz::TransformComponent> {
   public:
-    Collision(Physbuzz::Scene *scene, const float restitution);
+    struct Info {
+        float restitution;
+    };
+
+    Collision(Physbuzz::Scene *scene, const Info &info);
     ~Collision();
 
     bool build() override;
@@ -22,7 +26,7 @@ class Collision : public Physbuzz::System<Physbuzz::RigidBodyComponent, Physbuzz
     Physbuzz::SweepAndPrune2D m_DetectorBroad;
     Physbuzz::Gjk3D m_DetectorNarrow;
 
-    Physbuzz::AngularResolver2D m_Resolver;
+    Physbuzz::SimpleResolver3D m_Resolver;
 
     std::vector<Physbuzz::Contact> m_Contacts;
 };

@@ -8,23 +8,20 @@ namespace Physbuzz {
 
 class Dynamics : public System<TransformComponent, RigidBodyComponent> {
   public:
-    Dynamics(Scene *scene, float dtime);
+    struct Info {
+        float deltaTime = 0.0f;
+        glm::vec3 gravity = {0.0f, 0.0f, 0.0f};
+    };
+
+    Dynamics(Scene *scene, const Info &info);
     ~Dynamics();
 
     void tick();
 
-    const bool &isRunning() const;
-    void start();
-    void stop();
-    const bool &toggle();
-
   private:
-    void tickMotion(ObjectID id) const;
+    void tickMotion(ObjectID object, float deltaTime) const;
 
-    glm::vec3 m_Gravity = {0.0f, 0.0f, 0.0f};
-
-    float m_DeltaTime = 0.0f;
-    bool m_IsRunning = false;
+    Info m_Info;
 };
 
 } // namespace Physbuzz

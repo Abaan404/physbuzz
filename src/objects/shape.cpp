@@ -2,6 +2,7 @@
 
 #include <physbuzz/graphics/transfer.hpp>
 #include <physbuzz/physics/collision.hpp>
+#include <physbuzz/physics/components/gravity.hpp>
 #include <physbuzz/physics/dynamics.hpp>
 #include <physbuzz/render/defines.hpp>
 #include <physbuzz/render/shadow.hpp>
@@ -23,12 +24,12 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
 
     scene.setComponent(object, info.identifier, info.resources, render, transform);
 
-    if (info.hasShadow) {
+    if (!info.resources.shadowMesh) {
         const Physbuzz::Model::Info &modelInfo = render.model.getInfo();
 
         Physbuzz::ShadowComponent shadow = {
             .model = {{
-                .mesh = info.resources.shadowMesh,
+                .mesh = *info.resources.shadowMesh,
                 .materials = modelInfo.materials,
                 .submeshMaterialIndices = modelInfo.submeshMaterialIndices,
             }},
@@ -41,6 +42,11 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         info.body.applyTransform(info.transform);
 
         scene.setComponent(object, info.body);
+    }
+
+    if (info.hasGravity) {
+        Physbuzz::GravityComponent gravity;
+        scene.setComponent(object, gravity);
     }
 
     return object;

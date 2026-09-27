@@ -79,19 +79,36 @@ class CollisionDetector {
     }
 };
 
-class ICollisionResolver : public EventSubject {
+template <typename T>
+class CollisionResolver {
   public:
-    ICollisionResolver(Scene *scene);
-    virtual ~ICollisionResolver() = default;
+    CollisionResolver(Scene *scene)
+        : m_Scene(scene) {}
 
-    virtual bool build();
-    virtual bool destroy();
+    bool build() {
+        return static_cast<T *>(this)->buildImpl();
+    }
 
-    virtual void solve(std::list<Contact> &contacts);
-    virtual void solve(const Contact &contact) = 0;
+    bool destroy() {
+        return static_cast<T *>(this)->destroyImpl();
+    }
+
+    void solve(const Contact &contact) {
+        static_cast<T *>(this)->solveImpl(contact);
+    }
+
+    void solve(const std::vector<Contact> &contacts) {
+        static_cast<T *>(this)->solveImpl(contacts);
+    }
 
   protected:
     Scene *m_Scene;
+
+    void solveImpl(const std::vector<Contact> &contacts) {
+        for (const auto &contact : contacts) {
+            solve(contact);
+        }
+    }
 };
 
 } // namespace Physbuzz

@@ -9,8 +9,9 @@ struct IdentifiableComponent {
     bool hidden = false;
 };
 
-struct ResourceComponent {
+struct ResourceList {
     Physbuzz::Resource<Physbuzz::Mesh> mesh = {"default"};
-    Physbuzz::Resource<Physbuzz::Mesh> shadowMesh = {"default/shadow"};
     Physbuzz::Resource<Physbuzz::Material> material = {"default"};
+
+    std::optional<Physbuzz::Resource<Physbuzz::Mesh>> shadowMesh;
 };

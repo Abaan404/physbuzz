@@ -14,15 +14,15 @@ class RigidBodyComponent {
 
         glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
         glm::vec3 acceleration = {0.0f, 0.0f, 0.0f};
+        float inverseMass = 0.0f;
 
         struct {
-            float inertia = 1.0f; // technically a Mz moment, Note: use a tensor for 3D
-            float drag = 1.0f;
             glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
             glm::vec3 acceleration = {0.0f, 0.0f, 0.0f};
-        } angular;
+            glm::mat3 inverseInertia = {0.0f};
 
-        float mass = 1.0f;
+            float drag = 1.0f;
+        } angular;
 
         glm::vec3 forces = {0.0f, 0.0f, 0.0f};
         glm::vec3 torques = {0.0f, 0.0f, 0.0f};

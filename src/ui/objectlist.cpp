@@ -32,10 +32,19 @@ void ObjectList::draw() {
 
     const std::unordered_set<Physbuzz::ObjectID> &objects = m_Scene->getObjects();
 
-    ImGui::Text("Simulate Physics: %s", m_Scene->getSystem<Physbuzz::Dynamics>()->isRunning() ? "true" : "false");
+    bool isPhysicsRunning = m_Scene->containsSystem<Physbuzz::Dynamics>();
+    ImGui::Text("Simulate Physics: %s", isPhysicsRunning ? "true" : "false");
 
     if (ImGui::Button("Toggle")) {
-        m_Scene->getSystem<Physbuzz::Dynamics>()->toggle();
+        if (isPhysicsRunning) {
+            m_Scene->eraseSystem<Physbuzz::Dynamics>();
+        } else {
+            m_Scene->createSystem<Physbuzz::Dynamics>(
+                Physbuzz::Dynamics::Info{
+                    .deltaTime = 1.0f / 60.0f,
+                    .gravity = {0.0f, -980.0f, 0.0f},
+                });
+        }
     }
 
     ImGui::Text("Spawned Objects: %zu", objects.size());
@@ -128,12 +137,35 @@ void ObjectList::draw() {
 
                 Physbuzz::RigidBodyComponent::Info info = body.getInfo();
 
-                ImGui::DragFloat("mass", &info.mass, 0.01f, -MAX_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("velocity", glm::value_ptr(info.velocity), 0.01f, -MAX_VALUE, MAX_VALUE);
-                ImGui::DragFloat3("acceleration", glm::value_ptr(info.acceleration), 0.01f, -MAX_VALUE, MAX_VALUE);
-                ImGui::DragFloat2("drag", &info.drag.k1, 0.01f, -MAX_VALUE, MAX_VALUE);
+                float mass = 1.0f / info.inverseMass;
+                if (ImGui::DragFloat("mass", &mass, 0.01f, -MAX_VALUE, MAX_VALUE)) {
+                    info.inverseMass = 1.0f / mass;
+                    body.update(info);
+                }
 
-                body.update(info);
+                if (ImGui::DragFloat3("velocity", glm::value_ptr(info.velocity), 0.01f, -MAX_VALUE, MAX_VALUE)) {
+                    body.update(info);
+                }
+
+                if (ImGui::DragFloat3("acceleration", glm::value_ptr(info.acceleration), 0.01f, -MAX_VALUE, MAX_VALUE)) {
+                    body.update(info);
+                }
+
+                if (ImGui::DragFloat2("drag", &info.drag.k1, 0.01f, -MAX_VALUE, MAX_VALUE)) {
+                    body.update(info);
+                }
+
+                if (ImGui::DragFloat3("angularVelocity", glm::value_ptr(info.angular.velocity), 0.01f, -MAX_VALUE, MAX_VALUE)) {
+                    body.update(info);
+                }
+
+                if (ImGui::DragFloat3("angularAcceleration", glm::value_ptr(info.angular.acceleration), 0.01f, -MAX_VALUE, MAX_VALUE)) {
+                    body.update(info);
+                }
+
+                if (ImGui::DragFloat("angularDrag", &info.angular.drag, 0.01f, -MAX_VALUE, MAX_VALUE)) {
+                    body.update(info);
+                }
             }
 
             if (m_Scene->containsComponent<Physbuzz::PointLightComponent>(object)) {

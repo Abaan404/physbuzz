@@ -279,14 +279,18 @@ void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &bo
     }
 
     contact.depth += 1e-4f;
+
+    contact.point1 = supportPoint(body1, transform1, contact.normal);
+    contact.point2 = supportPoint(body2, transform2, -contact.normal);
+}
+
+glm::vec3 Gjk3D::supportPoint(const RigidBodyComponent &body, const Transform &transform, const glm::vec3 &direction) {
+    const glm::mat3 modelNoTranslation = glm::mat3(transform.getModel());
+    return transform.toWorld(body.calcSupportPoint(glm::transpose(modelNoTranslation) * direction));
 }
 
 glm::vec3 Gjk3D::minkowskiSupportPoint(const RigidBodyComponent &body1, const Transform &transform1, const RigidBodyComponent &body2, const Transform &transform2, const glm::vec3 &direction) {
-    const glm::mat3 modelNoTranslation1 = glm::mat3(transform1.getModel());
-    const glm::mat3 modelNoTranslation2 = glm::mat3(transform2.getModel());
-
-    return transform1.toWorld(body1.calcSupportPoint(glm::transpose(modelNoTranslation1) * direction)) -
-           transform2.toWorld(body2.calcSupportPoint(glm::transpose(modelNoTranslation2) * -direction));
+    return supportPoint(body1, transform1, direction) - supportPoint(body2, transform2, -direction);
 }
 
 std::pair<std::vector<glm::vec4>, std::size_t> Gjk3D::getFaceNormals(const std::vector<glm::vec3> &polytope, const std::vector<Index> &faces) {
