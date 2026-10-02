@@ -32,7 +32,11 @@ bool Mpr3D::checkImpl(Contact &contact) {
 
     direction = glm::cross(V1, V0);
     if (glm::length(direction) < 1e-4f) {
-        return false;
+        contact.normal = glm::normalize(V1);
+        contact.depth = glm::length(V1);
+        contact.point = body1.calcSupportPoint(contact.normal, transform1.transform);
+
+        return true;
     }
 
     glm::vec3 V2 = minkowskiSupportPoint(body1, transform1.transform, body2, transform2.transform, direction);
@@ -71,34 +75,37 @@ bool Mpr3D::checkImpl(Contact &contact) {
         break;
     }
 
+    bool hit = false;
+
     while (true) {
-        const glm::vec3 n123 = glm::normalize(glm::cross(V1 - V3, V2 - V3));
+        direction = glm::normalize(glm::cross(V1 - V3, V2 - V3));
 
         // if (origin inside portal)
-        if (glm::dot(n123, V1) >= 0.0f) {
-            // return hit;
-            return true;
-        }
+        hit |= glm::dot(direction, V1) >= 0.0f;
 
         // find_support_in_direction_of_portal();
-        glm::vec3 V4 = minkowskiSupportPoint(body1, transform1.transform, body2, transform2.transform, n123);
+        glm::vec3 V4 = minkowskiSupportPoint(body1, transform1.transform, body2, transform2.transform, direction);
 
         // if (origin outside support plane)
-        if (!isFacing(V4, n123)) {
+        if (!hit && !isFacing(V4, direction)) {
             // return miss;
             return false;
         }
 
         // if (Support plane close to portal)
-        if (!isFacing<1e-4f>(V4, n123)) {
+        if (!hit && !isFacing<1e-4f>(V4, direction)) {
             // return miss;
             return false;
         }
 
+        if (hit && glm::dot(direction, V4) - glm::dot(direction, V1) / glm::length(direction) <= 1e-4f) {
+            break;
+        }
+
         // choose_new_portal();
-        const bool inside1 = isFacing(glm::cross(V1 - V0, V4 - V0), V0);
-        const bool inside2 = isFacing(glm::cross(V2 - V0, V4 - V0), V0);
-        const bool inside3 = isFacing(glm::cross(V3 - V0, V4 - V0), V0);
+        bool inside1 = isFacing(glm::cross(V1 - V0, V4 - V0), V0);
+        bool inside2 = isFacing(glm::cross(V2 - V0, V4 - V0), V0);
+        bool inside3 = isFacing(glm::cross(V3 - V0, V4 - V0), V0);
 
         if (inside1) {
             if (inside2) {
@@ -115,7 +122,13 @@ bool Mpr3D::checkImpl(Contact &contact) {
         }
     }
 
-    return false;
+    glm::vec3 n123 = glm::cross(V1 - V3, V2 - V3);
+
+    contact.normal = -glm::normalize(n123);
+    contact.depth = glm::dot(contact.normal, V1);
+    contact.point = body1.calcSupportPoint(contact.normal, transform1.transform);
+
+    return true;
 }
 
 } // namespace Physbuzz

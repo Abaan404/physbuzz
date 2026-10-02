@@ -278,9 +278,7 @@ void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &bo
     }
 
     contact.depth += 1e-4f;
-
-    contact.point1 = body1.calcSupportPoint(contact.normal, transform1);
-    contact.point2 = body2.calcSupportPoint(-contact.normal, transform2);
+    contact.point = body1.calcSupportPoint(contact.normal, transform1); // or same as body2.calcSupportPoint(-contact.normal, transform2)
 }
 
 std::pair<std::vector<glm::vec4>, std::size_t> Gjk3D::getFaceNormals(const std::vector<glm::vec3> &polytope, const std::vector<Index> &faces) {

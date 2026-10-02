@@ -14,10 +14,9 @@ struct Contact {
     ObjectID object2;
 
     float depth = std::numeric_limits<float>::max();
-    glm::vec3 normal = {0.0f, 0.0f, 1.0f};
 
-    glm::vec3 point1 = {0.0f, 0.0f, 0.0f};
-    glm::vec3 point2 = {0.0f, 0.0f, 0.0f};
+    glm::vec3 normal = {0.0f, 0.0f, 1.0f};
+    glm::vec3 point = {0.0f, 0.0f, 0.0f};
 };
 
 template <typename T>

@@ -30,8 +30,8 @@ void SimpleResolver3D::solveImpl(const Contact &contact) {
 
     glm::vec3 N = -contact.normal;
 
-    glm::vec3 r1 = contact.point1 - transform1.transform.getInfo().position;
-    glm::vec3 r2 = contact.point2 - transform2.transform.getInfo().position;
+    glm::vec3 r1 = contact.point - transform1.transform.getInfo().position;
+    glm::vec3 r2 = contact.point - transform2.transform.getInfo().position;
 
     glm::vec3 pointVelocity1 = info1.velocity + glm::cross(info1.angular.velocity, r1);
     glm::vec3 pointVelocity2 = info2.velocity + glm::cross(info2.angular.velocity, r2);
