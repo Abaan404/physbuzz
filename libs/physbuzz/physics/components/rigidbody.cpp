@@ -20,14 +20,6 @@ void RigidBodyComponent::update(const Info &info) {
     m_Info = info;
 }
 
-const RigidBodyComponent::Info &RigidBodyComponent::getInfo() const {
-    return m_Info;
-}
-
-const AABB &RigidBodyComponent::getAABB() const {
-    return m_AABB;
-}
-
 void RigidBodyComponent::applyTransform(const Transform &transform) {
     m_AABB = m_Info.mesh->bounding.withTransform(transform);
 }
@@ -49,6 +41,19 @@ glm::vec3 RigidBodyComponent::calcSupportPoint(const glm::vec3 &direction) const
     }
 
     return point;
+}
+
+glm::vec3 RigidBodyComponent::calcSupportPoint(const glm::vec3 &direction, const Transform &transform) const {
+    const glm::mat3 modelNoTranslation = glm::mat3(transform.getModel());
+    return transform.toWorld(calcSupportPoint(glm::transpose(modelNoTranslation) * direction));
+}
+
+const RigidBodyComponent::Info &RigidBodyComponent::getInfo() const {
+    return m_Info;
+}
+
+const AABB &RigidBodyComponent::getAABB() const {
+    return m_AABB;
 }
 
 } // namespace Physbuzz

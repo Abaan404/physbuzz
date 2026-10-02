@@ -43,6 +43,7 @@ class RigidBodyComponent {
     void applyTransform(const Transform &transform);
 
     glm::vec3 calcSupportPoint(const glm::vec3 &direction) const;
+    glm::vec3 calcSupportPoint(const glm::vec3 &direction, const Transform &transform) const;
 
     const Info &getInfo() const;
     const AABB &getAABB() const;

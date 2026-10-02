@@ -2,8 +2,11 @@
 
 #include "../../debug/macros.hpp"
 #include "../../ecs/scene.hpp"
+#include "../../math/transform.hpp"
+#include "../../math/utils.hpp"
 #include "../../render/defines.hpp"
 #include "../components/rigidbody.hpp"
+#include "utils.hpp"
 #include <limits>
 #include <vector>
 
@@ -18,7 +21,7 @@ Simplex::Simplex() {
     m_Size = 0;
 }
 
-Simplex::Simplex(std::initializer_list<glm::vec3> list) {
+Simplex::Simplex(const std::initializer_list<glm::vec3> &list) {
     if (list.size() >= maxSize()) {
         Logger::CRITICAL("[Gjk2D] 4D collision is not supported.");
     }
@@ -117,11 +120,7 @@ bool Gjk3D::line(Simplex &simplex, glm::vec3 &direction) {
         direction = glm::cross(glm::cross(ab, ao), ab);
 
         if (direction == glm::vec3(0.0f)) {
-            // https://math.stackexchange.com/a/4112622
-            direction = glm::vec3(
-                copysign(ab.z, ab.x),
-                copysign(ab.z, ab.y),
-                copysign(abs(ab.x) + abs(ab.y), ab.z));
+            direction = perpendicular(ab);
         }
     } else {
         // R_a
@@ -280,17 +279,8 @@ void Gjk3D::Epa(Simplex &simplex, Contact &contact, const RigidBodyComponent &bo
 
     contact.depth += 1e-4f;
 
-    contact.point1 = supportPoint(body1, transform1, contact.normal);
-    contact.point2 = supportPoint(body2, transform2, -contact.normal);
-}
-
-glm::vec3 Gjk3D::supportPoint(const RigidBodyComponent &body, const Transform &transform, const glm::vec3 &direction) {
-    const glm::mat3 modelNoTranslation = glm::mat3(transform.getModel());
-    return transform.toWorld(body.calcSupportPoint(glm::transpose(modelNoTranslation) * direction));
-}
-
-glm::vec3 Gjk3D::minkowskiSupportPoint(const RigidBodyComponent &body1, const Transform &transform1, const RigidBodyComponent &body2, const Transform &transform2, const glm::vec3 &direction) {
-    return supportPoint(body1, transform1, direction) - supportPoint(body2, transform2, -direction);
+    contact.point1 = body1.calcSupportPoint(contact.normal, transform1);
+    contact.point2 = body2.calcSupportPoint(-contact.normal, transform2);
 }
 
 std::pair<std::vector<glm::vec4>, std::size_t> Gjk3D::getFaceNormals(const std::vector<glm::vec3> &polytope, const std::vector<Index> &faces) {
@@ -330,10 +320,6 @@ void Gjk3D::AddIfUniqueEdge(std::vector<std::pair<Index, Index>> &edges, const s
     } else {
         edges.emplace_back(faces[a], faces[b]);
     }
-}
-
-bool Gjk3D::isFacing(const glm::vec3 &vec, const glm::vec3 &direction) {
-    return glm::dot(vec, direction) > 0.0f;
 }
 
 } // namespace Physbuzz
