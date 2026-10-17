@@ -34,6 +34,7 @@ class Renderer : public System<> {
     bool map(const Buffer &buffer, const std::span<const std::byte> &bytes, std::uint64_t offset);
     bool map(const Image &image, const std::span<const std::byte> &bytes);
 
+    const MaterialAllocator &getMaterial() const;
     const RenderGraph &getGraph() const;
     const Info &getInfo() const;
 

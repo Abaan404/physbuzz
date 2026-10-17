@@ -4,170 +4,40 @@
 #include "../ecs/scene.hpp"
 #include "../events/window.hpp"
 #include "../graphics/layout.hpp"
-#include "../graphics/material.hpp"
 #include "../graphics/pipeline.hpp"
 #include "../graphics/renderer.hpp"
 #include "components/camera.hpp"
 #include "components/lights.hpp"
-#include "nodes/camera.hpp"
-#include "nodes/lights.hpp"
 #include "shadow.hpp"
 #include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
-
-namespace Builtin {
-
-bool PipelineForward::build() {
-    if (ResourceRegistry<GraphicsPipeline>::contains(Resource)) {
-        return true;
-    }
-
-    bool success = true;
-
-    if (!ResourceRegistry<DescriptorLayout>::contains(LayoutMaterial::Resource)) {
-        success &= LayoutMaterial::build();
-    }
-
-    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutGlobal)) {
-        success &= ResourceRegistry<DescriptorLayout>::insert(
-            ResourceLayoutGlobal,
-            {{
-                .bindings = {
-                    {
-                        // irradiance map
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
-                    },
-                    {
-                        // prefilter map
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
-                    },
-                    {
-                        // brdf lut
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
-                    },
-                },
-                .lifetime = DescriptorLayout::Lifetime::Global,
-            }});
-    }
-
-    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutFrame)) {
-        success &= ResourceRegistry<DescriptorLayout>::insert(
-            ResourceLayoutFrame,
-            {{
-                .bindings = {
-                    {
-                        // camera
-                        .type = DescriptorLayout::Type::eUniformBuffer,
-                        .range = sizeof(Builtin::RenderNodeCamera::CameraBuffer),
-                    },
-                    {
-                        // directionals
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // points
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // spots
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // instance
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // culling
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // directional shadow depth map
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
-                    },
-                    {
-                        // point shadow depth map
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .stage = DescriptorLayout::ShaderStageFlags::eFragment,
-                    },
-                },
-            }});
-    }
-
-    success &= ResourceRegistry<GraphicsPipeline>::insert(
-        Resource,
-        {
-            {
-                .module = "builtin/render/forward",
-                .specialization = {
-                    .offsets = {
-                        offsetof(Specialization, enableShadows),
-                    },
-                    .size = sizeof(Specialization),
-                },
-            },
-            {
-                .description = &Model::Vertex::Description,
-                // TODO implement a proper OIT
-                .blend = {
-                    .logicOpEnable = false,
-                    .logicOp = GraphicsPipeline::LogicOp::eCopy,
-                    .attachments = {{
-                        .blendEnable = true,
-                        .srcColorBlendFactor = GraphicsPipeline::BlendFactor::eSrcAlpha,
-                        .dstColorBlendFactor = GraphicsPipeline::BlendFactor::eOneMinusSrcAlpha,
-                        .colorBlendOp = GraphicsPipeline::BlendOp::eAdd,
-                        .srcAlphaBlendFactor = GraphicsPipeline::BlendFactor::eOne,
-                        .dstAlphaBlendFactor = GraphicsPipeline::BlendFactor::eZero,
-                        .alphaBlendOp = GraphicsPipeline::BlendOp::eAdd,
-                        .colorWriteMask = GraphicsPipeline::ColorComponentFlags::eR | //
-                                          GraphicsPipeline::ColorComponentFlags::eG | //
-                                          GraphicsPipeline::ColorComponentFlags::eB | //
-                                          GraphicsPipeline::ColorComponentFlags::eA,
-                    }},
-                },
-                .layouts = {
-                    .resources = {
-                        LayoutMaterial::Resource,
-                        ResourceLayoutGlobal,
-                        ResourceLayoutFrame,
-                    },
-                    .pushConstantRanges = {
-                        {
-                            .stageFlags = GraphicsPipeline::PushConstantsStageFlags::eAll,
-                            .size = sizeof(PushConstants),
-                        },
-                    },
-                },
-            },
-        });
-
-    return success;
-}
-
-} // namespace Builtin
 
 ForwardRenderer::ForwardRenderer(Scene *scene, const Info &info)
     : System<RenderComponent, TransformComponent>(scene),
       m_Info(info) {}
 
 bool ForwardRenderer::build() {
-    // build pipeline
-    if (!Builtin::PipelineForward::build()) {
+    Renderer *renderer = m_Scene->getSystem<Renderer>();
+    ResourceContext *resourceContext = m_Scene->getSystem<ResourceContext>();
+
+    if (!buildResources(renderer->getMaterial().getResources())) {
         Logger::ERROR("[ForwardRenderer] Could not build forward pipeline.");
         return false;
     }
 
     m_Events = {
-        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const WindowSwapchainResizeEvent &event) {
-            const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
+        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([this](const WindowSwapchainResizeEvent &event) {
+            ResourceContext *resourceContext = m_Scene->getSystem<ResourceContext>();
+
+            const auto [camera] = m_Scene->getComponent<CameraComponent>(resourceContext->getInfo().cameraId);
             camera.resize(event.resolution);
         }),
     };
+
+    m_Culling.setObjects({
+        .cameras = {resourceContext->getInfo().cameraId},
+    });
 
     bool success = true;
 
@@ -178,15 +48,17 @@ bool ForwardRenderer::build() {
     success &= m_BrdfLut.build();
 
     // bake environment textures
-    Renderer *renderer = m_Scene->getSystem<Renderer>();
     renderer->immediate(m_Irradiance.getGraph());
     renderer->immediate(m_Prefilter.getGraph());
     renderer->immediate(m_BrdfLut.getGraph());
 
-    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(*m_Scene, m_Info.camera));
-    m_Graph.add("builtin/lights", Builtin::RenderNodeLights::build(*m_Scene));
+    m_Graph.add("builtin/camera", resourceContext->buildCameraNode());
+    m_Graph.add("builtin/lights", resourceContext->buildLightsNode());
     m_Graph.add("builtin/batch", m_Batch.getRenderNode());
     m_Graph.merge(m_Culling.getGraph());
+
+    const ResourceContext::Resources &resources = resourceContext->getResouces();
+    const ShadowRenderer::Resources &shadowResources = m_Scene->getSystem<ShadowRenderer>()->getResources();
 
     m_Graph.add(
         Output,
@@ -201,25 +73,25 @@ bool ForwardRenderer::build() {
                             },
                         },
                         {
-                            Builtin::RenderNodeCamera::ResourceBuffer,
+                            resources.camera,
                             {
                                 .stage = RenderNode::Stage::Graphics,
                             },
                         },
                         {
-                            Builtin::RenderNodeLights::ResourceBufferDirectional,
+                            resources.directionalLights,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            Builtin::RenderNodeLights::ResourceBufferPoint,
+                            resources.pointLights,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
                         },
                         {
-                            Builtin::RenderNodeLights::ResourceBufferSpot,
+                            resources.spotLights,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
@@ -241,7 +113,7 @@ bool ForwardRenderer::build() {
                 .attachments = {
                     .input = {
                         {
-                            Builtin::PipelineShadow::Directional::ResourceAttachment,
+                            shadowResources.directional.attachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                                 .subresourceRanges = {{
@@ -252,7 +124,7 @@ bool ForwardRenderer::build() {
                             },
                         },
                         {
-                            Builtin::PipelineShadow::Point::ResourceAttachment,
+                            shadowResources.point.attachment,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                                 .subresourceRanges = {{
@@ -289,7 +161,7 @@ bool ForwardRenderer::build() {
                             },
                         },
                         {
-                            Builtin::PipelineBrdfLut::ResourceLut,
+                            m_BrdfLut.getLut(),
                             {
                                 .stage = RenderNode::Stage::Fragment,
                                 .subresourceRanges = {{
@@ -354,7 +226,7 @@ bool ForwardRenderer::build() {
                     .pStencilAttachment = {},
                 });
 
-                Builtin::PipelineForward::PushConstants pushConstants = {
+                Resources::PushConstants pushConstants = {
                     .directionalCount = static_cast<std::uint32_t>(directionals.size()),
                     .spotCount = static_cast<std::uint32_t>(spots.size()),
                     .pointCount = static_cast<std::uint32_t>(points.size()),
@@ -362,9 +234,9 @@ bool ForwardRenderer::build() {
                 };
 
                 // bind resources
-                Builtin::PipelineForward::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
-                Builtin::PipelineForward::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::PipelineForward::Resource);
+                m_Resources.pipeline->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+                m_Resources.pipeline->bind(context);
+                App::LayoutAllocator.bind(context, m_Resources.pipeline);
 
                 // draw
                 m_Batch.draw(context, m_Culling.getIndirectBuffer());
@@ -377,7 +249,7 @@ bool ForwardRenderer::build() {
 
     if (success) {
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutGlobal,
+            m_Resources.layoutGlobal,
             m_Irradiance.getIrradianceMap(),
             Image::ViewInfo{
                 .type = Image::ViewType::e2D,
@@ -390,7 +262,7 @@ bool ForwardRenderer::build() {
             0);
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutGlobal,
+            m_Resources.layoutGlobal,
             m_Prefilter.getPrefilterMap(),
             Image::ViewInfo{
                 .type = Image::ViewType::e2D,
@@ -403,8 +275,8 @@ bool ForwardRenderer::build() {
             1);
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutGlobal,
-            Builtin::PipelineBrdfLut::ResourceLut,
+            m_Resources.layoutGlobal,
+            m_BrdfLut.getLut(),
             Image::ViewInfo{
                 .type = Image::ViewType::e2D,
                 .subresourceRange = {
@@ -416,38 +288,38 @@ bool ForwardRenderer::build() {
             2);
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutFrame,
-            Builtin::RenderNodeCamera::ResourceBuffer,
+            m_Resources.layoutFrame,
+            resources.camera,
             0);
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutFrame,
-            Builtin::RenderNodeLights::ResourceBufferDirectional,
+            m_Resources.layoutFrame,
+            resources.directionalLights,
             1);
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutFrame,
-            Builtin::RenderNodeLights::ResourceBufferPoint,
+            m_Resources.layoutFrame,
+            resources.pointLights,
             2);
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutFrame,
-            Builtin::RenderNodeLights::ResourceBufferSpot,
+            m_Resources.layoutFrame,
+            resources.spotLights,
             3);
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutFrame,
+            m_Resources.layoutFrame,
             m_Batch.getInstanceBuffer(),
             4);
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutFrame,
+            m_Resources.layoutFrame,
             m_Culling.getVisibleInstanceBuffer(),
             5);
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutFrame,
-            Builtin::PipelineShadow::Directional::ResourceAttachment,
+            m_Resources.layoutFrame,
+            shadowResources.directional.attachment,
             Image::ViewInfo{
                 .type = Image::ViewType::e2D,
                 .subresourceRange = {
@@ -459,8 +331,8 @@ bool ForwardRenderer::build() {
             6);
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineForward::ResourceLayoutFrame,
-            Builtin::PipelineShadow::Point::ResourceAttachment,
+            m_Resources.layoutFrame,
+            shadowResources.point.attachment,
             Image::ViewInfo{
                 .type = Image::ViewType::eCube,
                 .subresourceRange = {
@@ -499,15 +371,19 @@ bool ForwardRenderer::destroy() {
     success &= m_Prefilter.destroy();
     success &= m_BrdfLut.destroy();
 
-    return true;
+    return success;
 }
 
-bool ForwardRenderer::specialize(const Builtin::PipelineForward::Specialization &specialization) {
-    return Builtin::PipelineForward::Resource->specialize(specialization);
+bool ForwardRenderer::specialize(const Resources::Specialization &specialization) {
+    return m_Resources.pipeline->specialize(specialization);
 }
 
 const RenderGraph &ForwardRenderer::getGraph() const {
     return m_Graph;
+}
+
+const ForwardRenderer::Resources &ForwardRenderer::getResources() const {
+    return m_Resources;
 }
 
 const ForwardRenderer::Info &ForwardRenderer::getInfo() const {
@@ -516,6 +392,141 @@ const ForwardRenderer::Info &ForwardRenderer::getInfo() const {
 
 const RenderBatch &ForwardRenderer::getBatch() const {
     return m_Batch;
+}
+
+bool ForwardRenderer::buildResources(const MaterialAllocator::Resources &material) {
+    auto layoutGlobal = ResourceRegistry<DescriptorLayout>::insert(
+        "builtin/forward/global",
+        {{
+            .bindings = {
+                {
+                    // irradiance map
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .stage = DescriptorLayout::ShaderStageFlags::eFragment,
+                },
+                {
+                    // prefilter map
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .stage = DescriptorLayout::ShaderStageFlags::eFragment,
+                },
+                {
+                    // brdf lut
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .stage = DescriptorLayout::ShaderStageFlags::eFragment,
+                },
+            },
+            .lifetime = DescriptorLayout::Lifetime::Global,
+        }});
+
+    if (!layoutGlobal) {
+        return false;
+    }
+
+    auto layoutFrame = ResourceRegistry<DescriptorLayout>::insert(
+        "builtin/forward/frame",
+        {{
+            .bindings = {
+                {
+                    // camera
+                    .type = DescriptorLayout::Type::eUniformBuffer,
+                    .range = sizeof(ResourceContext::CameraBufferData),
+                },
+                {
+                    // directionals
+                    .type = DescriptorLayout::Type::eStorageBuffer,
+                },
+                {
+                    // points
+                    .type = DescriptorLayout::Type::eStorageBuffer,
+                },
+                {
+                    // spots
+                    .type = DescriptorLayout::Type::eStorageBuffer,
+                },
+                {
+                    // instance
+                    .type = DescriptorLayout::Type::eStorageBuffer,
+                },
+                {
+                    // culling
+                    .type = DescriptorLayout::Type::eStorageBuffer,
+                },
+                {
+                    // directional shadow depth map
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .stage = DescriptorLayout::ShaderStageFlags::eFragment,
+                },
+                {
+                    // point shadow depth map
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .stage = DescriptorLayout::ShaderStageFlags::eFragment,
+                },
+            },
+        }});
+
+    if (!layoutFrame) {
+        return false;
+    }
+
+    auto pipeline = ResourceRegistry<GraphicsPipeline>::insert(
+        "builtin/forward",
+        {
+            {
+                .module = "builtin/render/forward",
+                .specialization = {
+                    .offsets = {
+                        offsetof(Resources::Specialization, enableShadows),
+                    },
+                    .size = sizeof(Resources::Specialization),
+                },
+            },
+            {
+                .description = &Model::Vertex::Description,
+                // TODO implement a proper OIT
+                .blend = {
+                    .logicOpEnable = false,
+                    .logicOp = GraphicsPipeline::LogicOp::eCopy,
+                    .attachments = {{
+                        .blendEnable = true,
+                        .srcColorBlendFactor = GraphicsPipeline::BlendFactor::eSrcAlpha,
+                        .dstColorBlendFactor = GraphicsPipeline::BlendFactor::eOneMinusSrcAlpha,
+                        .colorBlendOp = GraphicsPipeline::BlendOp::eAdd,
+                        .srcAlphaBlendFactor = GraphicsPipeline::BlendFactor::eOne,
+                        .dstAlphaBlendFactor = GraphicsPipeline::BlendFactor::eZero,
+                        .alphaBlendOp = GraphicsPipeline::BlendOp::eAdd,
+                        .colorWriteMask = GraphicsPipeline::ColorComponentFlags::eR | //
+                                          GraphicsPipeline::ColorComponentFlags::eG | //
+                                          GraphicsPipeline::ColorComponentFlags::eB | //
+                                          GraphicsPipeline::ColorComponentFlags::eA,
+                    }},
+                },
+                .layouts = {
+                    .resources = {
+                        material.layout,
+                        *layoutGlobal,
+                        *layoutFrame,
+                    },
+                    .pushConstantRanges = {
+                        {
+                            .stageFlags = GraphicsPipeline::PushConstantsStageFlags::eAll,
+                            .size = sizeof(Resources::PushConstants),
+                        },
+                    },
+                },
+            },
+        });
+
+    if (!pipeline) {
+        return false;
+    }
+
+    m_Resources = {
+        .layoutGlobal = std::move(*layoutGlobal),
+        .layoutFrame = std::move(*layoutFrame),
+        .pipeline = std::move(*pipeline),
+    };
+
+    return true;
 }
 
 } // namespace Physbuzz

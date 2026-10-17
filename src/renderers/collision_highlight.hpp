@@ -1,34 +1,31 @@
 #pragma once
 
-#include "physbuzz/window/window.hpp"
 #include <physbuzz/ecs/system.hpp>
+#include <physbuzz/graphics/pipeline.hpp>
 #include <physbuzz/render/batch.hpp>
-
-namespace PipelineCollisionHighlight {
-
-struct HighlightedObject {
-    vk::Bool32 highlighted;
-};
-
-inline Physbuzz::Resource<Physbuzz::DescriptorLayout> ResourceLayoutFrame = {"collision_highlight/frame"};
-inline Physbuzz::Resource<Physbuzz::DynamicBuffer> ResourceHighlightBuffer = {"collision_highlight/highlight"};
-
-inline Physbuzz::Resource<Physbuzz::GraphicsPipeline> Resource = {"collision_highlight"};
-
-bool build();
-
-} // namespace PipelineCollisionHighlight
+#include <physbuzz/render/resources.hpp>
+#include <physbuzz/resources/registry.hpp>
+#include <physbuzz/window/window.hpp>
 
 class CollisionHighlight : public Physbuzz::System<> {
   public:
     inline static Physbuzz::RenderNodeID Output = "builtin/collision_highlight";
 
     struct Info {
-        Physbuzz::ObjectID camera;
         std::shared_ptr<Physbuzz::Window> window;
 
         const std::vector<Physbuzz::ObjectID> &objects;
         const Physbuzz::RenderBatch &batch;
+    };
+
+    struct Resources {
+        struct HighlightedObject {
+            vk::Bool32 highlighted;
+        };
+
+        Physbuzz::Resource<Physbuzz::DescriptorLayout> layoutFrame;
+        Physbuzz::Resource<Physbuzz::DynamicBuffer> highlightBuffer;
+        Physbuzz::Resource<Physbuzz::GraphicsPipeline> pipeline;
     };
 
     CollisionHighlight(Physbuzz::Scene *scene, const Info &info);
@@ -37,11 +34,13 @@ class CollisionHighlight : public Physbuzz::System<> {
     bool destroy() override;
 
     const Physbuzz::RenderGraph &getGraph();
+    const Resources &getResources() const;
 
   private:
     Info m_Info;
+    Resources m_Resources;
 
-    std::vector<PipelineCollisionHighlight::HighlightedObject> m_Highlighted;
+    std::vector<Resources::HighlightedObject> m_Highlighted;
 
     Physbuzz::RenderGraph m_Graph = {{
         .output = Output,
@@ -50,4 +49,6 @@ class CollisionHighlight : public Physbuzz::System<> {
     struct {
         Physbuzz::EventID resize = -1;
     } m_Events = {};
+
+    bool buildResources();
 };

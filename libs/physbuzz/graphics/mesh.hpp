@@ -73,8 +73,7 @@ class Mesh {
         std::vector<SubMesh> submeshes;
     };
 
-    Mesh(const Info &info)
-        : m_Info(info) {}
+    Mesh(const Info &info);
 
     bool build();
     bool destroy();

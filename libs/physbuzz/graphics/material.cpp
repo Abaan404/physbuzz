@@ -7,17 +7,11 @@
 
 namespace Physbuzz {
 
-namespace Builtin {
+MaterialAllocator::MaterialAllocator() {}
 
-bool LayoutMaterial::build() {
-    if (ResourceRegistry<DescriptorLayout>::contains(Resource)) {
-        return true;
-    }
-
-    bool success = true;
-
-    success &= ResourceRegistry<DescriptorLayout>::insert(
-        Resource,
+bool MaterialAllocator::Resources::build() {
+    std::optional<Resource<DescriptorLayout>> layoutRef = ResourceRegistry<DescriptorLayout>::insert(
+        "builtin/material",
         {{
             .bindings = {
                 {
@@ -31,22 +25,24 @@ bool LayoutMaterial::build() {
             .lifetime = DescriptorLayout::Lifetime::Global,
         }});
 
-    return success;
+    if (!layoutRef) {
+        return false;
+    }
+
+    layout = std::move(*layoutRef);
+
+    return true;
 }
-
-} // namespace Builtin
-
-MaterialAllocator::MaterialAllocator() {}
 
 bool MaterialAllocator::build() {
     bool success = true;
 
-    success &= Builtin::LayoutMaterial::build();
+    success &= m_Resources.build();
 
-    m_MaterialBuffer.build(sizeof(Builtin::LayoutMaterial::MaterialBuffer));
+    m_MaterialBuffer.build(sizeof(MaterialBuffer));
 
     m_Events.build = ResourceRegistry<Material>::Events.addCallback<OnResourceBuild>([&](const OnResourceBuild &event) {
-        Resource<Material> material = {event.identifier};
+        Resource<Material> material = {event.id};
 
         for (const auto &[type, texture] : material->textures) {
             // new texture loaded into table, map to bindless descriptor
@@ -69,7 +65,7 @@ bool MaterialAllocator::build() {
                 continue;
             }
 
-            App::LayoutAllocator.write(Builtin::LayoutMaterial::Resource, texture, viewInfo, 0, m_Textures.query(texture));
+            App::LayoutAllocator.write(m_Resources.layout, texture, viewInfo, 0, m_Textures.query(texture));
         }
 
         if (m_Materials.add(material)) {
@@ -78,7 +74,7 @@ bool MaterialAllocator::build() {
     });
 
     m_Events.destroy = ResourceRegistry<Material>::Events.addCallback<OnResourceDestroy>([&](const OnResourceDestroy &event) {
-        Resource<Material> material = {event.identifier};
+        Resource<Material> material = {event.id};
 
         // untrack from material table
         m_Materials.remove(material);
@@ -87,8 +83,8 @@ bool MaterialAllocator::build() {
         for (const auto &[type, texture] : material->textures) {
             bool shouldErase = true;
 
-            for (const auto &[material2, _] : m_Materials.getResources()) {
-                for (const auto &[_, texture2] : material2->textures) {
+            for (const auto &[materialId, _] : m_Materials.getResources()) {
+                for (const auto &[_, texture2] : Resource<Material>(materialId)->textures) {
                     if (texture2 == texture) {
                         shouldErase = false;
                     }
@@ -119,7 +115,7 @@ bool MaterialAllocator::destroy() {
 
 void MaterialAllocator::update(Resource<Material> material) {
     // create a new material buffer
-    Builtin::LayoutMaterial::MaterialBuffer buffer;
+    MaterialBuffer buffer;
 
     for (const auto &[type, texture] : material->textures) {
         switch (type) {
@@ -171,8 +167,8 @@ void MaterialAllocator::refresh(const RenderContext &context) {
 
     if (m_BufferIsDirty) {
         // TODO a buffer copy + offset write would be better
-        m_MaterialBuffer.rebuild(*context.deletionQueue, m_Buffer.size() * sizeof(Builtin::LayoutMaterial::MaterialBuffer));
-        m_MaterialBuffer.map<Builtin::LayoutMaterial::MaterialBuffer>(context.command, context.deletionQueue, m_Buffer, 0);
+        m_MaterialBuffer.rebuild(*context.deletionQueue, m_Buffer.size() * sizeof(MaterialBuffer));
+        m_MaterialBuffer.map<MaterialBuffer>(context.command, context.deletionQueue, m_Buffer, 0);
 
         m_BufferIsDirty = false;
     }
@@ -188,6 +184,10 @@ std::uint32_t MaterialAllocator::query(const Resource<Texture> &texture) const {
 
 const Buffer &MaterialAllocator::getMaterialBuffer() const {
     return m_MaterialBuffer;
+}
+
+const MaterialAllocator::Resources &MaterialAllocator::getResources() const {
+    return m_Resources;
 }
 
 } // namespace Physbuzz

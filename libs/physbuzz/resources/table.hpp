@@ -1,6 +1,6 @@
 #pragma once
 
-#include "resource.hpp"
+#include "registry.hpp"
 #include <cstdint>
 #include <deque>
 #include <unordered_map>
@@ -31,12 +31,16 @@ class ResourceTable {
             return false;
         }
 
+        if (it->second == m_ResourceCounter - 1) {
+            m_ResourceCounter--;
+        }
+
         m_EmptyIndices.push_front(it->second);
         m_Resources.erase(it);
         return true;
     }
 
-    const std::unordered_map<Resource<T>, std::uint32_t> &getResources() const {
+    const std::unordered_map<ResourceID, std::uint32_t> &getResources() const {
         return m_Resources;
     }
 
@@ -45,7 +49,10 @@ class ResourceTable {
     }
 
     std::uint32_t query(const Resource<T> &resource) const {
-        PBZ_ASSERT(m_Resources.contains(resource), std::format("[ResourceTable] Table does not contain {}", resource));
+        if (!m_Resources.contains(resource)) {
+            return static_cast<std::uint32_t>(-1);
+        }
+
         return m_Resources.at(resource);
     }
 
@@ -64,7 +71,7 @@ class ResourceTable {
     }
 
   private:
-    std::unordered_map<Resource<T>, std::uint32_t> m_Resources;
+    std::unordered_map<ResourceID, std::uint32_t> m_Resources;
     std::deque<std::uint32_t> m_EmptyIndices;
     std::uint32_t m_ResourceCounter = 0;
 };

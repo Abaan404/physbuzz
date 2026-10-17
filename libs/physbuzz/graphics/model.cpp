@@ -46,7 +46,7 @@ std::optional<Model::Result> Model::load(const std::filesystem::path &path, Tran
     Result result;
 
     m_Info = {
-        .mesh = {""},
+        .mesh = {},
         .materials = {},
         .submeshMaterialIndices = {},
     };
@@ -68,7 +68,7 @@ std::optional<Model::Result> Model::load(const std::filesystem::path &path, Tran
     }
 
     for (std::size_t i = 0; i < aiscene->mNumMaterials; i++) {
-        ResourceID resourceId = std::format("model/{}@{}", i, path.string());
+        const std::string materialName = std::format("model/{}@{}", i, path.string());
 
         const MaterialResult &materialResult = result.materials.emplace_back(processMaterial(aiscene->mMaterials[i]));
 
@@ -76,11 +76,11 @@ std::optional<Model::Result> Model::load(const std::filesystem::path &path, Tran
 
         for (const auto &[type, texture] : materialResult.textures) {
             std::filesystem::path texturePath = path.parent_path() / texture.path;
-
-            ResourceID resourceId = std::format("model@{}", texturePath.string());
+            const std::string textureName = std::format("model@{}", texturePath.string());
 
             // a material can reference the same texture again
-            if (!ResourceRegistry<Texture>::contains(resourceId)) {
+            auto textureResource = ResourceRegistry<Texture>::get(textureName);
+            if (!textureResource) {
                 ImageFile imageFile = {{
                     .files = {{
                         .path = texturePath,
@@ -89,46 +89,60 @@ std::optional<Model::Result> Model::load(const std::filesystem::path &path, Tran
 
                 imageFile.readMeta();
 
-                if (!ResourceRegistry<Texture>::insert(resourceId, texture.info, glm::uvec3{imageFile.getData().meta.resolution, 1})) {
-                    Logger::ERROR("[Model] Failed to build texture resource {}.", resourceId);
+                textureResource = ResourceRegistry<Texture>::insert(
+                    textureName,
+                    Texture{texture.info},
+                    glm::uvec3{imageFile.getData().meta.resolution, 1});
+
+                if (!textureResource) {
+                    Logger::ERROR("[Model] Failed to build texture resource {}.", textureName);
                     return std::nullopt;
                 }
 
-                if (!Resource<Texture>{resourceId}->write(imageFile.getInfo(), batch)) {
-                    Logger::ERROR("[Model] Failed to write texture resource {}.", resourceId);
+                if (!(*textureResource)->write(imageFile.getInfo(), batch)) {
+                    Logger::ERROR("[Model] Failed to write texture resource {}.", textureName);
                     return std::nullopt;
                 }
             }
 
-            material.textures.insert({type, resourceId});
+            material.textures.insert({type, *textureResource});
         }
 
-        if (!ResourceRegistry<Material>::contains(resourceId)) {
-            if (!ResourceRegistry<Material>::insert(resourceId, std::move(material))) {
-                Logger::ERROR("[Model] Failed to load material resource {}.", resourceId);
+        auto materialResource = ResourceRegistry<Material>::get(materialName);
+
+        if (!materialResource) {
+            materialResource = ResourceRegistry<Material>::insert(materialName, std::move(material));
+
+            if (!materialResource) {
+                Logger::ERROR("[Model] Failed to load material resource {}.", materialName);
                 return std::nullopt;
             }
         }
 
-        m_Info.materials.emplace_back(resourceId);
+        m_Info.materials.emplace_back(*materialResource);
     }
 
     result.mesh = processMesh(aiscene->mRootNode, aiscene);
 
-    m_Info.mesh = std::format("model@{}", path.string());
+    const std::string meshName = std::format("model@{}", path.string());
 
-    if (!ResourceRegistry<Mesh>::contains(m_Info.mesh)) {
-        if (!ResourceRegistry<Mesh>::insert(m_Info.mesh, result.mesh.info)) {
-            Logger::ERROR("[Model] Failed to build mesh resource {}.", m_Info.mesh);
+    auto meshResource = ResourceRegistry<Mesh>::get(meshName);
+
+    if (!meshResource) {
+        meshResource = ResourceRegistry<Mesh>::insert(meshName, Mesh{result.mesh.info});
+
+        if (!meshResource) {
+            Logger::ERROR("[Model] Failed to build mesh resource {}.", meshName);
             return std::nullopt;
         }
 
-        if (!Resource<Mesh>{m_Info.mesh}->write(std::move(result.mesh.geometry), batch)) {
-            Logger::ERROR("[Model] Failed to write mesh resource {}.", m_Info.mesh);
+        if (!(*meshResource)->write(std::move(result.mesh.geometry), batch)) {
+            Logger::ERROR("[Model] Failed to write mesh resource {}.", meshName);
             return std::nullopt;
         }
     }
 
+    m_Info.mesh = *meshResource;
     m_Info.submeshMaterialIndices = result.mesh.submeshMaterialIndices;
 
     return result;

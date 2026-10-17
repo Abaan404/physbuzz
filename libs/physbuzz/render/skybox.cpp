@@ -8,108 +8,42 @@
 #include "../graphics/mesh.hpp"
 #include "../graphics/pipeline.hpp"
 #include "components/camera.hpp"
-#include "nodes/camera.hpp"
 #include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
-
-namespace Builtin {
-
-bool PipelineSkybox::build() {
-    if (ResourceRegistry<GraphicsPipeline>::contains(Resource)) {
-        return true;
-    }
-
-    bool success = true;
-
-    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutFrame)) {
-        success &= ResourceRegistry<DescriptorLayout>::insert(
-            ResourceLayoutFrame,
-            {{
-                .bindings = {
-                    {
-                        // camera
-                        .type = DescriptorLayout::Type::eUniformBuffer,
-                        .range = sizeof(Builtin::RenderNodeCamera::CameraBuffer),
-                    },
-                },
-            }});
-    }
-
-    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayoutTexture)) {
-        success &= ResourceRegistry<DescriptorLayout>::insert(
-            ResourceLayoutTexture,
-            {{
-                .bindings = {
-                    {
-                        // skybox (cubemap)
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
-                    },
-                    {
-                        // skybox (equirectangular)
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
-                    },
-                },
-                .lifetime = DescriptorLayout::Lifetime::Global,
-            }});
-    }
-
-    success &= ResourceRegistry<GraphicsPipeline>::insert(
-        Resource,
-        {
-            {
-                .module = "builtin/render/skybox",
-                .specialization = {
-                    .offsets = {
-                        offsetof(Specialization, isCubemap),
-                    },
-                    .size = sizeof(Specialization),
-                },
-            },
-            {
-                .layouts = {
-                    .resources = {
-                        ResourceLayoutTexture,
-                        ResourceLayoutFrame,
-                    },
-                },
-            },
-        });
-
-    return success;
-}
-
-} // namespace Builtin
 
 SkyboxRenderer::SkyboxRenderer(Scene *scene, const Info &info)
     : System<>(scene),
       m_Info(info) {}
 
 bool SkyboxRenderer::build() {
-    // build pipeline
-    if (!Builtin::PipelineSkybox::build()) {
+    ResourceContext *resourceContext = m_Scene->getSystem<ResourceContext>();
+
+    if (!buildResources()) {
         Logger::ERROR("[SkyboxRenderer] Could not build skybox pipeline.");
         return false;
     }
 
     bool success = true;
 
-    Builtin::PipelineSkybox::Specialization specialization = {
+    Resources::Specialization specialization = {
         .isCubemap = m_Info.skybox->getInfo().type == Texture::Type::Cube,
     };
 
-    success &= Builtin::PipelineSkybox::Resource->specialize(specialization);
+    success &= m_Resources.pipeline->specialize(specialization);
 
     m_Events = {
-        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([&](const WindowSwapchainResizeEvent &event) {
-            const auto [camera] = m_Scene->getComponent<CameraComponent>(m_Info.camera);
+        .resize = m_Info.window->addCallback<WindowSwapchainResizeEvent>([this](const WindowSwapchainResizeEvent &event) {
+            ResourceContext *resourceContext = m_Scene->getSystem<ResourceContext>();
+
+            const auto [camera] = m_Scene->getComponent<CameraComponent>(resourceContext->getInfo().cameraId);
             camera.resize(event.resolution);
         }),
     };
 
-    m_Graph.add("builtin/camera", Builtin::RenderNodeCamera::build(*m_Scene, m_Info.camera));
+    const ResourceContext::Resources &resources = resourceContext->getResouces();
+
+    m_Graph.add("builtin/camera", resourceContext->buildCameraNode());
 
     m_Graph.add(
         Output,
@@ -118,7 +52,7 @@ bool SkyboxRenderer::build() {
                 .buffers = {
                     .input = {
                         {
-                            Builtin::RenderNodeCamera::ResourceBuffer,
+                            resources.camera,
                             {
                                 .stage = RenderNode::Stage::Fragment,
                             },
@@ -175,8 +109,8 @@ bool SkyboxRenderer::build() {
                 });
 
                 // bind resources
-                Builtin::PipelineSkybox::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::PipelineSkybox::Resource);
+                m_Resources.pipeline->bind(context);
+                App::LayoutAllocator.bind(context, m_Resources.pipeline);
 
                 // cubemap embedded within shader
                 context.command.draw(36, 1, 0, 0);
@@ -190,7 +124,7 @@ bool SkyboxRenderer::build() {
     if (success) {
         if (specialization.isCubemap) {
             success &= App::LayoutAllocator.write(
-                Builtin::PipelineSkybox::ResourceLayoutTexture,
+                m_Resources.layoutTexture,
                 m_Info.skybox,
                 {
                     .type = Image::ViewType::eCube,
@@ -203,7 +137,7 @@ bool SkyboxRenderer::build() {
                 0);
         } else {
             success &= App::LayoutAllocator.write(
-                Builtin::PipelineSkybox::ResourceLayoutTexture,
+                m_Resources.layoutTexture,
                 m_Info.skybox,
                 {
                     .type = Image::ViewType::e2D,
@@ -217,8 +151,8 @@ bool SkyboxRenderer::build() {
         }
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineSkybox::ResourceLayoutFrame,
-            Builtin::RenderNodeCamera::ResourceBuffer,
+            m_Resources.layoutFrame,
+            resources.camera,
             0);
     }
 
@@ -234,8 +168,86 @@ const RenderGraph &SkyboxRenderer::getGraph() const {
     return m_Graph;
 }
 
+const SkyboxRenderer::Resources &SkyboxRenderer::getResources() const {
+    return m_Resources;
+}
+
 const SkyboxRenderer::Info &SkyboxRenderer::getInfo() const {
     return m_Info;
+}
+
+bool SkyboxRenderer::buildResources() {
+    auto layoutFrame = ResourceRegistry<DescriptorLayout>::insert(
+        "builtin/skybox/frame",
+        {{
+            .bindings = {
+                {
+                    // camera
+                    .type = DescriptorLayout::Type::eUniformBuffer,
+                    .range = sizeof(ResourceContext::CameraBufferData),
+                },
+            },
+        }});
+
+    if (!layoutFrame) {
+        return false;
+    }
+
+    auto layoutTexture = ResourceRegistry<DescriptorLayout>::insert(
+        "builtin/skybox/texture",
+        {{
+            .bindings = {
+                {
+                    // skybox (cubemap)
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
+                },
+                {
+                    // skybox (equirectangular)
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
+                },
+            },
+            .lifetime = DescriptorLayout::Lifetime::Global,
+        }});
+
+    if (!layoutTexture) {
+        return false;
+    }
+
+    auto pipeline = ResourceRegistry<GraphicsPipeline>::insert(
+        "builtin/skybox",
+        {
+            {
+                .module = "builtin/render/skybox",
+                .specialization = {
+                    .offsets = {
+                        offsetof(Resources::Specialization, isCubemap),
+                    },
+                    .size = sizeof(Resources::Specialization),
+                },
+            },
+            {
+                .layouts = {
+                    .resources = {
+                        *layoutTexture,
+                        *layoutFrame,
+                    },
+                },
+            },
+        });
+
+    if (!pipeline) {
+        return false;
+    }
+
+    m_Resources = {
+        .layoutTexture = std::move(*layoutTexture),
+        .layoutFrame = std::move(*layoutFrame),
+        .pipeline = std::move(*pipeline),
+    };
+
+    return true;
 }
 
 } // namespace Physbuzz

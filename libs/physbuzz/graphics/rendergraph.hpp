@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../containers/directedgraph.hpp"
-#include "../resources/resource.hpp"
+#include "../resources/registry.hpp"
 #include "descriptors/attachment.hpp"
 #include "descriptors/dynamic.hpp"
 #include "descriptors/texture.hpp"

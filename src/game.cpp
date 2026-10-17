@@ -120,106 +120,111 @@ void Game::build() {
 
     Physbuzz::TransferBatch batch = {{}};
 
-    {
-        Physbuzz::Geometry<Physbuzz::Model::Vertex> cube = ModelCube::build();
-        Physbuzz::Geometry<Physbuzz::Model::Vertex> square = ModelSquare::build();
-        Physbuzz::Geometry<Physbuzz::Model::Vertex> circle = ModelCircle::build();
-        Physbuzz::Geometry<Physbuzz::Model::Vertex> sphere = ModelSphere::build();
+    Physbuzz::Geometry<Physbuzz::Model::Vertex> cube = ModelCube::build();
+    Physbuzz::Geometry<Physbuzz::Model::Vertex> square = ModelSquare::build();
+    Physbuzz::Geometry<Physbuzz::Model::Vertex> circle = ModelCircle::build();
+    Physbuzz::Geometry<Physbuzz::Model::Vertex> sphere = ModelSphere::build();
 
-        ResourceLoader::loadMesh({"cube"}, cube, batch);
-        ResourceLoader::loadMesh({"square"}, square, batch);
-        ResourceLoader::loadMesh({"circle"}, circle, batch);
-        ResourceLoader::loadMesh({"sphere"}, sphere, batch);
+    Physbuzz::Resource<Physbuzz::Mesh> cubeMesh = *ResourceLoader::loadMesh({"cube"}, cube, batch);
+    Physbuzz::Resource<Physbuzz::Mesh> squareMesh = *ResourceLoader::loadMesh({"square"}, square, batch);
+    Physbuzz::Resource<Physbuzz::Mesh> circleMesh = *ResourceLoader::loadMesh({"circle"}, circle, batch);
+    Physbuzz::Resource<Physbuzz::Mesh> sphereMesh = *ResourceLoader::loadMesh({"sphere"}, sphere, batch);
 
-        ResourceLoader::loadShadowMesh({"cube/shadow"}, cube, batch);
-        ResourceLoader::loadShadowMesh({"square/shadow"}, square, batch);
-        ResourceLoader::loadShadowMesh({"circle/shadow"}, circle, batch);
-        ResourceLoader::loadShadowMesh({"sphere/shadow"}, sphere, batch);
+    Physbuzz::Resource<Physbuzz::Mesh> cubeShadowMesh = *ResourceLoader::loadShadowMesh({"cube/shadow"}, cube, batch);
+    Physbuzz::Resource<Physbuzz::Mesh> squareShadowMesh = *ResourceLoader::loadShadowMesh({"square/shadow"}, square, batch);
+    Physbuzz::Resource<Physbuzz::Mesh> circleShadowMesh = *ResourceLoader::loadShadowMesh({"circle/shadow"}, circle, batch);
+    Physbuzz::Resource<Physbuzz::Mesh> sphereShadowMesh = *ResourceLoader::loadShadowMesh({"sphere/shadow"}, sphere, batch);
 
-        ResourceLoader::loadPhysicsMesh({"cube"}, cube, [](const glm::vec3 &direction) {
-            return glm::vec3(0.5f) * glm::sign(direction);
+    Physbuzz::Resource<Physbuzz::PhysicsMesh> cubePhysicsMesh = *ResourceLoader::loadPhysicsMesh({"cube"}, cube, [](const glm::vec3 &direction) {
+        return glm::vec3(0.5f) * glm::sign(direction);
+    });
+
+    Physbuzz::Resource<Physbuzz::PhysicsMesh> squarePhysicsMesh = *ResourceLoader::loadPhysicsMesh({"square"}, square, [](const glm::vec3 &direction) {
+        return glm::vec3(0.5f, 0.5f, 0.0f) * glm::sign(direction);
+    });
+
+    Physbuzz::Resource<Physbuzz::PhysicsMesh> circlePhysicsMesh = *ResourceLoader::loadPhysicsMesh({"circle"}, circle, [](const glm::vec3 &direction) {
+        return glm::vec3(glm::normalize(direction));
+    });
+
+    Physbuzz::Resource<Physbuzz::PhysicsMesh> spherePhysicsMesh = *ResourceLoader::loadPhysicsMesh({"sphere"}, sphere, [](const glm::vec3 &direction) {
+        return glm::normalize(direction);
+    });
+
+    Physbuzz::Resource<Physbuzz::Texture> albedoDefault = *ResourceLoader::loadTexture("default/albedo", {.files = {{.path = "resources/textures/default/albedo.png"}}}, batch);
+    Physbuzz::Resource<Physbuzz::Texture> metallicDefault = *ResourceLoader::loadTexture("default/metallic", {.files = {{.path = "resources/textures/default/metallic.png"}}}, batch);
+
+    Physbuzz::Resource<Physbuzz::Texture> albedoCrate = *ResourceLoader::loadTexture("crate/albedo", {.files = {{.path = "resources/textures/crate/albedo.png"}}}, batch);
+    Physbuzz::Resource<Physbuzz::Texture> metallicCrate = *ResourceLoader::loadTexture("crate/metallic", {.files = {{.path = "resources/textures/crate/metallic.png"}}}, batch);
+
+    Physbuzz::Resource<Physbuzz::Texture> albedoFloor = *ResourceLoader::loadTexture("floor", {.files = {{.path = "resources/textures/floor.png"}}}, batch);
+
+    Physbuzz::Resource<Physbuzz::Material> defaultMaterial = *Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+        "default",
+        {
+            .textures = {
+                {Physbuzz::TextureType::Albedo, std::move(albedoDefault)},
+                {Physbuzz::TextureType::Metallic, std::move(metallicDefault)},
+            },
         });
 
-        ResourceLoader::loadPhysicsMesh({"square"}, square, [](const glm::vec3 &direction) {
-            return glm::vec3(0.5f, 0.5f, 0.0f) * glm::sign(direction);
+    Physbuzz::Resource<Physbuzz::Material> crateMaterial = *Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+        "crate",
+        {
+            .textures = {
+                {Physbuzz::TextureType::Albedo, std::move(albedoCrate)},
+                {Physbuzz::TextureType::Metallic, std::move(metallicCrate)},
+            },
         });
 
-        ResourceLoader::loadPhysicsMesh({"circle"}, circle, [](const glm::vec3 &direction) {
-            return glm::vec3(glm::normalize(direction));
+    Physbuzz::Resource<Physbuzz::Material> floorMaterial = *Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+        "floor",
+        {
+            .textures = {
+                {Physbuzz::TextureType::Albedo, std::move(albedoFloor)},
+            },
         });
-
-        ResourceLoader::loadPhysicsMesh({"sphere"}, sphere, [](const glm::vec3 &direction) {
-            return glm::normalize(direction);
-        });
-    }
-
-    {
-        ResourceLoader::loadTexture("default/albedo", {.files = {{.path = "resources/textures/default/albedo.png"}}}, batch);
-        ResourceLoader::loadTexture("default/metallic", {.files = {{.path = "resources/textures/default/metallic.png"}}}, batch);
-
-        Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
-            "default",
-            {
-                .textures = {
-                    {Physbuzz::TextureType::Albedo, {"default/albedo"}},
-                    {Physbuzz::TextureType::Metallic, {"default/metallic"}},
-                },
-            });
-    }
-
-    {
-        ResourceLoader::loadTexture("crate/albedo", {.files = {{.path = "resources/textures/crate/albedo.png"}}}, batch);
-        ResourceLoader::loadTexture("crate/metallic", {.files = {{.path = "resources/textures/crate/metallic.png"}}}, batch);
-
-        Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
-            "crate",
-            {
-                .textures = {
-                    {Physbuzz::TextureType::Albedo, {"crate/albedo"}},
-                    {Physbuzz::TextureType::Metallic, {"crate/metallic"}},
-                },
-            });
-    }
-
-    {
-        ResourceLoader::loadTexture("floor", {.files = {{.path = "resources/textures/floor.png"}}}, batch);
-
-        Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
-            "floor",
-            {
-                .textures = {
-                    {Physbuzz::TextureType::Albedo, {"floor"}},
-                },
-            });
-    }
 
     {
         std::vector<std::string> materials = {"gold", "grass", "plastic", "rusted_iron", "wall"};
 
         for (int i = 0; i < materials.size(); i++) {
-            const auto &material = materials[i];
+            const auto &materialName = materials[i];
 
-            Physbuzz::ResourceID albedo = std::format("{}/albedo.png", material);
-            Physbuzz::ResourceID ao = std::format("{}/ao.png", material);
-            Physbuzz::ResourceID metallic = std::format("{}/metallic.png", material);
-            Physbuzz::ResourceID normal = std::format("{}/normal.png", material);
-            Physbuzz::ResourceID roughness = std::format("{}/roughness.png", material);
+            Physbuzz::Resource<Physbuzz::Texture> albedo = *ResourceLoader::loadTexture(
+                std::format("{}/albedo.png", materialName),
+                {.files = {{.path = std::format("resources/textures/{}/albedo.png", materialName)}}},
+                batch);
 
-            ResourceLoader::loadTexture(albedo, {.files = {{.path = std::format("resources/textures/{}/albedo.png", material)}}}, batch);
-            ResourceLoader::loadTexture(ao, {.files = {{.path = std::format("resources/textures/{}/ao.png", material)}}}, batch);
-            ResourceLoader::loadTexture(metallic, {.files = {{.path = std::format("resources/textures/{}/metallic.png", material)}}}, batch);
-            ResourceLoader::loadTexture(normal, {.files = {{.path = std::format("resources/textures/{}/normal.png", material)}}}, batch);
-            ResourceLoader::loadTexture(roughness, {.files = {{.path = std::format("resources/textures/{}/roughness.png", material)}}}, batch);
+            Physbuzz::Resource<Physbuzz::Texture> ao = *ResourceLoader::loadTexture(
+                std::format("{}/ao.png", materialName),
+                {.files = {{.path = std::format("resources/textures/{}/ao.png", materialName)}}},
+                batch);
 
-            Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
-                material,
+            Physbuzz::Resource<Physbuzz::Texture> metallic = *ResourceLoader::loadTexture(
+                std::format("{}/metallic.png", materialName),
+                {.files = {{.path = std::format("resources/textures/{}/metallic.png", materialName)}}},
+                batch);
+
+            Physbuzz::Resource<Physbuzz::Texture> normal = *ResourceLoader::loadTexture(
+                std::format("{}/normal.png", materialName),
+                {.files = {{.path = std::format("resources/textures/{}/normal.png", materialName)}}},
+                batch);
+
+            Physbuzz::Resource<Physbuzz::Texture> roughness = *ResourceLoader::loadTexture(
+                std::format("{}/roughness.png", materialName),
+                {.files = {{.path = std::format("resources/textures/{}/roughness.png", materialName)}}},
+                batch);
+
+            Physbuzz::Resource<Physbuzz::Material> material = *Physbuzz::ResourceRegistry<Physbuzz::Material>::insert(
+                materialName,
                 {
                     .textures = {
-                        {Physbuzz::TextureType::Albedo, albedo},
-                        {Physbuzz::TextureType::AmbientOcclusion, ao},
-                        {Physbuzz::TextureType::Metallic, metallic},
-                        {Physbuzz::TextureType::Normal, normal},
-                        {Physbuzz::TextureType::Roughness, roughness},
+                        {Physbuzz::TextureType::Albedo, std::move(albedo)},
+                        {Physbuzz::TextureType::AmbientOcclusion, std::move(ao)},
+                        {Physbuzz::TextureType::Metallic, std::move(metallic)},
+                        {Physbuzz::TextureType::Normal, std::move(normal)},
+                        {Physbuzz::TextureType::Roughness, std::move(roughness)},
                     },
                 });
 
@@ -229,7 +234,7 @@ void Game::build() {
                     .scale = {10.0f, 10.0f, 10.0f},
                 }},
                 .resources = {
-                    .mesh = {"sphere"},
+                    .mesh = sphereMesh,
                     .material = material,
                 },
             };
@@ -238,9 +243,9 @@ void Game::build() {
         }
     }
 
-    ResourceLoader::loadTexture("hdr_skybox", {.files = {{.path = "resources/textures/hdr_skybox/newport_loft.hdr"}}, .flipVertically = true}, batch);
+    Physbuzz::Resource<Physbuzz::Texture> hdrSkyboxTexture = *ResourceLoader::loadTexture("hdr_skybox", {.files = {{.path = "resources/textures/hdr_skybox/newport_loft.hdr"}}, .flipVertically = true}, batch);
 
-    ResourceLoader::loadCubemap(
+    Physbuzz::Resource<Physbuzz::Texture> skyboxTexture = *ResourceLoader::loadCubemap(
         "skybox",
         {
             .files = {
@@ -256,6 +261,9 @@ void Game::build() {
 
     transfer->submit(batch);
 
+    Physbuzz::ResourceContext *resourceContext = Physbuzz::App::GScene.createSystem<Physbuzz::ResourceContext>();
+    resourceContext->setCamera(playerId);
+
     Physbuzz::ShadowRenderer *shadow = Physbuzz::App::GScene.createSystem<Physbuzz::ShadowRenderer>(
         Physbuzz::ShadowRenderer::Info{
             .resolution = {2048, 2048},
@@ -263,14 +271,12 @@ void Game::build() {
 
     Physbuzz::ForwardRenderer *forward = Physbuzz::App::GScene.createSystem<Physbuzz::ForwardRenderer>(
         Physbuzz::ForwardRenderer::Info{
-            .camera = playerId,
             .window = window,
-            .environmentMap = {"hdr_skybox"},
+            .environmentMap = hdrSkyboxTexture,
         });
 
     Physbuzz::DeferredRenderer *deferred = Physbuzz::App::GScene.createSystem<Physbuzz::DeferredRenderer>(
         Physbuzz::DeferredRenderer::Info{
-            .camera = playerId,
             .window = window,
         });
 
@@ -281,14 +287,12 @@ void Game::build() {
 
     Physbuzz::SkyboxRenderer *skybox = Physbuzz::App::GScene.createSystem<Physbuzz::SkyboxRenderer>(
         Physbuzz::SkyboxRenderer::Info{
-            .camera = playerId,
             .window = window,
-            .skybox = {"hdr_skybox"},
+            .skybox = hdrSkyboxTexture,
         });
 
     CollisionHighlight *collisionHighlight = Physbuzz::App::GScene.createSystem<CollisionHighlight>(
         CollisionHighlight::Info{
-            .camera = playerId,
             .window = window,
             .objects = forward->getObjects(),
             .batch = forward->getBatch(),
@@ -331,7 +335,7 @@ void Game::build() {
                     .scale = glm::vec3(length),
                 }},
                 .body = {{
-                    .mesh = {"cube"},
+                    .mesh = cubePhysicsMesh,
                     .inverseMass = 1.0f,
                     .angular = {
                         .inverseInertia = glm::inverse(glm::mat3(1.0f / 6.0f * density * length * length)),
@@ -342,9 +346,9 @@ void Game::build() {
                     .hidden = false,
                 },
                 .resources = {
-                    .mesh = {"cube"},
-                    .material = {"crate"},
-                    .shadowMesh = {{"cube/shadow"}},
+                    .mesh = cubeMesh,
+                    .material = crateMaterial,
+                    .shadowMesh = cubeShadowMesh,
                 },
                 .hasPhysics = true,
                 .hasGravity = true,
@@ -366,7 +370,7 @@ void Game::build() {
                     .scale = glm::vec3(2.0f * radius),
                 }},
                 .body = {{
-                    .mesh = {"sphere"},
+                    .mesh = spherePhysicsMesh,
                     .inverseMass = 1.0f,
                     .angular = {
                         .inverseInertia = glm::inverse(glm::mat3(7.0f / 5.0f * density * radius * radius)),
@@ -377,9 +381,9 @@ void Game::build() {
                     .hidden = false,
                 },
                 .resources = {
-                    .mesh = {"sphere"},
-                    .material = {"crate"},
-                    .shadowMesh = {{"sphere/shadow"}},
+                    .mesh = sphereMesh,
+                    .material = crateMaterial,
+                    .shadowMesh = sphereShadowMesh,
                 },
                 .hasPhysics = true,
                 .hasGravity = true,
@@ -397,15 +401,15 @@ void Game::build() {
                 .orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             }},
             .body = {{
-                .mesh = {"square"},
+                .mesh = squarePhysicsMesh,
             }},
             .identifier = {
                 .name = "Floor",
                 .hidden = false,
             },
             .resources = {
-                .mesh = {"square"},
-                .material = {"floor"},
+                .mesh = squareMesh,
+                .material = floorMaterial,
             },
             .hasPhysics = true,
         };
@@ -423,8 +427,8 @@ void Game::build() {
                     .orientation = glm::angleAxis(glm::radians(static_cast<float>(distribution(rd) % 360)), glm::normalize(glm::vec3(distribution(rd), distribution(rd), distribution(rd)))),
                 }},
                 .resources = {
-                    .mesh = {"circle"},
-                    .shadowMesh = {{"circle/shadow"}},
+                    .mesh = circleMesh,
+                    .shadowMesh = circleShadowMesh,
                 },
                 .pointLight = {{
                     .intensity = {10000.0f, 10000.0f, 10000.0f},

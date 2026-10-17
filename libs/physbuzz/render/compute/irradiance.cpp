@@ -4,101 +4,43 @@
 #include "../../graphics/layout.hpp"
 #include "../../graphics/material.hpp"
 #include "../../graphics/pipeline.hpp"
-#include "physbuzz/resources/registry.hpp"
 #include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
-
-namespace Builtin {
-
-bool PipelineIrradiance::build() {
-    if (ResourceRegistry<ComputePipeline>::contains(Resource)) {
-        return true;
-    }
-
-    bool success = true;
-
-    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayout)) {
-        success &= ResourceRegistry<DescriptorLayout>::insert(
-            ResourceLayout,
-            {{
-                .bindings = {
-                    {
-                        // environment map (cubemap)
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
-                        .stage = DescriptorLayout::ShaderStageFlags::eCompute,
-                    },
-                    {
-                        // environment map (equirectangular)
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
-                        .stage = DescriptorLayout::ShaderStageFlags::eCompute,
-                    },
-                    {
-                        // irradiance map
-                        .type = DescriptorLayout::Type::eStorageImage,
-                        .stage = DescriptorLayout::ShaderStageFlags::eCompute,
-                    },
-                },
-                .lifetime = DescriptorLayout::Lifetime::Global,
-            }});
-    }
-
-    success &= ResourceRegistry<ComputePipeline>::insert(
-        Resource,
-        {
-            {
-                .module = "builtin/compute/irradiance",
-                .specialization = {
-                    .offsets = {
-                        offsetof(Specialization, isCubemap),
-                    },
-                    .size = sizeof(Specialization),
-                },
-            },
-            {
-                .layouts = {
-                    .resources = {
-                        ResourceLayout,
-                    },
-                },
-            },
-        });
-
-    return success;
-}
-
-} // namespace Builtin
 
 IrradianceCompute::IrradianceCompute(const Info &info)
     : m_Info(info) {}
 
 bool IrradianceCompute::build() {
-    // build pipeline
-    if (!Builtin::PipelineIrradiance::build()) {
+    if (!buildResources()) {
         Logger::ERROR("[IrradianceCompute] Could not build irradiance pipeline.");
         return false;
     }
 
     bool success = true;
 
-    Builtin::PipelineIrradiance::Specialization specialization = {
+    Resources::Specialization specialization = {
         .isCubemap = m_Info.environmentMap->getInfo().type == Texture::Type::Cube,
     };
 
-    success &= Builtin::PipelineIrradiance::Resource->specialize(specialization);
+    success &= m_Resources.pipeline->specialize(specialization);
 
     constexpr glm::vec3 resolution = {128, 64, 1};
 
-    success &= ResourceRegistry<Texture>::insert(
-        m_Resource,
+    auto resource = ResourceRegistry<Texture>::insert(
+        std::format("{}/irradiance", m_Info.environmentMap.getName()),
         {{
             .type = Texture::Type::Dim2D,
             .usage = Texture::Usage::Storage,
             .sampler = {{Sampler::Type::Linear}},
         }},
         resolution);
+
+    if (!resource) {
+        return false;
+    }
+
+    m_IrradianceMap = std::move(*resource);
 
     m_Graph.add(
         Output,
@@ -117,7 +59,7 @@ bool IrradianceCompute::build() {
                         },
                     }},
                     .output = {{
-                        m_Resource,
+                        m_IrradianceMap,
                         {
                             .stage = RenderNode::Stage::Compute,
                             .subresourceRanges = {{
@@ -135,8 +77,8 @@ bool IrradianceCompute::build() {
 
                 std::lock_guard<std::mutex> lock(ResourceRegistry<ComputePipeline>::ReloadMutex);
 
-                Builtin::PipelineIrradiance::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::PipelineIrradiance::Resource);
+                m_Resources.pipeline->bind(context);
+                App::LayoutAllocator.bind(context, m_Resources.pipeline);
 
                 // to constexpr the ceil (TODO cpp23 makes ceil constexpr)
                 constexpr std::uint32_t groupSize = 8;
@@ -154,7 +96,7 @@ bool IrradianceCompute::build() {
     if (success) {
         if (specialization.isCubemap) {
             success &= App::LayoutAllocator.write(
-                Builtin::PipelineIrradiance::ResourceLayout,
+                m_Resources.layout,
                 m_Info.environmentMap,
                 {
                     .type = Image::ViewType::eCube,
@@ -167,7 +109,7 @@ bool IrradianceCompute::build() {
                 0);
         } else {
             success &= App::LayoutAllocator.write(
-                Builtin::PipelineIrradiance::ResourceLayout,
+                m_Resources.layout,
                 m_Info.environmentMap,
                 {
                     .type = Image::ViewType::e2D,
@@ -181,8 +123,8 @@ bool IrradianceCompute::build() {
         }
 
         success &= App::LayoutAllocator.write(
-            Builtin::PipelineIrradiance::ResourceLayout,
-            m_Resource,
+            m_Resources.layout,
+            m_IrradianceMap,
             Image::ViewInfo{
                 .type = Image::ViewType::e2D,
                 .subresourceRange = {
@@ -198,8 +140,6 @@ bool IrradianceCompute::build() {
 }
 
 bool IrradianceCompute::destroy() {
-    ResourceRegistry<Texture>::erase(m_Resource);
-
     return true;
 }
 
@@ -208,11 +148,74 @@ const RenderGraph &IrradianceCompute::getGraph() const {
 }
 
 const Resource<Texture> &IrradianceCompute::getIrradianceMap() const {
-    return m_Resource;
+    return m_IrradianceMap;
 }
 
 const IrradianceCompute::Info &IrradianceCompute::getInfo() const {
     return m_Info;
+}
+
+bool IrradianceCompute::buildResources() {
+    auto layout = ResourceRegistry<DescriptorLayout>::insert(
+        "builtin/irradiance",
+        {{
+            .bindings = {
+                {
+                    // environment map (cubemap)
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
+                    .stage = DescriptorLayout::ShaderStageFlags::eCompute,
+                },
+                {
+                    // environment map (equirectangular)
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
+                    .stage = DescriptorLayout::ShaderStageFlags::eCompute,
+                },
+                {
+                    // irradiance map
+                    .type = DescriptorLayout::Type::eStorageImage,
+                    .stage = DescriptorLayout::ShaderStageFlags::eCompute,
+                },
+            },
+            .lifetime = DescriptorLayout::Lifetime::Global,
+        }});
+
+    if (!layout) {
+        return false;
+    }
+
+    auto pipeline = ResourceRegistry<ComputePipeline>::insert(
+        "builtin/irradiance",
+        {
+            {
+                .module = "builtin/compute/irradiance",
+                .specialization = {
+                    .offsets = {
+                        offsetof(Resources::Specialization, isCubemap),
+                    },
+                    .size = sizeof(Resources::Specialization),
+                },
+            },
+            {
+                .layouts = {
+                    .resources = {
+                        *layout,
+                    },
+                },
+            },
+        });
+
+    if (!pipeline) {
+        return false;
+    }
+
+    m_Resources = {
+        .layout = std::move(*layout),
+        .pipeline = std::move(*pipeline),
+    };
+
+    return true;
 }
 
 } // namespace Physbuzz

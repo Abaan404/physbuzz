@@ -40,6 +40,9 @@ const VertexDescription::Data &VertexDescription::getData() const {
     return m_Data;
 }
 
+Mesh::Mesh(const Info &info)
+    : m_Info(info) {}
+
 bool Mesh::build() {
     bool success = true;
 

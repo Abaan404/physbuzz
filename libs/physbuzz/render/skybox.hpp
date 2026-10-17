@@ -2,44 +2,32 @@
 
 #include "../ecs/system.hpp"
 #include "../graphics/rendergraph.hpp"
-#include "../resources/resource.hpp"
+#include "../resources/registry.hpp"
 #include "../window/window.hpp"
+#include "resources.hpp"
 
 namespace Physbuzz {
 
-class GraphicsPipeline;
 class DescriptorLayout;
-class Texture;
-class Mesh;
-
-namespace Builtin {
-
-namespace PipelineSkybox {
-
-struct Specialization {
-    std::uint32_t isCubemap;
-};
-
-inline Resource<DescriptorLayout> ResourceLayoutTexture = {"builtin/skybox/texture"};
-inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/skybox/frame"};
-
-inline Resource<GraphicsPipeline> Resource = {"builtin/skybox"};
-
-bool build();
-
-} // namespace PipelineSkybox
-
-} // namespace Builtin
 
 class SkyboxRenderer : public System<> {
   public:
-    constexpr static RenderNodeID Output = "builtin/skybox";
+    inline static RenderNodeID Output = "builtin/skybox";
 
     struct Info {
-        ObjectID camera;
         std::shared_ptr<Window> window;
 
         Resource<Texture> skybox;
+    };
+
+    struct Resources {
+        struct Specialization {
+            std::uint32_t isCubemap;
+        };
+
+        Resource<DescriptorLayout> layoutTexture;
+        Resource<DescriptorLayout> layoutFrame;
+        Resource<GraphicsPipeline> pipeline;
     };
 
     SkyboxRenderer(Scene *scene, const Info &info);
@@ -48,11 +36,14 @@ class SkyboxRenderer : public System<> {
     bool destroy() override;
 
     const RenderGraph &getGraph() const;
+    const Resources &getResources() const;
 
     const Info &getInfo() const;
 
   private:
     Info m_Info;
+
+    Resources m_Resources;
 
     RenderGraph m_Graph = {{
         .output = Output,
@@ -61,6 +52,8 @@ class SkyboxRenderer : public System<> {
     struct {
         EventID resize = -1;
     } m_Events = {};
+
+    bool buildResources();
 };
 
 } // namespace Physbuzz

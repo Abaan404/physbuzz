@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../graphics/rendergraph.hpp"
-#include "../resources/resource.hpp"
 
 namespace Physbuzz {
 
@@ -31,7 +30,7 @@ class RenderBatch {
     };
 
     struct Info {
-        ResourceID resourceIdPrefix;
+        std::string resourceNamePrefix;
     };
 
     RenderBatch(const Info &info);

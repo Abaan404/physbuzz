@@ -2,7 +2,7 @@
 
 #include "../../ecs/defines.hpp"
 #include "../../graphics/rendergraph.hpp"
-#include "../../resources/resource.hpp"
+#include "../../resources/registry.hpp"
 
 namespace Physbuzz {
 
@@ -26,7 +26,7 @@ class FrustumCulling {
         const RenderBatch &batch;
         Objects objects;
         RenderNodeID nodeIdPrefix;
-        ResourceID resourceIdPrefix;
+        std::string resourceNamePrefix;
     };
 
     FrustumCulling(const Info &info);

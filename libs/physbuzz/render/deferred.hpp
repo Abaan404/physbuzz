@@ -1,72 +1,52 @@
 #pragma once
 
 #include "../ecs/system.hpp"
+#include "../graphics/material.hpp"
 #include "../graphics/pipeline.hpp"
-#include "../resources/resource.hpp"
+#include "../resources/registry.hpp"
 #include "../window/window.hpp"
 #include "batch.hpp"
 #include "compute/culling.hpp"
 #include "defines.hpp"
+#include "resources.hpp"
+#include <format>
 
 namespace Physbuzz {
-
-namespace Builtin {
-
-namespace PipelineDeferred {
-
-namespace Geometry {
-
-struct PushConstants {
-    std::uint64_t materialBaseAddress;
-};
-
-inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/deferred/geometry/frame"};
-
-inline Resource<GraphicsPipeline> Resource = {"builtin/deferred/geometry"};
-
-bool build();
-
-} // namespace Geometry
-
-namespace Lighting {
-
-struct PushConstants {
-    std::uint32_t directionalCount;
-    std::uint32_t spotCount;
-    std::uint32_t pointCount;
-};
-
-struct Specialization {
-    std::uint32_t enableShadows;
-};
-
-inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/deferred/lighting/frame"};
-
-inline Resource<GraphicsPipeline> Resource = {"builtin/deferred/lighting"};
-
-bool build();
-
-} // namespace Lighting
-
-inline std::array<Resource<Attachment>, 3> ResourceGBuffers = {
-    Resource<Attachment>{"builtin/deferred/gBuffer0"},
-    Resource<Attachment>{"builtin/deferred/gBuffer1"},
-    Resource<Attachment>{"builtin/deferred/gBuffer2"},
-};
-
-bool build();
-
-} // namespace PipelineDeferred
-
-} // namespace Builtin
 
 class DeferredRenderer : public System<RenderComponent, TransformComponent> {
   public:
     constexpr static RenderNodeID Output = "builtin/deferred";
 
     struct Info {
-        ObjectID camera;
         std::shared_ptr<Window> window;
+    };
+
+    struct Resources {
+        std::array<Resource<Attachment>, 3> gbuffers;
+
+        struct Geometry {
+            struct PushConstants {
+                std::uint64_t materialBaseAddress;
+            };
+
+            Resource<DescriptorLayout> layout;
+            Resource<GraphicsPipeline> pipeline;
+        } geometry;
+
+        struct Lighting {
+            struct PushConstants {
+                std::uint32_t directionalCount;
+                std::uint32_t spotCount;
+                std::uint32_t pointCount;
+            };
+
+            struct Specialization {
+                std::uint32_t enableShadows;
+            };
+
+            Resource<DescriptorLayout> layout;
+            Resource<GraphicsPipeline> pipeline;
+        } lighting;
     };
 
     DeferredRenderer(Scene *scene, const Info &info);
@@ -76,29 +56,28 @@ class DeferredRenderer : public System<RenderComponent, TransformComponent> {
 
     void tick();
 
-    bool specialize(const Builtin::PipelineDeferred::Lighting::Specialization &specialization);
+    bool specialize(const Resources::Lighting::Specialization &specialization);
 
     const RenderBatch &getBatch() const;
     const RenderGraph &getGraph() const;
+    const Resources &getResources() const;
 
     const Info &getInfo() const;
 
   private:
     Info m_Info;
 
+    Resources m_Resources;
     std::vector<Renderable> m_Renderables;
 
     RenderBatch m_Batch = {{
-        .resourceIdPrefix = std::format("{}/batch/", Output),
+        .resourceNamePrefix = std::format("{}/batch/", Output),
     }};
 
     FrustumCulling m_Culling = {{
         .batch = m_Batch,
-        .objects = {
-            .cameras = {m_Info.camera},
-        },
         .nodeIdPrefix = std::format("{}/culling/", Output),
-        .resourceIdPrefix = std::format("{}/culling/", Output),
+        .resourceNamePrefix = std::format("{}/culling/", Output),
     }};
 
     RenderGraph m_Graph = {{
@@ -108,6 +87,11 @@ class DeferredRenderer : public System<RenderComponent, TransformComponent> {
     struct {
         EventID resize = -1;
     } m_Events = {};
+
+    bool buildResources(const MaterialAllocator::Resources &material);
+
+    static std::optional<Resources::Geometry> buildGeometryResources(const MaterialAllocator::Resources &material);
+    static std::optional<Resources::Lighting> buildLightingResources();
 };
 
 } // namespace Physbuzz

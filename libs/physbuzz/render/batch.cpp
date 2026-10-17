@@ -11,30 +11,33 @@
 namespace Physbuzz {
 
 RenderBatch::RenderBatch(const Info &info)
-    : m_Info(info),
-      m_Instance(std::format("{}instance", info.resourceIdPrefix)),
-      m_Indirect(std::format("{}indirect", info.resourceIdPrefix)) {}
+    : m_Info(info) {}
 
 bool RenderBatch::build(const std::vector<Renderable> &renderables) {
-    bool success = true;
+    auto instance = ResourceRegistry<DynamicBuffer>::insert(
+        std::format("{}instance", m_Info.resourceNamePrefix),
+        {{
+            .type = DynamicBuffer::Type::Structured,
+        }},
+        sizeof(InstanceData));
 
-    if (!ResourceRegistry<DynamicBuffer>::contains(m_Instance)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            m_Instance,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(InstanceData));
+    if (!instance) {
+        return false;
     }
 
-    if (!ResourceRegistry<DynamicBuffer>::contains(m_Indirect)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            m_Indirect,
-            {{
-                .type = DynamicBuffer::Type::Indirect,
-            }},
-            sizeof(vk::DrawIndexedIndirectCommand));
+    auto indirect = ResourceRegistry<DynamicBuffer>::insert(
+        std::format("{}indirect", m_Info.resourceNamePrefix),
+        {{
+            .type = DynamicBuffer::Type::Indirect,
+        }},
+        sizeof(vk::DrawIndexedIndirectCommand));
+
+    if (!indirect) {
+        return false;
     }
+
+    m_Instance = std::move(*instance);
+    m_Indirect = std::move(*indirect);
 
     m_RenderNode = {
         .description = {
@@ -161,20 +164,15 @@ bool RenderBatch::build(const std::vector<Renderable> &renderables) {
         },
     };
 
-    return success;
+    return true;
 }
 
 bool RenderBatch::destroy() {
-    bool success = true;
-
-    success &= ResourceRegistry<DynamicBuffer>::erase(m_Instance);
-    success &= ResourceRegistry<DynamicBuffer>::erase(m_Indirect);
-
     m_IndirectMeshes.clear();
     m_InstanceBuffer.clear();
     m_IndirectBuffer.clear();
 
-    return success;
+    return true;
 }
 
 void RenderBatch::draw(const RenderContext &context) const {

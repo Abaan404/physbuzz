@@ -15,100 +15,111 @@
 namespace Physbuzz {
 
 FrustumCulling::FrustumCulling(const Info &info)
-    : m_Info(info),
-      m_Frustum(std::format("{}camera", info.resourceIdPrefix)),
-      m_VisibleInstance(std::format("{}visible", info.resourceIdPrefix)),
-      m_Indirect(std::format("{}indirect", info.resourceIdPrefix)),
-      m_Pipeline(std::format("{}pipeline", info.resourceIdPrefix)),
-      m_Layout(std::format("{}layout", info.resourceIdPrefix)) {}
+    : m_Info(info) {}
 
 bool FrustumCulling::build(Scene &scene) {
+    auto frustum = ResourceRegistry<DynamicBuffer>::insert(
+        std::format("{}camera", m_Info.resourceNamePrefix),
+        {{
+            .type = DynamicBuffer::Type::Structured,
+        }},
+        sizeof(FrustumBufferData));
+
+    if (!frustum) {
+        return false;
+    }
+
+    auto visibleInstance = ResourceRegistry<DynamicBuffer>::insert(
+        std::format("{}visible", m_Info.resourceNamePrefix),
+        {{
+            .type = DynamicBuffer::Type::Structured,
+        }},
+        sizeof(CullingBufferData));
+
+    if (!visibleInstance) {
+        return false;
+    }
+
+    auto indirect = ResourceRegistry<DynamicBuffer>::insert(
+        std::format("{}indirect", m_Info.resourceNamePrefix),
+        {{
+            .type = DynamicBuffer::Type::Indirect,
+        }},
+        sizeof(vk::DrawIndexedIndirectCommand));
+
+    if (!indirect) {
+        return false;
+    }
+
+    auto layout = ResourceRegistry<DescriptorLayout>::insert(
+        std::format("{}layout", m_Info.resourceNamePrefix),
+        {{
+            .bindings = {
+                {
+                    // draws
+                    .type = DescriptorLayout::Type::eStorageBuffer,
+                },
+                {
+                    // instance
+                    .type = DescriptorLayout::Type::eStorageBuffer,
+                },
+                {
+                    // camera
+                    .type = DescriptorLayout::Type::eStorageBuffer,
+                },
+                {
+                    // visible
+                    .type = DescriptorLayout::Type::eStorageBuffer,
+                },
+                {
+                    // output
+                    .type = DescriptorLayout::Type::eStorageBuffer,
+                },
+            },
+        }});
+
+    if (!layout) {
+        return false;
+    }
+
+    auto pipeline = ResourceRegistry<ComputePipeline>::insert(
+        std::format("{}pipeline", m_Info.resourceNamePrefix),
+        {
+            {
+                .module = "builtin/compute/frustum_culling",
+            },
+            {
+                .layouts = {
+                    .resources = {
+                        *layout,
+                    },
+                    .pushConstantRanges = {
+                        {
+                            .stageFlags = ComputePipeline::PushConstantsStageFlags::eCompute,
+                            .size = sizeof(PushConstants),
+                        },
+                    },
+                },
+            },
+        });
+
+    if (!pipeline) {
+        return false;
+    }
+
+    m_Frustum = std::move(*frustum);
+    m_VisibleInstance = std::move(*visibleInstance);
+    m_Indirect = std::move(*indirect);
+    m_Layout = std::move(*layout);
+    m_Pipeline = std::move(*pipeline);
+
     bool success = true;
 
-    if (!ResourceRegistry<DynamicBuffer>::contains(m_Frustum)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            m_Frustum,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(FrustumBufferData));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(m_VisibleInstance)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            m_VisibleInstance,
-            {{
-                .type = DynamicBuffer::Type::Structured,
-            }},
-            sizeof(CullingBufferData));
-    }
-
-    if (!ResourceRegistry<DynamicBuffer>::contains(m_Indirect)) {
-        success &= ResourceRegistry<DynamicBuffer>::insert(
-            m_Indirect,
-            {{
-                .type = DynamicBuffer::Type::Indirect,
-            }},
-            sizeof(vk::DrawIndexedIndirectCommand));
-    }
-
-    if (!ResourceRegistry<DescriptorLayout>::contains(m_Layout)) {
-        success &= ResourceRegistry<DescriptorLayout>::insert(
-            m_Layout,
-            {{
-                .bindings = {
-                    {
-                        // draws
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // instance
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // camera
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // visible
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // output
-                        .type = DescriptorLayout::Type::eStorageBuffer,
-                    },
-                },
-            }});
-    }
-
-    if (!ResourceRegistry<ComputePipeline>::contains(m_Pipeline)) {
-        success &= ResourceRegistry<ComputePipeline>::insert(
-            m_Pipeline,
-            {
-                {
-                    .module = "builtin/compute/frustum_culling",
-                },
-                {
-                    .layouts = {
-                        .resources = {
-                            m_Layout,
-                        },
-                        .pushConstantRanges = {
-                            {
-                                .stageFlags = ComputePipeline::PushConstantsStageFlags::eCompute,
-                                .size = sizeof(PushConstants),
-                            },
-                        },
-                    },
-                },
-            });
-
-        success &= App::LayoutAllocator.write(m_Layout, m_Info.batch.getIndirectBuffer(), 0);
-        success &= App::LayoutAllocator.write(m_Layout, m_Info.batch.getInstanceBuffer(), 1);
-        success &= App::LayoutAllocator.write(m_Layout, m_Frustum, 2);
-        success &= App::LayoutAllocator.write(m_Layout, m_VisibleInstance, 3);
-        success &= App::LayoutAllocator.write(m_Layout, m_Indirect, 4);
-    }
+    success &= App::LayoutAllocator.write(m_Layout, m_Info.batch.getIndirectBuffer(), 0);
+    success &= App::LayoutAllocator.write(m_Layout, m_Info.batch.getInstanceBuffer(), 1);
+    success &= App::LayoutAllocator.write(m_Layout, m_Frustum, 2);
+    success &= App::LayoutAllocator.write(m_Layout, m_VisibleInstance, 3);
+    success &= App::LayoutAllocator.write(m_Layout, m_Indirect, 4);
 
     m_Graph.add(
         std::format("{}camera", m_Info.nodeIdPrefix),
@@ -313,18 +324,10 @@ bool FrustumCulling::build(Scene &scene) {
 }
 
 bool FrustumCulling::destroy() {
-    bool success = true;
-
     m_FrustumBufferIds.clear();
     m_FrustumBuffer.clear();
 
-    success &= ResourceRegistry<ComputePipeline>::erase(m_Pipeline);
-    success &= ResourceRegistry<DescriptorLayout>::erase(m_Layout);
-    success &= ResourceRegistry<DynamicBuffer>::erase(m_Frustum);
-    success &= ResourceRegistry<DynamicBuffer>::erase(m_VisibleInstance);
-    success &= ResourceRegistry<DynamicBuffer>::erase(m_Indirect);
-
-    return success;
+    return true;
 }
 
 void FrustumCulling::setObjects(const Objects &objects) {

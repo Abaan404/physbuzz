@@ -5,25 +5,14 @@
 
 namespace Physbuzz {
 
-namespace Builtin {
-
-namespace PipelineBrdfLut {
-
-inline Resource<DescriptorLayout> ResourceLayout = {"builtin/brdf_lut"};
-
-inline Resource<Texture> ResourceLut = {"builtin/brdf_lut"};
-
-inline Resource<ComputePipeline> Resource = {"builtin/brdf_lut"};
-
-bool build();
-
-} // namespace PipelineBrdfLut
-
-} // namespace Builtin
-
 class BrdfLutCompute {
   public:
-    constexpr static RenderNodeID Output = "builtin/brdf_lut";
+    inline static RenderNodeID Output = "builtin/brdf_lut";
+
+    struct Resources {
+        Resource<DescriptorLayout> layout;
+        Resource<ComputePipeline> pipeline;
+    };
 
     BrdfLutCompute();
 
@@ -31,11 +20,18 @@ class BrdfLutCompute {
     bool destroy();
 
     const RenderGraph &getGraph() const;
+    const Resource<Texture> &getLut() const;
 
   private:
+    Resources m_Resources;
+
+    Resource<Texture> m_Lut;
+
     RenderGraph m_Graph = {{
         .output = Output,
     }};
+
+    bool buildResources();
 };
 
 } // namespace Physbuzz

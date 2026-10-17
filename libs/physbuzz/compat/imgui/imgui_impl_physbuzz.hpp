@@ -4,7 +4,7 @@
 
 #include "../../ecs/system.hpp"
 #include "../../graphics/rendergraph.hpp"
-#include "../../resources/resource.hpp"
+#include "../../resources/registry.hpp"
 #include <imgui.h>
 
 namespace Physbuzz {
@@ -13,21 +13,9 @@ class Window;
 class Texture;
 class Sampler;
 
-namespace Builtin {
-
-namespace RenderPipelineImGui {
-
-inline Resource<Sampler> ResourceSampler = {"builtin/imgui/sampler"};
-
-bool build();
-
-} // namespace RenderPipelineImGui
-
-} // namespace Builtin
-
 class ImGuiRenderer : public System<> {
   public:
-    constexpr static RenderNodeID Output = "builtin/imgui";
+    inline static RenderNodeID Output = "builtin/imgui";
 
     struct Info {
         std::shared_ptr<Window> window;
@@ -61,6 +49,8 @@ class ImGuiRenderer : public System<> {
     };
 
     Info m_Info;
+
+    Resource<Sampler> m_Sampler;
 
     std::uint32_t m_FrameInFlight = -1;
 

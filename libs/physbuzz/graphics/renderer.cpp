@@ -389,6 +389,10 @@ void Renderer::updateMaterial(const Resource<Material> &material) {
     m_MaterialAllocator.update(material);
 }
 
+const MaterialAllocator &Renderer::getMaterial() const {
+    return m_MaterialAllocator;
+}
+
 const RenderGraph &Renderer::getGraph() const {
     return m_Graph;
 }

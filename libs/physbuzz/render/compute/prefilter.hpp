@@ -5,35 +5,26 @@
 
 namespace Physbuzz {
 
-namespace Builtin {
-
-namespace PipelinePrefilter {
-
-struct PushConstants {
-    std::uint32_t mipLevel;
-    float roughness;
-};
-
-struct Specialization {
-    std::uint32_t isCubemap;
-};
-
-inline Resource<DescriptorLayout> ResourceLayout = {"builtin/prefilter"};
-
-inline Resource<ComputePipeline> Resource = {"builtin/prefilter"};
-
-bool build(const std::uint32_t &maxMipLevels);
-
-} // namespace PipelinePrefilter
-
-} // namespace Builtin
-
 class PrefilterCompute {
   public:
-    constexpr static RenderNodeID Output = "builtin/prefilter";
+    inline static RenderNodeID Output = "builtin/prefilter";
 
     struct Info {
-        Resource<Texture> environmentMap = {""};
+        Resource<Texture> environmentMap;
+    };
+
+    struct Resources {
+        struct PushConstants {
+            std::uint32_t mipLevel;
+            float roughness;
+        };
+
+        struct Specialization {
+            std::uint32_t isCubemap;
+        };
+
+        Resource<DescriptorLayout> layout;
+        Resource<ComputePipeline> pipeline;
     };
 
     PrefilterCompute(const Info &info);
@@ -48,12 +39,15 @@ class PrefilterCompute {
 
   private:
     Info m_Info;
+    Resources m_Resources;
+
+    Resource<Texture> m_PrefilterMap;
 
     RenderGraph m_Graph = {{
         .output = Output,
     }};
 
-    Resource<Texture> m_Resource = std::format("{}/prefilter", m_Info.environmentMap);
+    bool buildResources(const std::uint32_t &maxMipLevels);
 };
 
 } // namespace Physbuzz

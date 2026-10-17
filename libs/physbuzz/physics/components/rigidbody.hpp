@@ -2,7 +2,7 @@
 
 #include "../../math/bounding.hpp"
 #include "../../math/transform.hpp"
-#include "../../resources/resource.hpp"
+#include "../../resources/registry.hpp"
 #include "../defines.hpp"
 
 namespace Physbuzz {

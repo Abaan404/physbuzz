@@ -3,7 +3,7 @@
 #include "ui.hpp"
 #include <imgui.h>
 #include <physbuzz/graphics/memory.hpp>
-#include <physbuzz/resources/resource.hpp>
+#include <physbuzz/resources/registry.hpp>
 
 template <typename T>
 class Image : public IUserInterface {

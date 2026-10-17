@@ -2,6 +2,7 @@
 
 #include "../app/application.hpp"
 #include "../app/deletion.hpp"
+#include "../debug/macros.hpp"
 #include "layout.hpp"
 #include "mesh.hpp"
 

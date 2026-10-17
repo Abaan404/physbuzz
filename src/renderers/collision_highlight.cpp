@@ -3,108 +3,39 @@
 #include "../collision.hpp"
 #include <physbuzz/app/application.hpp>
 #include <physbuzz/events/window.hpp>
+#include <physbuzz/graphics/descriptors/dynamic.hpp>
 #include <physbuzz/graphics/layout.hpp>
 #include <physbuzz/graphics/model.hpp>
 #include <physbuzz/graphics/pipeline.hpp>
 #include <physbuzz/render/components/camera.hpp>
-#include <physbuzz/render/nodes/camera.hpp>
 #include <tracy/Tracy.hpp>
-
-bool PipelineCollisionHighlight::build() {
-    if (Physbuzz::ResourceRegistry<Physbuzz::GraphicsPipeline>::contains(Resource)) {
-        return true;
-    }
-
-    bool success = true;
-
-    if (!Physbuzz::ResourceRegistry<Physbuzz::DynamicBuffer>::contains(ResourceHighlightBuffer)) {
-        success &= Physbuzz::ResourceRegistry<Physbuzz::DynamicBuffer>::insert(
-            ResourceHighlightBuffer,
-            {{
-                .type = Physbuzz::DynamicBuffer::Type::Structured,
-            }},
-            sizeof(HighlightedObject));
-    }
-
-    if (!Physbuzz::ResourceRegistry<Physbuzz::DescriptorLayout>::contains(ResourceLayoutFrame)) {
-        success &= Physbuzz::ResourceRegistry<Physbuzz::DescriptorLayout>::insert(
-            ResourceLayoutFrame,
-            {{
-                .bindings = {
-                    {
-                        // camera
-                        .type = Physbuzz::DescriptorLayout::Type::eUniformBuffer,
-                        .range = sizeof(Physbuzz::Builtin::RenderNodeCamera::CameraBuffer),
-                    },
-                    {
-                        // highlighted
-                        .type = Physbuzz::DescriptorLayout::Type::eStorageBuffer,
-                    },
-                    {
-                        // objects
-                        .type = Physbuzz::DescriptorLayout::Type::eStorageBuffer,
-                    },
-                },
-            }});
-    }
-
-    success &= Physbuzz::ResourceRegistry<Physbuzz::GraphicsPipeline>::insert(
-        Resource,
-        {
-            {
-                .module = "collision_highlight",
-            },
-            {
-                .description = &Physbuzz::Model::Vertex::Description,
-                .blend = {
-                    .logicOpEnable = false,
-                    .logicOp = Physbuzz::GraphicsPipeline::LogicOp::eCopy,
-                    .attachments = {{
-                        .blendEnable = true,
-                        .srcColorBlendFactor = Physbuzz::GraphicsPipeline::BlendFactor::eSrcAlpha,
-                        .dstColorBlendFactor = Physbuzz::GraphicsPipeline::BlendFactor::eOneMinusSrcAlpha,
-                        .colorBlendOp = Physbuzz::GraphicsPipeline::BlendOp::eAdd,
-                        .srcAlphaBlendFactor = Physbuzz::GraphicsPipeline::BlendFactor::eZero,
-                        .dstAlphaBlendFactor = Physbuzz::GraphicsPipeline::BlendFactor::eOne,
-                        .alphaBlendOp = Physbuzz::GraphicsPipeline::BlendOp::eAdd,
-                        .colorWriteMask = Physbuzz::GraphicsPipeline::ColorComponentFlags::eR | //
-                                          Physbuzz::GraphicsPipeline::ColorComponentFlags::eG | //
-                                          Physbuzz::GraphicsPipeline::ColorComponentFlags::eB | //
-                                          Physbuzz::GraphicsPipeline::ColorComponentFlags::eA,
-                    }},
-                },
-                .layouts = {
-                    .resources = {
-                        ResourceLayoutFrame,
-                    },
-                },
-            },
-        });
-
-    return success;
-}
 
 CollisionHighlight::CollisionHighlight(Physbuzz::Scene *scene, const Info &info)
     : Physbuzz::System<>(scene),
       m_Info(info) {}
 
 bool CollisionHighlight::build() {
-    // build pipeline
-    if (!PipelineCollisionHighlight::build()) {
+    Physbuzz::ResourceContext *resourceContext = m_Scene->getSystem<Physbuzz::ResourceContext>();
+
+    if (!buildResources()) {
         Physbuzz::Logger::ERROR("[CollisionHighlight] Could not build collision highlight pipeline.");
         return false;
     }
 
     m_Events = {
-        .resize = m_Info.window->addCallback<Physbuzz::WindowSwapchainResizeEvent>([&](const Physbuzz::WindowSwapchainResizeEvent &event) {
-            const auto [camera] = m_Scene->getComponent<Physbuzz::CameraComponent>(m_Info.camera);
+        .resize = m_Info.window->addCallback<Physbuzz::WindowSwapchainResizeEvent>([this](const Physbuzz::WindowSwapchainResizeEvent &event) {
+            Physbuzz::ResourceContext *resourceContext = m_Scene->getSystem<Physbuzz::ResourceContext>();
+
+            const auto [camera] = m_Scene->getComponent<Physbuzz::CameraComponent>(resourceContext->getInfo().cameraId);
             camera.resize(event.resolution);
         }),
     };
 
     bool success = true;
 
-    m_Graph.add("builtin/camera", Physbuzz::Builtin::RenderNodeCamera::build(*m_Scene, m_Info.camera));
+    const Physbuzz::ResourceContext::Resources &resources = resourceContext->getResouces();
+
+    m_Graph.add("builtin/camera", resourceContext->buildCameraNode());
     m_Graph.add("builtin/batch", m_Info.batch.getRenderNode());
 
     m_Graph.add(
@@ -122,7 +53,7 @@ bool CollisionHighlight::build() {
                     },
                     .output = {
                         {
-                            PipelineCollisionHighlight::ResourceHighlightBuffer,
+                            m_Resources.highlightBuffer,
                             {
                                 .stage = Physbuzz::RenderNode::Stage::Transfer,
                             },
@@ -142,7 +73,7 @@ bool CollisionHighlight::build() {
                 for (const auto &instance : m_Info.batch.getInstanceObjects()) {
                     Physbuzz::ObjectID object = m_Info.objects[instance];
 
-                    PipelineCollisionHighlight::HighlightedObject &highlighted = m_Highlighted.emplace_back<PipelineCollisionHighlight::HighlightedObject>({
+                    Resources::HighlightedObject &highlighted = m_Highlighted.emplace_back<Resources::HighlightedObject>({
                         .highlighted = false,
                     });
 
@@ -154,11 +85,11 @@ bool CollisionHighlight::build() {
                     }
                 }
 
-                std::size_t highlightBufferSize = m_Highlighted.size() * sizeof(PipelineCollisionHighlight::HighlightedObject);
-                PipelineCollisionHighlight::ResourceHighlightBuffer->rebuild(context, highlightBufferSize);
+                std::size_t highlightBufferSize = m_Highlighted.size() * sizeof(Resources::HighlightedObject);
+                m_Resources.highlightBuffer->rebuild(context, highlightBufferSize);
             },
             .execute = [this](const Physbuzz::RenderContext &context) {
-                PipelineCollisionHighlight::ResourceHighlightBuffer->update(context, m_Highlighted);
+                m_Resources.highlightBuffer->update(context, m_Highlighted);
             },
         });
 
@@ -169,13 +100,13 @@ bool CollisionHighlight::build() {
                 .buffers = {
                     .input = {
                         {
-                            Physbuzz::Builtin::RenderNodeCamera::ResourceBuffer,
+                            resources.camera,
                             {
                                 .stage = Physbuzz::RenderNode::Stage::Vertex,
                             },
                         },
                         {
-                            PipelineCollisionHighlight::ResourceHighlightBuffer,
+                            m_Resources.highlightBuffer,
                             {
                                 .stage = Physbuzz::RenderNode::Stage::Fragment,
                             },
@@ -200,8 +131,6 @@ bool CollisionHighlight::build() {
                 TracyVkZone(context.tracy, context.command, "CollisionHighlight");
 
                 std::lock_guard<std::mutex> lock(Physbuzz::ResourceRegistry<Physbuzz::GraphicsPipeline>::ReloadMutex);
-
-                const Physbuzz::Image::Data &data = context.depth->getRingData()[context.frameInFlight].image.getData();
 
                 std::array colorAttachments = {
                     vk::RenderingAttachmentInfo{
@@ -229,8 +158,8 @@ bool CollisionHighlight::build() {
                 });
 
                 // bind resources
-                PipelineCollisionHighlight::Resource->bind(context);
-                Physbuzz::App::LayoutAllocator.bind(context, PipelineCollisionHighlight::Resource);
+                m_Resources.pipeline->bind(context);
+                Physbuzz::App::LayoutAllocator.bind(context, m_Resources.pipeline);
 
                 // draw
                 m_Info.batch.draw(context);
@@ -243,17 +172,17 @@ bool CollisionHighlight::build() {
 
     if (success) {
         success &= Physbuzz::App::LayoutAllocator.write(
-            PipelineCollisionHighlight::ResourceLayoutFrame,
-            Physbuzz::Builtin::RenderNodeCamera::ResourceBuffer,
+            m_Resources.layoutFrame,
+            resources.camera,
             0);
 
         success &= Physbuzz::App::LayoutAllocator.write(
-            PipelineCollisionHighlight::ResourceLayoutFrame,
-            PipelineCollisionHighlight::ResourceHighlightBuffer,
+            m_Resources.layoutFrame,
+            m_Resources.highlightBuffer,
             1);
 
         success &= Physbuzz::App::LayoutAllocator.write(
-            PipelineCollisionHighlight::ResourceLayoutFrame,
+            m_Resources.layoutFrame,
             m_Info.batch.getInstanceBuffer(),
             2);
     }
@@ -265,12 +194,93 @@ const Physbuzz::RenderGraph &CollisionHighlight::getGraph() {
     return m_Graph;
 }
 
+const CollisionHighlight::Resources &CollisionHighlight::getResources() const {
+    return m_Resources;
+}
+
 bool CollisionHighlight::destroy() {
     m_Info.window->eraseCallback<Physbuzz::WindowSwapchainResizeEvent>(m_Events.resize);
+    return true;
+}
 
-    bool success = true;
+bool CollisionHighlight::buildResources() {
+    auto highlightBuffer = Physbuzz::ResourceRegistry<Physbuzz::DynamicBuffer>::insert(
+        "collision_highlight/highlight",
+        {{
+            .type = Physbuzz::DynamicBuffer::Type::Structured,
+        }},
+        sizeof(Resources::HighlightedObject));
 
-    success &= Physbuzz::ResourceRegistry<Physbuzz::DynamicBuffer>::erase(PipelineCollisionHighlight::ResourceHighlightBuffer);
+    if (!highlightBuffer) {
+        return false;
+    }
 
-    return success;
+    auto layoutFrame = Physbuzz::ResourceRegistry<Physbuzz::DescriptorLayout>::insert(
+        "collision_highlight/frame",
+        {{
+            .bindings = {
+                {
+                    // camera
+                    .type = Physbuzz::DescriptorLayout::Type::eUniformBuffer,
+                    .range = sizeof(Physbuzz::ResourceContext::CameraBufferData),
+                },
+                {
+                    // highlighted
+                    .type = Physbuzz::DescriptorLayout::Type::eStorageBuffer,
+                },
+                {
+                    // objects
+                    .type = Physbuzz::DescriptorLayout::Type::eStorageBuffer,
+                },
+            },
+        }});
+
+    if (!layoutFrame) {
+        return false;
+    }
+
+    auto pipeline = Physbuzz::ResourceRegistry<Physbuzz::GraphicsPipeline>::insert(
+        "collision_highlight",
+        {
+            {
+                .module = "collision_highlight",
+            },
+            {
+                .description = &Physbuzz::Model::Vertex::Description,
+                .blend = {
+                    .logicOpEnable = false,
+                    .logicOp = Physbuzz::GraphicsPipeline::LogicOp::eCopy,
+                    .attachments = {{
+                        .blendEnable = true,
+                        .srcColorBlendFactor = Physbuzz::GraphicsPipeline::BlendFactor::eSrcAlpha,
+                        .dstColorBlendFactor = Physbuzz::GraphicsPipeline::BlendFactor::eOneMinusSrcAlpha,
+                        .colorBlendOp = Physbuzz::GraphicsPipeline::BlendOp::eAdd,
+                        .srcAlphaBlendFactor = Physbuzz::GraphicsPipeline::BlendFactor::eZero,
+                        .dstAlphaBlendFactor = Physbuzz::GraphicsPipeline::BlendFactor::eOne,
+                        .alphaBlendOp = Physbuzz::GraphicsPipeline::BlendOp::eAdd,
+                        .colorWriteMask = Physbuzz::GraphicsPipeline::ColorComponentFlags::eR | //
+                                          Physbuzz::GraphicsPipeline::ColorComponentFlags::eG | //
+                                          Physbuzz::GraphicsPipeline::ColorComponentFlags::eB | //
+                                          Physbuzz::GraphicsPipeline::ColorComponentFlags::eA,
+                    }},
+                },
+                .layouts = {
+                    .resources = {
+                        *layoutFrame,
+                    },
+                },
+            },
+        });
+
+    if (!pipeline) {
+        return false;
+    }
+
+    m_Resources = {
+        .layoutFrame = std::move(*layoutFrame),
+        .highlightBuffer = std::move(*highlightBuffer),
+        .pipeline = std::move(*pipeline),
+    };
+
+    return true;
 }

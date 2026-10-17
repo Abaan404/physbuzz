@@ -3,7 +3,6 @@
 #include <concepts>
 #include <efsw/efsw.hpp>
 #include <filesystem>
-#include <string>
 #include <type_traits>
 
 namespace Physbuzz {
@@ -11,7 +10,8 @@ namespace Physbuzz {
 template <typename T>
 struct IsResource : std::false_type {};
 
-using ResourceID = std::string;
+using ResourceID = std::uint32_t;
+constexpr std::uint32_t ResourceEmptyID = static_cast<ResourceID>(-1);
 
 enum class WatchAction {
     Add = efsw::Action::Add,
@@ -34,8 +34,8 @@ concept ResourceBuildableType =
 template <typename T, typename... Args>
 concept ResourceDestructibleType =
     ResourceType<T> &&
-    requires(T a, Args... args) {
-        { a.destroy(args...) } -> std::same_as<bool>;
+    requires(T a) {
+        { a.destroy() } -> std::same_as<bool>;
     };
 
 template <typename T>

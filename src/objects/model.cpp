@@ -24,13 +24,13 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
         return object;
     }
 
-    Physbuzz::Geometry<Physbuzz::Builtin::PipelineShadow::Vertex> shadowGeometry = {
+    Physbuzz::Geometry<Physbuzz::ShadowRenderer::Vertex> shadowGeometry = {
         .indices = result->mesh.geometry.indices,
     };
 
     shadowGeometry.vertices.reserve(result->mesh.geometry.vertices.size());
     for (const auto &vertex : result->mesh.geometry.vertices) {
-        shadowGeometry.vertices.emplace_back<Physbuzz::Builtin::PipelineShadow::Vertex>({
+        shadowGeometry.vertices.emplace_back<Physbuzz::ShadowRenderer::Vertex>({
             .position = vertex.position,
         });
     }
@@ -39,19 +39,21 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
     const Physbuzz::Mesh::Info &meshInfo = modelInfo.mesh->getInfo();
 
     Physbuzz::Mesh::Info shadowMeshInfo = {
-        .description = &Physbuzz::Builtin::PipelineShadow::Vertex::Description,
+        .description = &Physbuzz::ShadowRenderer::Vertex::Description,
         .vertexCount = meshInfo.vertexCount,
         .indexCount = meshInfo.indexCount,
         .submeshes = meshInfo.submeshes,
     };
 
-    Physbuzz::Resource<Physbuzz::Mesh> shadowMesh = std::format("{}/shadow", render.model.getInfo().mesh);
+    auto shadowMesh = Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(
+        std::format("{}/shadow", render.model.getInfo().mesh.getName()),
+        Physbuzz::Mesh{shadowMeshInfo});
 
-    if (!Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(shadowMesh, shadowMeshInfo)) {
+    if (!shadowMesh) {
         return object;
     }
 
-    if (!shadowMesh->write(std::move(shadowGeometry), batch)) {
+    if (!(*shadowMesh)->write(std::move(shadowGeometry), batch)) {
         return object;
     }
 
@@ -59,7 +61,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
 
     Physbuzz::ShadowComponent shadow = {
         .model = {{
-            .mesh = shadowMesh,
+            .mesh = *shadowMesh,
             .materials = modelInfo.materials,
             .submeshMaterialIndices = modelInfo.submeshMaterialIndices,
         }},

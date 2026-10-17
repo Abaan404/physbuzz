@@ -38,11 +38,11 @@ void RenderGraph::draw() {
         }
     }
 
-    if (ImGui::BeginCombo("Type", m_SelectedRenderer.c_str())) {
+    if (ImGui::BeginCombo("Type", m_SelectedRenderer.data())) {
         for (const auto &node : nodes) {
             bool isSelected = graph.contains(node);
 
-            if (ImGui::Selectable(node.c_str(), isSelected)) {
+            if (ImGui::Selectable(node.data(), isSelected)) {
                 updateGraph |= true;
                 m_SelectedRenderer = node;
                 break;
@@ -59,16 +59,16 @@ void RenderGraph::draw() {
     ImGui::SeparatorText("Nodes");
 
     for (const auto &id : graph.getExecutableNodes()) {
-        if (ImGui::TreeNode(id.c_str())) {
+        if (ImGui::TreeNode(id.data())) {
             const Physbuzz::RenderNode &node = graph.get(id);
 
             if (ImGui::TreeNode("buffers")) {
                 for (const auto &[buffer, _] : node.description.buffers.input) {
-                    ImGui::Text("input: %s", buffer.getIdentifier().c_str());
+                    ImGui::Text("input: %s", buffer.getName().data());
                 }
 
                 for (const auto &[buffer, _] : node.description.buffers.output) {
-                    ImGui::Text("output: %s", buffer.getIdentifier().c_str());
+                    ImGui::Text("output: %s", buffer.getName().data());
                 }
 
                 ImGui::TreePop();
@@ -76,11 +76,11 @@ void RenderGraph::draw() {
 
             if (ImGui::TreeNode("attachments")) {
                 for (const auto &[attachment, _] : node.description.attachments.input) {
-                    ImGui::Text("input: %s", attachment.getIdentifier().c_str());
+                    ImGui::Text("input: %s", attachment.getName().data());
                 }
 
                 for (const auto &[attachment, _] : node.description.attachments.output) {
-                    ImGui::Text("output: %s", attachment.getIdentifier().c_str());
+                    ImGui::Text("output: %s", attachment.getName().data());
                 }
 
                 ImGui::TreePop();
@@ -95,7 +95,7 @@ void RenderGraph::draw() {
     const Physbuzz::RenderGraph::Resources &resources = graph.getResources();
     if (ImGui::TreeNode("buffers")) {
         for (const auto &resource : resources.buffers) {
-            ImGui::Text("%s", resource.getIdentifier().c_str());
+            ImGui::Text("%s", resource.getName().data());
         }
 
         ImGui::TreePop();
@@ -103,9 +103,9 @@ void RenderGraph::draw() {
 
     if (ImGui::TreeNode("attachments")) {
         for (const auto &resource : resources.attachments) {
-            ImGui::PushID(resource.getIdentifier().c_str());
+            ImGui::PushID(resource.getName().data());
 
-            ImGui::Text("%s", resource.getIdentifier().c_str());
+            ImGui::Text("%s", resource.getName().data());
 
             if (ImGui::Button("Show")) {
                 m_AttachmentWindows.insert({resource, Image{resource, m_Scene}});

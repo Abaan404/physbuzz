@@ -3,6 +3,7 @@
 #include "../app/application.hpp"
 #include <condition_variable>
 #include <tracy/Tracy.hpp>
+#include <vulkan/vulkan_core.h>
 
 namespace Physbuzz {
 
@@ -435,7 +436,7 @@ void Transfer::submit(const TransferBatch &batch) {
                 return std::nullopt;
             }
 
-            return std::optional(imageFile.getData());
+            return std::make_optional(imageFile.getData());
         },
         [](vk::CommandBuffer submit, DeletionQueue &transientQueue, const TransferBatch::ImageFileWrite &write, const ImageFile::Data &data) {
             ZoneScopedN("Transfer/ImageFile");

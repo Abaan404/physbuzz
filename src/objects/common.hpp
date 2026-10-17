@@ -10,8 +10,8 @@ struct IdentifiableComponent {
 };
 
 struct ResourceList {
-    Physbuzz::Resource<Physbuzz::Mesh> mesh = {"default"};
-    Physbuzz::Resource<Physbuzz::Material> material = {"default"};
+    Physbuzz::Resource<Physbuzz::Mesh> mesh;
+    Physbuzz::Resource<Physbuzz::Material> material;
 
     std::optional<Physbuzz::Resource<Physbuzz::Mesh>> shadowMesh;
 };

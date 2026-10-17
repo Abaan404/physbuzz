@@ -9,18 +9,18 @@ namespace Physbuzz {
 class TransferBatch {
   public:
     struct BufferWrite {
-        const Buffer &buffer;
+        Buffer buffer;
         std::vector<std::byte> bytes;
         std::uint64_t offset;
     };
 
     struct ImageWrite {
-        const Image &image;
+        Image image;
         std::vector<std::byte> bytes;
     };
 
     struct ImageFileWrite {
-        const Image &image;
+        Image image;
         ImageFile::Info imageFile;
     };
 

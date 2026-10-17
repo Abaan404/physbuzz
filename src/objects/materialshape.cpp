@@ -21,7 +21,7 @@ Physbuzz::ObjectID ObjectBuilder::create(Physbuzz::Scene &scene, Physbuzz::Objec
 
     // naming
     IdentifiableComponent identifier = {
-        .name = std::format("Material ({})", info.resources.material.getIdentifier()),
+        .name = std::format("Material ({})", info.resources.material),
     };
 
     scene.setComponent(object, identifier, info.resources, render, transform);

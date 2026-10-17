@@ -7,7 +7,7 @@
 #include <physbuzz/render/shadow.hpp>
 #include <physbuzz/resources/registry.hpp>
 
-bool ResourceLoader::loadCubemap(const Physbuzz::ResourceID &resourceId, const Physbuzz::ImageFile::Info &cubemap, Physbuzz::TransferBatch &batch) {
+std::optional<Physbuzz::Resource<Physbuzz::Texture>> ResourceLoader::loadCubemap(const std::string &name, const Physbuzz::ImageFile::Info &cubemap, Physbuzz::TransferBatch &batch) {
     Physbuzz::ImageFile cubemapFile = cubemap;
     cubemapFile.readMeta();
 
@@ -16,18 +16,23 @@ bool ResourceLoader::loadCubemap(const Physbuzz::ResourceID &resourceId, const P
         .sampler = {{Physbuzz::Sampler::Type::Linear}},
     };
 
-    if (!Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(resourceId, info, glm::uvec3{cubemapFile.getData().meta.resolution, 1})) {
-        return false;
+    auto texture = Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        name,
+        Physbuzz::Texture{info},
+        glm::uvec3{cubemapFile.getData().meta.resolution, 1});
+
+    if (!texture) {
+        return std::nullopt;
     }
 
-    if (!Physbuzz::Resource<Physbuzz::Texture>{resourceId}->write(cubemap, batch)) {
-        return false;
+    if (!(*texture)->write(cubemap, batch)) {
+        return std::nullopt;
     }
 
-    return true;
+    return texture;
 }
 
-bool ResourceLoader::loadTexture(const Physbuzz::ResourceID &resourceId, const Physbuzz::ImageFile::Info &image, Physbuzz::TransferBatch &batch) {
+std::optional<Physbuzz::Resource<Physbuzz::Texture>> ResourceLoader::loadTexture(const std::string &name, const Physbuzz::ImageFile::Info &image, Physbuzz::TransferBatch &batch) {
     Physbuzz::ImageFile imageFile = image;
     imageFile.readMeta();
 
@@ -37,18 +42,24 @@ bool ResourceLoader::loadTexture(const Physbuzz::ResourceID &resourceId, const P
         .sampler = {{Physbuzz::Sampler::Type::Linear}},
     };
 
-    if (!Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(resourceId, info, glm::uvec3{imageFile.getData().meta.resolution, 1})) {
-        return false;
+    auto texture = Physbuzz::ResourceRegistry<Physbuzz::Texture>::insert(
+        name,
+        Physbuzz::Texture{info},
+        glm::uvec3{imageFile.getData().meta.resolution, 1}
+    );
+
+    if (!texture) {
+        return std::nullopt;
     }
 
-    if (!Physbuzz::Resource<Physbuzz::Texture>{resourceId}->write(image, batch)) {
-        return false;
+    if (!(*texture)->write(image, batch)) {
+        return std::nullopt;
     }
 
-    return true;
+    return texture;
 }
 
-bool ResourceLoader::loadMesh(const Physbuzz::ResourceID &resourceId, const Physbuzz::Geometry<Physbuzz::Model::Vertex> &geometry, Physbuzz::TransferBatch &batch) {
+std::optional<Physbuzz::Resource<Physbuzz::Mesh>> ResourceLoader::loadMesh(const std::string &name, const Physbuzz::Geometry<Physbuzz::Model::Vertex> &geometry, Physbuzz::TransferBatch &batch) {
     Physbuzz::AABB::Info aabb;
 
     for (const auto &vertex : geometry.vertices) {
@@ -70,18 +81,20 @@ bool ResourceLoader::loadMesh(const Physbuzz::ResourceID &resourceId, const Phys
         },
     };
 
-    if (!Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(resourceId, info)) {
-        return false;
+    auto mesh = Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(name, Physbuzz::Mesh{info});
+
+    if (!mesh) {
+        return std::nullopt;
     }
 
-    if (!Physbuzz::Resource<Physbuzz::Mesh>{resourceId}->write(Physbuzz::Geometry(geometry), batch)) {
-        return false;
+    if (!(*mesh)->write(Physbuzz::Geometry(geometry), batch)) {
+        return std::nullopt;
     }
 
-    return true;
+    return mesh;
 }
 
-bool ResourceLoader::loadShadowMesh(const Physbuzz::ResourceID &resourceId, const Physbuzz::Geometry<Physbuzz::Model::Vertex> &geometry, Physbuzz::TransferBatch &batch) {
+std::optional<Physbuzz::Resource<Physbuzz::Mesh>> ResourceLoader::loadShadowMesh(const std::string &name, const Physbuzz::Geometry<Physbuzz::Model::Vertex> &geometry, Physbuzz::TransferBatch &batch) {
     Physbuzz::AABB::Info aabb;
 
     for (const auto &vertex : geometry.vertices) {
@@ -89,19 +102,19 @@ bool ResourceLoader::loadShadowMesh(const Physbuzz::ResourceID &resourceId, cons
         aabb.max = glm::max(vertex.position, aabb.max);
     }
 
-    Physbuzz::Geometry<Physbuzz::Builtin::PipelineShadow::Vertex> shadowGeometry = {
+    Physbuzz::Geometry<Physbuzz::ShadowRenderer::Vertex> shadowGeometry = {
         .indices = geometry.indices,
     };
 
     shadowGeometry.vertices.reserve(geometry.vertices.size());
     for (const auto &vertex : geometry.vertices) {
-        shadowGeometry.vertices.emplace_back<Physbuzz::Builtin::PipelineShadow::Vertex>({
+        shadowGeometry.vertices.emplace_back<Physbuzz::ShadowRenderer::Vertex>({
             .position = vertex.position,
         });
     }
 
     Physbuzz::Mesh::Info info = {
-        .description = &Physbuzz::Builtin::PipelineShadow::Vertex::Description,
+        .description = &Physbuzz::ShadowRenderer::Vertex::Description,
         .vertexCount = static_cast<std::uint32_t>(shadowGeometry.vertices.size()),
         .indexCount = static_cast<std::uint32_t>(shadowGeometry.indices.size()),
         .submeshes = {
@@ -114,18 +127,19 @@ bool ResourceLoader::loadShadowMesh(const Physbuzz::ResourceID &resourceId, cons
         },
     };
 
-    if (!Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(resourceId, info)) {
-        return false;
+    auto mesh = Physbuzz::ResourceRegistry<Physbuzz::Mesh>::insert(name, Physbuzz::Mesh{info});
+    if (!mesh) {
+        return std::nullopt;
     }
 
-    if (!Physbuzz::Resource<Physbuzz::Mesh>{resourceId}->write(std::move(shadowGeometry), batch)) {
-        return false;
+    if (!(*mesh)->write(std::move(shadowGeometry), batch)) {
+        return std::nullopt;
     }
 
-    return true;
+    return mesh;
 }
 
-bool ResourceLoader::loadPhysicsMesh(const Physbuzz::ResourceID &resourceId, const Physbuzz::Geometry<Physbuzz::Model::Vertex> &geometry, std::function<glm::vec3(const glm::vec3 &)> support) {
+std::optional<Physbuzz::Resource<Physbuzz::PhysicsMesh>> ResourceLoader::loadPhysicsMesh(const std::string &name, const Physbuzz::Geometry<Physbuzz::Model::Vertex> &geometry, std::function<glm::vec3(const glm::vec3 &)> support) {
     Physbuzz::AABB::Info aabb;
 
     for (const auto &vertex : geometry.vertices) {
@@ -149,9 +163,5 @@ bool ResourceLoader::loadPhysicsMesh(const Physbuzz::ResourceID &resourceId, con
         });
     }
 
-    if (!Physbuzz::ResourceRegistry<Physbuzz::PhysicsMesh>::insert(resourceId, std::move(physicsMesh))) {
-        return false;
-    }
-
-    return true;
+    return Physbuzz::ResourceRegistry<Physbuzz::PhysicsMesh>::insert(name, std::move(physicsMesh));
 }

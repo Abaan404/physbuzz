@@ -5,6 +5,7 @@
 #include "../defines.hpp"
 #include "../memory.hpp"
 #include "sampler.hpp"
+#include <variant>
 
 namespace Physbuzz {
 

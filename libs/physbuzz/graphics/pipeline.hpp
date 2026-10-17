@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../resources/resource.hpp"
+#include "../resources/registry.hpp"
 #include "defines.hpp"
+#include "layout.hpp"
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_set>
@@ -9,7 +10,6 @@
 
 namespace Physbuzz {
 
-class DescriptorLayout;
 class VertexDescription;
 struct RenderContext;
 

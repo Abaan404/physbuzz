@@ -5,30 +5,21 @@
 
 namespace Physbuzz {
 
-namespace Builtin {
-
-namespace PipelineIrradiance {
-
-struct Specialization {
-    std::uint32_t isCubemap;
-};
-
-inline Resource<DescriptorLayout> ResourceLayout = {"builtin/irradiance"};
-
-inline Resource<ComputePipeline> Resource = {"builtin/irradiance"};
-
-bool build();
-
-} // namespace PipelineIrradiance
-
-} // namespace Builtin
-
 class IrradianceCompute {
   public:
-    constexpr static RenderNodeID Output = "builtin/irradiance";
+    inline static RenderNodeID Output = "builtin/irradiance";
 
     struct Info {
-        Resource<Texture> environmentMap = {""};
+        Resource<Texture> environmentMap;
+    };
+
+    struct Resources {
+        struct Specialization {
+            std::uint32_t isCubemap;
+        };
+
+        Resource<DescriptorLayout> layout;
+        Resource<ComputePipeline> pipeline;
     };
 
     IrradianceCompute(const Info &info);
@@ -43,12 +34,15 @@ class IrradianceCompute {
 
   private:
     Info m_Info;
+    Resources m_Resources;
+
+    Resource<Texture> m_IrradianceMap;
 
     RenderGraph m_Graph = {{
         .output = Output,
     }};
 
-    Resource<Texture> m_Resource = std::format("{}/irradiance", m_Info.environmentMap);
+    bool buildResources();
 };
 
 } // namespace Physbuzz

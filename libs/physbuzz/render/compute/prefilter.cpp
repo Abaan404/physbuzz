@@ -4,100 +4,29 @@
 #include "../../graphics/layout.hpp"
 #include "../../graphics/material.hpp"
 #include "../../graphics/pipeline.hpp"
+#include <format>
 #include <tracy/Tracy.hpp>
 
 namespace Physbuzz {
-
-namespace Builtin {
-
-bool PipelinePrefilter::build(const std::uint32_t &maxMipLevels) {
-    if (ResourceRegistry<ComputePipeline>::contains(Resource)) {
-        return true;
-    }
-
-    bool success = true;
-
-    if (!ResourceRegistry<DescriptorLayout>::contains(ResourceLayout)) {
-        success &= ResourceRegistry<DescriptorLayout>::insert(
-            ResourceLayout,
-            {{
-                .bindings = {
-                    {
-                        // environment map (cubemap)
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
-                        .stage = DescriptorLayout::ShaderStageFlags::eCompute,
-                    },
-                    {
-                        // environment map (equirectangular)
-                        .type = DescriptorLayout::Type::eCombinedImageSampler,
-                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
-                        .stage = DescriptorLayout::ShaderStageFlags::eCompute,
-                    },
-                    {
-                        // prefilter map
-                        .type = DescriptorLayout::Type::eStorageImage,
-                        .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
-                        .stage = DescriptorLayout::ShaderStageFlags::eCompute,
-                        .count = maxMipLevels,
-                    },
-                },
-                .lifetime = DescriptorLayout::Lifetime::Global,
-            }});
-    }
-
-    success &= ResourceRegistry<ComputePipeline>::insert(
-        Resource,
-        {
-            {
-                .module = "builtin/compute/prefilter",
-                .specialization = {
-                    .offsets = {
-                        offsetof(Specialization, isCubemap),
-                    },
-                    .size = sizeof(Specialization),
-                },
-            },
-            {
-                .layouts = {
-                    .resources = {
-                        ResourceLayout,
-                    },
-                    .pushConstantRanges = {
-                        {
-                            .stageFlags = GraphicsPipeline::PushConstantsStageFlags::eAll,
-                            .size = sizeof(PushConstants),
-                        },
-                    },
-                },
-            },
-        });
-
-    return success;
-}
-
-} // namespace Builtin
 
 PrefilterCompute::PrefilterCompute(const Info &info)
     : m_Info(info) {}
 
 bool PrefilterCompute::build() {
-    // build pipeline
-
     std::uint32_t maxMipLevels = m_Info.environmentMap->getData().image.getImageFormatProperties().maxMipLevels;
 
-    if (!Builtin::PipelinePrefilter::build(maxMipLevels)) {
+    if (!buildResources(maxMipLevels)) {
         Logger::ERROR("[PrefilterCompute] Could not build prefilter pipeline.");
         return false;
     }
 
     bool success = true;
 
-    Builtin::PipelinePrefilter::Specialization specialization = {
+    Resources::Specialization specialization = {
         .isCubemap = m_Info.environmentMap->getInfo().type == Texture::Type::Cube,
     };
 
-    success &= Builtin::PipelinePrefilter::Resource->specialize(specialization);
+    success &= m_Resources.pipeline->specialize(specialization);
 
     std::vector<Image::SubresourceRange> subresourceRanges;
     std::vector<Image::ViewInfo> additionalViews;
@@ -120,8 +49,8 @@ bool PrefilterCompute::build() {
         });
     }
 
-    success &= ResourceRegistry<Texture>::insert(
-        m_Resource,
+    auto resource = ResourceRegistry<Texture>::insert(
+        std::format("{}/prefilter", m_Info.environmentMap.getName()),
         {{
             .type = Texture::Type::Dim2D,
             .usage = Texture::Usage::Storage,
@@ -130,6 +59,12 @@ bool PrefilterCompute::build() {
             .additionalViews = additionalViews,
         }},
         resolution);
+
+    if (!resource) {
+        return false;
+    }
+
+    m_PrefilterMap = std::move(*resource);
 
     m_Graph.add(
         Output,
@@ -148,7 +83,7 @@ bool PrefilterCompute::build() {
                         },
                     }},
                     .output = {{
-                        m_Resource,
+                        m_PrefilterMap,
                         {
                             .stage = RenderNode::Stage::Compute,
                             .subresourceRanges = subresourceRanges,
@@ -162,18 +97,18 @@ bool PrefilterCompute::build() {
 
                 std::lock_guard<std::mutex> lock(ResourceRegistry<ComputePipeline>::ReloadMutex);
 
-                Builtin::PipelinePrefilter::Resource->bind(context);
-                App::LayoutAllocator.bind(context, Builtin::PipelinePrefilter::Resource);
+                m_Resources.pipeline->bind(context);
+                App::LayoutAllocator.bind(context, m_Resources.pipeline);
 
                 glm::ivec2 mipResolution = m_Info.environmentMap->getSize();
 
                 for (std::uint32_t mipLevel = 0; mipLevel < mipLevels; mipLevel++) {
-                    Builtin::PipelinePrefilter::PushConstants pushConstants = {
+                    Resources::PushConstants pushConstants = {
                         .mipLevel = mipLevel,
                         .roughness = static_cast<float>(mipLevel) / static_cast<float>(mipLevels - 1),
                     };
 
-                    Builtin::PipelinePrefilter::Resource->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
+                    m_Resources.pipeline->updatePushConstants(context, GraphicsPipeline::PushConstantsStageFlags::eAll, std::as_bytes(std::span(&pushConstants, 1)), 0);
 
                     // to constexpr the ceil (TODO cpp23 makes ceil constexpr)
                     std::uint32_t groupSize = 8;
@@ -194,7 +129,7 @@ bool PrefilterCompute::build() {
     if (success) {
         if (specialization.isCubemap) {
             success &= App::LayoutAllocator.write(
-                Builtin::PipelinePrefilter::ResourceLayout,
+                m_Resources.layout,
                 m_Info.environmentMap,
                 {
                     .type = Image::ViewType::eCube,
@@ -207,7 +142,7 @@ bool PrefilterCompute::build() {
                 0);
         } else {
             success &= App::LayoutAllocator.write(
-                Builtin::PipelinePrefilter::ResourceLayout,
+                m_Resources.layout,
                 m_Info.environmentMap,
                 {
                     .type = Image::ViewType::e2D,
@@ -223,8 +158,8 @@ bool PrefilterCompute::build() {
         // write each mip level view into the descriptor array
         for (std::uint32_t mipLevel = 0; mipLevel < mipLevels; mipLevel++) {
             success &= App::LayoutAllocator.write(
-                Builtin::PipelinePrefilter::ResourceLayout,
-                m_Resource,
+                m_Resources.layout,
+                m_PrefilterMap,
                 Image::ViewInfo{
                     .type = Image::ViewType::e2D,
                     .subresourceRange = {
@@ -242,8 +177,6 @@ bool PrefilterCompute::build() {
 }
 
 bool PrefilterCompute::destroy() {
-    ResourceRegistry<Texture>::erase(m_Resource);
-
     return true;
 }
 
@@ -252,11 +185,82 @@ const RenderGraph &PrefilterCompute::getGraph() const {
 }
 
 const Resource<Texture> &PrefilterCompute::getPrefilterMap() const {
-    return m_Resource;
+    return m_PrefilterMap;
 }
 
 const PrefilterCompute::Info &PrefilterCompute::getInfo() const {
     return m_Info;
+}
+
+bool PrefilterCompute::buildResources(const std::uint32_t &maxMipLevels) {
+    auto layout = ResourceRegistry<DescriptorLayout>::insert(
+        "builtin/prefilter",
+        {{
+            .bindings = {
+                {
+                    // environment map (cubemap)
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
+                    .stage = DescriptorLayout::ShaderStageFlags::eCompute,
+                },
+                {
+                    // environment map (equirectangular)
+                    .type = DescriptorLayout::Type::eCombinedImageSampler,
+                    .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
+                    .stage = DescriptorLayout::ShaderStageFlags::eCompute,
+                },
+                {
+                    // prefilter map
+                    .type = DescriptorLayout::Type::eStorageImage,
+                    .flags = DescriptorLayout::DescriptorBindingFlags::ePartiallyBound,
+                    .stage = DescriptorLayout::ShaderStageFlags::eCompute,
+                    .count = maxMipLevels,
+                },
+            },
+            .lifetime = DescriptorLayout::Lifetime::Global,
+        }});
+
+    if (!layout) {
+        return false;
+    }
+
+    auto pipeline = ResourceRegistry<ComputePipeline>::insert(
+        "builtin/prefilter",
+        {
+            {
+                .module = "builtin/compute/prefilter",
+                .specialization = {
+                    .offsets = {
+                        offsetof(Resources::Specialization, isCubemap),
+                    },
+                    .size = sizeof(Resources::Specialization),
+                },
+            },
+            {
+                .layouts = {
+                    .resources = {
+                        *layout,
+                    },
+                    .pushConstantRanges = {
+                        {
+                            .stageFlags = GraphicsPipeline::PushConstantsStageFlags::eAll,
+                            .size = sizeof(Resources::PushConstants),
+                        },
+                    },
+                },
+            },
+        });
+
+    if (!pipeline) {
+        return false;
+    }
+
+    m_Resources = {
+        .layout = std::move(*layout),
+        .pipeline = std::move(*pipeline),
+    };
+
+    return true;
 }
 
 } // namespace Physbuzz

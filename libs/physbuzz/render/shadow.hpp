@@ -2,60 +2,14 @@
 
 #include "../ecs/system.hpp"
 #include "../graphics/pipeline.hpp"
+#include "../resources/registry.hpp"
 #include "batch.hpp"
 #include "compute/culling.hpp"
 #include "defines.hpp"
+#include "resources.hpp"
+#include <optional>
 
 namespace Physbuzz {
-
-namespace Builtin {
-
-namespace PipelineShadow {
-
-struct Vertex {
-    glm::vec3 position;
-
-    static VertexDescription Description;
-};
-
-namespace Directional {
-
-struct PushConstants {
-    std::uint32_t objectCount;
-    std::uint32_t cameraId;
-};
-
-inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/directional"};
-
-inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/shadow/directional/frame"};
-
-inline Resource<GraphicsPipeline> Resource = {"builtin/shadow/directional"};
-
-bool build(const glm::uvec2 &resolution);
-
-} // namespace Directional
-
-namespace Point {
-
-struct PushConstants {
-    std::uint32_t objectCount;
-    std::uint32_t cameraId;
-    std::uint32_t faceId;
-};
-
-inline Resource<Attachment> ResourceAttachment = {"builtin/shadow/point"};
-
-inline Resource<DescriptorLayout> ResourceLayoutFrame = {"builtin/shadow/point/frame"};
-
-inline Resource<GraphicsPipeline> Resource = {"builtin/shadow/point"};
-
-bool build(const glm::uvec2 &resolution);
-
-} // namespace Point
-
-} // namespace PipelineShadow
-
-} // namespace Builtin
 
 struct ShadowComponent {
     Model model;
@@ -66,35 +20,68 @@ class ShadowRenderer : public System<ShadowComponent, TransformComponent> {
     inline static RenderNodeID OutputDirectional = "builtin/shadow/directional";
     constexpr static RenderNodeID OutputPoint = "builtin/shadow/point";
 
+    struct Vertex {
+        glm::vec3 position;
+
+        static VertexDescription Description;
+    };
+
     struct Info {
         glm::uvec2 resolution = {1024, 1024};
     };
 
+    struct Resources {
+        struct Directional {
+            struct PushConstants {
+                std::uint32_t objectCount;
+                std::uint32_t cameraId;
+            };
+
+            Resource<Attachment> attachment;
+            Resource<DescriptorLayout> layout;
+            Resource<GraphicsPipeline> pipeline;
+        } directional;
+
+        struct Point {
+            struct PushConstants {
+                std::uint32_t objectCount;
+                std::uint32_t cameraId;
+                std::uint32_t faceId;
+            };
+
+            Resource<Attachment> attachment;
+            Resource<DescriptorLayout> layout;
+            Resource<GraphicsPipeline> pipeline;
+        } point;
+    };
+
     ShadowRenderer(Scene *scene, const Info &info);
 
-    bool build();
-    bool destroy();
+    bool build() override;
+    bool destroy() override;
 
     void tick();
 
     const RenderBatch &getBatch() const;
     const RenderGraph &getGraph() const;
+    const Resources &getResources() const;
 
     const Info &getInfo() const;
 
   private:
     Info m_Info;
 
+    Resources m_Resources;
     std::vector<Renderable> m_Renderables;
 
     RenderBatch m_Batch = {{
-        .resourceIdPrefix = "builtin/shadow/",
+        .resourceNamePrefix = "builtin/shadow/batch/",
     }};
 
     FrustumCulling m_Culling = {{
         .batch = m_Batch,
         .nodeIdPrefix = "builtin/shadow/culling/",
-        .resourceIdPrefix = "builtin/shadow/culling/",
+        .resourceNamePrefix = "builtin/shadow/culling/",
     }};
 
     RenderGraph m_Graph = {{}};
@@ -115,6 +102,11 @@ class ShadowRenderer : public System<ShadowComponent, TransformComponent> {
             EventID remove = -1;
         } spot;
     } m_Events;
+
+    bool buildResources();
+
+    static std::optional<Resources::Directional> buildDirectionalResources(const glm::uvec2 &resolution);
+    static std::optional<Resources::Point> buildPointResources(const glm::uvec2 &resolution);
 };
 
 } // namespace Physbuzz

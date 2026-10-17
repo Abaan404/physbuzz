@@ -14,24 +14,6 @@
 
 namespace Physbuzz {
 
-namespace Builtin {
-
-bool RenderPipelineImGui::build() {
-    bool success = true;
-
-    if (!ResourceRegistry<Sampler>::contains(ResourceSampler)) {
-        success &= ResourceRegistry<Sampler>::insert(
-            ResourceSampler,
-            {{
-                .type = Physbuzz::Sampler::Type::Linear,
-            }});
-    }
-
-    return success;
-}
-
-} // namespace Builtin
-
 ImGuiRenderer::ImGuiRenderer(Scene *scene, const Info &info)
     : System<>(scene),
       m_Info(info) {}
@@ -39,11 +21,6 @@ ImGuiRenderer::ImGuiRenderer(Scene *scene, const Info &info)
 bool ImGuiRenderer::build() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-
-    if (!Builtin::RenderPipelineImGui::build()) {
-        Logger::ERROR("[ImGuiRenderer] Could not build ImGui resources.");
-        return false;
-    }
 
     if (!ImGui_ImplGlfw_InitForVulkan(*m_Info.window, true)) {
         Logger::ERROR("[ImGuiRenderer] Could not initialize ImGui with GLFW.");
@@ -80,6 +57,18 @@ bool ImGuiRenderer::build() {
         Logger::ERROR("[ImGuiRenderer] Could not initialize ImGui with Vulkan.");
         return false;
     }
+
+    auto sampler = ResourceRegistry<Sampler>::insert(
+        "builtin/imgui/sampler",
+        {{
+            .type = Physbuzz::Sampler::Type::Linear,
+        }});
+
+    if (!sampler) {
+        return false;
+    }
+
+    m_Sampler = std::move(*sampler);
 
     m_Graph.add(
         Output,
@@ -231,7 +220,7 @@ std::optional<ImTextureID> ImGuiRenderer::getTexture(const Resource<Attachment> 
 }
 
 ImTextureID ImGuiRenderer::createTexture(const Resource<Texture> &texture, const vk::ImageView &view) {
-    vk::Sampler sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
+    vk::Sampler sampler = m_Sampler->getData().sampler;
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
     switch (texture->getInfo().type) {
@@ -250,7 +239,7 @@ ImTextureID ImGuiRenderer::createTexture(const Resource<Texture> &texture, const
 }
 
 ImTextureID ImGuiRenderer::createTexture(const Resource<Attachment> &attachment, const vk::ImageView &view) {
-    vk::Sampler sampler = Builtin::RenderPipelineImGui::ResourceSampler->getData().sampler;
+    vk::Sampler sampler = m_Sampler->getData().sampler;
     vk::ImageLayout imageLayout = vk::ImageLayout::eUndefined;
 
     switch (attachment->getInfo().usage) {

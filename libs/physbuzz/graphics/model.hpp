@@ -1,14 +1,13 @@
 #pragma once
 
-#include "../resources/resource.hpp"
+#include "../resources/registry.hpp"
 #include "descriptors/texture.hpp"
+#include "material.hpp"
 #include "mesh.hpp"
 #include <assimp/scene.h>
 #include <filesystem>
 
 namespace Physbuzz {
-
-class Material;
 
 enum class TextureType {
     Albedo,

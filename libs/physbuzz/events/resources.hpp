@@ -5,15 +5,15 @@
 namespace Physbuzz {
 
 struct OnResourceBuild {
-    const ResourceID &identifier;
+    const ResourceID id;
 };
 
 struct OnResourceDestroy {
-    const ResourceID &identifier;
+    const ResourceID id;
 };
 
 struct OnResourceReload {
-    const ResourceID &identifier;
+    const ResourceID id;
 };
 
 } // namespace Physbuzz
