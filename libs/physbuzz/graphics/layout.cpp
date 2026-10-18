@@ -96,6 +96,7 @@ bool DescriptorLayoutAllocator::destroy() {
         return false;
     }
 
+    // drop callbacks
     for (const auto &[attachment, entry] : m_WrittenAttachments) {
         for (const auto &[_, writeInfo] : entry.layouts) {
             attachment->eraseCallback<OnAttachmentRebuild>(writeInfo.rebuild);
@@ -116,12 +117,19 @@ bool DescriptorLayoutAllocator::destroy() {
 
     std::unordered_map<Resource<DescriptorLayout>, Allocation> allocatedLayouts = m_AllocatedLayouts;
 
+    // deallocate descriptor sets
     for (auto [layout, _] : allocatedLayouts) {
         deallocate(layout);
     }
 
     m_AllocatedLayouts.clear();
 
+    // drop refs
+    m_WrittenAttachments.clear();
+    m_WrittenTextures.clear();
+    m_WrittenBuffers.clear();
+
+    // drop pools
     App::Device.destroyDescriptorPool(m_CurrentPool);
     m_CurrentPool = nullptr;
 
@@ -175,7 +183,7 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
         buffer->eraseCallback<OnDynamicBufferRebuild>(entry.layouts.at(layout).rebuild);
     }
 
-    entry.layouts.insert({
+    entry.layouts.insert_or_assign<WriteInfo>(
         layout,
         {
             .rebuild = buffer->addCallback<OnDynamicBufferRebuild>([this, layout, buffer](const OnDynamicBufferRebuild &event) {
@@ -184,8 +192,7 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
             }),
             .binding = binding,
             .element = element,
-        },
-    });
+        });
 
     if (!m_AllocatedLayouts.contains(layout)) {
         allocate(layout);
@@ -275,7 +282,7 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
         texture->eraseCallback<OnTextureRebuild>(entry.layouts.at(layout).rebuild);
     }
 
-    entry.layouts.insert({
+    entry.layouts.insert_or_assign<WriteInfo>(
         layout,
         {
             .rebuild = texture->addCallback<OnTextureRebuild>([this, layout, texture, viewInfo](const OnTextureRebuild &event) {
@@ -284,8 +291,7 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
             }),
             .binding = binding,
             .element = element,
-        },
-    });
+        });
 
     vk::DescriptorImageInfo imageInfo = {
         .sampler = texture->getInfo().sampler.getData().sampler,
@@ -356,7 +362,7 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
         attachment->eraseCallback<OnAttachmentRebuild>(entry.layouts.at(layout).rebuild);
     }
 
-    entry.layouts.insert({
+    entry.layouts.insert_or_assign<WriteInfo>(
         layout,
         {
             .rebuild = attachment->addCallback<OnAttachmentRebuild>([this, layout, viewInfo, attachment](const OnAttachmentRebuild &event) {
@@ -365,8 +371,7 @@ bool DescriptorLayoutAllocator::write(const Resource<DescriptorLayout> &layout, 
             }),
             .binding = binding,
             .element = element,
-        },
-    });
+        });
 
     const std::array<Attachment::Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = attachment->getRingData();
     std::array<vk::DescriptorImageInfo, detail::MAX_FRAMES_IN_FLIGHT> imageInfos;

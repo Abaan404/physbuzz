@@ -357,15 +357,7 @@ bool App::quit() {
     Tracy = nullptr;
 #endif
 
-    // cleanup vulkan resources
-    ResourceRegistry<GraphicsPipeline>::clear();
-    ResourceRegistry<ComputePipeline>::clear();
-    ResourceRegistry<DescriptorLayout>::clear();
-    ResourceRegistry<DynamicBuffer>::clear();
-    ResourceRegistry<Texture>::clear();
-    ResourceRegistry<Attachment>::clear();
-    ResourceRegistry<Sampler>::clear();
-    ResourceRegistry<Mesh>::clear();
+    // release resources that hold references to other resources manually
     ResourceRegistry<Material>::clear();
 
     vmaDestroyAllocator(Allocator);
