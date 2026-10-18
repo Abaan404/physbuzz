@@ -5,7 +5,6 @@
 #include "../defines.hpp"
 #include "../memory.hpp"
 #include "sampler.hpp"
-#include <variant>
 
 namespace Physbuzz {
 
@@ -53,7 +52,7 @@ class Attachment : public EventSubject {
   private:
     Info m_Info;
 
-    std::variant<std::monostate, std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>> m_RingData;
+    std::optional<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>> m_RingData;
 };
 
 template <>

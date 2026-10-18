@@ -8,10 +8,10 @@
 namespace Physbuzz {
 
 Attachment::Attachment(const Info &info)
-    : m_Info(info), m_RingData(std::monostate()) {}
+    : m_Info(info) {}
 
 bool Attachment::build(const glm::uvec2 &resolution) {
-    if (!std::holds_alternative<std::monostate>(m_RingData)) {
+    if (m_RingData) {
         Logger::WARNING("[Attachment] Trying to build a constructed attachment.");
         return true;
     }
@@ -86,7 +86,7 @@ bool Attachment::build(const glm::uvec2 &resolution) {
 }
 
 bool Attachment::destroy() {
-    if (std::holds_alternative<std::monostate>(m_RingData)) {
+    if (!m_RingData) {
         Logger::WARNING("[Attachment] Trying to destroy a destructed attachment.");
         return true;
     }
@@ -96,22 +96,22 @@ bool Attachment::destroy() {
         return false;
     }
 
-    std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
+    std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = *m_RingData;
 
     bool success = true;
-    for (auto &data : ringData) {
+    for (auto &data : *m_RingData) {
         success &= data.image.destroy();
     }
 
     if (success) {
-        m_RingData = std::monostate();
+        m_RingData = std::nullopt;
     }
 
     return success;
 }
 
 bool Attachment::rebuild(const RenderContext &context, const glm::uvec2 &size) {
-    Data &data = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData)[context.frameInFlight];
+    Data &data = (*m_RingData)[context.frameInFlight];
 
     Image image = data.image.getInfo();
 
@@ -141,8 +141,8 @@ const Attachment::Info &Attachment::getInfo() const {
 }
 
 const std::array<Attachment::Data, detail::MAX_FRAMES_IN_FLIGHT> &Attachment::getRingData() const {
-    PBZ_ASSERT(!std::holds_alternative<std::monostate>(m_RingData), "[Attachment] Image has not been allocated.");
-    return std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
+    PBZ_ASSERT(m_RingData, "[Attachment] Image has not been allocated.");
+    return *m_RingData;
 }
 
 glm::uvec2 Attachment::getSize(std::uint32_t frameInFlight) const {

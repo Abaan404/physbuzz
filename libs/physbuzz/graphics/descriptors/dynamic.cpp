@@ -7,10 +7,10 @@
 namespace Physbuzz {
 
 DynamicBuffer::DynamicBuffer(const Info &info)
-    : m_Info(info), m_RingData(std::monostate()) {}
+    : m_Info(info) {}
 
 bool DynamicBuffer::build(std::uint64_t size) {
-    if (!std::holds_alternative<std::monostate>(m_RingData)) {
+    if (m_RingData) {
         Logger::WARNING("[DynamicBuffer] Trying to build a constructed dynamic buffer.");
         return true;
     }
@@ -67,27 +67,25 @@ bool DynamicBuffer::build(std::uint64_t size) {
 }
 
 bool DynamicBuffer::destroy() {
-    if (std::holds_alternative<std::monostate>(m_RingData)) {
+    if (!m_RingData) {
         Logger::WARNING("[DynamicBuffer] Trying to destroy a destructed dynamic buffer.");
         return true;
     }
 
-    std::array<Data, detail::MAX_FRAMES_IN_FLIGHT> &ringData = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
-
     bool success = true;
-    for (auto &data : ringData) {
+    for (auto &data : *m_RingData) {
         success &= data.buffer.destroy();
     }
 
     if (success) {
-        m_RingData = std::monostate();
+        m_RingData = std::nullopt;
     }
 
     return success;
 }
 
 bool DynamicBuffer::rebuild(const RenderContext &context, std::uint64_t size) {
-    Data &data = std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData)[context.frameInFlight];
+    Data &data = (*m_RingData)[context.frameInFlight];
 
     data.buffer.rebuild(*context.deletionQueue, size);
 
@@ -104,7 +102,7 @@ bool DynamicBuffer::update(const RenderContext &context, const std::span<const s
 
     std::uint64_t requiredSize = offset + bytes.size();
 
-    PBZ_ASSERT(!std::holds_alternative<std::monostate>(m_RingData), "[DynamicBuffer] Buffer has not been allocated.");
+    PBZ_ASSERT(m_RingData, "[DynamicBuffer] Buffer has not been allocated.");
 
     PBZ_ASSERT(
         requiredSize <= getSize(context.frameInFlight),
@@ -119,8 +117,8 @@ const DynamicBuffer::Info &DynamicBuffer::getInfo() const {
 }
 
 const std::array<DynamicBuffer::Data, detail::MAX_FRAMES_IN_FLIGHT> &DynamicBuffer::getRingData() const {
-    PBZ_ASSERT(!std::holds_alternative<std::monostate>(m_RingData), "[DynamicBuffer] Buffer has not been allocated.");
-    return std::get<std::array<Data, detail::MAX_FRAMES_IN_FLIGHT>>(m_RingData);
+    PBZ_ASSERT(m_RingData, "[DynamicBuffer] Buffer has not been allocated.");
+    return *m_RingData;
 }
 
 std::size_t DynamicBuffer::getSize(std::uint32_t frameInFlight) const {
