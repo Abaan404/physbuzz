@@ -75,39 +75,41 @@ FSOutput fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) {
 
     float3 normal = coarseVertex.normal;
 
-    Material *boundMaterial = (Material *)(pc.materialBaseAddress + object.materialIdx * Material.STRIDE);
-
     float metallic = 1.0f;
     float roughness = 1.0f;
     float3 albedo = float3(1.0f);
 
-    if (boundMaterial.albedoTextureId != -1) {
-        albedo *= textures[boundMaterial.albedoTextureId].Sample(coarseVertex.texCoord0).rgb;
+    if (object.materialIdx != -1) {
+        Material *boundMaterial = (Material *)(pc.materialBaseAddress + object.materialIdx * Material.STRIDE);
+
+        if (boundMaterial.albedoTextureId != -1) {
+            albedo *= textures[boundMaterial.albedoTextureId].Sample(coarseVertex.texCoord0).rgb;
+        }
+
+        if (boundMaterial.roughnessTextureId != -1) {
+            roughness *= textures[boundMaterial.roughnessTextureId].Sample(coarseVertex.texCoord0).g;
+        }
+
+        if (boundMaterial.metallicTextureId != -1) {
+            metallic *= textures[boundMaterial.metallicTextureId].Sample(coarseVertex.texCoord0).b;
+        }
+
+        if (boundMaterial.normalTextureId != -1) {
+            float3x3 TBN = {
+                coarseVertex.tangent,
+                coarseVertex.bitangent,
+                coarseVertex.normal,
+            };
+
+            normal = textures[boundMaterial.normalTextureId].Sample(coarseVertex.texCoord0).rgb;
+            normal = normal * 2.0 - 1.0;
+            normal = normalize(mul(normal, TBN));
+        }
+
+        metallic *= boundMaterial.metallicFactor;
+        roughness *= boundMaterial.roughnessFactor;
+        albedo *= boundMaterial.albedoFactor;
     }
-
-    if (boundMaterial.roughnessTextureId != -1) {
-        roughness *= textures[boundMaterial.roughnessTextureId].Sample(coarseVertex.texCoord0).g;
-    }
-
-    if (boundMaterial.metallicTextureId != -1) {
-        metallic *= textures[boundMaterial.metallicTextureId].Sample(coarseVertex.texCoord0).b;
-    }
-
-    if (boundMaterial.normalTextureId != -1) {
-        float3x3 TBN = {
-            coarseVertex.tangent,
-            coarseVertex.bitangent,
-            coarseVertex.normal,
-        };
-
-        normal = textures[boundMaterial.normalTextureId].Sample(coarseVertex.texCoord0).rgb;
-        normal = normal * 2.0 - 1.0;
-        normal = normalize(mul(normal, TBN));
-    }
-
-    metallic *= boundMaterial.metallicFactor;
-    roughness *= boundMaterial.roughnessFactor;
-    albedo *= boundMaterial.albedoFactor;
 
     output.position = { coarseVertex.position, 1.0f };
     output.normal = { normal, roughness };

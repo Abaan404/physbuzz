@@ -9,9 +9,11 @@ public float2 directionToUV(float3 direction) {
 
     float3 dir = normalize(direction);
 
+    float azimuth = length(dir.xz) < 1e-4 ? 0.0 : atan2(dir.z, dir.x);
+
     float2 uv = {
-        atan2(dir.z, dir.x),
-        asin(dir.y)
+        azimuth,
+        asin(clamp(dir.y, -1.0, 1.0))
     };
 
     return uv * invAtan + 0.5;

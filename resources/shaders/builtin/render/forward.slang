@@ -107,42 +107,45 @@ float4 fragMain(CoarseVertex coarseVertex: COARSE_VERTEX) : SV_TARGET {
         coarseVertex.normal,
     };
 
-    Material *boundMaterial = (Material *)(pc.materialBaseAddress + object.materialIdx * Material.STRIDE);
-
     float metallic = 1.0f;
     float roughness = 1.0f;
     float ambientOcclusion = 1.0f;
     float3 irradiance = 1.0f;
     float4 albedo = float4(1.0f);
 
-    if (boundMaterial.albedoTextureId != -1) {
-        albedo *= textures[boundMaterial.albedoTextureId].Sample(coarseVertex.texCoord0);
-    }
+    if (object.materialIdx != -1) {
+        Material *boundMaterial = (Material *)(pc.materialBaseAddress + object.materialIdx * Material.STRIDE);
 
-    if (boundMaterial.roughnessTextureId != -1) {
-        roughness *= textures[boundMaterial.roughnessTextureId].Sample(coarseVertex.texCoord0).g;
-    }
+        if (boundMaterial.albedoTextureId != -1) {
+            albedo *= textures[boundMaterial.albedoTextureId].Sample(coarseVertex.texCoord0);
+        }
 
-    if (boundMaterial.metallicTextureId != -1) {
-        metallic *= textures[boundMaterial.metallicTextureId].Sample(coarseVertex.texCoord0).b;
-    }
+        if (boundMaterial.roughnessTextureId != -1) {
+            roughness *= textures[boundMaterial.roughnessTextureId].Sample(coarseVertex.texCoord0).g;
+        }
 
-    if (boundMaterial.normalTextureId != -1) {
-        float3x3 TBN = {
-            coarseVertex.tangent,
-            coarseVertex.bitangent,
-            coarseVertex.normal,
-        };
+        if (boundMaterial.metallicTextureId != -1) {
+            metallic *= textures[boundMaterial.metallicTextureId].Sample(coarseVertex.texCoord0).b;
+        }
 
-        geometry.normal = textures[boundMaterial.normalTextureId].Sample(coarseVertex.texCoord0).rgb;
-        geometry.normal = geometry.normal * 2.0 - 1.0;
-        geometry.normal = normalize(mul(geometry.normal, TBN));
+        if (boundMaterial.normalTextureId != -1) {
+            float3x3 TBN = {
+                coarseVertex.tangent,
+                coarseVertex.bitangent,
+                coarseVertex.normal,
+            };
+
+            geometry.normal = textures[boundMaterial.normalTextureId].Sample(coarseVertex.texCoord0).rgb;
+            geometry.normal = geometry.normal * 2.0 - 1.0;
+            geometry.normal = normalize(mul(geometry.normal, TBN));
+        }
+
+        metallic *= boundMaterial.metallicFactor;
+        roughness *= boundMaterial.roughnessFactor;
+        albedo *= float4(boundMaterial.albedoFactor.rgb, 1.0f);
     }
 
     irradiance *= irradianceMap.Sample(directionToUV(normalize(geometry.normal))).rgb;
-    metallic *= boundMaterial.metallicFactor;
-    roughness *= boundMaterial.roughnessFactor;
-    albedo *= float4(boundMaterial.albedoFactor.rgb, 1.0f);
 
     float3 viewDirection = normalize(camera.position - geometry.position);
     float3 R = reflect(-viewDirection, geometry.normal);
